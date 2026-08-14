@@ -366,10 +366,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>FSO Engine</span>
             </div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">v1.0.34</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">v1.0.37</span>
           </>
         ) : (
-          <span className="w-2 h-2 rounded-full bg-emerald-500 mx-auto" title="FSO Engine Online v1.0.34" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 mx-auto" title="FSO Engine Online v1.0.37" />
         )}
       </div>
     </aside>

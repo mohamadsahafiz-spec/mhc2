@@ -28,6 +28,7 @@ import {
 } from '../../types/temperature';
 import { TemperatureEngine } from '../../utils/temperatureEngine';
 import { TempRawStore } from '../../utils/tempRawStore';
+import { StorageService } from '../../utils/persistence';
 import { TemperatureGraph, GraphPreset } from '../common/TemperatureGraph';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -229,6 +230,10 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     };
 
     onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
+
     delete tempDraftCache[machine.id];
     setSelectedFiles([]);
     setAnalysisResult(null);
@@ -239,10 +244,15 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     if (!confirm('Are you sure you want to delete this temperature record?')) return;
     TempRawStore.deleteRawRecords(recordId);
     const updatedRecords = (machine.temperatureRecords || []).filter((r) => r.id !== recordId);
-    onUpdateMachine({
+    const updatedMachine: Machine = {
       ...machine,
       temperatureRecords: updatedRecords
-    });
+    };
+    onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
+
     if (selectedRecordForDetail?.id === recordId) {
       setSelectedRecordForDetail(null);
     }
@@ -265,10 +275,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     };
 
     const updatedReadings = [newReading, ...(machine.manualTemperatureReadings || [])];
-    onUpdateMachine({
+    const updatedMachine: Machine = {
       ...machine,
       manualTemperatureReadings: updatedReadings
-    });
+    };
+    onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
 
     setIsManualModalOpen(false);
     setManualNote('');
@@ -276,10 +290,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
 
   const handleDeleteManualReading = (id: string) => {
     const updatedReadings = (machine.manualTemperatureReadings || []).filter((r) => r.id !== id);
-    onUpdateMachine({
+    const updatedMachine: Machine = {
       ...machine,
       manualTemperatureReadings: updatedReadings
-    });
+    };
+    onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
   };
 
   const savedRecords = machine.temperatureRecords || [];
@@ -885,7 +903,16 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               height={320}
             />
 
-            <div className="flex justify-end pt-2">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => handleDeleteSavedRecord(selectedRecordForDetail.id)}
+                className="text-xs flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Record
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedRecordForDetail(null)}>
                 Close
               </Button>

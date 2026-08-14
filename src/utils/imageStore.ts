@@ -133,6 +133,7 @@ export const ImageStore = {
   // Synchronously offload image payloads into memory cache & enqueue IDB persistence
   extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = ''): T {
     if (!data) return data;
+    if (data instanceof Date) return data;
 
     if (typeof data === 'string') {
       if (data.startsWith('data:image/') || data.startsWith('data:application/') || (data.startsWith('<svg') && data.length > 50)) {
@@ -163,6 +164,7 @@ export const ImageStore = {
   // Hydrate object replacing "idb:..." with actual base64/SVG strings
   hydrateImagesSync<T>(data: T): T {
     if (!data) return data;
+    if (data instanceof Date) return data;
 
     if (typeof data === 'string') {
       if (data.startsWith('idb:')) {

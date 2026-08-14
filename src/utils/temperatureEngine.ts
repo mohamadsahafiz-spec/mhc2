@@ -193,15 +193,9 @@ export const TemperatureEngine = {
   /**
    * Downsamples a channel point array to maxPoints using Min-Max bucket sampling to preserve peaks & valleys.
    */
-  downsamplePoints(pts: Array<{ ts: Date | string; val: number }>, maxPoints: number = 1500): Array<{ ts: Date; val: number }> {
-    if (!pts) return [];
-    const toDatePt = (p: { ts: Date | string; val: number }): { ts: Date; val: number } => ({
-      ts: p.ts instanceof Date ? p.ts : new Date(p.ts),
-      val: p.val
-    });
-    if (pts.length <= maxPoints) {
-      return pts.map(toDatePt);
-    }
+  downsamplePoints(pts: Array<{ ts: Date; val: number }>, maxPoints: number = 1500): Array<{ ts: Date; val: number }> {
+    if (!pts || !pts.length) return [];
+    if (pts.length <= maxPoints) return pts;
     const total = pts.length;
     const factor = Math.ceil(total / maxPoints);
     const result: Array<{ ts: Date; val: number }> = [];
@@ -226,11 +220,11 @@ export const TemperatureEngine = {
       }
 
       if (minIdx <= maxIdx) {
-        result.push(toDatePt(minPt));
-        if (minIdx !== maxIdx) result.push(toDatePt(maxPt));
+        result.push(minPt);
+        if (minIdx !== maxIdx) result.push(maxPt);
       } else {
-        result.push(toDatePt(maxPt));
-        if (minIdx !== maxIdx) result.push(toDatePt(minPt));
+        result.push(maxPt);
+        if (minIdx !== maxIdx) result.push(minPt);
       }
     }
 

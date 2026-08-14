@@ -179,22 +179,56 @@ function sanitizeMachine(m: Machine): Machine {
     };
 
     if (cleanedRec.channelData && typeof cleanedRec.channelData === 'object') {
-      const downsampledMap: Record<number, Array<{ ts: Date; val: number }>> = {};
-      let modified = false;
+      const rehydratedMap: Record<number, Array<{ ts: Date; val: number }>> = {};
       Object.entries(cleanedRec.channelData).forEach(([chStr, pts]) => {
         const ch = parseInt(chStr, 10);
-        if (Array.isArray(pts)) {
-          if (pts.length > 1500) {
-            downsampledMap[ch] = TemperatureEngine.downsamplePoints(pts, 1500);
-            modified = true;
-          } else {
-            downsampledMap[ch] = pts;
-          }
+        if (!isNaN(ch) && Array.isArray(pts)) {
+          const datePts: Array<{ ts: Date; val: number }> = pts.map((p: any) => {
+            const rawTs = p?.ts ?? p?.x ?? p?.timestamp ?? p?.time ?? p?.date ?? (Array.isArray(p) ? p[0] : p);
+            let tsDate: Date;
+            if (rawTs instanceof Date) {
+              tsDate = rawTs;
+            } else if (typeof rawTs === 'number') {
+              tsDate = new Date(rawTs < 1e11 ? rawTs * 1000 : rawTs);
+            } else if (typeof rawTs === 'string') {
+              const trimmed = rawTs.trim();
+              if (/^\d+(\.\d+)?$/.test(trimmed)) {
+                const num = Number(trimmed);
+                tsDate = new Date(num < 1e11 ? num * 1000 : num);
+              } else {
+                const normalized = trimmed.includes(' ') && !trimmed.includes('T')
+                  ? trimmed.replace(' ', 'T')
+                  : trimmed;
+                tsDate = new Date(normalized);
+              }
+            } else {
+              tsDate = new Date();
+            }
+
+            const valNum = typeof p?.val === 'number'
+              ? p.val
+              : typeof p?.y === 'number'
+              ? p.y
+              : typeof p?.value === 'number'
+              ? p.value
+              : typeof p?.temp === 'number'
+              ? p.temp
+              : typeof p?.temperature === 'number'
+              ? p.temperature
+              : Number(p?.val ?? 0);
+
+            return {
+              ts: isNaN(tsDate.getTime()) ? new Date() : tsDate,
+              val: isNaN(valNum) ? 0 : valNum
+            };
+          });
+
+          rehydratedMap[ch] = datePts.length > 1500
+            ? TemperatureEngine.downsamplePoints(datePts, 1500)
+            : datePts;
         }
       });
-      if (modified) {
-        cleanedRec.channelData = downsampledMap;
-      }
+      cleanedRec.channelData = rehydratedMap;
     }
 
     return cleanedRec;

@@ -66,15 +66,53 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
       return { chartData: [], minVal: 0, maxVal: 50 };
     }
 
-    // Fast helper to parse time string / Date to ms timestamp
-    const getMs = (p: { ts: Date | string }): number => {
-      if (typeof p.ts === 'number') return p.ts;
-      if (p.ts instanceof Date) return p.ts.getTime();
-      return new Date(p.ts).getTime();
+    // Fast helper to parse time string / Date / number to ms timestamp
+    const getMs = (p: any): number => {
+      if (!p) return NaN;
+      const raw = p.ts ?? p.x ?? p.timestamp ?? p.time ?? p.date ?? p.t ?? (Array.isArray(p) ? p[0] : p);
+      if (typeof raw === 'number') {
+        return raw < 1e11 ? raw * 1000 : raw;
+      }
+      if (raw instanceof Date) {
+        return raw.getTime();
+      }
+      if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (!trimmed) return NaN;
+        if (/^\d+(\.\d+)?$/.test(trimmed)) {
+          const num = Number(trimmed);
+          return num < 1e11 ? num * 1000 : num;
+        }
+        const normalized = trimmed.includes(' ') && !trimmed.includes('T')
+          ? trimmed.replace(' ', 'T')
+          : trimmed;
+        const parsed = new Date(normalized).getTime();
+        if (!isNaN(parsed)) return parsed;
+        if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+          const today = new Date().toISOString().slice(0, 10);
+          const timeParsed = new Date(`${today}T${trimmed}`).getTime();
+          if (!isNaN(timeParsed)) return timeParsed;
+        }
+      }
+      return NaN;
+    };
+
+    const getVal = (p: any): number => {
+      if (!p) return 0;
+      if (typeof p.val === 'number') return p.val;
+      if (typeof p.y === 'number') return p.y;
+      if (typeof p.value === 'number') return p.value;
+      if (typeof p.temp === 'number') return p.temp;
+      if (typeof p.temperature === 'number') return p.temperature;
+      if (Array.isArray(p) && typeof p[1] === 'number') return p[1];
+      const num = Number(p.val ?? p.y ?? p.value ?? p.temp ?? p.temperature ?? (typeof p === 'number' ? p : 0));
+      return isNaN(num) ? 0 : num;
     };
 
     const formatTime = (tsMs: number): string => {
+      if (isNaN(tsMs)) return '--:--:--';
       const d = new Date(tsMs);
+      if (isNaN(d.getTime())) return '--:--:--';
       const h = d.getHours();
       const m = d.getMinutes();
       const s = d.getSeconds();
@@ -85,7 +123,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
     const channelDisplayData: Record<number, Array<{ tsMs: number; timeStr: string; val: number }>> = {};
 
     activeChannels.forEach((ch) => {
-      const rawPts = channelData[ch];
+      const rawPts = (channelData as any)[ch] || (channelData as any)[`CH${ch}`];
       if (!rawPts || rawPts.length === 0) return;
 
       const total = rawPts.length;
@@ -98,9 +136,11 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
         for (let i = 0; i < total; i++) {
           const p = rawPts[i];
           const tsMs = getMs(p);
-          sampled.push({ tsMs, timeStr: formatTime(tsMs), val: p.val });
-          if (p.val < globalMin) globalMin = p.val;
-          if (p.val > globalMax) globalMax = p.val;
+          if (isNaN(tsMs)) continue;
+          const val = getVal(p);
+          sampled.push({ tsMs, timeStr: formatTime(tsMs), val });
+          if (val < globalMin) globalMin = val;
+          if (val > globalMax) globalMax = val;
         }
       } else {
         // Min-Max bucket sampling to preserve peak/dip spikes & trend
@@ -113,32 +153,43 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
 
           for (let j = i + 1; j < end; j++) {
             const cur = rawPts[j];
-            if (cur.val < minPt.val) {
+            const curVal = getVal(cur);
+            if (curVal < getVal(minPt)) {
               minPt = cur;
               minIdx = j;
             }
-            if (cur.val > maxPt.val) {
+            if (curVal > getVal(maxPt)) {
               maxPt = cur;
               maxIdx = j;
             }
           }
 
-          if (minPt.val < globalMin) globalMin = minPt.val;
-          if (maxPt.val > globalMax) globalMax = maxPt.val;
+          const minValFound = getVal(minPt);
+          const maxValFound = getVal(maxPt);
+          if (minValFound < globalMin) globalMin = minValFound;
+          if (maxValFound > globalMax) globalMax = maxValFound;
 
           if (minIdx <= maxIdx) {
             const minMs = getMs(minPt);
-            sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minPt.val });
+            if (!isNaN(minMs)) {
+              sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minValFound });
+            }
             if (minIdx !== maxIdx) {
               const maxMs = getMs(maxPt);
-              sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxPt.val });
+              if (!isNaN(maxMs)) {
+                sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxValFound });
+              }
             }
           } else {
             const maxMs = getMs(maxPt);
-            sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxPt.val });
+            if (!isNaN(maxMs)) {
+              sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxValFound });
+            }
             if (minIdx !== maxIdx) {
               const minMs = getMs(minPt);
-              sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minPt.val });
+              if (!isNaN(minMs)) {
+                sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minValFound });
+              }
             }
           }
         }
@@ -156,6 +207,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
 
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
+        if (isNaN(p.tsMs)) continue;
         let rec = timeMap.get(p.tsMs);
         if (!rec) {
           rec = { timeKey: p.tsMs, timeStr: p.timeStr };

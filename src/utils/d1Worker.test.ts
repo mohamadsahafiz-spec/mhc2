@@ -1,7 +1,15 @@
 /* =====================================================
    D1 WORKER AUTHORITATIVE PERSISTENCE TESTS (d1Worker.test.ts)
    ===================================================== */
+import { describe, it, expect } from 'vitest';
 import worker from '../worker';
+
+describe('D1Worker', () => {
+  it('passes all persistence tests', async () => {
+    const res = await runD1WorkerTests();
+    expect(res.success).toBe(true);
+  });
+});
 
 interface MockD1Row {
   key: string;

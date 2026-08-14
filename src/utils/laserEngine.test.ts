@@ -1,7 +1,15 @@
 /* =====================================================
    LASER ENGINE PARITY TESTS (laserEngine.test.ts)
    ===================================================== */
+import { describe, it, expect } from 'vitest';
 import { LaserEngine, formatLifeRemainingPercent, MachineDomain } from './laserEngine';
+
+describe('LaserEngine', () => {
+  it('passes all parity assertions', () => {
+    const res = runLaserEngineParityTests();
+    expect(res.success).toBe(true);
+  });
+});
 
 export function runLaserEngineParityTests(): { success: boolean; log: string[] } {
   const log: string[] = [];

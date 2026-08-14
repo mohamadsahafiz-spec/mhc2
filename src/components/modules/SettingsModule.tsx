@@ -15,6 +15,40 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.0.37',
+      date: '2026-08-14',
+      type: 'Authoritative Temperature Inspection Deletion & Persistence Sync',
+      highlights: [
+        'SYNCHRONOUS STORAGE PERSISTENCE: Bound StorageService.saveMachines directly to Temperature Workspace record deletion and creation handlers, guaranteeing immediate disk & cloud sync.',
+        'ISOLATED RECORD PURGING: Deleting a temperature inspection record cleanly purges cached raw telemetry in IndexedDB and updates machine passport history without affecting sibling records.',
+        'PERMANENT RELOAD RETENTION: Verified deleted records remain permanently removed across page reloads and browser restarts with zero data regression.',
+        'PROTECTED ARCHITECTURAL BOUNDARY: Preserved all temperature graphing, downsampling, MHC computations, and customer identity architectures untouched.'
+      ]
+    },
+    {
+      version: 'v1.0.36',
+      date: '2026-08-14',
+      type: 'Saved Temperature Record Delete Action',
+      highlights: [
+        'SAVED RECORD DELETION: Enabled seamless deletion of selected saved temperature records directly from both the inspection history list and the detail graph modal view.',
+        'PERSISTENCE SYNCHRONIZATION: Removing a temperature inspection record immediately updates machine passport state and purges associated telemetry from persistent storage.',
+        'RELOAD RESILIENCY: Verified deleted temperature records remain permanently deleted across application reloads while preserving remaining inspection records and fleet data.',
+        'PROTECTED ARCHITECTURE: Retained exact temperature parsing, aggregation, downsampling, graph rendering, and multi-channel integrity without modification.'
+      ]
+    },
+    {
+      version: 'v1.0.35',
+      date: '2026-08-14',
+      type: 'Saved Temperature Inspection Graph NaN Fix',
+      highlights: [
+        'TIMESTAMP REHYDRATION ENGINE: Resolved graph rendering defect where persisted temperature inspection records produced NaN timestamps and collapsed time-series.',
+        'FULL-CYCLE DATE SERIALIZATION: Rehydrates ISO strings, epoch milliseconds, and space-separated datetime formats into valid Date timestamps across save, persistence, and reload cycles.',
+        'ROBUST GRAPH COORDINATES: TemperatureGraph accurately converts all serialized channel timestamps into clean HH:mm:ss X-axis labels and tooltips.',
+        'STATISTICAL & CHANNEL INTEGRITY: Preserved exact MIN, MAX, AVG, and RANGE metrics and multi-channel downsampled profiles without data loss.',
+        'BACKWARD COMPATIBILITY: Fix immediately restores both existing persisted records and newly saved temperature inspections.'
+      ]
+    },
+    {
       version: 'v1.0.34',
       date: '2026-08-14',
       type: 'Recommended Parts Interactive Column Sorting',
