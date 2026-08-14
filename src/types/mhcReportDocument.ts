@@ -279,6 +279,10 @@ export interface MhcReportAgcData {
       yUm: number | null;
       verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     }>;
+    xMinUm?: number;
+    xMaxUm?: number;
+    yMinUm?: number;
+    yMaxUm?: number;
     maxAbsXUm?: number;
     maxAbsYUm?: number;
     overallMaxDevUm?: number;

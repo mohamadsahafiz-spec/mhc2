@@ -129,6 +129,30 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
     return parsedIndices.some(idx => idx.isOut);
   }, [parsedIndices]);
 
+  const xMin = useMemo(() => {
+    const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => idx.xUm!);
+    if (validXs.length === 0) return null;
+    return Math.min(...validXs);
+  }, [parsedIndices]);
+
+  const xMax = useMemo(() => {
+    const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => idx.xUm!);
+    if (validXs.length === 0) return null;
+    return Math.max(...validXs);
+  }, [parsedIndices]);
+
+  const yMin = useMemo(() => {
+    const validYs = parsedIndices.filter(idx => idx.isYValid).map(idx => idx.yUm!);
+    if (validYs.length === 0) return null;
+    return Math.min(...validYs);
+  }, [parsedIndices]);
+
+  const yMax = useMemo(() => {
+    const validYs = parsedIndices.filter(idx => idx.isYValid).map(idx => idx.yUm!);
+    if (validYs.length === 0) return null;
+    return Math.max(...validYs);
+  }, [parsedIndices]);
+
   const maxAbsX = useMemo(() => {
     const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => Math.abs(idx.xUm!));
     if (validXs.length === 0) return null;
@@ -215,6 +239,10 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       agcId: activeAgcId,
       agcName,
       indices: indexItems,
+      xMinUm: xMin ?? undefined,
+      xMaxUm: xMax ?? undefined,
+      yMinUm: yMin ?? undefined,
+      yMaxUm: yMax ?? undefined,
       maxAbsXUm: maxAbsX ?? undefined,
       maxAbsYUm: maxAbsY ?? undefined,
       overallMaxDevUm: overallMaxDev ?? undefined,
@@ -261,7 +289,6 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
         if (showNotification) {
           showNotification('AGC 1 & AGC 2 Calibration PASS! Advanced to Day 3 Temperature & Evidence.');
         }
-        onCompleteActivity();
       } else {
         if (showNotification) {
           showNotification(`${agcName} Calibration PASS recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
@@ -287,6 +314,12 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> OUT OF SPEC</span>;
     }
     return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">IN PROGRESS</span>;
+  };
+
+  const formatSignedUm = (val: number | null | undefined): string => {
+    if (val === null || val === undefined) return '—';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}${val.toFixed(2)} µm`;
   };
 
   return (
@@ -495,8 +528,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
             }`}>
               {maxAbsX !== null ? `${maxAbsX.toFixed(2)} µm` : '—'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              {maxAbsX !== null ? (maxAbsX <= SPEC_TOLERANCE_UM ? '✓ ≤ 3.0 µm' : '⚠ Exceeds Limit') : 'Awaiting inputs'}
+            <div className="text-[10px] text-slate-400 mt-1 font-mono flex items-center justify-between">
+              <span>{maxAbsX !== null ? (maxAbsX <= SPEC_TOLERANCE_UM ? '✓ ≤ 3.0 µm' : '⚠ Exceeds Limit') : 'Awaiting inputs'}</span>
+              {xMin !== null && xMax !== null && (
+                <span className="text-[10px] text-cyan-400">[{formatSignedUm(xMin)}, {formatSignedUm(xMax)}]</span>
+              )}
             </div>
           </div>
 
@@ -518,8 +554,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
             }`}>
               {maxAbsY !== null ? `${maxAbsY.toFixed(2)} µm` : '—'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              {maxAbsY !== null ? (maxAbsY <= SPEC_TOLERANCE_UM ? '✓ ≤ 3.0 µm' : '⚠ Exceeds Limit') : 'Awaiting inputs'}
+            <div className="text-[10px] text-slate-400 mt-1 font-mono flex items-center justify-between">
+              <span>{maxAbsY !== null ? (maxAbsY <= SPEC_TOLERANCE_UM ? '✓ ≤ 3.0 µm' : '⚠ Exceeds Limit') : 'Awaiting inputs'}</span>
+              {yMin !== null && yMax !== null && (
+                <span className="text-[10px] text-cyan-400">[{formatSignedUm(yMin)}, {formatSignedUm(yMax)}]</span>
+              )}
             </div>
           </div>
 
@@ -542,7 +581,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
               {overallMaxDev !== null ? `${overallMaxDev.toFixed(2)} µm` : '—'}
             </div>
             <div className="text-[10px] text-slate-400 mt-1 font-mono">
-              Across Indices 0–5
+              Across Indices 0–5 (±3.0 µm Limit)
             </div>
           </div>
 
@@ -578,6 +617,36 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
             <div className="text-[10px] text-slate-400 mt-1">
               {liveVerdict === 'PASS' ? 'Ready to confirm' : liveVerdict === 'OUT_OF_SPEC' ? 'Scanner issue flagged' : 'Enter all 12 values'}
             </div>
+          </div>
+        </div>
+
+        {/* Signed Engineering Telemetry Matrix */}
+        <div className={`p-3 rounded-xl border grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono ${
+          isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div>
+            <span className="text-[10px] text-slate-400 block uppercase font-sans">X Min (Signed)</span>
+            <strong className={`text-sm ${xMin !== null && Math.abs(xMin) > SPEC_TOLERANCE_UM ? 'text-rose-400' : isDark ? 'text-cyan-300' : 'text-cyan-800'}`}>
+              {formatSignedUm(xMin)}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 block uppercase font-sans">X Max (Signed)</span>
+            <strong className={`text-sm ${xMax !== null && Math.abs(xMax) > SPEC_TOLERANCE_UM ? 'text-rose-400' : isDark ? 'text-cyan-300' : 'text-cyan-800'}`}>
+              {formatSignedUm(xMax)}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 block uppercase font-sans">Y Min (Signed)</span>
+            <strong className={`text-sm ${yMin !== null && Math.abs(yMin) > SPEC_TOLERANCE_UM ? 'text-rose-400' : isDark ? 'text-cyan-300' : 'text-cyan-800'}`}>
+              {formatSignedUm(yMin)}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 block uppercase font-sans">Y Max (Signed)</span>
+            <strong className={`text-sm ${yMax !== null && Math.abs(yMax) > SPEC_TOLERANCE_UM ? 'text-rose-400' : isDark ? 'text-cyan-300' : 'text-cyan-800'}`}>
+              {formatSignedUm(yMax)}
+            </strong>
           </div>
         </div>
 

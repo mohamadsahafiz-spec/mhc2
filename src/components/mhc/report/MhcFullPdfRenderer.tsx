@@ -782,8 +782,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <thead>
                       <tr className="border-b border-slate-200 text-[10px] text-slate-400">
                         <th className="py-1 font-sans">AGC UNIT</th>
-                        <th className="py-1">INDICES PASSED</th>
-                        <th className="py-1">MAX DEV (µm)</th>
+                        <th className="py-1">INDICES</th>
+                        <th className="py-1">X RANGE (µm)</th>
+                        <th className="py-1">Y RANGE (µm)</th>
+                        <th className="py-1">MAX DEV</th>
                         <th className="py-1 text-right font-sans">VERDICT</th>
                       </tr>
                     </thead>
@@ -792,6 +794,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <tr key={agc.agcId}>
                           <td className="py-2 font-bold font-sans text-slate-800">{agc.agcName}</td>
                           <td className="py-2">{agc.indices.filter(i => i.verdict === 'PASS').length} / {agc.indices.length || 6}</td>
+                          <td className="py-2 text-[11px]">
+                            {agc.xMinUm !== undefined && agc.xMaxUm !== undefined
+                              ? `[${agc.xMinUm > 0 ? `+${agc.xMinUm.toFixed(2)}` : agc.xMinUm.toFixed(2)}, ${agc.xMaxUm > 0 ? `+${agc.xMaxUm.toFixed(2)}` : agc.xMaxUm.toFixed(2)}]`
+                              : '—'}
+                          </td>
+                          <td className="py-2 text-[11px]">
+                            {agc.yMinUm !== undefined && agc.yMaxUm !== undefined
+                              ? `[${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)}, ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)}]`
+                              : '—'}
+                          </td>
                           <td className="py-2 font-bold text-cyan-800">{agc.overallMaxDevUm !== undefined ? `${agc.overallMaxDevUm.toFixed(2)} µm` : '—'}</td>
                           <td className="py-2 text-right">{renderStatusBadge(agc.verdict)}</td>
                         </tr>

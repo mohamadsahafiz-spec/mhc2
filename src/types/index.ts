@@ -712,6 +712,10 @@ export interface MHCAgcResult {
   agcId: string; // 'agc1' | 'agc2'
   agcName: string; // 'AGC 1' | 'AGC 2'
   indices: MHCAgcIndexItem[];
+  xMinUm?: number;
+  xMaxUm?: number;
+  yMinUm?: number;
+  yMaxUm?: number;
   maxAbsXUm?: number;
   maxAbsYUm?: number;
   overallMaxDevUm?: number;

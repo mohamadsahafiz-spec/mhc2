@@ -451,9 +451,6 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         showNotification(`⚠ Laser Power Record saved with ${allFailingPoints.length} out-of-spec point(s) (NEEDS REVIEW) & Journey Rail advanced.`);
       }
     }
-
-    // Trigger Autopilot Journey completion
-    onCompleteActivity();
   };
 
   return (

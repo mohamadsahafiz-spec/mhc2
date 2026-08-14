@@ -16,6 +16,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.4',
+      date: '2026-08-14',
+      type: 'Laser Power Data Integrity & AGC Signed Telemetry Release',
+      highlights: [
+        'LASER POWER PERSISTENCE INTEGRITY: Eliminated redundant completion dispatch clobbering in MhcLaserPowerActivity, ensuring all 16 Laser Head 1 & Laser Head 2 engineering measurements, out-of-spec findings, and review states persist authoritatively across workspace navigation and reloads.',
+        'AGC SIGNED TELEMETRY EXPANSION: Extended MHCAgcResult and MhcAgcActivity to calculate, persist, and display signed xMinUm, xMaxUm, yMinUm, and yMaxUm alongside max absolute deviations across Indices 0–5.',
+        'REPORT & DASHBOARD INTEGRATION: Integrated AGC signed range telemetry into real-time activity dashboards, executive PDF summary tables, and authoritative cleanroom session storage.'
+      ]
+    },
+    {
       version: 'v1.1.3',
       date: '2026-08-14',
       type: 'Autopilot Laser Power Progression & Review State Fix',

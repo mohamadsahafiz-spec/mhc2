@@ -141,4 +141,70 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
     expect(head1Audit?.isBlocker).toBe(true);
     expect(head1Audit?.detail).toContain('Out of Spec');
   });
+
+  it('4. Preserves all laser power measurements and state when session is saved', () => {
+    const rawRecordA = LaserPowerEngine.evaluateRecord(nominalDraftRecord);
+    const rawRecordB = LaserPowerEngine.evaluateRecord(nominalDraftRecord);
+
+    const laserPowerRecordA = {
+      laserId: 'lh1',
+      laserIdentifier: 'Laser Head 1',
+      ratedPowerWatts: 250,
+      referenceValueWatts: 15.0,
+      beforeValueWatts: 15.0,
+      afterValueWatts: 14.8,
+      stabilityPercent: 99.2,
+      result: 'PASS' as const,
+      notes: 'Laser Head 1 Power Check PASS (8/8 points passed)',
+      evidenceImages: [],
+      powerRecord: rawRecordA
+    };
+
+    const laserPowerRecordB = {
+      laserId: 'lh2',
+      laserIdentifier: 'Laser Head 2',
+      ratedPowerWatts: 250,
+      referenceValueWatts: 15.0,
+      beforeValueWatts: 15.2,
+      afterValueWatts: 14.9,
+      stabilityPercent: 99.1,
+      result: 'PASS' as const,
+      notes: 'Laser Head 2 Power Check PASS (8/8 points passed)',
+      evidenceImages: [],
+      powerRecord: rawRecordB
+    };
+
+    const session: Partial<MHCSession> = {
+      id: 'session-persist-test',
+      stage03_laserPower: [laserPowerRecordA, laserPowerRecordB],
+      autopilotProgress: {
+        ...createDefaultAutopilotProgress(),
+        currentActivityCode: '02_power'
+      }
+    };
+
+    let updatedSession = advanceAutopilotActivity(
+      session as MHCSession,
+      '02_power',
+      'COMPLETED',
+      'Laser Head 1 Power Checked'
+    );
+
+    updatedSession = advanceAutopilotActivity(
+      updatedSession,
+      '03_power',
+      'COMPLETED',
+      'Laser Head 2 Power Checked'
+    );
+
+    // Verify stage03_laserPower is intact and populated with both heads
+    expect(updatedSession.stage03_laserPower).toBeDefined();
+    expect(updatedSession.stage03_laserPower?.length).toBe(2);
+    expect(updatedSession.stage03_laserPower?.[0].laserIdentifier).toBe('Laser Head 1');
+    expect(updatedSession.stage03_laserPower?.[0].result).toBe('PASS');
+    expect(updatedSession.stage03_laserPower?.[0].powerRecord).toBeDefined();
+    expect(updatedSession.stage03_laserPower?.[1].laserIdentifier).toBe('Laser Head 2');
+    expect(updatedSession.stage03_laserPower?.[1].result).toBe('PASS');
+    expect(updatedSession.stage03_laserPower?.[1].powerRecord).toBeDefined();
+  });
 });
