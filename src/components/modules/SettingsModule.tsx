@@ -15,6 +15,18 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.0.34',
+      date: '2026-08-14',
+      type: 'Recommended Parts Interactive Column Sorting',
+      highlights: [
+        'COLUMN SORTING ENGINE: Enabled multi-field interactive sorting across all columns (Machine Family, Part Number, Part Name, Quantity, Price, Life Span, Lead Time, and Criticality).',
+        'BI-DIRECTIONAL TOGGLES: Clicking any column header toggles between ascending and descending sort orders with distinct directional indicators.',
+        'DEFAULT SORT ORDER: Standardized initial table view to Part Number natural alphanumeric sorting (A→Z).',
+        'COMPOSABLE FILTERING: Sorting operates seamlessly alongside real-time search queries, category filters, and BMD302W/BMD250WM machine family segregation.',
+        'PRESERVED INTEGRITY: Retained 100% of CRUD operations, structured CSV/JSON import, duplicate detection, and zero-state data compliance.'
+      ]
+    },
+    {
       version: 'v1.0.33',
       date: '2026-08-14',
       type: 'Recommended Parts Structured Import',

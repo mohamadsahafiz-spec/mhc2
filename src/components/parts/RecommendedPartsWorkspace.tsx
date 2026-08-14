@@ -21,7 +21,11 @@ import {
   ChevronRight, 
   ExternalLink, 
   RotateCcw,
-  Upload
+  Upload,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  SlidersHorizontal
 } from 'lucide-react';
 import { RecommendedPart, MachineFamily } from '../../types/parts';
 import { StorageService } from '../../utils/persistence';
@@ -64,7 +68,146 @@ export const RecommendedPartsWorkspace: React.FC<RecommendedPartsWorkspaceProps>
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-  // 3. Modals & Actions state
+  // Helper to parse approximate duration for sorting
+  const parseDurationHours = (val?: string): number => {
+    if (!val) return 0;
+    const cleaned = val.trim().toLowerCase();
+    const numMatch = cleaned.match(/(\d+(?:\.\d+)?)/);
+    if (!numMatch) return 0;
+    const num = parseFloat(numMatch[1]);
+    if (cleaned.includes('year') || cleaned.includes('yr')) return num * 365 * 24;
+    if (cleaned.includes('month') || cleaned.includes('mo')) return num * 30 * 24;
+    if (cleaned.includes('week') || cleaned.includes('wk')) return num * 7 * 24;
+    if (cleaned.includes('day') || cleaned.includes('d')) return num * 24;
+    if (cleaned.includes('hour') || cleaned.includes('hr') || cleaned.includes('h')) return num;
+    return num;
+  };
+
+  // 3. Sorting state
+  type SortField = 
+    | 'partNumber' 
+    | 'partName' 
+    | 'machineFamily' 
+    | 'isCritical' 
+    | 'quantityPerMachine' 
+    | 'recommendedLifeSpan' 
+    | 'leadTime' 
+    | 'price';
+  type SortDirection = 'asc' | 'desc';
+
+  const [sortField, setSortField] = useState<SortField>('partNumber');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Combined sort key for dropdown
+  const currentSortKey = `${sortField}_${sortDirection}`;
+
+  const handleSelectSort = (key: string) => {
+    switch (key) {
+      case 'partNumber_asc':
+        setSortField('partNumber');
+        setSortDirection('asc');
+        break;
+      case 'partNumber_desc':
+        setSortField('partNumber');
+        setSortDirection('desc');
+        break;
+      case 'price_asc':
+        setSortField('price');
+        setSortDirection('asc');
+        break;
+      case 'price_desc':
+        setSortField('price');
+        setSortDirection('desc');
+        break;
+      case 'quantity_asc':
+        setSortField('quantityPerMachine');
+        setSortDirection('asc');
+        break;
+      case 'quantity_desc':
+        setSortField('quantityPerMachine');
+        setSortDirection('desc');
+        break;
+      case 'leadTime_asc':
+        setSortField('leadTime');
+        setSortDirection('asc');
+        break;
+      case 'leadTime_desc':
+        setSortField('leadTime');
+        setSortDirection('desc');
+        break;
+      case 'lifeSpan_asc':
+        setSortField('recommendedLifeSpan');
+        setSortDirection('asc');
+        break;
+      case 'lifeSpan_desc':
+        setSortField('recommendedLifeSpan');
+        setSortDirection('desc');
+        break;
+      case 'critical_desc':
+        setSortField('isCritical');
+        setSortDirection('desc');
+        break;
+      case 'critical_asc':
+        setSortField('isCritical');
+        setSortDirection('asc');
+        break;
+      case 'machineFamily_asc':
+        setSortField('machineFamily');
+        setSortDirection('asc');
+        break;
+      case 'machineFamily_desc':
+        setSortField('machineFamily');
+        setSortDirection('desc');
+        break;
+      case 'partName_asc':
+        setSortField('partName');
+        setSortDirection('asc');
+        break;
+      case 'partName_desc':
+        setSortField('partName');
+        setSortDirection('desc');
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Preset Views Handler
+  const applyPresetView = (preset: 'expensive' | 'leadTime' | 'lifeSpan' | 'quantity' | 'critical') => {
+    switch (preset) {
+      case 'expensive':
+        setSortField('price');
+        setSortDirection('desc');
+        break;
+      case 'leadTime':
+        setSortField('leadTime');
+        setSortDirection('desc');
+        break;
+      case 'lifeSpan':
+        setSortField('recommendedLifeSpan');
+        setSortDirection('asc');
+        break;
+      case 'quantity':
+        setSortField('quantityPerMachine');
+        setSortDirection('desc');
+        break;
+      case 'critical':
+        setSortField('isCritical');
+        setSortDirection('desc');
+        break;
+    }
+  };
+
+  // 4. Modals & Actions state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingPart, setEditingPart] = useState<RecommendedPart | null>(null);
@@ -119,6 +262,57 @@ export const RecommendedPartsWorkspace: React.FC<RecommendedPartsWorkspaceProps>
       return true;
     });
   }, [parts, familyFilter, criticalFilter, selectedCategory, searchQuery]);
+
+  // Sorted and Filtered Parts
+  const sortedAndFilteredParts = useMemo(() => {
+    const list = [...filteredParts];
+    list.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'partNumber':
+          comparison = a.partNumber.localeCompare(b.partNumber, undefined, { numeric: true, sensitivity: 'base' });
+          break;
+        case 'partName':
+          comparison = a.partName.localeCompare(b.partName, undefined, { sensitivity: 'base' });
+          break;
+        case 'machineFamily':
+          comparison = a.machineFamily.localeCompare(b.machineFamily, undefined, { sensitivity: 'base' });
+          break;
+        case 'isCritical':
+          // Critical boolean sort: true vs false
+          comparison = (a.isCritical === b.isCritical ? 0 : a.isCritical ? 1 : -1);
+          break;
+        case 'quantityPerMachine':
+          comparison = (a.quantityPerMachine ?? 0) - (b.quantityPerMachine ?? 0);
+          break;
+        case 'recommendedLifeSpan': {
+          const hoursA = parseDurationHours(a.recommendedLifeSpan);
+          const hoursB = parseDurationHours(b.recommendedLifeSpan);
+          if (hoursA > 0 && hoursB > 0) {
+            comparison = hoursA - hoursB;
+          } else {
+            comparison = (a.recommendedLifeSpan || '').localeCompare(b.recommendedLifeSpan || '', undefined, { numeric: true, sensitivity: 'base' });
+          }
+          break;
+        }
+        case 'leadTime': {
+          const hoursA = parseDurationHours(a.leadTime);
+          const hoursB = parseDurationHours(b.leadTime);
+          if (hoursA > 0 && hoursB > 0) {
+            comparison = hoursA - hoursB;
+          } else {
+            comparison = (a.leadTime || '').localeCompare(b.leadTime || '', undefined, { numeric: true, sensitivity: 'base' });
+          }
+          break;
+        }
+        case 'price':
+          comparison = (a.price ?? 0) - (b.price ?? 0);
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [filteredParts, sortField, sortDirection]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -432,6 +626,127 @@ export const RecommendedPartsWorkspace: React.FC<RecommendedPartsWorkspaceProps>
         </Card>
       ) : (
         <div className="space-y-3">
+          {/* Compact Sort/View Control Bar */}
+          <div className={`p-3 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+            isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            {/* Left: Summary & Preset View Pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mr-1">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Quick Views:</span>
+              </div>
+              
+              {/* Preset 1: Most Expensive */}
+              <button
+                onClick={() => applyPresetView('expensive')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  sortField === 'price' && sortDirection === 'desc'
+                    ? isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm' : 'bg-amber-100 text-amber-900 border border-amber-300 shadow-sm'
+                    : isDark ? 'bg-[#1F242A] text-slate-300 hover:text-white border border-[#2E3640]' : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+                title="Sort by Unit Price (High → Low)"
+              >
+                <span>💰</span>
+                <span>Most Expensive</span>
+              </button>
+
+              {/* Preset 2: Longest Lead Time */}
+              <button
+                onClick={() => applyPresetView('leadTime')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  sortField === 'leadTime' && sortDirection === 'desc'
+                    ? isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm' : 'bg-indigo-100 text-indigo-900 border border-indigo-300 shadow-sm'
+                    : isDark ? 'bg-[#1F242A] text-slate-300 hover:text-white border border-[#2E3640]' : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+                title="Sort by Lead Time (Longest → Shortest)"
+              >
+                <span>⏳</span>
+                <span>Longest Lead Time</span>
+              </button>
+
+              {/* Preset 3: Shortest Life Span */}
+              <button
+                onClick={() => applyPresetView('lifeSpan')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  sortField === 'recommendedLifeSpan' && sortDirection === 'asc'
+                    ? isDark ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'bg-cyan-100 text-cyan-900 border border-cyan-300 shadow-sm'
+                    : isDark ? 'bg-[#1F242A] text-slate-300 hover:text-white border border-[#2E3640]' : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+                title="Sort by Life Span (Shortest → Longest)"
+              >
+                <span>⏱️</span>
+                <span>Shortest Life Span</span>
+              </button>
+
+              {/* Preset 4: Highest Quantity */}
+              <button
+                onClick={() => applyPresetView('quantity')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  sortField === 'quantityPerMachine' && sortDirection === 'desc'
+                    ? isDark ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-sm'
+                    : isDark ? 'bg-[#1F242A] text-slate-300 hover:text-white border border-[#2E3640]' : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+                title="Sort by Quantity (High → Low)"
+              >
+                <span>📦</span>
+                <span>Highest Quantity</span>
+              </button>
+
+              {/* Preset 5: Critical Parts First */}
+              <button
+                onClick={() => applyPresetView('critical')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  sortField === 'isCritical' && sortDirection === 'desc'
+                    ? isDark ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm' : 'bg-rose-100 text-rose-900 border border-rose-300 shadow-sm'
+                    : isDark ? 'bg-[#1F242A] text-slate-300 hover:text-white border border-[#2E3640]' : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+                title="Sort Critical Parts First"
+              >
+                <span>🚨</span>
+                <span>Critical First</span>
+              </button>
+            </div>
+
+            {/* Right: Compact Sort Dropdown selector & Count */}
+            <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+              <span className="text-[11px] text-slate-400 font-mono">
+                Showing <span className="font-semibold text-slate-200">{sortedAndFilteredParts.length}</span> of {parts.length}
+              </span>
+              <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden sm:block" />
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="sort-select" className="text-xs text-slate-400 whitespace-nowrap">Sort by:</label>
+                <select
+                  id="sort-select"
+                  value={currentSortKey}
+                  onChange={(e) => handleSelectSort(e.target.value)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors outline-none cursor-pointer ${
+                    isDark 
+                      ? 'bg-[#1E2227] border-[#2B323A] text-slate-200 focus:border-indigo-500' 
+                      : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500'
+                  }`}
+                >
+                  <option value="partNumber_asc">Part Number: A → Z</option>
+                  <option value="partNumber_desc">Part Number: Z → A</option>
+                  <option value="price_asc">Price: Low → High</option>
+                  <option value="price_desc">Price: High → Low</option>
+                  <option value="quantity_asc">Quantity: Low → High</option>
+                  <option value="quantity_desc">Quantity: High → Low</option>
+                  <option value="leadTime_asc">Lead Time: Shortest → Longest</option>
+                  <option value="leadTime_desc">Lead Time: Longest → Shortest</option>
+                  <option value="lifeSpan_asc">Life Span: Shortest → Longest</option>
+                  <option value="lifeSpan_desc">Life Span: Longest → Shortest</option>
+                  <option value="critical_desc">Critical Parts First</option>
+                  <option value="critical_asc">Non-Critical First</option>
+                  <option value="machineFamily_asc">Machine Family: A → Z</option>
+                  <option value="machineFamily_desc">Machine Family: Z → A</option>
+                  <option value="partName_asc">Part Name: A → Z</option>
+                  <option value="partName_desc">Part Name: Z → A</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Table of Parts */}
           <div className={`overflow-x-auto rounded-2xl border ${
             isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
@@ -441,19 +756,188 @@ export const RecommendedPartsWorkspace: React.FC<RecommendedPartsWorkspaceProps>
                 <tr className={`border-b ${
                   isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                  <th className="py-3 px-4 font-semibold">Part Number</th>
-                  <th className="py-3 px-4 font-semibold">Part Name & Specs</th>
-                  <th className="py-3 px-4 font-semibold">Machine Family</th>
-                  <th className="py-3 px-4 font-semibold">Criticality</th>
-                  <th className="py-3 px-4 font-semibold">Qty / Unit</th>
-                  <th className="py-3 px-4 font-semibold">Life Span</th>
-                  <th className="py-3 px-4 font-semibold">Lead Time</th>
-                  <th className="py-3 px-4 font-semibold text-right">Unit Price</th>
-                  <th className="py-3 px-4 font-semibold text-center">Actions</th>
+                  {/* Part Number */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'partNumber' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('partNumber')}
+                    title="Click to sort by Part Number"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Part Number</span>
+                      <span className={`shrink-0 ${sortField === 'partNumber' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'partNumber' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Part Name & Specs */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'partName' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('partName')}
+                    title="Click to sort by Part Name"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Part Name & Specs</span>
+                      <span className={`shrink-0 ${sortField === 'partName' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'partName' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Machine Family */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'machineFamily' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('machineFamily')}
+                    title="Click to sort by Machine Family"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Machine Family</span>
+                      <span className={`shrink-0 ${sortField === 'machineFamily' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'machineFamily' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Criticality */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'isCritical' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('isCritical')}
+                    title="Click to sort by Criticality"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Criticality</span>
+                      <span className={`shrink-0 ${sortField === 'isCritical' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'isCritical' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Qty / Unit */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'quantityPerMachine' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('quantityPerMachine')}
+                    title="Click to sort by Quantity"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Qty / Unit</span>
+                      <span className={`shrink-0 ${sortField === 'quantityPerMachine' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'quantityPerMachine' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Life Span */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'recommendedLifeSpan' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('recommendedLifeSpan')}
+                    title="Click to sort by Recommended Life Span"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Life Span</span>
+                      <span className={`shrink-0 ${sortField === 'recommendedLifeSpan' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'recommendedLifeSpan' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Lead Time */}
+                  <th 
+                    className={`py-3 px-4 font-semibold cursor-pointer select-none transition-colors ${
+                      sortField === 'leadTime' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('leadTime')}
+                    title="Click to sort by Lead Time"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Lead Time</span>
+                      <span className={`shrink-0 ${sortField === 'leadTime' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'leadTime' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Unit Price */}
+                  <th 
+                    className={`py-3 px-4 font-semibold text-right cursor-pointer select-none transition-colors ${
+                      sortField === 'price' 
+                        ? (isDark ? 'text-indigo-300 bg-indigo-500/10' : 'text-indigo-700 bg-indigo-50')
+                        : (isDark ? 'hover:text-slate-200 hover:bg-slate-800/50' : 'hover:text-slate-900 hover:bg-slate-100')
+                    }`}
+                    onClick={() => handleSort('price')}
+                    title="Click to sort by Unit Price"
+                  >
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>Unit Price</span>
+                      <span className={`shrink-0 ${sortField === 'price' ? 'text-indigo-400' : 'text-slate-400 opacity-40'}`}>
+                        {sortField === 'price' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3" />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+
+                  {/* Actions */}
+                  <th className="py-3 px-4 font-semibold text-center select-none">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-[#2B323A]">
-                {filteredParts.map((part) => {
+                {sortedAndFilteredParts.map((part) => {
                   const isCopied = copiedPartId === part.id;
                   return (
                     <tr 
