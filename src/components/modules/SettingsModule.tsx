@@ -16,6 +16,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.3',
+      date: '2026-08-14',
+      type: 'Autopilot Laser Power Progression & Review State Fix',
+      highlights: [
+        'LASER POWER PROGRESSION UNBLOCKED: Updated progression gate to require completeness (all 16 measurement points entered) rather than all-pass, allowing real out-of-spec/degraded findings to be recorded in MHC cleanroom audits.',
+        'NEEDS_REVIEW INTEGRITY: Maintained strict pass: false and overallResult: FAIL for out-of-spec points with complete diagnostic evidence while advancing the activity state as NEEDS_REVIEW.',
+        'JOURNEY RAIL ADVANCEMENT: Enabled seamless progression to downstream activities (Beam Profile, Findings) with explicit out-of-spec diagnostic summaries retained in completion gates.'
+      ]
+    },
+    {
       version: 'v1.1.2',
       date: '2026-08-14',
       type: 'MHC Autopilot Workflow Blockers Resolution',

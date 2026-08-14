@@ -19,6 +19,7 @@ import {
 import { Machine, MHCSession, MHCLaserPowerItem } from '../../../types';
 import { LaserPowerCheckRecord, MASK_SPECS, MaskSize } from '../../../types/laserPower';
 import { LaserPowerEngine } from '../../../utils/laserPowerEngine';
+import { createDefaultAutopilotProgress } from '../../../utils/mhcAutopilotBrain';
 import { StorageService } from '../../../utils/persistence';
 
 export interface MhcLaserPowerActivityProps {
@@ -339,15 +340,6 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       return;
     }
 
-    if (hasFailures || !isOverallPass) {
-      const firstFail = allFailingPoints[0];
-      const errorMsg = firstFail 
-        ? `⚠ Cannot advance: ${firstFail.headLabel} ${firstFail.pointName} (${firstFail.msg})`
-        : '⚠ Cannot complete: Some measurement points are OUT OF SPEC. Please resolve or correct values.';
-      if (showNotification) showNotification(errorMsg);
-      return;
-    }
-
     // Construct draft record
     const draftRecord: Partial<LaserPowerCheckRecord> = {
       date: new Date().toISOString().split('T')[0],
@@ -383,7 +375,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           passB: evaluatePoint(pIdx, headBValues[pIdx]).isPass,
         };
       }),
-      overallResult: 'PASS'
+      overallResult: isOverallPass ? 'PASS' : 'FAIL'
     };
 
     const evaluatedRecord = LaserPowerEngine.evaluateRecord(draftRecord);
@@ -403,17 +395,35 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         afterValueWatts: vals[1] ?? 14.8,
         stabilityPercent: 99.2,
         result: summary.isAllPass ? 'PASS' : 'FAIL',
-        notes: engineerRemarks || `${lh.name || `Laser Head ${idx + 1}`} Power Check Complete (${summary.passCount}/8 points passed)`,
+        notes: engineerRemarks || `${lh.name || `Laser Head ${idx + 1}`} Power Check ${summary.isAllPass ? 'PASS' : 'OUT OF SPEC'} (${summary.passCount}/8 points passed)`,
         evidenceImages: [],
         powerRecord: evaluatedRecord
       };
     });
 
+    const statusHeadA = evalSummaryA.isAllPass ? 'COMPLETED' : 'NEEDS_REVIEW';
+    const statusHeadB = evalSummaryB.isAllPass ? 'COMPLETED' : 'NEEDS_REVIEW';
+
+    const currentProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+    const activityStatuses = { ...currentProgress.activityStatuses };
+    activityStatuses['02_power'] = statusHeadA;
+    activityStatuses['03_power'] = statusHeadB;
+
+    if (activityStatuses['02_beam'] === 'LOCKED' || activityStatuses['02_beam'] === 'UPCOMING') {
+      activityStatuses['02_beam'] = 'IN_PROGRESS';
+    }
+
     // Update MHCSession
     const updatedSession: MHCSession = {
       ...session,
       stage03_laserPower: updatedStage03Power,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      autopilotProgress: {
+        ...currentProgress,
+        currentActivityCode: '02_beam',
+        activityStatuses,
+        lastActiveTimestamp: new Date().toISOString()
+      }
     };
 
     onUpdateSession(updatedSession);
@@ -435,7 +445,11 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     }
 
     if (showNotification) {
-      showNotification('✓ Authoritative Laser Power Record saved & Journey Rail advanced!');
+      if (isOverallPass) {
+        showNotification('✓ Authoritative Laser Power Record saved (PASS) & Journey Rail advanced!');
+      } else {
+        showNotification(`⚠ Laser Power Record saved with ${allFailingPoints.length} out-of-spec point(s) (NEEDS REVIEW) & Journey Rail advanced.`);
+      }
     }
 
     // Trigger Autopilot Journey completion
@@ -824,12 +838,14 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       <div className={`p-5 rounded-2xl border space-y-4 ${
         isOverallPass
           ? isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
+          : hasFailures && isOverallComplete
+          ? isDark ? 'bg-amber-950/30 border-amber-500/40' : 'bg-amber-50 border-amber-300'
           : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className={`w-5 h-5 ${isOverallPass ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <ShieldCheck className={`w-5 h-5 ${isOverallPass ? 'text-emerald-400' : hasFailures && isOverallComplete ? 'text-amber-400' : 'text-slate-400'}`} />
               <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
                 Laser Power Completion Gate
               </h4>
@@ -837,16 +853,16 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
             <p className="text-xs text-slate-400">
               {isOverallPass 
                 ? 'All 16 measurement points satisfy specifications. Ready to record authoritative session data and advance Journey Rail.' 
-                : hasFailures
-                ? 'Out-of-spec measurement points detected. Please correct or re-measure failing points before completing.'
-                : 'Please complete all 16 measurement points for Laser Head 1 and Laser Head 2.'}
+                : hasFailures && isOverallComplete
+                ? 'Out-of-spec measurement point(s) recorded. Activity will advance as NEEDS REVIEW with full diagnostic evidence preserved.'
+                : 'Please complete all 16 measurement points for Laser Head 1 and Laser Head 2 to advance.'}
             </p>
           </div>
 
           <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
-            <span>PASSED POINTS:</span>
-            <span className={isOverallPass ? 'text-emerald-400 font-extrabold' : 'text-amber-400'}>
-              {evalSummaryA.passCount + evalSummaryB.passCount} / 16
+            <span>MEASUREMENT STATUS:</span>
+            <span className={isOverallPass ? 'text-emerald-400 font-extrabold' : hasFailures ? 'text-rose-400 font-extrabold' : 'text-amber-400'}>
+              {evalSummaryA.passCount + evalSummaryB.passCount} / 16 PASSED {hasFailures && `(${evalSummaryA.failCount + evalSummaryB.failCount} FAIL)`}
             </span>
           </div>
         </div>
@@ -873,16 +889,24 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         {!isReadOnly && (
           <div className="pt-2 flex justify-end">
             <button
-              disabled={!isOverallPass || !isOverallComplete}
+              disabled={!isOverallComplete}
               onClick={handleSaveAndComplete}
               className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
-                isOverallPass && isOverallComplete
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                isOverallComplete
+                  ? isOverallPass
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Complete Laser Power Activity & Advance Journey Rail</span>
+              <span>
+                {isOverallPass 
+                  ? 'Complete Laser Power Activity & Advance Journey Rail' 
+                  : hasFailures && isOverallComplete 
+                  ? 'Record Out-of-Spec Findings (NEEDS REVIEW) & Advance Journey Rail' 
+                  : 'Complete All 16 Points to Advance'}
+              </span>
             </button>
           </div>
         )}

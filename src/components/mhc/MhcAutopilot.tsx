@@ -330,12 +330,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     const currentCode = progress.currentActivityCode;
     let updated = advanceAutopilotActivity(effectiveSession, currentCode, 'COMPLETED', activeNoteText);
 
-    // If completing 02_power or 03_power (Laser Head 1 / 2 Power), mark both completed since both heads were measured side-by-side
+    // If completing 02_power or 03_power (Laser Head 1 / 2 Power), advance side-by-side power checks preserving pass/fail review status
     if (currentCode === '02_power' || currentCode === '03_power') {
-      updated = advanceAutopilotActivity(updated, '02_power', 'COMPLETED', activeNoteText || 'Completed in side-by-side Power Workspace');
-      updated = advanceAutopilotActivity(updated, '03_power', 'COMPLETED', activeNoteText || 'Completed in side-by-side Power Workspace');
+      const power1 = effectiveSession.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
+      const power2 = effectiveSession.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
+      const status1 = power1?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
+      const status2 = power2?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
+
+      updated = advanceAutopilotActivity(effectiveSession, '02_power', status1, activeNoteText || (status1 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
+      updated = advanceAutopilotActivity(updated, '03_power', status2, activeNoteText || (status2 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
       if (updated.autopilotProgress) {
         updated.autopilotProgress.currentActivityCode = '02_beam';
+        if (updated.autopilotProgress.activityStatuses['02_beam'] === 'LOCKED' || updated.autopilotProgress.activityStatuses['02_beam'] === 'UPCOMING') {
+          updated.autopilotProgress.activityStatuses['02_beam'] = 'IN_PROGRESS';
+        }
       }
     }
 
