@@ -136,33 +136,55 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     return { valsA, valsB };
   }, [session.stage03_laserPower]);
 
-  const [headAValues, setHeadAValues] = useState<(number | null)[]>(initialValues.valsA);
-  const [headBValues, setHeadBValues] = useState<(number | null)[]>(initialValues.valsB);
+  // Keep raw string states to ensure decimal inputs like "14." or "0.4" are never prematurely formatted or stripped
+  const [headAInputs, setHeadAInputs] = useState<string[]>(() =>
+    initialValues.valsA.map(v => (v !== null ? String(v) : ''))
+  );
+  const [headBInputs, setHeadBInputs] = useState<string[]>(() =>
+    initialValues.valsB.map(v => (v !== null ? String(v) : ''))
+  );
+
   const [engineerRemarks, setEngineerRemarks] = useState<string>(
     session.stage03_laserPower?.[0]?.notes || ''
   );
 
   useEffect(() => {
-    setHeadAValues(initialValues.valsA);
-    setHeadBValues(initialValues.valsB);
+    setHeadAInputs(initialValues.valsA.map(v => (v !== null ? String(v) : '')));
+    setHeadBInputs(initialValues.valsB.map(v => (v !== null ? String(v) : '')));
   }, [initialValues]);
+
+  // Derived parsed numeric values
+  const headAValues = useMemo(() => {
+    return headAInputs.map(s => {
+      const trimmed = s.trim();
+      if (trimmed === '') return null;
+      const parsed = parseFloat(trimmed);
+      return isNaN(parsed) ? null : parsed;
+    });
+  }, [headAInputs]);
+
+  const headBValues = useMemo(() => {
+    return headBInputs.map(s => {
+      const trimmed = s.trim();
+      if (trimmed === '') return null;
+      const parsed = parseFloat(trimmed);
+      return isNaN(parsed) ? null : parsed;
+    });
+  }, [headBInputs]);
 
   // Helper to update a value
   const handleValueChange = (head: 'A' | 'B', pointIdx: number, rawVal: string) => {
     if (isReadOnly) return;
-    const num = rawVal === '' ? null : parseFloat(rawVal);
-    const validNum = num !== null && !isNaN(num) ? num : null;
-
     if (head === 'A') {
-      setHeadAValues(prev => {
+      setHeadAInputs(prev => {
         const next = [...prev];
-        next[pointIdx] = validNum;
+        next[pointIdx] = rawVal;
         return next;
       });
     } else {
-      setHeadBValues(prev => {
+      setHeadBInputs(prev => {
         const next = [...prev];
-        next[pointIdx] = validNum;
+        next[pointIdx] = rawVal;
         return next;
       });
     }
@@ -171,36 +193,66 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
   // Quick nominal auto-fill button
   const handlePreFillNominal = () => {
     if (isReadOnly) return;
-    const nominalA = [15.2, 14.8, 3.5, 2.8, 2.1, 1.2, 0.8, 0.5];
-    const nominalB = [15.0, 14.6, 3.4, 2.7, 2.0, 1.1, 0.75, 0.45];
-    setHeadAValues(nominalA);
-    setHeadBValues(nominalB);
+    const nominalA = ['15.2', '14.8', '3.5', '2.8', '2.1', '1.2', '0.8', '0.5'];
+    const nominalB = ['15.0', '14.6', '3.4', '2.7', '2.0', '1.1', '0.75', '0.45'];
+    setHeadAInputs(nominalA);
+    setHeadBInputs(nominalB);
     if (showNotification) {
       showNotification('✓ Pre-filled nominal passing specifications for LH1 & LH2');
     }
   };
 
-  // Evaluate individual point status
-  const evaluatePoint = (pointIdx: number, val: number | null) => {
-    if (val === null || isNaN(val)) {
-      return { status: 'UNFILLED', isPass: false, isInvalid: false, isOutOfSpec: false, msg: 'Unfilled' };
+  // Evaluate individual point status with granular engineering explanation
+  const evaluatePoint = (pointIdx: number, val: number | null, rawStr?: string) => {
+    if ((rawStr !== undefined && rawStr.trim() === '') || val === null || isNaN(val)) {
+      return { status: 'UNFILLED', isPass: false, isInvalid: false, isOutOfSpec: false, msg: 'Pending measurement' };
     }
     if (val < 0 || val > 60) {
-      return { status: 'INVALID', isPass: false, isInvalid: true, isOutOfSpec: true, msg: 'Invalid value (>60W or <0W)' };
+      return { 
+        status: 'INVALID', 
+        isPass: false, 
+        isInvalid: true, 
+        isOutOfSpec: true, 
+        msg: `Out of physical meter range (${val}W: expected 0–60W)` 
+      };
     }
 
     const cfg = MEASUREMENT_POINTS[pointIdx];
     let isPass = false;
+    let failureDetail = '';
+
     if (cfg.type === 'range') {
       isPass = LaserPowerEngine.evalRangeSpec(val, cfg.minWatts, cfg.maxWatts!);
+      if (!isPass) {
+        if (val < cfg.minWatts) {
+          failureDetail = `Below min spec: ${val.toFixed(2)}W < ${cfg.minWatts.toFixed(1)}W required`;
+        } else {
+          failureDetail = `Above max spec: ${val.toFixed(2)}W > ${cfg.maxWatts!.toFixed(1)}W allowed`;
+        }
+      }
     } else {
       isPass = LaserPowerEngine.evalMinSpec(val, cfg.minWatts);
+      if (!isPass) {
+        failureDetail = `Below mask threshold: ${val.toFixed(2)}W < ${cfg.minWatts.toFixed(1)}W required`;
+      }
     }
 
     if (isPass) {
-      return { status: 'PASS', isPass: true, isInvalid: false, isOutOfSpec: false, msg: 'PASS' };
+      return { 
+        status: 'PASS', 
+        isPass: true, 
+        isInvalid: false, 
+        isOutOfSpec: false, 
+        msg: `PASS (${val.toFixed(2)}W within ${cfg.specText})` 
+      };
     } else {
-      return { status: 'OUT_OF_SPEC', isPass: false, isInvalid: false, isOutOfSpec: true, msg: 'OUT OF SPEC' };
+      return { 
+        status: 'OUT_OF_SPEC', 
+        isPass: false, 
+        isInvalid: false, 
+        isOutOfSpec: true, 
+        msg: failureDetail || `OUT OF SPEC (${cfg.specText})` 
+      };
     }
   };
 
@@ -209,41 +261,74 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     let passCount = 0;
     let failCount = 0;
     let unfilledCount = 0;
+    const failingPoints: { pointIdx: number; pointName: string; msg: string; val: number | null }[] = [];
 
     headAValues.forEach((v, idx) => {
-      const res = evaluatePoint(idx, v);
-      if (res.isPass) passCount++;
-      else if (v === null) unfilledCount++;
-      else failCount++;
+      const res = evaluatePoint(idx, v, headAInputs[idx]);
+      if (res.isPass) {
+        passCount++;
+      } else if (v === null || headAInputs[idx].trim() === '') {
+        unfilledCount++;
+      } else {
+        failCount++;
+        failingPoints.push({
+          pointIdx: idx,
+          pointName: MEASUREMENT_POINTS[idx].name,
+          msg: res.msg,
+          val: v
+        });
+      }
     });
 
     const isAllPass = passCount === 8;
     const isComplete = unfilledCount === 0;
 
-    return { passCount, failCount, unfilledCount, isAllPass, isComplete };
-  }, [headAValues]);
+    return { passCount, failCount, unfilledCount, isAllPass, isComplete, failingPoints };
+  }, [headAValues, headAInputs]);
 
   const evalSummaryB = useMemo(() => {
     let passCount = 0;
     let failCount = 0;
     let unfilledCount = 0;
+    const failingPoints: { pointIdx: number; pointName: string; msg: string; val: number | null }[] = [];
 
     headBValues.forEach((v, idx) => {
-      const res = evaluatePoint(idx, v);
-      if (res.isPass) passCount++;
-      else if (v === null) unfilledCount++;
-      else failCount++;
+      const res = evaluatePoint(idx, v, headBInputs[idx]);
+      if (res.isPass) {
+        passCount++;
+      } else if (v === null || headBInputs[idx].trim() === '') {
+        unfilledCount++;
+      } else {
+        failCount++;
+        failingPoints.push({
+          pointIdx: idx,
+          pointName: MEASUREMENT_POINTS[idx].name,
+          msg: res.msg,
+          val: v
+        });
+      }
     });
 
     const isAllPass = passCount === 8;
     const isComplete = unfilledCount === 0;
 
-    return { passCount, failCount, unfilledCount, isAllPass, isComplete };
-  }, [headBValues]);
+    return { passCount, failCount, unfilledCount, isAllPass, isComplete, failingPoints };
+  }, [headBValues, headBInputs]);
 
   const isOverallPass = evalSummaryA.isAllPass && evalSummaryB.isAllPass;
   const isOverallComplete = evalSummaryA.isComplete && evalSummaryB.isComplete;
   const hasFailures = evalSummaryA.failCount > 0 || evalSummaryB.failCount > 0;
+
+  const allFailingPoints = useMemo(() => {
+    const list: { headLabel: string; pointName: string; msg: string }[] = [];
+    evalSummaryA.failingPoints.forEach(f => {
+      list.push({ headLabel: 'Laser Head 1 (Head A)', pointName: f.pointName, msg: f.msg });
+    });
+    evalSummaryB.failingPoints.forEach(f => {
+      list.push({ headLabel: 'Laser Head 2 (Head B)', pointName: f.pointName, msg: f.msg });
+    });
+    return list;
+  }, [evalSummaryA, evalSummaryB]);
 
   // HANDLE COMPLETION & AUTHORITATIVE PERSISTENCE
   const handleSaveAndComplete = () => {
@@ -255,7 +340,11 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     }
 
     if (hasFailures || !isOverallPass) {
-      if (showNotification) showNotification('⚠ Cannot complete: Some measurement points are OUT OF SPEC. Please resolve or correct values.');
+      const firstFail = allFailingPoints[0];
+      const errorMsg = firstFail 
+        ? `⚠ Cannot advance: ${firstFail.headLabel} ${firstFail.pointName} (${firstFail.msg})`
+        : '⚠ Cannot complete: Some measurement points are OUT OF SPEC. Please resolve or correct values.';
+      if (showNotification) showNotification(errorMsg);
       return;
     }
 
@@ -530,10 +619,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                     {/* Current Input */}
                     <div className="relative">
                       <input
-                        type="number"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         disabled={isReadOnly}
-                        value={currentVal !== null ? currentVal : ''}
+                        value={headAInputs[idx]}
                         onChange={(e) => handleValueChange('A', idx, e.target.value)}
                         placeholder="Measured W"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
@@ -655,10 +744,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                     {/* Current Input */}
                     <div className="relative">
                       <input
-                        type="number"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         disabled={isReadOnly}
-                        value={currentVal !== null ? currentVal : ''}
+                        value={headBInputs[idx]}
                         onChange={(e) => handleValueChange('B', idx, e.target.value)}
                         placeholder="Measured W"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
@@ -761,6 +850,24 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
             </span>
           </div>
         </div>
+
+        {/* EXPLICIT OUT-OF-SPECIFICATION POINTS BREAKDOWN */}
+        {allFailingPoints.length > 0 && (
+          <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 space-y-2 text-xs font-mono">
+            <div className="font-bold text-rose-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Out-of-Specification Details ({allFailingPoints.length} failing {allFailingPoints.length === 1 ? 'point' : 'points'}):</span>
+            </div>
+            <div className="space-y-1.5 pl-6 text-[11px] text-rose-200">
+              {allFailingPoints.map((f, i) => (
+                <div key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-900/40 pb-1 last:border-0 last:pb-0">
+                  <span>• <strong className="text-rose-100">{f.headLabel}</strong> — {f.pointName}:</span>
+                  <span className="font-semibold text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded border border-rose-700/60">{f.msg}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* COMPLETION BUTTON */}
         {!isReadOnly && (

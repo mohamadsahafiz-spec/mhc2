@@ -330,9 +330,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     const currentCode = progress.currentActivityCode;
     let updated = advanceAutopilotActivity(effectiveSession, currentCode, 'COMPLETED', activeNoteText);
 
-    // If completing 02_power (Laser Head 1 Power), also mark 03_power (Laser Head 2 Power) completed since both heads were measured side-by-side
-    if (currentCode === '02_power') {
-      updated = advanceAutopilotActivity(updated, '03_power', 'COMPLETED', 'Completed in side-by-side Power Workspace');
+    // If completing 02_power or 03_power (Laser Head 1 / 2 Power), mark both completed since both heads were measured side-by-side
+    if (currentCode === '02_power' || currentCode === '03_power') {
+      updated = advanceAutopilotActivity(updated, '02_power', 'COMPLETED', activeNoteText || 'Completed in side-by-side Power Workspace');
+      updated = advanceAutopilotActivity(updated, '03_power', 'COMPLETED', activeNoteText || 'Completed in side-by-side Power Workspace');
       if (updated.autopilotProgress) {
         updated.autopilotProgress.currentActivityCode = '02_beam';
       }
@@ -500,7 +501,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   }, [progress.currentActivityCode]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto backdrop-blur-md bg-slate-950/80">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
       
       {/* Toast Notification */}
       {notification && (
@@ -516,27 +517,26 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       )}
 
       {/* Main Autopilot Container */}
-      <div className={`w-full max-w-5xl rounded-2xl border shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[620px] ${
+      <div className={`w-full max-w-7xl h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] md:h-[calc(100vh-3rem)] rounded-2xl border shadow-2xl overflow-hidden flex flex-col md:flex-row ${
         isDark 
           ? 'bg-[#0f1319] border-slate-800 text-slate-100 shadow-cyan-950/20' 
           : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
       }`}>
 
         {/* LEFT COLUMN: MHC JOURNEY RAIL & SESSION BRAIN */}
-        <div className={`w-full md:w-80 shrink-0 p-5 border-b md:border-b-0 md:border-r flex flex-col justify-between ${
+        <div className={`w-full md:w-80 shrink-0 h-auto md:h-full overflow-y-auto p-4 sm:p-5 border-b md:border-b-0 md:border-r flex flex-col justify-between custom-scrollbar ${
           isDark ? 'bg-[#0b0d11] border-slate-800/80' : 'bg-slate-50 border-slate-200'
         }`}>
           <div>
             {/* Header Badge */}
             <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold tracking-tight flex items-center gap-1.5">
-                    <span>MHC Autopilot</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono font-semibold border border-cyan-500/30">v1.0.27</span>
+                  <h2 className="text-sm font-bold tracking-tight">
+                    MHC Autopilot
                   </h2>
                   <p className="text-[11px] text-slate-400">Guided Engineering Journey</p>
                 </div>
@@ -724,7 +724,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         </div>
 
         {/* RIGHT COLUMN: FOCUSED AUTOPILOT STEPS */}
-        <div className="flex-1 p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+        <div className="flex-1 h-full p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto custom-scrollbar">
           
           <AnimatePresence mode="wait">
             

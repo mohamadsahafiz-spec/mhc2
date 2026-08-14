@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v1.1.1';
-export const APP_VERSION_RAW = '1.1.1';
-export const APP_BUILD_ID = 'CFW-20260814-111';
+export const APP_VERSION = 'v1.1.2';
+export const APP_VERSION_RAW = '1.1.2';
+export const APP_BUILD_ID = 'CFW-20260814-112';
 export const APP_CODENAME = 'Cloudflare Workers Engine';

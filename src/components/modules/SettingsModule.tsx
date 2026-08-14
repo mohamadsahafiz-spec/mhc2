@@ -16,6 +16,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.2',
+      date: '2026-08-14',
+      type: 'MHC Autopilot Workflow Blockers Resolution',
+      highlights: [
+        'BLOCKER 1 — LASER POWER INPUT & VALIDATION STABILITY: Modernized numeric input handling with decimal string decoupling to eliminate truncation of fractional entries (e.g. 14.8W, 0.45W), integrated granular engineering failure explanations per measurement point, provided comprehensive out-of-spec feedback lists in completion gates, and implemented bidirectional completion gating across Laser Head 1 and Laser Head 2.',
+        'BLOCKER 2 — AUTOPILOT SPLIT SCROLLING ARCHITECTURE: Resolved long report layout breakage by enforcing a fixed-viewport split layout with a permanently pinned, independently scrollable Journey Rail sidebar and smooth full-height multi-page report preview container.',
+        'VERSION INTEGRITY: Seamlessly bumped authoritative FSOS application version to v1.1.2 while preserving independent subsystem and engine revisions.'
+      ]
+    },
+    {
       version: 'v1.1.1',
       date: '2026-08-14',
       type: 'Streamlined Single-Version UI Presentation',
