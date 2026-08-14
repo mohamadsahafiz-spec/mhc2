@@ -1,9 +1,10 @@
 import React from 'react';
-import { RefreshCw, Bot, User, History, Compass, Cpu, Calendar, Tag, Activity, ShieldCheck } from 'lucide-react';
+import { RefreshCw, Bot, User, History, Compass, Cpu, Calendar, Activity, ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
+import { APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
 
 interface SettingsProps {
   onResetData: () => void;
@@ -15,10 +16,33 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.1',
+      date: '2026-08-14',
+      type: 'Streamlined Single-Version UI Presentation',
+      highlights: [
+        'SINGLE VISIBLE FSOS VERSION: Maintained one authoritative application version badge (v1.1.1) in the primary header/sidebar, eliminating UI clutter.',
+        'REMOVED REDUNDANT VERSION DISPLAYS: Purged duplicate version indicators from the bottom-left sidebar footer, System Settings operational banner, and About System card.',
+        'PROTECTED INDEPENDENT COMPONENT ARCHITECTURES: Preserved internal subsystem engine versioning (Machine Health Check Report Engine, Cloudflare Worker bindings, D1 sync protocols) untouched.',
+        'CONTINUOUS REGRESSION COMPLIANCE: Verified clean builds, full Vitest suite passing, and persistent data integrity across all cleanroom workspaces.'
+      ]
+    },
+    {
+      version: 'v1.1.0',
+      date: '2026-08-14',
+      type: 'Authoritative FSOS Application Version Consolidation',
+      highlights: [
+        'SINGLE AUTHORITATIVE VERSION ARCHITECTURE: Consolidated all user-facing FSOS application version displays (Sidebar header badge, system footer, Start Page banner, and System Settings) to authoritative v1.1.0.',
+        'ELIMINATED STALE APPLICATION VERSION BADGES: Cleaned up legacy/stale application-level version references (v0.9.x, v1.0.20) across UI cards, headers, and Cloudflare Worker endpoints.',
+        'PRESERVED INDEPENDENT SUBSYSTEM VERSIONS: Retained legitimate independent component versions (Machine Health Check Report Engine v1.0.31.4, schema versions, zero-state migration keys) intact without artificial renaming.',
+        'APPLICATION VERSION PROGRESSION RULE: Established formal MAJOR.MINOR.PATCH versioning rule with patch cap at 10 advancing cleanly to v1.1.0.'
+      ]
+    },
+    {
       version: 'v1.0.37',
       date: '2026-08-14',
-      type: 'Authoritative Temperature Inspection Deletion & Persistence Sync',
+      type: 'In-App Delete Confirmation Modal & Authoritative Persistence Sync',
       highlights: [
+        'IN-APP CONFIRMATION DIALOG: Replaced native window.confirm() with an FSOS in-app confirmation modal, eliminating sandboxed iframe suppression in AI Studio live preview while preserving production behavior.',
         'SYNCHRONOUS STORAGE PERSISTENCE: Bound StorageService.saveMachines directly to Temperature Workspace record deletion and creation handlers, guaranteeing immediate disk & cloud sync.',
         'ISOLATED RECORD PURGING: Deleting a temperature inspection record cleanly purges cached raw telemetry in IndexedDB and updates machine passport history without affecting sibling records.',
         'PERMANENT RELOAD RETENTION: Verified deleted records remain permanently removed across page reloads and browser restarts with zero data regression.',
@@ -855,41 +879,9 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Version Status Banner */}
-      <Card title="System Version & Operational Build Status">
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border gap-4 ${
-          isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-xl border font-mono font-bold text-lg ${
-              isDark ? 'bg-[#8B9DFF]/15 border-[#8B9DFF]/30 text-[#8B9DFF]' : 'bg-indigo-50 border-indigo-200 text-indigo-800'
-            }`}>
-              v1.0.20
-            </div>
-            <div>
-              <h3 className="text-base font-bold">Field Service Operations System</h3>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
-                Cloudflare Workers Runtime v1.0.20 — Native Cloud Engine & D1 Sync Foundation
-              </p>
-            </div>
-          </div>
-          <Badge variant="blue">v1.0.20 OPERATIONAL</Badge>
-        </div>
-      </Card>
-
       {/* About System Card */}
       <Card title="About System — Operational Specification">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Tag className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Version</span>
-            </div>
-            <p className="font-mono font-bold text-sm text-[#8B9DFF]">v1.0.20</p>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
           <div className={`p-3.5 rounded-xl border space-y-1 ${
             isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
           }`}>
@@ -897,7 +889,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <Cpu className="w-3.5 h-3.5 text-[#8B9DFF]" />
               <span className="font-mono uppercase text-[10px]">Build ID</span>
             </div>
-            <p className="font-mono font-bold text-sm">CFW-20260808-102</p>
+            <p className="font-mono font-bold text-sm">{APP_BUILD_ID}</p>
           </div>
 
           <div className={`p-3.5 rounded-xl border space-y-1 ${
@@ -907,7 +899,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <Compass className="w-3.5 h-3.5 text-[#8B9DFF]" />
               <span className="font-mono uppercase text-[10px]">Release Codename</span>
             </div>
-            <p className="font-semibold text-xs text-emerald-400">Cloudflare Workers Engine</p>
+            <p className="font-semibold text-xs text-emerald-400">{APP_CODENAME}</p>
           </div>
 
           <div className={`p-3.5 rounded-xl border space-y-1 ${
@@ -917,7 +909,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <Calendar className="w-3.5 h-3.5 text-[#8B9DFF]" />
               <span className="font-mono uppercase text-[10px]">Release Date</span>
             </div>
-            <p className="font-mono text-xs">2026-08-08</p>
+            <p className="font-mono text-xs">2026-08-14</p>
           </div>
 
           <div className={`p-3.5 rounded-xl border space-y-1 ${

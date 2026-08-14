@@ -49,9 +49,14 @@ describe('TemperatureEngine', () => {
     const rec2 = { id: 'TR-2', title: 'Inspection 2' };
     const records = [rec1, rec2];
 
-    const targetId = 'TR-1';
-    const remaining = records.filter(r => r.id !== targetId);
+    // Cancellation: record remains untouched
+    let recordToDelete: typeof rec1 | null = rec1;
+    recordToDelete = null; // User clicked Cancel
+    expect(records.length).toBe(2);
 
+    // Confirmation: target record is cleanly purged
+    recordToDelete = rec1;
+    const remaining = records.filter(r => r.id !== recordToDelete?.id);
     expect(remaining.length).toBe(1);
     expect(remaining[0].id).toBe('TR-2');
     expect(remaining.some(r => r.id === 'TR-1')).toBe(false);

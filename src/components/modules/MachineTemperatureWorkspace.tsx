@@ -96,6 +96,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
   const [activeChannels, setActiveChannels] = useState<number[]>([1, 2, 3, 4, 5, 6]);
   const [graphPreset, setGraphPreset] = useState<GraphPreset>('engineering');
   const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<SavedTemperatureRecord | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<SavedTemperatureRecord | null>(null);
 
   // Manual Reading Modal
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -240,8 +241,13 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     alert('Temperature inspection record saved successfully to Machine Passport history.');
   };
 
-  const handleDeleteSavedRecord = (recordId: string) => {
-    if (!confirm('Are you sure you want to delete this temperature record?')) return;
+  const handleRequestDeleteSavedRecord = (record: SavedTemperatureRecord) => {
+    setRecordToDelete(record);
+  };
+
+  const confirmDeleteSavedRecord = () => {
+    if (!recordToDelete) return;
+    const recordId = recordToDelete.id;
     TempRawStore.deleteRawRecords(recordId);
     const updatedRecords = (machine.temperatureRecords || []).filter((r) => r.id !== recordId);
     const updatedMachine: Machine = {
@@ -256,6 +262,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     if (selectedRecordForDetail?.id === recordId) {
       setSelectedRecordForDetail(null);
     }
+    setRecordToDelete(null);
   };
 
   // Manual Reading Handlers
@@ -735,7 +742,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                     </Button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteSavedRecord(rec.id)}
+                      onClick={() => handleRequestDeleteSavedRecord(rec)}
                       className="p-2 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                       title="Delete record"
                     >
@@ -907,7 +914,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               <Button
                 size="sm"
                 variant="danger"
-                onClick={() => handleDeleteSavedRecord(selectedRecordForDetail.id)}
+                onClick={() => handleRequestDeleteSavedRecord(selectedRecordForDetail)}
                 className="text-xs flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -915,6 +922,56 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               </Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedRecordForDetail(null)}>
                 Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Temperature Record In-App Confirmation Modal */}
+      {recordToDelete && (
+        <Modal
+          isOpen={!!recordToDelete}
+          onClose={() => setRecordToDelete(null)}
+          title="Confirm Delete Temperature Record"
+          subtitle="This action is permanent and cannot be undone."
+          maxWidth="md"
+        >
+          <div className="space-y-4">
+            <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+              isDark ? 'bg-rose-950/20 border-rose-800/40 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`}>
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+              <div className="text-xs space-y-1">
+                <p className="font-bold">Are you sure you want to delete this temperature record?</p>
+                <p>
+                  Record: <strong className="font-mono">{recordToDelete.title}</strong>
+                </p>
+                <p className="text-[11px] opacity-80 pt-1">
+                  Recorded: {new Date(recordToDelete.createdAt).toLocaleString()} • {recordToDelete.rawRecordsCount} data points
+                </p>
+              </div>
+            </div>
+
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Deleting this record will permanently remove its downsampled channel telemetry, temperature statistics, and raw telemetry from this machine's passport history.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRecordToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={confirmDeleteSavedRecord}
+              >
+                Delete Record
               </Button>
             </div>
           </div>
