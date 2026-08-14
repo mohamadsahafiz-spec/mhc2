@@ -31,13 +31,15 @@ import {
   Check,
   Camera,
   Thermometer,
-  Aperture
+  Aperture,
+  Package
 } from 'lucide-react';
 import { Machine, MHCRecord, Customer } from '../../types';
 import { MachineTemperatureWorkspace } from './MachineTemperatureWorkspace';
 import { MachineLaserPowerWorkspace } from './MachineLaserPowerWorkspace';
 import { MachineBeamProfileWorkspace } from './MachineBeamProfileWorkspace';
 import { MachineProductProcessWorkspace } from './MachineProductProcessWorkspace';
+import { RecommendedPartsWorkspace } from '../parts/RecommendedPartsWorkspace';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -93,8 +95,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 
   const selectedMachine = sortedMachines.find((m) => m.id === selectedMachineId) || sortedMachines[0] || machines[0];
 
-  // Machine Passport Sub-Category Active Tab State ('lifecycle' | 'temperature' | 'laser_power' | 'beam_profile' | 'product_process')
-  const [passportSubTab, setPassportSubTab] = useState<'lifecycle' | 'temperature' | 'laser_power' | 'beam_profile' | 'product_process'>('lifecycle');
+  // Machine Passport Sub-Category Active Tab State ('lifecycle' | 'temperature' | 'laser_power' | 'beam_profile' | 'product_process' | 'recommended_parts')
+  const [passportSubTab, setPassportSubTab] = useState<'lifecycle' | 'temperature' | 'laser_power' | 'beam_profile' | 'product_process' | 'recommended_parts'>('lifecycle');
 
   // Authoritative Machine Laser Lifecycle Metrics derived via LaserEngine
   const machineMetrics: MachineMetrics = React.useMemo(() => {
@@ -1450,23 +1452,48 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 
       {/* Layer 2 & 3 & 4 — Machine Hero Cockpit / Empty State */}
       {!selectedMachine ? (
-        <Card className="p-8 text-center space-y-4">
-          <Cpu className="w-12 h-12 mx-auto text-slate-400 opacity-60" />
-          <h2 className={`text-base font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-            No Machine Selected / Available in Passport
-          </h2>
-          <p className={`text-xs max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Register a new machine asset or select a customer workspace to track laser telemetry, health scores, and maintenance history.
-          </p>
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={handleOpenAdd}
-          >
-            Add Machine
-          </Button>
-        </Card>
+        passportSubTab === 'recommended_parts' ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPassportSubTab('lifecycle')}
+              >
+                ← Back to Machine Fleet
+              </Button>
+            </div>
+            <RecommendedPartsWorkspace initialFamilyFilter="ALL" />
+          </div>
+        ) : (
+          <Card className="p-8 text-center space-y-4">
+            <Cpu className="w-12 h-12 mx-auto text-slate-400 opacity-60" />
+            <h2 className={`text-base font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+              No Machine Selected / Available in Passport
+            </h2>
+            <p className={`text-xs max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Register a new machine asset, or manage the authoritative Recommended Parts Master catalog for BMD302W / BMD250WM.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="primary"
+                size="md"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={handleOpenAdd}
+              >
+                Add Machine
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                icon={<Package className="w-4 h-4 text-purple-400" />}
+                onClick={() => setPassportSubTab('recommended_parts')}
+              >
+                Recommended Items Master
+              </Button>
+            </div>
+          </Card>
+        )
       ) : (
         <>
           <div className={`p-6 rounded-2xl border relative transition-all ${
@@ -1708,6 +1735,23 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   {selectedMachine.productProcessRecords?.length}
                 </span>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPassportSubTab('recommended_parts')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                passportSubTab === 'recommended_parts'
+                  ? isDark
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs'
+                    : 'bg-purple-50 text-purple-700 border border-purple-200 shadow-xs'
+                  : isDark
+                  ? 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5 text-purple-400" />
+              Recommended Items
             </button>
           </div>
 
@@ -1957,6 +2001,16 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
           <MachineBeamProfileWorkspace
             machine={selectedMachine}
             onUpdateMachine={(updated) => onEditMachine?.(updated)}
+          />
+        ) : passportSubTab === 'recommended_parts' ? (
+          <RecommendedPartsWorkspace
+            initialFamilyFilter={
+              selectedMachine?.model?.toUpperCase().includes('302') 
+                ? 'BMD302W' 
+                : selectedMachine?.model?.toUpperCase().includes('250') 
+                ? 'BMD250WM' 
+                : 'ALL'
+            }
           />
         ) : (
           <MachineProductProcessWorkspace

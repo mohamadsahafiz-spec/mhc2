@@ -15,6 +15,31 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.0.33',
+      date: '2026-08-14',
+      type: 'Recommended Parts Structured Import',
+      highlights: [
+        'STRUCTURED IMPORT ENGINE: Added safe CSV and JSON import workflow for Recommended Parts Master catalog.',
+        'MACHINE FAMILY INTEGRITY: Enforced strict machine family segregation (BMD302W and BMD250WM) with non-destructive duplicate matching and resolution strategies.',
+        'VALIDATION & PREVIEW: Real-time import preview displaying total records, new records, existing matches, and field-level validation errors before confirmation.',
+        'EXPLICIT USER CONFIRMATION: Prevents silent overwrites or unsolicited persistence; records are only committed via StorageService upon explicit user confirmation.',
+        'TEMPLATE DOWNLOADS: Integrated engineering sample CSV schemas for BMD302W and BMD250WM parts with required specification fields.',
+        'ZERO-STATE PRESERVED: Retained zero-state architecture with zero fixture records, maintaining full CRUD and search/filter compatibility.'
+      ]
+    },
+    {
+      version: 'v1.0.32',
+      date: '2026-08-14',
+      type: 'Recommended Parts Master',
+      highlights: [
+        'RECOMMENDED PARTS MASTER: Established authoritative Recommended Parts catalog separated by machine family (BMD302W, BMD250WM, and Other).',
+        'MACHINE PASSPORT INTEGRATION: Added Recommended Items management entry point with Family/Criticality filtering, search, and full CRUD support.',
+        'PERSISTENT STORAGE: Integrated master parts persistence into authoritative StorageService and SyncEngine without duplicate authorities.',
+        'STABLE REFERENCE RESOLUTION: Formulated PartsEngine resolver for MHC maintenance recommendations and Report Studio lookup by stable part UUIDs.',
+        'ZERO-STATE INTEGRITY: Preserved strict zero-state architecture with zero ghost/fixture records until explicitly created by the user.'
+      ]
+    },
+    {
       version: 'v1.0.31.5',
       date: '2026-08-13',
       type: 'Start Page Data-Driven Cleanup & Residual Hardcoded Data Removal',

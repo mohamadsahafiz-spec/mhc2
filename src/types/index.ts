@@ -879,4 +879,5 @@ export interface MhcWorkspaceDraft {
 }
 
 export * from './mhcReportDocument';
+export * from './parts';
 

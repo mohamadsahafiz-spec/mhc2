@@ -28,7 +28,8 @@ import {
   MHCSession,
   MHCReportDraftConfig,
   MhcWorkspaceTemplate,
-  MhcWorkspaceDraft
+  MhcWorkspaceDraft,
+  RecommendedPart
 } from '../types';
 import { 
   INITIAL_FOUNDER_BRANDING,
@@ -62,7 +63,8 @@ const KEYS = {
   MHC_SESSIONS: 'fso_v080_mhc_sessions',
   MHC_REPORT_DRAFTS: 'fso_v080_mhc_report_drafts',
   MHC_WORKSPACE_TEMPLATES: 'fso_v090_mhc_workspace_templates',
-  MHC_WORKSPACE_DRAFTS: 'fso_v090_mhc_workspace_drafts'
+  MHC_WORKSPACE_DRAFTS: 'fso_v090_mhc_workspace_drafts',
+  RECOMMENDED_PARTS: 'fso_v090_recommended_parts'
 };
 
 function getStorage<T>(key: string, defaultValue: T): T {
@@ -381,6 +383,41 @@ export const StorageService = {
     setStorage(KEYS.MHC_WORKSPACE_DRAFTS, data);
   },
 
+  getRecommendedParts: (): RecommendedPart[] => getStorage(KEYS.RECOMMENDED_PARTS, []),
+  getRecommendedPartById: (id: string): RecommendedPart | undefined => {
+    const parts = getStorage<RecommendedPart[]>(KEYS.RECOMMENDED_PARTS, []);
+    return parts.find(p => p.id === id);
+  },
+  saveRecommendedParts: (data: RecommendedPart[]) => {
+    syncEnqueueList('recommended_parts', KEYS.RECOMMENDED_PARTS, data);
+    setStorage(KEYS.RECOMMENDED_PARTS, data);
+  },
+  saveRecommendedPart: (part: RecommendedPart) => {
+    const parts = StorageService.getRecommendedParts();
+    const existingIndex = parts.findIndex(p => p.id === part.id);
+    let updated: RecommendedPart[];
+    if (existingIndex >= 0) {
+      updated = [...parts];
+      updated[existingIndex] = { ...part, updatedAt: new Date().toISOString() };
+    } else {
+      updated = [
+        {
+          ...part,
+          createdAt: part.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        ...parts
+      ];
+    }
+    StorageService.saveRecommendedParts(updated);
+  },
+  deleteRecommendedPart: (partId: string) => {
+    const parts = StorageService.getRecommendedParts();
+    const updated = parts.filter(p => p.id !== partId);
+    StorageService.saveRecommendedParts(updated);
+    StorageService.deleteRecord('recommended_parts', partId);
+  },
+
   deleteRecord: (tableName: string, recordId: string) => {
     SyncEngine.enqueueChange(tableName, recordId, 'delete', null);
   },
@@ -405,7 +442,8 @@ export const StorageService = {
       investigations: StorageService.getInvestigations(),
       mhc_report_drafts: StorageService.getMhcReportDrafts(),
       mhc_workspace_templates: StorageService.getMhcWorkspaceTemplates(),
-      mhc_workspace_drafts: StorageService.getMhcWorkspaceDrafts()
+      mhc_workspace_drafts: StorageService.getMhcWorkspaceDrafts(),
+      recommended_parts: StorageService.getRecommendedParts()
     };
   },
 
@@ -430,6 +468,7 @@ export const StorageService = {
       KEYS.MHC_REPORT_DRAFTS,
       KEYS.MHC_WORKSPACE_TEMPLATES,
       KEYS.MHC_WORKSPACE_DRAFTS,
+      KEYS.RECOMMENDED_PARTS,
       'fsos_customer_list',
       'fsos_sync_queue',
       'fsos_last_sync_time',
@@ -465,7 +504,8 @@ SyncEngine.registerRemoteUpdateCallback((tableName, remoteRecords) => {
     drafts: { key: KEYS.DRAFTS, get: StorageService.getDrafts, save: StorageService.saveDrafts },
     mhc_report_drafts: { key: KEYS.MHC_REPORT_DRAFTS, get: StorageService.getMhcReportDrafts, save: StorageService.saveMhcReportDrafts },
     mhc_workspace_templates: { key: KEYS.MHC_WORKSPACE_TEMPLATES, get: StorageService.getMhcWorkspaceTemplates, save: StorageService.saveMhcWorkspaceTemplates },
-    mhc_workspace_drafts: { key: KEYS.MHC_WORKSPACE_DRAFTS, get: StorageService.getMhcWorkspaceDrafts, save: StorageService.saveMhcWorkspaceDrafts }
+    mhc_workspace_drafts: { key: KEYS.MHC_WORKSPACE_DRAFTS, get: StorageService.getMhcWorkspaceDrafts, save: StorageService.saveMhcWorkspaceDrafts },
+    recommended_parts: { key: KEYS.RECOMMENDED_PARTS, get: StorageService.getRecommendedParts, save: StorageService.saveRecommendedParts }
   };
 
   const config = keyMap[tableName];

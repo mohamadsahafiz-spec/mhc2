@@ -18,4 +18,3 @@ FSOS is a web-based engineering operating system designed for field service engi
    `npx wrangler d1 create fsos-d1`
 3. **Deploy Worker**:
    `npx wrangler deploy`
-FSOS deployment source: Cloudflare Workers
