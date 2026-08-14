@@ -399,27 +399,18 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 
     // Populate machine stats
     machines.forEach((m) => {
-      let custId = m.customerId;
-      if (!map.has(custId)) {
-        const found = Array.from(map.values()).find((c) => c.name === m.customerName);
-        if (found) {
-          custId = found.id;
-        } else {
-          custId = m.customerId || `cust-${m.customerName.replace(/\s+/g, '-').toLowerCase()}`;
-          map.set(custId, {
-            id: custId,
-            name: m.customerName,
-            site: m.plantName || 'Primary Cleanroom Facility',
-            machineCount: 0,
-            avgHealth: 0,
-            pmDueCount: 0,
-            criticalAlerts: 0,
-            status: 'OPTIMAL'
-          });
-        }
+      let item = map.get(m.customerId);
+      if (!item && m.customerName) {
+        item = Array.from(map.values()).find(
+          (c) => c.name.toLowerCase() === m.customerName.toLowerCase()
+        );
+      }
+      if (!item) {
+        // Authoritative reconciliation in App.tsx / StorageService guarantees records;
+        // do not synthesize a ghost customer from stale machine names.
+        return;
       }
 
-      const item = map.get(custId)!;
       item.machineCount += 1;
       item.avgHealth += m.healthScore;
       if (m.status === 'NEEDS_CALIBRATION' || m.status === 'MAINTENANCE_DUE') {
@@ -584,14 +575,25 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     showAlert(`Customer account "${newCust.name}" created successfully.`);
   };
 
-  const handleOpenEditCustomer = (c: Customer) => {
-    setCustomerToEdit(c);
-    setCustForm({
+  const handleOpenEditCustomer = (c: any) => {
+    const realCust = customerSource.find((cust) => cust.id === c.id || cust.name === c.name);
+    const target: Customer = realCust || {
+      id: c.id,
       name: c.name || '',
-      industry: c.industry || '',
-      contactPerson: c.contactPerson || '',
-      email: c.email || '',
-      phone: c.phone || ''
+      industry: c.site || c.industry || 'Precision Laser Facility',
+      contactPerson: c.contactPerson || 'Lead Operations Engineer',
+      email: c.email || 'ops@cleanroom.com',
+      phone: c.phone || '+1 (555) 019-2831',
+      plantsCount: 1,
+      activeContractsCount: 1
+    };
+    setCustomerToEdit(target);
+    setCustForm({
+      name: target.name || '',
+      industry: target.industry || '',
+      contactPerson: target.contactPerson || '',
+      email: target.email || '',
+      phone: target.phone || ''
     });
     setIsEditCustomerModalOpen(true);
   };
@@ -613,9 +615,20 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     showAlert(`Customer account "${updatedName}" updated successfully.`);
   };
 
-  const handleOpenRenameCustomer = (c: Customer) => {
-    setCustomerToEdit(c);
-    setCustForm((prev) => ({ ...prev, name: c.name }));
+  const handleOpenRenameCustomer = (c: any) => {
+    const realCust = customerSource.find((cust) => cust.id === c.id || cust.name === c.name);
+    const target: Customer = realCust || {
+      id: c.id,
+      name: c.name || '',
+      industry: c.site || c.industry || 'Precision Laser Facility',
+      contactPerson: c.contactPerson || 'Lead Operations Engineer',
+      email: c.email || 'ops@cleanroom.com',
+      phone: c.phone || '+1 (555) 019-2831',
+      plantsCount: 1,
+      activeContractsCount: 1
+    };
+    setCustomerToEdit(target);
+    setCustForm((prev) => ({ ...prev, name: target.name }));
     setIsRenameCustomerModalOpen(true);
   };
 

@@ -1337,18 +1337,22 @@ export const LaserEngine = {
       } else {
         // NEW MACHINE RECORD
         newMachinesCount++;
-        const custName = normalizedRaw.customerName || normalizedRaw.plantName || (existingCustomers[0]?.name ?? 'Unassigned Customer');
-        const matchedCust = existingCustomers.find(
-          (c: any) => c.name?.toLowerCase() === custName.toLowerCase() || c.site?.toLowerCase() === custName.toLowerCase()
-        ) || existingCustomers[0];
+        const rawCustName = (normalizedRaw.customerName || normalizedRaw.plantName || '').trim();
+        const matchedCust = (existingCustomers || []).find(
+          (c: any) => (c.name && rawCustName && c.name.toLowerCase() === rawCustName.toLowerCase()) ||
+                      (c.site && rawCustName && c.site.toLowerCase() === rawCustName.toLowerCase())
+        );
+
+        const assignedCustName = matchedCust?.name || rawCustName || 'Cleanroom Customer';
+        const assignedCustId = matchedCust?.id || normalizedRaw.customerId || `cust-${Date.now()}-${idx}`;
 
         const newFsosMachine = {
           ...normalizedRaw,
           id: normalizedRaw.id || `mch-imp-${Date.now()}-${idx}`,
           machineNumber: normalizedRaw.machineNo || normalizedRaw.machineNumber || `MCH-IMP-0${idx + 1}`,
           plantName: normalizedRaw.plantName || matchedCust?.site || 'Primary Cleanroom',
-          customerName: matchedCust?.name || custName,
-          customerId: matchedCust?.id || (existingCustomers[0]?.id ?? 'cust-unassigned'),
+          customerName: assignedCustName,
+          customerId: assignedCustId,
           lineId: normalizedRaw.lineId || 'line-01',
           contractType: normalizedRaw.contractType || 'STANDARD_SERVICE',
           status: normalizedRaw.status || 'OPERATIONAL',

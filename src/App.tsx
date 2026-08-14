@@ -96,11 +96,6 @@ function AppLayout() {
   useEffect(() => {
     // Check Auth Session
     const authSession = StorageService.getAuth();
-    // Preload IDB images and initialize app state
-    ImageStore.preloadAllImagesFromIDB().then(() => {
-      const loadedMachines = StorageService.getMachines();
-      setMachines(loadedMachines);
-    });
 
     if (authSession && authSession.isAuthenticated) {
       setIsAuthenticated(true);
@@ -110,14 +105,35 @@ function AppLayout() {
       setIsAuthenticated(false);
     }
 
-    setCustomers(StorageService.getCustomers());
+    const initialCusts = StorageService.getCustomers();
+    const initialMachines = StorageService.getMachines();
+    const reconciled = StorageService.reconcileCustomerIdentities(initialMachines, initialCusts);
+
+    setCustomers(reconciled.customers);
+    if (reconciled.customers.length !== initialCusts.length) {
+      StorageService.saveCustomers(reconciled.customers);
+    }
+
+    setMachines(reconciled.machines);
+    if (JSON.stringify(reconciled.machines) !== JSON.stringify(initialMachines)) {
+      StorageService.saveMachines(reconciled.machines);
+    }
+
+    if (reconciled.machines.length > 0 && !reconciled.machines.some(m => m.id === selectedMachineId)) {
+      setSelectedMachineId(reconciled.machines[0].id);
+    }
+
+    // Preload IDB images and initialize app state
+    ImageStore.preloadAllImagesFromIDB().then(() => {
+      const loadedMachines = StorageService.getMachines();
+      const currentCusts = StorageService.getCustomers();
+      const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
+      setMachines(rec.machines);
+      setCustomers(rec.customers);
+    });
+
     setPlants(StorageService.getPlants());
     setLines(StorageService.getLines());
-    const loadedMachines = StorageService.getMachines();
-    setMachines(loadedMachines);
-    if (loadedMachines.length > 0 && !loadedMachines.some(m => m.id === selectedMachineId)) {
-      setSelectedMachineId(loadedMachines[0].id);
-    }
     setContracts(StorageService.getContracts());
     setSchedule(StorageService.getSchedule());
     setMhcRecords(StorageService.getMhcRecords());
@@ -136,9 +152,12 @@ function AppLayout() {
 
     // Subscribe to SyncEngine remote updates to synchronize React UI
     const unsubscribeSync = SyncEngine.subscribe(() => {
-      setMachines(StorageService.getMachines());
+      const curCusts = StorageService.getCustomers();
+      const curMachines = StorageService.getMachines();
+      const rec = StorageService.reconcileCustomerIdentities(curMachines, curCusts);
+      setMachines(rec.machines);
+      setCustomers(rec.customers);
       setMhcRecords(StorageService.getMhcRecords());
-      setCustomers(StorageService.getCustomers());
       setPlants(StorageService.getPlants());
       setLines(StorageService.getLines());
       setContracts(StorageService.getContracts());
@@ -248,16 +267,28 @@ function AppLayout() {
 
   // Machine Management Helpers
   const handleAddMachine = (newMachine: Machine) => {
+    const currentCusts = StorageService.getCustomers();
     const updated = [newMachine, ...machines];
-    setMachines(updated);
-    StorageService.saveMachines(updated);
+    const reconciled = StorageService.reconcileCustomerIdentities(updated, currentCusts);
+
+    setCustomers(reconciled.customers);
+    StorageService.saveCustomers(reconciled.customers);
+
+    setMachines(reconciled.machines);
+    StorageService.saveMachines(reconciled.machines);
     setSelectedMachineId(newMachine.id);
   };
 
   const handleEditMachine = (updatedMachine: Machine) => {
+    const currentCusts = StorageService.getCustomers();
     const updated = machines.map((m) => (m.id === updatedMachine.id ? updatedMachine : m));
-    setMachines(updated);
-    StorageService.saveMachines(updated);
+    const reconciled = StorageService.reconcileCustomerIdentities(updated, currentCusts);
+
+    setCustomers(reconciled.customers);
+    StorageService.saveCustomers(reconciled.customers);
+
+    setMachines(reconciled.machines);
+    StorageService.saveMachines(reconciled.machines);
   };
 
   const handleDeleteMachine = (machineId: string) => {
@@ -270,10 +301,16 @@ function AppLayout() {
   };
 
   const handleBatchImportMachines = (importedMachines: Machine[]) => {
-    setMachines(importedMachines);
-    StorageService.saveMachines(importedMachines);
-    if (importedMachines.length > 0) {
-      setSelectedMachineId(importedMachines[0].id);
+    const currentCusts = StorageService.getCustomers();
+    const reconciled = StorageService.reconcileCustomerIdentities(importedMachines, currentCusts);
+
+    setCustomers(reconciled.customers);
+    StorageService.saveCustomers(reconciled.customers);
+
+    setMachines(reconciled.machines);
+    StorageService.saveMachines(reconciled.machines);
+    if (reconciled.machines.length > 0) {
+      setSelectedMachineId(reconciled.machines[0].id);
     }
   };
 
@@ -285,9 +322,30 @@ function AppLayout() {
   };
 
   const handleEditCustomer = (updatedCustomer: Customer) => {
-    const updated = customers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c));
-    setCustomers(updated);
-    StorageService.saveCustomers(updated);
+    const previousCustomer = customers.find((c) => c.id === updatedCustomer.id);
+    const exists = customers.some((c) => c.id === updatedCustomer.id);
+    const updatedCusts = exists
+      ? customers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
+      : [updatedCustomer, ...customers];
+
+    setCustomers(updatedCusts);
+    StorageService.saveCustomers(updatedCusts);
+
+    // CASCADE: If the customer name changed, cascade the new customerName to all machines matching customerId or old name
+    const oldName = previousCustomer?.name;
+    const updatedMachines = machines.map((m) => {
+      if (m.customerId === updatedCustomer.id || (oldName && m.customerName === oldName)) {
+        return {
+          ...m,
+          customerId: updatedCustomer.id,
+          customerName: updatedCustomer.name
+        };
+      }
+      return m;
+    });
+
+    setMachines(updatedMachines);
+    StorageService.saveMachines(updatedMachines);
   };
 
   const handleDeleteCustomer = (customerId: string) => {

@@ -248,6 +248,81 @@ export const StorageService = {
     setStorage(KEYS.CUSTOMERS, data);
   },
 
+  reconcileCustomerIdentities: (
+    machinesList: Machine[],
+    existingCustomersList: Customer[]
+  ): { machines: Machine[]; customers: Customer[] } => {
+    const customersMap = new Map<string, Customer>();
+    const nameToIdMap = new Map<string, string>();
+
+    // 1. Index existing authoritative customers
+    (existingCustomersList || []).forEach((c) => {
+      if (c && c.id) {
+        customersMap.set(c.id, c);
+        if (c.name) {
+          nameToIdMap.set(c.name.trim().toLowerCase(), c.id);
+        }
+      }
+    });
+
+    // 2. Reconcile machines
+    const updatedMachines = (machinesList || []).map((m, idx) => {
+      if (!m) return m;
+      let custId = m.customerId;
+      const rawCustName = (m.customerName || '').trim();
+      const custNameKey = rawCustName.toLowerCase();
+
+      // Check if machine already has a valid customerId in authoritative map
+      if (custId && customersMap.has(custId)) {
+        const authCust = customersMap.get(custId)!;
+        return {
+          ...m,
+          customerId: authCust.id,
+          customerName: authCust.name
+        };
+      }
+
+      // Check if customerName matches an existing customer
+      if (custNameKey && nameToIdMap.has(custNameKey)) {
+        const matchedId = nameToIdMap.get(custNameKey)!;
+        const authCust = customersMap.get(matchedId)!;
+        return {
+          ...m,
+          customerId: authCust.id,
+          customerName: authCust.name
+        };
+      }
+
+      // Customer does not exist in authoritative list -> create ONE authoritative Customer record
+      const targetName = rawCustName || 'Cleanroom Customer';
+      const newCustId = custId || `cust-${Date.now()}-${idx}`;
+      const newCustomer: Customer = {
+        id: newCustId,
+        name: targetName,
+        industry: m.plantName || 'Precision Laser Facility',
+        contactPerson: 'Lead Operations Engineer',
+        email: 'ops@cleanroom.com',
+        phone: '+1 (555) 019-2831',
+        plantsCount: 1,
+        activeContractsCount: 1
+      };
+
+      customersMap.set(newCustId, newCustomer);
+      nameToIdMap.set(targetName.toLowerCase(), newCustId);
+
+      return {
+        ...m,
+        customerId: newCustId,
+        customerName: targetName
+      };
+    });
+
+    return {
+      machines: updatedMachines,
+      customers: Array.from(customersMap.values())
+    };
+  },
+
   getPlants: (): Plant[] => getStorage(KEYS.PLANTS, []),
   savePlants: (data: Plant[]) => {
     syncEnqueueList('plants', KEYS.PLANTS, data);
