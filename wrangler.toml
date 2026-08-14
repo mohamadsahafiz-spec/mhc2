@@ -1,0 +1,19 @@
+name = "fsos-worker"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_VERSION = "1.0.15"
+
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fsos-d1"
+database_id = "5121135f-9336-46a6-88cc-9a2c85caae0b"

@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark light;
+
+    /* Base tokens - Dark Defaults */
+    --color-bg: #111315;
+    --color-surface: #1A1D21;
+    --color-card: #20252B;
+    --color-border: #2B323A;
+    --color-primary: #8B9DFF;
+    --color-success: #7FD4A6;
+    --color-warning: #EFCB7A;
+    --color-danger: #E98A8A;
+    --color-info: #8ECDF7;
+    --color-text-primary: #F3F4F6;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+
+    --transition-speed: 250ms;
+  }
+
+  html.light {
+    --color-bg: #F8FAFC;
+    --color-surface: #FFFFFF;
+    --color-card: #FFFFFF;
+    --color-border: #E2E8F0;
+    --color-primary: #4338CA;
+    --color-success: #047857;
+    --color-warning: #B45309;
+    --color-danger: #B91C1C;
+    --color-info: #0369A1;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748B;
+  }
+
+  html.dark body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  html.light body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 250ms ease, color 250ms ease;
+  }
+}
+
+/* Theme utility classes */
+.dark .bg-theme-bg { background-color: #111315; }
+.dark .bg-theme-surface { background-color: #1A1D21; }
+.dark .bg-theme-card { background-color: #20252B; }
+.dark .border-theme-border { border-color: #2B323A; }
+
+.light .bg-theme-bg { background-color: #F8FAFC; }
+.light .bg-theme-surface { background-color: #FFFFFF; }
+.light .bg-theme-card { background-color: #FFFFFF; }
+.light .border-theme-border { border-color: #E2E8F0; }
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #111315;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #2B323A;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B4450;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Print styles for Executive Engineering Reports */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-page {
+    page-break-after: always;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+}

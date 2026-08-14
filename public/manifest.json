@@ -1,0 +1,25 @@
+{
+  "short_name": "FSOS",
+  "name": "Field Service Operations System",
+  "description": "Precision Laser Engineering Field Service Operations System & SOP Guide",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#121417",
+  "theme_color": "#1A1D21",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["productivity", "utilities", "business"]
+}

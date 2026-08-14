@@ -1,0 +1,778 @@
+import React, { useState } from 'react';
+import {
+  Zap,
+  Plus,
+  Trash2,
+  FileText,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Activity,
+  Sliders,
+  Clock,
+  Eye,
+  ChevronRight
+} from 'lucide-react';
+import { Machine } from '../../types';
+import {
+  LaserPowerCheckRecord,
+  MaskSize,
+  MASK_SPECS
+} from '../../types/laserPower';
+import { LaserPowerEngine } from '../../utils/laserPowerEngine';
+import { StorageService } from '../../utils/persistence';
+import { getLocalDateString } from '../../utils/timeUtils';
+import { Card } from '../common/Card';
+import { Badge } from '../common/Badge';
+import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
+import { useTheme } from '../../context/ThemeContext';
+
+interface MachineLaserPowerWorkspaceProps {
+  machine: Machine;
+  onUpdateMachine: (updatedMachine: Machine) => void;
+}
+
+export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProps> = ({
+  machine,
+  onUpdateMachine
+}) => {
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
+
+  if (!machine) {
+    return (
+      <div className={`p-8 rounded-2xl border text-center ${
+        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+      }`}>
+        <Zap className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
+        <p className="text-sm font-semibold">No machine selected for laser power inspection.</p>
+      </div>
+    );
+  }
+
+  const records = machine?.laserPowerRecords || [];
+  const latestRecord = records[0] || null;
+
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedRecordDetail, setSelectedRecordDetail] = useState<LaserPowerCheckRecord | null>(null);
+
+  // Form State for New Check
+  const [formDate, setFormDate] = useState<string>(getLocalDateString());
+  const [formFreq, setFormFreq] = useState<number>(50);
+  const [formRemarks, setFormRemarks] = useState<string>('');
+
+  // Power inputs state
+  const [lsHeadA, setLsHeadA] = useState<string>('15.2');
+  const [lsHeadB, setLsHeadB] = useState<string>('15.0');
+
+  const [optHeadA, setOptHeadA] = useState<string>('14.8');
+  const [optHeadB, setOptHeadB] = useState<string>('14.6');
+
+  const [maskInputs, setMaskInputs] = useState<Record<MaskSize, { headA: string; headB: string }>>({
+    '2.2mm': { headA: '3.4', headB: '3.3' },
+    '2.0mm': { headA: '2.7', headB: '2.6' },
+    '1.8mm': { headA: '2.1', headB: '2.0' },
+    '1.3mm': { headA: '1.2', headB: '1.1' },
+    '1.1mm': { headA: '0.8', headB: '0.8' },
+    '0.9mm': { headA: '0.5', headB: '0.4' }
+  });
+
+  const handleMaskInputChange = (size: MaskSize, head: 'headA' | 'headB', val: string) => {
+    setMaskInputs(prev => ({
+      ...prev,
+      [size]: {
+        ...prev[size],
+        [head]: val
+      }
+    }));
+  };
+
+  // Evaluate current form values on the fly
+  const currentFormParsed = React.useMemo<LaserPowerCheckRecord>(() => {
+    const parseNum = (s: string): number | null => {
+      const n = parseFloat(s);
+      return isNaN(n) ? null : n;
+    };
+
+    const draft: Partial<LaserPowerCheckRecord> = {
+      date: formDate,
+      frequencyKhz: formFreq,
+      engineerRemarks: formRemarks,
+      laserSource: {
+        specText: '15W ±10% (13.5–16.5W)',
+        minWatts: 13.5,
+        maxWatts: 16.5,
+        headA: parseNum(lsHeadA),
+        headB: parseNum(lsHeadB),
+        passA: false,
+        passB: false
+      },
+      opticsTopHat: {
+        specText: '15W ±10% (13.5–16.5W)',
+        minWatts: 13.5,
+        maxWatts: 16.5,
+        headA: parseNum(optHeadA),
+        headB: parseNum(optHeadB),
+        passA: false,
+        passB: false
+      },
+      workingZoneMasks: MASK_SPECS.map(s => ({
+        maskSize: s.size,
+        specText: s.specText,
+        minWatts: s.minWatts,
+        headA: parseNum(maskInputs[s.size].headA),
+        headB: parseNum(maskInputs[s.size].headB),
+        passA: false,
+        passB: false
+      }))
+    };
+
+    return LaserPowerEngine.evaluateRecord(draft);
+  }, [formDate, formFreq, formRemarks, lsHeadA, lsHeadB, optHeadA, optHeadB, maskInputs]);
+
+  // Save Record
+  const handleSaveRecord = () => {
+    const newRecord = LaserPowerEngine.evaluateRecord(currentFormParsed);
+    const updatedRecords = [newRecord, ...records];
+    const updatedMachine: Machine = {
+      ...machine,
+      laserPowerRecords: updatedRecords
+    };
+
+    onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter(m => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
+
+    setIsAddModalOpen(false);
+  };
+
+  // Delete Record
+  const handleDeleteRecord = (id: string) => {
+    if (!confirm('Are you sure you want to delete this Laser Power record?')) return;
+    const updatedRecords = records.filter(r => r.id !== id);
+    const updatedMachine: Machine = {
+      ...machine,
+      laserPowerRecords: updatedRecords
+    };
+    onUpdateMachine(updatedMachine);
+    const allMachines = StorageService.getMachines();
+    const otherMachines = allMachines.filter(m => m.id !== machine.id);
+    StorageService.saveMachines([updatedMachine, ...otherMachines]);
+  };
+
+  const mask13 = latestRecord?.workingZoneMasks.find(m => m.maskSize === '1.3mm');
+
+  return (
+    <div className="space-y-4">
+      {/* HEADER BAR */}
+      <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+        isDark ? 'bg-[#15181C] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+            <Zap className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className={`text-base font-bold flex items-center gap-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              Laser Power Calibration & Health
+              {latestRecord && (
+                <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
+                  {latestRecord.overallResult}
+                </Badge>
+              )}
+            </h2>
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Machine-bound engineering power meter records • Frequency: {latestRecord?.frequencyKhz || 50} kHz
+            </p>
+          </div>
+        </div>
+
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2 px-4 flex items-center gap-1.5 shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Enter New Power Check
+        </Button>
+      </div>
+
+      {/* LATEST RECORD TELEMETRY CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Card 1: Laser Source */}
+        <Card title="Laser Source (External Meter)">
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
+              <span>Spec: 15W ±10% (13.5–16.5W)</span>
+              <span className="font-mono">{latestRecord?.frequencyKhz || 50} kHz</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {latestRecord?.laserSource.headA !== null && latestRecord?.laserSource.headA !== undefined
+                      ? `${latestRecord.laserSource.headA} W`
+                      : '—'}
+                  </span>
+                  {latestRecord && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      latestRecord.laserSource.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {latestRecord.laserSource.passA ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {latestRecord?.laserSource.headB !== null && latestRecord?.laserSource.headB !== undefined
+                      ? `${latestRecord.laserSource.headB} W`
+                      : '—'}
+                  </span>
+                  {latestRecord && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      latestRecord.laserSource.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {latestRecord.laserSource.passB ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 2: After Top Hat / Optics */}
+        <Card title="After Top Hat / Optics">
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
+              <span>Spec: 15W ±10% (13.5–16.5W)</span>
+              <span className="font-mono">External Meter</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {latestRecord?.opticsTopHat.headA !== null && latestRecord?.opticsTopHat.headA !== undefined
+                      ? `${latestRecord.opticsTopHat.headA} W`
+                      : '—'}
+                  </span>
+                  {latestRecord && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      latestRecord.opticsTopHat.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {latestRecord.opticsTopHat.passA ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {latestRecord?.opticsTopHat.headB !== null && latestRecord?.opticsTopHat.headB !== undefined
+                      ? `${latestRecord.opticsTopHat.headB} W`
+                      : '—'}
+                  </span>
+                  {latestRecord && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      latestRecord.opticsTopHat.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {latestRecord.opticsTopHat.passB ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 3: Working Zone (Mask 1.3mm) */}
+        <Card title="Working Zone (1.3mm Mask)">
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
+              <span>Spec: ≥1.0 W</span>
+              <span className="font-mono">Internal Meter</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {mask13?.headA !== null && mask13?.headA !== undefined ? `${mask13.headA} W` : '—'}
+                  </span>
+                  {mask13 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      mask13.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {mask13.passA ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-sm font-bold font-mono text-slate-200">
+                    {mask13?.headB !== null && mask13?.headB !== undefined ? `${mask13.headB} W` : '—'}
+                  </span>
+                  {mask13 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                      mask13.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    }`}>
+                      {mask13.passB ? 'PASS' : 'FAIL'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 4: Overall Calibration Summary */}
+        <Card title="Overall Power Health">
+          <div className="space-y-2 text-xs flex flex-col justify-between h-full pb-1">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-xs">Latest Date:</span>
+              <span className="font-bold font-mono text-slate-200">{latestRecord?.date || 'No Record'}</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-xs">Frequency:</span>
+              <span className="font-bold font-mono text-slate-200">{latestRecord?.frequencyKhz || 50} kHz</span>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+              <span className="text-slate-400 text-xs">Overall Verdict:</span>
+              {latestRecord ? (
+                <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
+                  {latestRecord.overallResult}
+                </Badge>
+              ) : (
+                <span className="text-slate-500 italic">No Checks</span>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* HISTORICAL RECORDS TABLE */}
+      <Card title={`Laser Power Records History (${records.length})`}>
+        {records.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 text-xs italic">
+            No Laser Power Check records saved for this machine yet. Click "Enter New Power Check" above to record one.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className={`border-b text-[10px] font-bold uppercase tracking-wider ${
+                  isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'
+                }`}>
+                  <th className="py-2.5 px-3">Date</th>
+                  <th className="py-2.5 px-3">Frequency</th>
+                  <th className="py-2.5 px-3">Laser Source (A / B)</th>
+                  <th className="py-2.5 px-3">Optics / Top Hat (A / B)</th>
+                  <th className="py-2.5 px-3">Mask 1.3mm (A / B)</th>
+                  <th className="py-2.5 px-3">Overall</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y font-mono ${
+                isDark ? 'divide-slate-800/60 text-slate-200' : 'divide-slate-200 text-slate-800'
+              }`}>
+                {records.map(rec => {
+                  const m13 = rec.workingZoneMasks.find(m => m.maskSize === '1.3mm');
+                  return (
+                    <tr key={rec.id} className={`hover:bg-slate-900/40 transition-colors ${
+                      isDark ? 'hover:bg-slate-900/50' : 'hover:bg-slate-50'
+                    }`}>
+                      <td className="py-2.5 px-3 font-bold">{rec.date}</td>
+                      <td className="py-2.5 px-3">{rec.frequencyKhz} kHz</td>
+                      <td className="py-2.5 px-3">
+                        {rec.laserSource.headA ?? '—'} W / {rec.laserSource.headB ?? '—'} W
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {rec.opticsTopHat.headA ?? '—'} W / {rec.opticsTopHat.headB ?? '—'} W
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {m13?.headA ?? '—'} W / {m13?.headB ?? '—'} W
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <Badge variant={rec.overallResult === 'PASS' ? 'success' : 'danger'}>
+                          {rec.overallResult}
+                        </Badge>
+                      </td>
+                      <td className="py-2.5 px-3 text-right space-x-1 font-sans">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedRecordDetail(rec)}
+                          className="py-1 px-2 text-[11px]"
+                        >
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleDeleteRecord(rec.id)}
+                          className="py-1 px-2 text-[11px]"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* MODAL 1: ENTER NEW POWER CHECK */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title={`New Laser Power Check — ${machine.model} (${machine.machineNumber})`}
+        maxWidth="max-w-3xl"
+      >
+        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+          {/* Form Header info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Check Date</label>
+              <input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Frequency (kHz)</label>
+              <input
+                type="number"
+                value={formFreq}
+                onChange={(e) => setFormFreq(Number(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Section 1: Laser Source */}
+          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div>
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap className="w-4 h-4" />
+                  LASER SOURCE — External Power Meter
+                </h4>
+                <p className="text-[11px] text-slate-400">Specification: 15W ±10% (13.5W – 16.5W)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Head A Measured Watts (W)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={lsHeadA}
+                    onChange={(e) => setLsHeadA(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
+                  />
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
+                    currentFormParsed.laserSource.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {currentFormParsed.laserSource.passA ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Head B Measured Watts (W)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={lsHeadB}
+                    onChange={(e) => setLsHeadB(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
+                  />
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
+                    currentFormParsed.laserSource.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {currentFormParsed.laserSource.passB ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Optics / Top Hat */}
+          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div>
+                <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4" />
+                  AFTER TOP HAT / OPTICS — External Power Meter
+                </h4>
+                <p className="text-[11px] text-slate-400">Specification: 15W ±10% (13.5W – 16.5W)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Head A Measured Watts (W)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={optHeadA}
+                    onChange={(e) => setOptHeadA(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
+                  />
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
+                    currentFormParsed.opticsTopHat.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {currentFormParsed.opticsTopHat.passA ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Head B Measured Watts (W)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={optHeadB}
+                    onChange={(e) => setOptHeadB(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
+                  />
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
+                    currentFormParsed.opticsTopHat.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {currentFormParsed.opticsTopHat.passB ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Working Zone (Mask Table) */}
+          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div>
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Activity className="w-4 h-4" />
+                  WORKING ZONE — Internal Power Meter Mask Readings
+                </h4>
+                <p className="text-[11px] text-slate-400">Measured values evaluated against minimum threshold specifications</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th className="py-2 px-2">Mask</th>
+                    <th className="py-2 px-2">Spec</th>
+                    <th className="py-2 px-2">Head A (W)</th>
+                    <th className="py-2 px-2">Head B (W)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {MASK_SPECS.map(s => {
+                    const parsedM = currentFormParsed.workingZoneMasks.find(m => m.maskSize === s.size);
+                    return (
+                      <tr key={s.size} className="hover:bg-slate-900/40">
+                        <td className="py-2 px-2 font-bold text-slate-200">{s.size}</td>
+                        <td className="py-2 px-2 text-slate-400">{s.specText}</td>
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={maskInputs[s.size].headA}
+                              onChange={(e) => handleMaskInputChange(s.size, 'headA', e.target.value)}
+                              className="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono"
+                            />
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              parsedM?.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                            }`}>
+                              {parsedM?.passA ? 'PASS' : 'FAIL'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={maskInputs[s.size].headB}
+                              onChange={(e) => handleMaskInputChange(s.size, 'headB', e.target.value)}
+                              className="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono"
+                            />
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              parsedM?.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                            }`}>
+                              {parsedM?.passB ? 'PASS' : 'FAIL'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Remarks */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Engineer Remarks / Observations</label>
+            <input
+              type="text"
+              value={formRemarks}
+              onChange={(e) => setFormRemarks(e.target.value)}
+              placeholder="e.g. Power output stable across all working zone masks."
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-sans"
+            />
+          </div>
+
+          {/* Real-time Verdict Bar & Save Button */}
+          <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-300">CALCULATED OVERALL VERDICT:</span>
+              <Badge variant={currentFormParsed.overallResult === 'PASS' ? 'success' : 'danger'}>
+                {currentFormParsed.overallResult}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-xs py-1.5 px-3"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveRecord}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-1.5 px-4"
+              >
+                Save Power Check Record
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL 2: RECORD DETAIL VIEW */}
+      {selectedRecordDetail && (
+        <Modal
+          isOpen={!!selectedRecordDetail}
+          onClose={() => setSelectedRecordDetail(null)}
+          title={`Laser Power Check Details — ${selectedRecordDetail.date}`}
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4 text-xs font-mono">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <div>
+                <span className="text-slate-400 block text-[10px]">CHECK DATE & FREQUENCY</span>
+                <strong className="text-slate-100 text-sm">{selectedRecordDetail.date} • {selectedRecordDetail.frequencyKhz} kHz</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] text-right">OVERALL VERDICT</span>
+                <Badge variant={selectedRecordDetail.overallResult === 'PASS' ? 'success' : 'danger'}>
+                  {selectedRecordDetail.overallResult}
+                </Badge>
+              </div>
+            </div>
+
+            {/* External Meter Table */}
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950 space-y-2 font-sans">
+              <h4 className="font-bold text-amber-400 text-xs">External Power Meter Measurements</h4>
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th className="py-1">Stage</th>
+                    <th className="py-1">Spec</th>
+                    <th className="py-1">Head A</th>
+                    <th className="py-1">Head B</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  <tr>
+                    <td className="py-1.5 font-bold text-slate-200">Laser Source</td>
+                    <td className="py-1.5 text-slate-400">15W ±10%</td>
+                    <td className="py-1.5 font-bold text-emerald-400">{selectedRecordDetail.laserSource.headA ?? '—'} W</td>
+                    <td className="py-1.5 font-bold text-emerald-400">{selectedRecordDetail.laserSource.headB ?? '—'} W</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-bold text-slate-200">Optics / Top Hat</td>
+                    <td className="py-1.5 text-slate-400">15W ±10%</td>
+                    <td className="py-1.5 font-bold text-cyan-400">{selectedRecordDetail.opticsTopHat.headA ?? '—'} W</td>
+                    <td className="py-1.5 font-bold text-cyan-400">{selectedRecordDetail.opticsTopHat.headB ?? '—'} W</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Internal Meter Mask Table */}
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-950 space-y-2 font-sans">
+              <h4 className="font-bold text-emerald-400 text-xs">Working Zone Mask Readings (Internal Meter)</h4>
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                    <th className="py-1">Mask</th>
+                    <th className="py-1">Spec</th>
+                    <th className="py-1">Head A</th>
+                    <th className="py-1">Head B</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {selectedRecordDetail.workingZoneMasks.map(m => (
+                    <tr key={m.maskSize}>
+                      <td className="py-1.5 font-bold text-slate-200">{m.maskSize}</td>
+                      <td className="py-1.5 text-slate-400">{m.specText}</td>
+                      <td className={`py-1.5 font-bold ${m.passA ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {m.headA ?? '—'} W ({m.passA ? 'PASS' : 'FAIL'})
+                      </td>
+                      <td className={`py-1.5 font-bold ${m.passB ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {m.headB ?? '—'} W ({m.passB ? 'PASS' : 'FAIL'})
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedRecordDetail.engineerRemarks && (
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-sans">
+                <span className="text-slate-400 font-bold block mb-1">Engineer Remarks:</span>
+                <p className="text-slate-200">{selectedRecordDetail.engineerRemarks}</p>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
