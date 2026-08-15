@@ -785,31 +785,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </table>
                 </div>
 
-                {/* Cleanroom Operating Parameters Card */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                  <div className="font-mono font-bold text-slate-700 text-[10px] uppercase">
-                    CLEANROOM OPERATING SPECIFICATIONS ENVELOPE
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[10px]">
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block">WAVELENGTH</span>
-                      <strong className="text-slate-800">355 nm (Tripled Nd:YVO4)</strong>
-                    </div>
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block">BEAM QUALITY</span>
-                      <strong className="text-slate-800">M² &lt; 1.2</strong>
-                    </div>
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block">STAGE ENVELOPE</span>
-                      <strong className="text-slate-800">650 × 650 mm (XY)</strong>
-                    </div>
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block">CLEANROOM CLASS</span>
-                      <strong className="text-slate-800">ISO Class 6 (Class 1000)</strong>
-                    </div>
-                  </div>
-                </div>
-
               </div>
 
             </div>
