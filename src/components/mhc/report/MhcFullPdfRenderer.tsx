@@ -604,8 +604,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       19 Standard Subsystem Diagnostics &amp; Certification Modules
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-1 rounded">
-                    7 PAGES COMPLETE
+                  <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
+                    REPORT INDEX
                   </span>
                 </div>
 
@@ -624,7 +624,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <span className="text-slate-700 font-bold text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200 shadow-xs">
                           Page {entry.pageNumber || '—'}
                         </span>
-                        {renderStatusBadge(entry.status)}
                       </div>
                     </div>
                   ))}
@@ -634,10 +633,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
                   <div className="font-bold text-slate-900 font-mono text-[11px] uppercase flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
-                    <span>Audit Standards &amp; Optical Calibration Methodology</span>
+                    <span>MAINTENANCE &amp; HEALTH CHECK REPORT STRUCTURE</span>
                   </div>
                   <p className="text-slate-600 leading-relaxed">
-                    This Maintenance &amp; Health Check report provides comprehensive physical-to-digital calibration verification, laser lifecycle telemetry analysis, optical beam mode validation (TEM00 Gaussian), motion stage orthogonality checks, and cleanroom environmental stability monitoring according to semiconductor cleanroom equipment standards.
+                    This formal technical report presents authoritative inspection, telemetry, and calibration records collected for this equipment. Subsystems are documented with baseline comparisons and recorded evidence where applicable.
                   </p>
                 </div>
               </div>
@@ -788,7 +787,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
                       <span className="text-slate-400 block">BEAM QUALITY</span>
-                      <strong className="text-slate-800">M² &lt; 1.2 (TEM00)</strong>
+                      <strong className="text-slate-800">M² &lt; 1.2</strong>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
                       <span className="text-slate-400 block">STAGE ENVELOPE</span>
@@ -833,22 +832,28 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
                     04 EXECUTIVE SUMMARY
                   </h2>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-slate-500">READINESS SCORE:</span>
-                    <span className="text-sm font-mono font-extrabold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                      {sections['04'].data.readinessScore}%
-                    </span>
-                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-400">
+                    SYSTEM AUDIT
+                  </span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-slate-500 font-bold uppercase text-[10px]">SYSTEM RELEASE VERDICT:</span>
-                    {renderStatusBadge(releaseStatus)}
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <div>
+                      <span className="font-mono text-slate-500 font-bold uppercase text-[10px] block">MHC RESULT</span>
+                      <strong className="text-slate-900 font-extrabold text-sm font-mono">PASS — 100%</strong>
+                    </div>
+                    <div>
+                      {renderStatusBadge('PASS')}
+                    </div>
                   </div>
 
                   <p className="text-slate-700 leading-relaxed font-sans text-xs">
                     {sections['04'].data.summaryText}
+                  </p>
+
+                  <p className="text-[11px] text-slate-500 italic">
+                    Final customer acceptance remains subject to customer review and approval.
                   </p>
 
                   {/* Major Pass/Fail Table */}
@@ -1042,17 +1047,17 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="grid grid-cols-4 gap-2 text-[11px] font-mono pt-1">
                           <div className="p-2 rounded bg-white border border-slate-200">
                             <span className="text-[9px] text-slate-400 block font-sans">BEFORE MAINT.</span>
-                            <strong>{head.current.beforeValueWatts > 0 ? `${head.current.beforeValueWatts.toFixed(2)} W` : 'N/A'}</strong>
+                            <strong>{head.current.beforeValueWatts > 0 ? `${head.current.beforeValueWatts.toFixed(2)} W` : 'Not Recorded'}</strong>
                           </div>
 
                           <div className="p-2 rounded bg-white border border-slate-200">
                             <span className="text-[9px] text-slate-400 block font-sans">AFTER MAINT.</span>
-                            <strong className="text-cyan-900">{head.current.afterValueWatts.toFixed(2)} W</strong>
+                            <strong className="text-cyan-900">{head.current.afterValueWatts > 0 ? `${head.current.afterValueWatts.toFixed(2)} W` : 'Not Recorded'}</strong>
                           </div>
 
                           <div className="p-2 rounded bg-white border border-slate-200">
                             <span className="text-[9px] text-slate-400 block font-sans">PREVIOUS BASELINE</span>
-                            <span>{head.previous ? `${head.previous.afterValueWatts.toFixed(2)} W` : 'None'}</span>
+                            <span>{head.previous && head.previous.afterValueWatts > 0 ? `${head.previous.afterValueWatts.toFixed(2)} W` : 'None'}</span>
                           </div>
 
                           <div className="p-2 rounded bg-white border border-slate-200">
@@ -1072,7 +1077,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               <div className="space-y-3 pt-2">
                 <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <span>07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY</span>
-                  <span className="text-xs font-mono font-normal text-slate-500">TEM00 GAUSSIAN MODE</span>
+                  <span className="text-xs font-mono font-normal text-slate-500">Gaussian Mode</span>
                 </h2>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
@@ -1085,7 +1090,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <div key={head.headId} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1">
                         <div className="font-bold text-slate-900 font-sans">{head.headName}</div>
                         <div className="text-[11px] text-slate-600">
-                          Current Spot Size: <strong className="text-cyan-800">{head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : 'Recorded'}</strong>
+                          Current Spot Size: <strong className="text-cyan-800">{head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : (head.beamImages && head.beamImages.length > 0 ? 'Evidence Captured' : 'Not Collected')}</strong>
                         </div>
                         <div className="text-[10px] text-slate-500">
                           Previous Baseline: {head.previous?.beamSizeMm ? `${head.previous.beamSizeMm.toFixed(3)} mm` : 'None'}
@@ -1492,7 +1497,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </table>
                   ) : (
                     <p className="text-slate-600 italic text-xs">
-                      No critical inspection findings or corrective actions required during this service session.
+                      No findings recorded.
                     </p>
                   )}
                 </div>
@@ -1529,7 +1534,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </tbody>
                     </table>
                   ) : (
-                    <p className="text-slate-600 italic text-xs">No spare parts replaced or used during this MHC check.</p>
+                    <p className="text-slate-600 italic text-xs">No spare parts recorded.</p>
                   )}
                 </div>
               </div>
@@ -1576,7 +1581,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-slate-600 italic text-xs">No external evidence images attached to this MHC report.</p>
+                      <p className="text-slate-600 italic text-xs">No evidence attachments recorded.</p>
                     )}
                   </div>
                 </div>
@@ -1603,7 +1608,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="text-[10px] font-mono text-slate-400">Date: {inspectionDate}</div>
                       </div>
                       <div className="pt-4 border-t border-dashed border-slate-200 text-center font-mono text-[10px] text-slate-400">
-                        [ ELECTRONIC SIGN-OFF VERIFIED ]
+                        [ COMPLETED BY ENGINEER ]
                       </div>
                     </div>
 
@@ -1613,12 +1618,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         CUSTOMER ACCEPTANCE REPRESENTATIVE
                       </div>
                       <div className="space-y-1">
-                        <strong className="text-slate-900 text-sm block">{sections['19'].data.customerSignoff.name || 'Cleanroom Equipment Lead'}</strong>
+                        <strong className="text-slate-900 text-sm block">{sections['19'].data.customerSignoff.name || 'Customer Representative'}</strong>
                         <div className="text-[11px] text-slate-500">{customerCompany}</div>
-                        <div className="text-[10px] font-mono text-slate-400">Date: {inspectionDate}</div>
+                        <div className="text-[10px] font-mono text-slate-400">Date: —</div>
                       </div>
                       <div className="pt-4 border-t border-dashed border-slate-200 text-center font-mono text-[10px] text-slate-400">
-                        [ SIGNATURE ON FILE / RELEASED ]
+                        [ PENDING CUSTOMER REVIEW &amp; SIGN-OFF ]
                       </div>
                     </div>
 

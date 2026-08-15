@@ -711,7 +711,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
         laserId: 'lh-1',
         productName: 'Cleanroom Semiconductor Wafer',
         recipeProgram: 'RECIPE_STD_PROCESS_V1',
-        profileInfo: 'TEM00 Gaussian Profile - Single Mode',
+        profileInfo: 'Gaussian Profile - Single Mode',
         measurementInfo: 'Spot Size: 42.5 µm',
         supportingEvidence: 'Initial beam shape verified.',
         images: []
@@ -781,7 +781,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       stage08_engineerRemarks: {
         generalFindings: 'Machine overall operational condition verified. Thermal loop and optical alignment within specifications.',
         observedIssues: 'Minor optics dust buildup detected before swabbing.',
-        correctiveActions: 'Cleaned output window lens with optical swab; verified beam profile TEM00.',
+        correctiveActions: 'Cleaned output window lens with optical swab; verified Gaussian beam profile.',
         recommendations: 'Continue standard 250-hour PM schedule. Next lens swab recommended in 90 days.',
         followUpRequired: false,
         productionReleaseVerdict: 'APPROVED'
@@ -895,7 +895,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       { id: 'dt-l7', category: 'Laser', key: 'laser_temp', label: 'Laser Temperature', value: '22.8', unit: '°C', status: 'AVAILABLE' },
 
       // Optical / Quality
-      { id: 'dt-o1', category: 'Optical / Quality', key: 'beam_waist', label: 'Beam Comparison Images', value: 'Available (TEM00)', status: 'AVAILABLE' },
+      { id: 'dt-o1', category: 'Optical / Quality', key: 'beam_waist', label: 'Beam Comparison Images', value: 'Available (Gaussian Mode)', status: 'AVAILABLE' },
       { id: 'dt-o2', category: 'Optical / Quality', key: 'optics_condition', label: 'Optics Condition', value: sOptics?.beforeCondition || 'Minor dust on protective lens', status: 'MISSING' },
       { id: 'dt-o3', category: 'Optical / Quality', key: 'product_quality', label: 'Product Quality (B/A)', value: sQuality?.result || 'PASS', status: 'AVAILABLE' },
 

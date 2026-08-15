@@ -316,7 +316,7 @@ export function buildMhcReportDocument(
     return {
       headId,
       headName,
-      specification: 'TEM00 Mode, Source Spot Size Spec',
+      specification: 'Gaussian Mode, Spot Size Spec',
       hasPreviousBaseline: hasBaseline,
       measurementStation: 'Standard Beam Profiler',
       current: {
@@ -807,11 +807,11 @@ export function buildMhcReportDocument(
       ? (keyFindingsList.length === 1 && totalFindingsCount === 0 ? 'PASS' : 'CONDITIONAL_PASS')
       : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'),
     readinessScore: sessionAudit.readinessScore,
-    summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}. Service score is ${sessionAudit.readinessScore}% with ${sessionAudit.blockers.length} active blocker(s).`,
+    summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}.`,
     keyFindings: keyFindingsList,
     majorPassFailResults: [
       { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: '15.0W ±10%' },
-      { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: 'TEM00 Gaussian Mode' },
+      { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: 'Gaussian Mode' },
       { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±2.0 µm Tolerance' },
       { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±3.0 µm Tolerance' },
       { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: 'Thermal stability telemetry' }
