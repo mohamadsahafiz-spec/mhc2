@@ -26,7 +26,7 @@ import {
   ZoomOut
 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { MHCSession, MhcReportDocument, MhcReportSectionCode } from '../../../types';
 import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
 
@@ -106,93 +106,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     }
   };
 
-  // Helper to convert any modern CSS color (OKLCH, LAB, etc.) to standard sRGB via canvas 2D serialization
-  const normalizeCssColorsForExport = (clonedDoc: Document, clonedEl: HTMLElement) => {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 1;
-    tempCanvas.height = 1;
-    const ctx = tempCanvas.getContext('2d');
-    const colorCache = new Map<string, string>();
-
-    const toRgbColor = (colorStr: string): string => {
-      if (!colorStr || colorStr === 'transparent' || colorStr === 'none' || colorStr === 'inherit' || colorStr === 'currentColor') {
-        return colorStr;
-      }
-      if (colorCache.has(colorStr)) return colorCache.get(colorStr)!;
-      if (!ctx) return colorStr;
-      try {
-        ctx.fillStyle = 'rgba(0,0,0,0)';
-        ctx.fillStyle = colorStr;
-        const computed = ctx.fillStyle;
-        if (computed && !computed.includes('oklch') && !computed.includes('lab')) {
-          colorCache.set(colorStr, computed);
-          return computed;
-        }
-        return colorStr;
-      } catch {
-        return colorStr;
-      }
-    };
-
-    // 1. Replace oklch/lab definitions inside all cloned <style> tags
-    try {
-      const styleTags = clonedDoc.querySelectorAll('style');
-      styleTags.forEach(styleTag => {
-        if (styleTag.textContent && (styleTag.textContent.includes('oklch') || styleTag.textContent.includes('lab('))) {
-          styleTag.textContent = styleTag.textContent
-            .replace(/oklch\([^)]+\)/g, (match) => toRgbColor(match))
-            .replace(/lab\([^)]+\)/g, (match) => toRgbColor(match));
-        }
-      });
-    } catch (styleErr) {
-      console.warn('[PDF Export] Style tag normalization warning:', styleErr);
-    }
-
-    // 2. Explicitly normalize computed colors and inline styles on all elements
-    const colorProps = [
-      'color',
-      'background-color',
-      'border-top-color',
-      'border-right-color',
-      'border-bottom-color',
-      'border-left-color',
-      'fill',
-      'stroke',
-      'outline-color'
-    ];
-
-    const allElements = [clonedEl, ...Array.from(clonedEl.querySelectorAll('*'))] as HTMLElement[];
-    allElements.forEach(el => {
-      if (!el.style) return;
-
-      // Normalize existing inline styles
-      for (let i = 0; i < el.style.length; i++) {
-        const propName = el.style[i];
-        const val = el.style.getPropertyValue(propName);
-        if (val && (val.includes('oklch') || val.includes('lab('))) {
-          const converted = val
-            .replace(/oklch\([^)]+\)/g, (m) => toRgbColor(m))
-            .replace(/lab\([^)]+\)/g, (m) => toRgbColor(m));
-          el.style.setProperty(propName, converted);
-        }
-      }
-
-      // Check computed colors for any remaining modern formats and freeze them as inline sRGB
-      try {
-        const computed = window.getComputedStyle(el);
-        colorProps.forEach(prop => {
-          const compVal = computed.getPropertyValue(prop);
-          if (compVal && (compVal.includes('oklch') || compVal.includes('lab('))) {
-            el.style.setProperty(prop, toRgbColor(compVal), 'important');
-          }
-        });
-      } catch {
-        // Ignore computed style lookup errors on detached nodes
-      }
-    });
-  };
-
-  // PDF Download Handler via html2canvas + jsPDF with OKLCH compatibility pipeline
+  // PDF Download Handler via html2canvas-pro + jsPDF
   const handleDownloadPdf = async () => {
     if (!documentContainerRef.current) return;
     setIsGeneratingPdf(true);
@@ -202,7 +116,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     const originalTransform = container.style.transform;
     const originalTransformOrigin = container.style.transformOrigin;
 
-    // Temporarily reset zoom transform for true 1:1 html2canvas coordinate calculation
+    // Temporarily reset zoom transform for true 1:1 coordinate calculation
     container.style.transform = 'none';
     container.style.transformOrigin = 'initial';
 
@@ -242,10 +156,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           scrollX: 0,
           scrollY: 0,
           imageTimeout: 10000,
-          onclone: (clonedDoc, clonedEl) => {
+          onclone: (_clonedDoc, clonedEl) => {
             clonedEl.style.transform = 'none';
-            // Normalize modern OKLCH/LAB colors so html2canvas color parser doesn't throw
-            normalizeCssColorsForExport(clonedDoc, clonedEl);
             const imgs = clonedEl.querySelectorAll('img');
             imgs.forEach(img => {
               img.setAttribute('crossOrigin', 'anonymous');
