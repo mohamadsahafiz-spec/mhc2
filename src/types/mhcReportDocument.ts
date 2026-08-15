@@ -75,6 +75,7 @@ export interface MhcReportCoverData {
   machineModel: string;
   machineSerialNumber: string;
   machineName: string;
+  machineNumber?: string;
   engineerName: string;
   engineerTitle: string;
   founderBranding?: {
@@ -104,6 +105,7 @@ export interface MhcReportMachineInfoData {
   machineId: string;
   machineName: string;
   machineModel: string;
+  machineNumber?: string;
   serialNumber: string;
   customerName: string;
   plantName: string;
@@ -114,6 +116,7 @@ export interface MhcReportMachineInfoData {
   laserHeads: Array<{
     laserId: string;
     identifier: string;
+    serialNumber?: string;
     ratedPowerWatts?: number;
     recordedLaserHour?: number;
     runtimeStatus?: string;
@@ -136,20 +139,31 @@ export interface MhcReportExecutiveSummaryData {
 }
 
 // 05 Laser Hours
+export interface MhcReportLaserHourHeadDetail {
+  laserId: string;
+  laserIdentifier: string;
+  serialNumber?: string;
+  recordedLaserHour?: number;
+  verifiedHour?: number;
+  calculatedCurrentHour: number;
+  currentLaserHour: number;
+  warningThreshold: number;
+  criticalThreshold: number;
+  errorEolLimit: number;
+  warningLimit: number;
+  lifeRemainingPercent: number;
+  remainingHours: number;
+  remainingDays: number;
+  estimatedEolDate: string;
+  verdict: 'PASS' | 'WARNING' | 'FAIL';
+  runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL';
+  readingDate: string;
+  isVerified: boolean;
+  notes?: string;
+}
+
 export interface MhcReportLaserHoursData {
-  laserHours: Array<{
-    laserId: string;
-    laserIdentifier: string;
-    recordedLaserHour: number;
-    verifiedHour?: number;
-    calculatedCurrentHour: number;
-    warningThreshold: number;
-    criticalThreshold: number;
-    runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL';
-    readingDate: string;
-    isVerified: boolean;
-    notes?: string;
-  }>;
+  laserHours: MhcReportLaserHourHeadDetail[];
   summaryText: string;
 }
 

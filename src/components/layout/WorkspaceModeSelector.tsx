@@ -130,7 +130,7 @@ export const WorkspaceModeSelector: React.FC<WorkspaceModeSelectorProps> = ({
                   {currentMode === 'FOUNDER_MODE' && <Check className="w-3.5 h-3.5 text-purple-400" />}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                  Complete platform access: Contracts, Planner, Users, Analytics, Settings.
+                  Complete platform access: Contracts, Planner, Users, Analytics, Changelog.
                 </p>
               </div>
             </button>

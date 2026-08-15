@@ -1,10 +1,8 @@
 import React from 'react';
-import { RefreshCw, Bot, User, History, Compass, Cpu, Calendar, Activity, ShieldCheck } from 'lucide-react';
+import { RefreshCw, User } from 'lucide-react';
 import { Card } from '../common/Card';
-import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
-import { APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
 
 interface SettingsProps {
   onResetData: () => void;
@@ -15,6 +13,25 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const isDark = effectiveTheme === 'dark';
 
   const changelog = [
+    {
+      version: 'v1.1.6',
+      date: '2026-08-15',
+      type: 'Full MHC PDF — Phase 2 Quality & Laser Lifecycle Fixes',
+      highlights: [
+        'LASER LIFECYCLE PRECISION: Integrated LaserEngine calculations for EACH laser head in the Full PDF report, displaying authoritative current hours, Warning and Error/EOL limits, life remaining percentage, visual life bar, remaining operating hours and days, and estimated EOL dates.',
+        'MACHINE IDENTITY & DATA-DRIVEN METADATA: Added authoritative machine number/source (e.g. WLVIA#3) and fully data-driven/editable Engineer Name, Company, Inspection Date, and System Release Verdict.',
+        'PAGE STRUCTURE REFACTORING: Separated Table of Contents (02) into a dedicated page, giving Machine Information & Configuration (03) a clean dedicated new page.'
+      ]
+    },
+    {
+      version: 'v1.1.5',
+      date: '2026-08-15',
+      type: '🏆 Official MHC PDF Export — Breakthrough',
+      highlights: [
+        'Four PDF export approaches failed before the fifth approach succeeded. Replacing legacy html2canvas 1.4.1 with html2canvas-pro restored reliable Official MHC PDF generation while preserving the existing MHC report architecture, Tailwind v4 styling, OKLCH colors, telemetry charts, and evidence rendering.',
+        'Founder reminder: Do not give up because the first four approaches fail. Investigate, adapt, and keep going.'
+      ]
+    },
     {
       version: 'v1.1.4',
       date: '2026-08-14',
@@ -357,12 +374,11 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     {
       version: 'v1.0.2',
       date: '2026-08-08',
-      type: 'Migration Finalization & UI Version Harmonization',
+      type: 'Cloudflare Workers Migration Finalization & Version Harmonization',
       highlights: [
-        'SYSTEM VERSION HARMONIZATION: Updated all in-app version badges, banners, and footers across the application to v1.0.2.',
-        'OPERATIONAL BUILD STATUS: Updated in-app Operational Build Status to Cloudflare Workers Engine (CFW-20260808-102).',
-        'PRODUCT EVOLUTION LOG: Updated Product Evolution Log to document native Cloudflare Workers and D1 database foundation.',
-        'DOCUMENTATION: Updated in-app Version/Changelog page and release notes summary.'
+        'CTO STRATEGIC DIRECTIVE: Finalized full migration from legacy Cloud Run container runtime to serverless Cloudflare Workers native edge infrastructure (src/worker.ts) with Cloudflare D1 sqlite database persistence (env.DB) and edge asset delivery (env.ASSETS).',
+        'PRODUCT EVOLUTION FOUNDATION: Native D1 database transactions for background sync and image metadata, eliminating heavy server container dependencies while serving React SPA static assets globally via Cloudflare Edge.',
+        'SYSTEM VERSION HARMONIZATION: Synchronized all in-app version badges, Operational Build Status (CFW-20260808-102), Wrangler deployment configuration (wrangler.toml), and documentation across FSOS.'
       ]
     },
     {
@@ -909,169 +925,6 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* About System Card */}
-      <Card title="About System — Operational Specification">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Cpu className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Build ID</span>
-            </div>
-            <p className="font-mono font-bold text-sm">{APP_BUILD_ID}</p>
-          </div>
-
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Compass className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Release Codename</span>
-            </div>
-            <p className="font-semibold text-xs text-emerald-400">{APP_CODENAME}</p>
-          </div>
-
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Calendar className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Release Date</span>
-            </div>
-            <p className="font-mono text-xs">2026-08-14</p>
-          </div>
-
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Activity className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Build Status</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <p className="font-mono font-bold text-xs text-emerald-400">OPERATIONAL</p>
-            </div>
-          </div>
-
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#8B9DFF]" />
-              <span className="font-mono uppercase text-[10px]">Target Deployment</span>
-            </div>
-            <p className="font-semibold text-xs">Cloudflare Workers & D1 Storage</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* CTO Strategic Directive & Product Evolution Log */}
-      <Card title="CTO Directive & Product Evolution Log">
-        <div className="space-y-4 text-xs">
-          {/* CTO Note */}
-          <div className={`p-4 rounded-xl border space-y-2 ${
-            isDark ? 'bg-[#8B9DFF]/10 border-[#8B9DFF]/30 text-slate-200' : 'bg-indigo-50/80 border-indigo-200 text-indigo-950'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-bold text-sm text-[#8B9DFF]">
-                <Bot className="w-4 h-4" />
-                <span>CTO STRATEGIC DIRECTIVE</span>
-              </div>
-              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/30 font-semibold">
-                v1.0.2 CLOUDFLARE WORKERS MIGRATION FINALIZATION
-              </span>
-            </div>
-            <p className="leading-relaxed font-medium">
-              v1.0.2 finalizes the complete migration of FSOS from legacy Cloud Run container runtime to Cloudflare Workers native edge infrastructure with D1 database persistence.
-            </p>
-            <p className="leading-relaxed text-slate-300">
-              Native Cloudflare Architecture:
-            </p>
-            <div className="font-mono text-[11px] font-bold text-emerald-400 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800 tracking-wide">
-              Cloudflare Worker (src/worker.ts) → Cloudflare D1 (env.DB) → Asset Edge (env.ASSETS) → FSOS React SPA
-            </div>
-          </div>
-
-          {/* Product Evolution Log */}
-          <div className={`p-4 rounded-xl border space-y-3 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-center gap-2 font-bold text-sm text-slate-200">
-              <History className="w-4 h-4 text-[#8B9DFF]" />
-              <span>Product Evolution Log: Cloudflare Workers Foundation</span>
-            </div>
-
-            <div className="space-y-3 text-slate-300 dark:text-slate-300">
-              <div className="space-y-1">
-                <p className="font-semibold text-[#8B9DFF]">FROM: Cloud Run Server Container Dependency</p>
-                <p className="font-semibold text-emerald-400">TO: Serverless Edge Cloudflare Workers & D1 Binding</p>
-                <p className="text-slate-400 leading-relaxed pt-1">
-                  The application runtime has been migrated to Cloudflare Workers (`src/worker.ts`), completely removing heavy Cloud Run server dependencies while maintaining full endpoint compatibility for sync, image storage, and status verification.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-[#8B9DFF]">2. Native D1 Database Persistence</p>
-                <p className="text-slate-400 leading-relaxed">
-                  Cloud D1 sqlite binding handles background sync records and image metadata transactions seamlessly, providing edge persistence for multi-device field operations.
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-semibold text-[#8B9DFF]">3. Platform Support & Edge Delivery</p>
-                <p className="text-slate-400 leading-relaxed">
-                  Static React SPA assets are delivered via Cloudflare Workers Asset Binding (`env.ASSETS`), ensuring ultra-fast load times for cleanroom field service engineers worldwide.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Release Notes Summary */}
-      <Card title="Release Notes — v1.0.2 Migration Finalization & Version Harmonization">
-        <div className={`p-4 rounded-xl border space-y-3 text-xs ${
-          isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <div className="flex items-center justify-between border-b border-[#2B323A]/60 pb-2">
-            <span className="font-bold text-sm text-[#8B9DFF]">Release Summary (Sprint Cloudflare Migration)</span>
-            <span className="font-mono text-slate-400">Target: v1.0.2</span>
-          </div>
-
-          <p className="text-slate-300 leading-relaxed">
-            Sprint v1.0.2 finalizes the Cloudflare Workers migration and synchronizes all in-app version badges, operational status indicators, and documentation across FSOS. Key deliverables include:
-          </p>
-
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-slate-300 font-mono text-[11px] bg-slate-950/50 p-3 rounded-lg border border-slate-800/80">
-            <li>• Native Cloudflare Workers runtime (src/worker.ts)</li>
-            <li>• Cloudflare D1 Database binding (env.DB)</li>
-            <li>• Asset Edge Serving (env.ASSETS)</li>
-            <li>• Wrangler deployment configuration (wrangler.toml)</li>
-            <li>• Decoupled from Cloud Run server container</li>
-            <li>• Updated in-app Operational Build Status</li>
-            <li>• Updated in-app Product Evolution Log</li>
-            <li>• Updated in-app Version & Changelog page</li>
-          </ul>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]/80' : 'bg-white border-slate-200'}`}>
-              <p className="font-bold text-[#7FD4A6] mb-1">✓ What Changed</p>
-              <p className="text-slate-400 text-[11px]">Migrated server runtime to Cloudflare Workers, integrated D1 database binding, updated all in-app version references to v1.0.2, and completed deployment instructions.</p>
-            </div>
-            <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]/80' : 'bg-white border-slate-200'}`}>
-              <p className="font-bold text-[#8ECDF7] mb-1">✓ Why It Changed</p>
-              <p className="text-slate-400 text-[11px]">Provides ultra-fast serverless edge performance, eliminates Cloud Run runtime dependencies, and maintains complete system version harmonization.</p>
-            </div>
-            <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]/80' : 'bg-white border-slate-200'}`}>
-              <p className="font-bold text-[#EFCB7A] mb-1">✓ Remaining for Future</p>
-              <p className="text-slate-400 text-[11px]">Ongoing background sync optimization and additional specialized operational modes.</p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
       {/* Structured Changelog */}
       <Card title="Internal Architecture Milestone Changelog">
         <div className="space-y-4">

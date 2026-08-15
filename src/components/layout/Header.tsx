@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'analytics': return 'Operational Analytics';
       case 'knowledge_base': return 'Knowledge Base';
       case 'users': return 'User Management & Multi-Engineer Directory';
-      case 'settings': return 'System Settings';
+      case 'settings': return 'Internal Architecture Milestone Changelog';
       case 'profile': return 'My Engineer Profile';
       default: return 'Field Operations System';
     }
@@ -339,7 +339,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }`}
                 >
                   <SettingsIcon className="w-4 h-4 text-slate-400" />
-                  <span>Settings</span>
+                  <span>Changelog</span>
                 </button>
 
                 <button
