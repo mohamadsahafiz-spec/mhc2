@@ -176,15 +176,15 @@ export interface MhcPowerComparisonItem {
   current: {
     ratedPowerWatts: number;
     referenceValueWatts: number;
-    beforeValueWatts: number;
-    afterValueWatts: number;
+    beforeValueWatts?: number | null;
+    afterValueWatts?: number | null;
     stabilityPercent: number;
-    verdict: 'PASS' | 'WARNING' | 'FAIL';
+    verdict: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
     notes?: string;
   };
   previous: {
     recordedDate: string;
-    afterValueWatts: number;
+    afterValueWatts?: number | null;
     stabilityPercent: number;
     verdict?: string;
   } | null;

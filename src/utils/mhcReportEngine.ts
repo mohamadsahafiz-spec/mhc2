@@ -218,20 +218,23 @@ export function buildMhcReportDocument(
   ].map(({ headId, headName }) => {
     const curr = powerItems.find(p => p.laserId === headId || p.laserId === (headId === 'lh1' ? 'head1' : 'head2'));
     const prevItem = previousSession?.stage03_laserPower?.find(p => p.laserId === headId || p.laserId === (headId === 'lh1' ? 'head1' : 'head2'));
-    const hasBaseline = Boolean(prevItem && prevItem.afterValueWatts > 0);
+    const hasBaseline = Boolean(prevItem && prevItem.afterValueWatts && prevItem.afterValueWatts > 0);
 
     let deltaWatts: number | null = null;
     let deltaPercent: number | null = null;
     let statusText = 'No previous baseline';
 
-    const currWatts = curr?.afterValueWatts || 0;
+    const currWatts = curr?.afterValueWatts && curr.afterValueWatts > 0 ? curr.afterValueWatts : null;
+    const prevWatts = prevItem?.afterValueWatts && prevItem.afterValueWatts > 0 ? prevItem.afterValueWatts : null;
 
-    if (hasBaseline && prevItem && currWatts > 0) {
-      deltaWatts = currWatts - prevItem.afterValueWatts;
-      deltaPercent = prevItem.afterValueWatts > 0 ? (deltaWatts / prevItem.afterValueWatts) * 100 : 0;
+    if (hasBaseline && prevWatts && currWatts) {
+      deltaWatts = currWatts - prevWatts;
+      deltaPercent = prevWatts > 0 ? (deltaWatts / prevWatts) * 100 : 0;
       const sign = deltaWatts >= 0 ? '+' : '';
       statusText = `${sign}${deltaWatts.toFixed(2)} W (${sign}${deltaPercent.toFixed(1)}%)`;
     }
+
+    const hasCurrentMeasurement = Boolean(currWatts !== null);
 
     return {
       headId,
@@ -241,17 +244,19 @@ export function buildMhcReportDocument(
       current: {
         ratedPowerWatts: curr?.ratedPowerWatts || 15.0,
         referenceValueWatts: curr?.referenceValueWatts || 15.0,
-        beforeValueWatts: curr?.beforeValueWatts || 0,
+        beforeValueWatts: curr?.beforeValueWatts && curr.beforeValueWatts > 0 ? curr.beforeValueWatts : null,
         afterValueWatts: currWatts,
         stabilityPercent: curr?.stabilityPercent || 0,
-        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : 'WARNING',
+        verdict: hasCurrentMeasurement
+          ? (curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : 'WARNING')
+          : 'NOT_COLLECTED',
         notes: curr?.notes
       },
-      previous: hasBaseline && prevItem ? {
+      previous: hasBaseline && prevWatts ? {
         recordedDate: previousSession?.completedDate || previousSession?.startDate || 'Previous MHC',
-        afterValueWatts: prevItem.afterValueWatts,
-        stabilityPercent: prevItem.stabilityPercent || 0,
-        verdict: prevItem.result
+        afterValueWatts: prevWatts,
+        stabilityPercent: prevItem?.stabilityPercent || 0,
+        verdict: prevItem?.result
       } : null,
       comparison: {
         deltaWatts,
@@ -273,7 +278,7 @@ export function buildMhcReportDocument(
     title: 'Laser Power',
     displayOrder: 6,
     isVisible: options?.sectionVisibilityOverrides?.['06'] ?? true,
-    status: powerItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: powerItems.length > 0 && powerItems.some(p => p.afterValueWatts && p.afterValueWatts > 0) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: laserPowerData,
     summaryNote: laserPowerData.comparisonNote
   };
@@ -316,7 +321,7 @@ export function buildMhcReportDocument(
     return {
       headId,
       headName,
-      specification: 'TEM00 Mode, Source Spot Size Spec',
+      specification: 'Gaussian Mode, Spot Size Spec',
       hasPreviousBaseline: hasBaseline,
       measurementStation: 'Standard Beam Profiler',
       current: {
@@ -609,7 +614,7 @@ export function buildMhcReportDocument(
 
   const correctiveActionsData: MhcReportCorrectiveActionsData = {
     actionsList: derivedActions,
-    generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || 'Standard preventive maintenance procedures performed.'
+    generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || ''
   };
 
   const correctiveActionsSection: MhcReportSection<MhcReportCorrectiveActionsData> = {
@@ -617,7 +622,7 @@ export function buildMhcReportDocument(
     title: 'Corrective Actions',
     displayOrder: 16,
     isVisible: options?.sectionVisibilityOverrides?.['16'] ?? true,
-    status: derivedActions.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: derivedActions.length > 0 || Boolean(session.stage08_engineerRemarks?.correctiveActions) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: correctiveActionsData
   };
 
@@ -764,16 +769,16 @@ export function buildMhcReportDocument(
   const remarksData = session.stage08_engineerRemarks;
 
   const buyoffData: MhcReportBuyoffData = {
-    productionReleaseVerdict: remarksData?.productionReleaseVerdict || (sessionAudit.isReadyForReport ? 'APPROVED' : 'PENDING'),
+    productionReleaseVerdict: remarksData?.productionReleaseVerdict || 'PENDING',
     engineerSignoff: {
       name: coverData.engineerName,
       title: coverData.engineerTitle,
       date: coverData.date
     },
     customerSignoff: {
-      name: 'Customer Representative',
-      title: 'Plant Manager / Engineer',
-      date: coverData.date
+      name: (remarksData as any)?.customerSignoffName || (session as any).customerSignoffName || '',
+      title: (remarksData as any)?.customerSignoffTitle || (session as any).customerSignoffTitle || '',
+      date: (remarksData as any)?.customerSignoffDate || (session as any).customerSignoffDate || ''
     },
     founderBranding: coverData.founderBranding
   };
@@ -802,16 +807,22 @@ export function buildMhcReportDocument(
     keyFindingsList.push('All core laser power, optical beam profile, stage alignment, and scanner parameters meet specification standards.');
   }
 
+  const hasRecordedLaserPower = laserPowerData.heads.some(h => h.current.verdict !== 'NOT_COLLECTED');
+  const laserPowerVerdict = hasRecordedLaserPower
+    ? (laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING')
+    : 'NOT_COLLECTED';
+
   const executiveSummaryData: MhcReportExecutiveSummaryData = {
     overallStatus: sessionAudit.isReadyForReport
       ? (keyFindingsList.length === 1 && totalFindingsCount === 0 ? 'PASS' : 'CONDITIONAL_PASS')
       : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'),
     readinessScore: sessionAudit.readinessScore,
-    summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}. Service score is ${sessionAudit.readinessScore}% with ${sessionAudit.blockers.length} active blocker(s).`,
+    summaryText: session.stage08_engineerRemarks?.generalFindings ||
+      `Maintenance & Health Check (MHC) record for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}.`,
     keyFindings: keyFindingsList,
     majorPassFailResults: [
-      { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: '15.0W ±10%' },
-      { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: 'TEM00 Gaussian Mode' },
+      { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerVerdict, note: '15.0W ±10%' },
+      { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'NOT_COLLECTED', note: 'Gaussian Mode' },
       { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±2.0 µm Tolerance' },
       { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±3.0 µm Tolerance' },
       { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: 'Thermal stability telemetry' }
