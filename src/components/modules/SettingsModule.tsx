@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.7',
+      date: '2026-08-15',
+      type: 'MHC Inspection Workflow, Report Audit & Persistence Hardening',
+      highlights: [
+        'UNBLOCKED FINDINGS PROGRESSION: Completed inspections with issues/recommendations or replacement requirements now advance the Journey Rail smoothly without trapping the engineer on the inspection activity.',
+        'REPORT READINESS INTEGRITY: Findings requiring review or replacement remain fully preserved for engineering and official PDF reporting while unblocking Day 4 Report readiness audits once physical inspection is complete.',
+        'PERSISTENCE CYCLE-SAFE HARDENING: Implemented cycle-safe JSON stringification and WeakSet tracking across StorageService and SyncEngine, eliminating cyclic-object and recursive-traversal exceptions.',
+        'UNIFIED DECISION UX: Eliminated redundant intermediate confirmation banners and synchronized head inspection state transitions directly with the completion gate.'
+      ]
+    },
+    {
       version: 'v1.1.6',
       date: '2026-08-15',
       type: 'Full MHC PDF — Phase 2 Quality & Laser Lifecycle Fixes',

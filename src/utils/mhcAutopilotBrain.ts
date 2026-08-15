@@ -343,20 +343,23 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   addItem('02_findings', 'Head 1 Inspection / Findings', 'DAY 1', () => {
     const st = statuses['02_findings'];
     const inspData = session.inspectionFindings?.['lh1'] || session.inspectionFindings?.['head1'];
+    
+    // An inspection marked complete or with recorded findings should never block report readiness
+    if (st === 'COMPLETED' || inspData?.status === 'COMPLETED' || (inspData?.decision === 'ISSUE_FOUND' && (inspData?.findings?.length ?? 0) > 0)) {
+      const hasReplacement = inspData?.findings?.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
+      return {
+        status: hasReplacement ? 'NEEDS_REVIEW' : 'COMPLETE',
+        statusSymbol: hasReplacement ? '⚠' : '✓',
+        detail: hasReplacement ? `${inspData?.findings?.length || 1} Finding(s) — Recommendation / Replacement recorded` : (inspData?.decision === 'ISSUE_FOUND' ? `${inspData?.findings?.length} Finding(s) recorded` : 'Optics & head inspection passed'),
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
     if (inspData?.status === 'NEEDS_REVIEW' || st === 'NEEDS_REVIEW') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Inspection finding requires review',
-        isBlocker: true,
-        blockerReason: 'Head 1 inspection finding requires review.'
-      };
-    }
-    if (st === 'COMPLETED') {
-      return {
-        status: 'COMPLETE',
-        statusSymbol: '✓',
-        detail: 'Optics & head inspection passed',
+        detail: 'Inspection finding recorded (requires review)',
         isBlocker: false,
         blockerReason: null
       };
@@ -472,20 +475,23 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   addItem('03_findings', 'Head 2 Inspection / Findings', 'DAY 1', () => {
     const st = statuses['03_findings'];
     const inspData = session.inspectionFindings?.['lh2'] || session.inspectionFindings?.['head2'];
+    
+    // An inspection marked complete or with recorded findings should never block report readiness
+    if (st === 'COMPLETED' || inspData?.status === 'COMPLETED' || (inspData?.decision === 'ISSUE_FOUND' && (inspData?.findings?.length ?? 0) > 0)) {
+      const hasReplacement = inspData?.findings?.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
+      return {
+        status: hasReplacement ? 'NEEDS_REVIEW' : 'COMPLETE',
+        statusSymbol: hasReplacement ? '⚠' : '✓',
+        detail: hasReplacement ? `${inspData?.findings?.length || 1} Finding(s) — Recommendation / Replacement recorded` : (inspData?.decision === 'ISSUE_FOUND' ? `${inspData?.findings?.length} Finding(s) recorded` : 'Optics & head inspection passed'),
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
     if (inspData?.status === 'NEEDS_REVIEW' || st === 'NEEDS_REVIEW') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Inspection finding requires review',
-        isBlocker: true,
-        blockerReason: 'Head 2 inspection finding requires review.'
-      };
-    }
-    if (st === 'COMPLETED') {
-      return {
-        status: 'COMPLETE',
-        statusSymbol: '✓',
-        detail: 'Optics & head inspection passed',
+        detail: 'Inspection finding recorded (requires review)',
         isBlocker: false,
         blockerReason: null
       };

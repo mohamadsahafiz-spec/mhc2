@@ -79,9 +79,32 @@ function getStorage<T>(key: string, defaultValue: T): T {
   return defaultValue;
 }
 
+// Cycle-safe JSON stringify replacer
+function getCircularReplacer() {
+  const seen = new WeakSet();
+  return (_key: string, value: any) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return undefined; // Drop circular reference safely
+      }
+      seen.add(value);
+    }
+    return value;
+  };
+}
+
+export function safeJsonStringify(value: any, space?: number): string {
+  try {
+    return JSON.stringify(value, getCircularReplacer(), space);
+  } catch (err) {
+    console.warn('[Persistence] safeJsonStringify error:', err);
+    return '{}';
+  }
+}
+
 function setStorage<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, safeJsonStringify(value));
   } catch (e: any) {
     console.error(`[StorageService] Error writing ${key} to localStorage:`, e);
     throw new Error(`Failed to persist data to local storage (${e?.message || 'Storage Quota Exceeded'}).`);

@@ -127,7 +127,17 @@ class SyncEngineManager {
 
   private saveQueue() {
     try {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
+      const seen = new WeakSet();
+      const safeQueueStr = JSON.stringify(this.queue, (_key, value) => {
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            return undefined;
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+      localStorage.setItem(QUEUE_KEY, safeQueueStr);
     } catch (e) {
       console.warn('[SyncEngine] Failed to save queue to localStorage', e);
     }
@@ -266,16 +276,23 @@ class SyncEngineManager {
     }
   }
 
-  private extractImageRefs(obj: any, refs: Set<string> = new Set()): string[] {
+  private extractImageRefs(obj: any, refs: Set<string> = new Set(), seen: WeakSet<object> = new WeakSet()): string[] {
     if (!obj) return Array.from(refs);
     if (typeof obj === 'string') {
       if (obj.startsWith('idb:')) {
         refs.add(obj);
       }
-    } else if (Array.isArray(obj)) {
-      obj.forEach(item => this.extractImageRefs(item, refs));
     } else if (typeof obj === 'object') {
-      Object.keys(obj).forEach(k => this.extractImageRefs(obj[k], refs));
+      if (seen.has(obj)) {
+        return Array.from(refs);
+      }
+      seen.add(obj);
+
+      if (Array.isArray(obj)) {
+        obj.forEach(item => this.extractImageRefs(item, refs, seen));
+      } else {
+        Object.keys(obj).forEach(k => this.extractImageRefs(obj[k], refs, seen));
+      }
     }
     return Array.from(refs);
   }

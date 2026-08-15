@@ -27,7 +27,7 @@ export interface MhcLaserInspectionActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: () => void;
+  onCompleteActivity: (latestSession?: MHCSession) => void;
   onUpdateMachine?: (updatedMachine: Machine) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
@@ -374,8 +374,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
       showNotification(`✓ ${headState.headName} Inspection recorded (${finalStatus})`);
     }
 
-    // Call journey advancement handler
-    onCompleteActivity();
+    // Call journey advancement handler with authoritative updatedSession
+    onCompleteActivity(updatedSession);
   };
 
   // Evaluate status badges for both heads
@@ -529,24 +529,6 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
           </button>
         </div>
       </div>
-
-      {/* IF NO ISSUE FOUND CONFIRMATION */}
-      {headState.decision === 'NO_ISSUE' && (
-        <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span>✓ {headState.headName} inspection confirmed: No issues detected. Inspection marked Complete.</span>
-          </div>
-          {!isReadOnly && (
-            <button
-              onClick={() => handleSelectDecision('ISSUE_FOUND')}
-              className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
-            >
-              Change Decision
-            </button>
-          )}
-        </div>
-      )}
 
       {/* IF ISSUE FOUND — PROGRESSIVE FINDING FORM */}
       {headState.decision === 'ISSUE_FOUND' && (
