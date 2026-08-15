@@ -22,7 +22,7 @@ export interface MhcStageCalibrationActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: () => void;
+  onCompleteActivity: (latestSession?: MHCSession) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
   activeCode?: string; // '04_stage1' | '04_stage2' | '04'
@@ -225,7 +225,7 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
         if (showNotification) {
           showNotification('Stage 1 & Stage 2 Calibration PASS! Advanced to Day 3 AGC.');
         }
-        onCompleteActivity();
+        onCompleteActivity(updatedSession);
       } else {
         // Switch tab to the other stage automatically
         if (showNotification) {

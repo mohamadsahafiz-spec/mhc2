@@ -23,7 +23,7 @@ export interface MhcAgcActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: () => void;
+  onCompleteActivity: (latestSession?: MHCSession) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
   activeCode?: string; // '05_agc1' | '05_agc2' | '05'
@@ -289,6 +289,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
         if (showNotification) {
           showNotification('AGC 1 & AGC 2 Calibration PASS! Advanced to Day 3 Temperature & Evidence.');
         }
+        onCompleteActivity(updatedSession);
       } else {
         if (showNotification) {
           showNotification(`${agcName} Calibration PASS recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);

@@ -112,8 +112,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     setIsGeneratingPdf(true);
     setDownloadProgress('Preparing report pages...');
 
+    const container = documentContainerRef.current;
+    const originalTransform = container.style.transform;
+    const originalTransformOrigin = container.style.transformOrigin;
+
+    // Temporarily reset zoom transform for true 1:1 html2canvas coordinate calculation
+    container.style.transform = 'none';
+    container.style.transformOrigin = 'initial';
+
     try {
-      const pageElements = documentContainerRef.current.querySelectorAll('.mhc-a4-page');
+      const pageElements = container.querySelectorAll('.mhc-a4-page');
       if (!pageElements || pageElements.length === 0) {
         throw new Error('No printable pages found.');
       }
@@ -137,11 +145,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           canvas = await html2canvas(pageEl, {
             scale: 2, // High DPI for crisp vector-like typography
             useCORS: true,
-            allowTaint: false,
+            allowTaint: true,
             logging: false,
             backgroundColor: '#ffffff',
-            imageTimeout: 6000,
+            scrollX: 0,
+            scrollY: 0,
+            imageTimeout: 8000,
             onclone: (_clonedDoc, clonedEl) => {
+              clonedEl.style.transform = 'none';
               const imgs = clonedEl.querySelectorAll('img');
               imgs.forEach(img => {
                 img.setAttribute('crossOrigin', 'anonymous');
@@ -149,13 +160,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             }
           });
         } catch (canvasErr) {
-          console.warn(`Primary canvas render error on page ${i + 1}, executing safe sanitized fallback:`, canvasErr);
+          console.warn(`Primary canvas render error on page ${i + 1}, executing safe fallback:`, canvasErr);
           canvas = await html2canvas(pageEl, {
             scale: 1.5,
             useCORS: false,
             allowTaint: true,
             logging: false,
             backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: 0,
             ignoreElements: (el) => el.tagName === 'IMG' && !el.getAttribute('src')?.startsWith('data:')
           });
         }
@@ -164,13 +177,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         try {
           imgData = canvas.toDataURL('image/jpeg', 0.95);
         } catch (taintErr) {
-          console.warn(`Canvas export tainted on page ${i + 1}, rendering clean fallback without cross-origin images:`, taintErr);
+          console.warn(`Canvas export tainted on page ${i + 1}, rendering clean fallback:`, taintErr);
           const fallbackCanvas = await html2canvas(pageEl, {
             scale: 1.5,
             useCORS: false,
             allowTaint: true,
             logging: false,
             backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: 0,
             ignoreElements: (el) => el.tagName === 'IMG'
           });
           imgData = fallbackCanvas.toDataURL('image/jpeg', 0.90);
@@ -191,6 +206,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       console.error('PDF Generation Error:', err);
       alert('An error occurred while rendering the PDF. Please try again.');
     } finally {
+      if (container) {
+        container.style.transform = originalTransform;
+        container.style.transformOrigin = originalTransformOrigin;
+      }
       setIsGeneratingPdf(false);
       setDownloadProgress('');
     }
@@ -797,6 +816,26 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Stage Inline Calibration Evidence */}
+                  {sections['10'].data.stages.some(s => s.evidenceImage) && (
+                    <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
+                      {sections['10'].data.stages.filter(s => s.evidenceImage).map(stg => (
+                        <div key={stg.stageId} className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200">
+                          <img
+                            src={stg.evidenceImage}
+                            alt={stg.stageName}
+                            crossOrigin="anonymous"
+                            className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
+                          />
+                          <div className="text-[10px] min-w-0">
+                            <div className="font-bold text-slate-800 truncate">{stg.stageName} Evidence</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">{stg.engineerNote || 'Calibration artifact'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -847,6 +886,26 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       ))}
                     </tbody>
                   </table>
+
+                  {/* AGC Inline Calibration Evidence */}
+                  {sections['11'].data.agcs.some(a => a.evidenceImage) && (
+                    <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
+                      {sections['11'].data.agcs.filter(a => a.evidenceImage).map(agc => (
+                        <div key={agc.agcId} className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200">
+                          <img
+                            src={agc.evidenceImage}
+                            alt={agc.agcName}
+                            crossOrigin="anonymous"
+                            className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
+                          />
+                          <div className="text-[10px] min-w-0">
+                            <div className="font-bold text-slate-800 truncate">{agc.agcName} Evidence</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">{agc.engineerNote || 'Calibration artifact'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -898,62 +957,109 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
                       </div>
 
-                      {/* Vector Temperature Time-Series & Channel Telemetry Chart */}
+                      {/* Vector Temperature Time-Series & Channel Telemetry Chart Derived Exclusively from Persisted Telemetry */}
                       <div className="pt-2 border-t border-slate-200 space-y-1.5">
                         <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                          <span className="font-bold text-slate-700 uppercase">THERMAL STABILITY TIME-SERIES PROFILE</span>
-                          <span>NOMINAL BAND: 22.0°C ± 1.0°C</span>
+                          <span className="font-bold text-slate-700 uppercase">PERSISTED THERMAL TELEMETRY PROFILE</span>
+                          <span>
+                            {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Telemetry Record'}
+                            {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} PTS)` : ''}
+                          </span>
                         </div>
-                        <div className="w-full h-20 bg-slate-900 rounded-lg p-2 relative overflow-hidden border border-slate-800">
-                          <svg viewBox="0 0 500 70" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
-                            {/* Spec target band (21.0 - 23.0 °C) */}
-                            <rect x="30" y="15" width="460" height="40" fill="#06b6d4" fillOpacity="0.12" />
-                            <line x1="30" y1="35" x2="490" y2="35" stroke="#06b6d4" strokeWidth="1" strokeDasharray="3,3" />
-                            
-                            {/* Grid lines & scale */}
-                            <line x1="30" y1="10" x2="490" y2="10" stroke="#334155" strokeWidth="0.5" />
-                            <text x="2" y="13" fill="#64748b">24°C</text>
-                            <line x1="30" y1="35" x2="490" y2="35" stroke="#334155" strokeWidth="0.5" />
-                            <text x="2" y="38" fill="#06b6d4">22°C</text>
-                            <line x1="30" y1="60" x2="490" y2="60" stroke="#334155" strokeWidth="0.5" />
-                            <text x="2" y="63" fill="#64748b">20°C</text>
+                        <div className="w-full h-24 bg-slate-900 rounded-lg p-2 relative overflow-hidden border border-slate-800">
+                          {(() => {
+                            const stats = sections['12'].data.stats;
+                            const chStats = sections['12'].data.channelStats || {};
+                            const chEntries = Object.entries(chStats);
+                            const minVal = (stats as any)?.minTempCelsius ?? stats?.min ?? 20;
+                            const maxVal = (stats as any)?.maxTempCelsius ?? stats?.max ?? 24;
+                            const avgVal = (stats as any)?.avgTempCelsius ?? stats?.avg ?? 22;
 
-                            {/* Time-series baseline & sample curve */}
-                            <path
-                              d="M 30 38 Q 80 34, 130 36 T 230 33 T 330 36 T 430 34 T 490 35"
-                              fill="none"
-                              stroke="#10b981"
-                              strokeWidth="2"
-                            />
-                            
-                            {/* Min / Max bounds shadow */}
-                            <path
-                              d="M 30 42 Q 80 38, 130 40 T 230 37 T 330 40 T 430 38 T 490 39 L 490 31 Q 430 30, 330 32 T 230 29 T 130 32 T 80 30 T 30 34 Z"
-                              fill="#10b981"
-                              fillOpacity="0.18"
-                            />
+                            const plotMin = Math.floor(Math.min(minVal, 20.0));
+                            const plotMax = Math.ceil(Math.max(maxVal, 24.0));
+                            const plotSpan = Math.max(1, plotMax - plotMin);
+                            const getY = (val: number) => {
+                              const clamped = Math.max(plotMin, Math.min(plotMax, val));
+                              return 68 - ((clamped - plotMin) / plotSpan) * 56;
+                            };
 
-                            {/* Channel sensor point markers */}
-                            {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 ? (
-                              Object.entries(sections['12'].data.channelStats).slice(0, 4).map(([ch, cStats], idx) => {
-                                const cx = 80 + idx * 110;
-                                const avgVal = cStats.avg;
-                                const cy = Math.max(10, Math.min(60, 60 - ((avgVal - 20) / 4) * 50));
-                                const color = idx === 0 ? '#38bdf8' : idx === 1 ? '#34d399' : idx === 2 ? '#fbbf24' : '#a78bfa';
-                                return (
-                                  <g key={ch}>
-                                    <circle cx={cx} cy={cy} r="3" fill={color} stroke="#0f172a" strokeWidth="1" />
-                                    <text x={cx - 10} y={cy - 5} fill={color} fontWeight="bold">CH{ch}: {avgVal.toFixed(1)}°C</text>
+                            const avgY = getY(avgVal);
+                            const minY = getY(minVal);
+                            const maxY = getY(maxVal);
+
+                            const channelPoints = chEntries.map(([ch, cStat], idx) => {
+                              const spacing = chEntries.length > 1 ? 380 / (chEntries.length - 1) : 190;
+                              const x = chEntries.length > 1 ? 55 + idx * spacing : 250;
+                              const yAvg = getY(cStat.avg);
+                              const yMin = getY(cStat.min);
+                              const yMax = getY(cStat.max);
+                              return { ch, cStat, x, yAvg, yMin, yMax };
+                            });
+
+                            const polylinePoints = channelPoints.map(p => `${p.x},${p.yAvg}`).join(' ');
+
+                            return (
+                              <svg viewBox="0 0 500 80" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
+                                {/* Spec tolerance band (21.0 - 23.0 °C) */}
+                                <rect 
+                                  x="35" 
+                                  y={getY(23.0)} 
+                                  width="455" 
+                                  height={Math.max(3, getY(21.0) - getY(23.0))} 
+                                  fill="#06b6d4" 
+                                  fillOpacity="0.12" 
+                                />
+                                <line x1="35" y1={getY(22.0)} x2="490" y2={getY(22.0)} stroke="#06b6d4" strokeWidth="0.75" strokeDasharray="3,3" />
+
+                                {/* Temperature Grid Lines & Labels */}
+                                <line x1="35" y1={getY(plotMax)} x2="490" y2={getY(plotMax)} stroke="#334155" strokeWidth="0.5" />
+                                <text x="2" y={getY(plotMax) + 3} fill="#64748b">{plotMax.toFixed(0)}°C</text>
+
+                                <line x1="35" y1={avgY} x2="490" y2={avgY} stroke="#10b981" strokeWidth="1" strokeDasharray="4,2" />
+                                <text x="2" y={avgY + 3} fill="#10b981">AVG</text>
+
+                                <line x1="35" y1={getY(plotMin)} x2="490" y2={getY(plotMin)} stroke="#334155" strokeWidth="0.5" />
+                                <text x="2" y={getY(plotMin) + 3} fill="#64748b">{plotMin.toFixed(0)}°C</text>
+
+                                {/* Polyline connecting stations */}
+                                {channelPoints.length > 1 && (
+                                  <polyline
+                                    points={polylinePoints}
+                                    fill="none"
+                                    stroke="#38bdf8"
+                                    strokeWidth="1.5"
+                                  />
+                                )}
+
+                                {/* Channel stations with real calculated error bars */}
+                                {channelPoints.map((p, idx) => {
+                                  const color = idx % 4 === 0 ? '#38bdf8' : idx % 4 === 1 ? '#34d399' : idx % 4 === 2 ? '#fbbf24' : '#a78bfa';
+                                  return (
+                                    <g key={p.ch}>
+                                      <line x1={p.x} y1={p.yMax} x2={p.x} y2={p.yMin} stroke={color} strokeWidth="2" strokeOpacity="0.7" />
+                                      <line x1={p.x - 3} y1={p.yMax} x2={p.x + 3} y2={p.yMax} stroke={color} strokeWidth="1" />
+                                      <line x1={p.x - 3} y1={p.yMin} x2={p.x + 3} y2={p.yMin} stroke={color} strokeWidth="1" />
+                                      <circle cx={p.x} cy={p.yAvg} r="3.5" fill={color} stroke="#0f172a" strokeWidth="1" />
+                                      <text x={p.x} y={p.yMax - 3} textAnchor="middle" fill={color} fontWeight="bold">
+                                        {`CH${p.ch}: ${p.cStat.avg.toFixed(1)}°`}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+
+                                {channelPoints.length === 0 && (
+                                  <g>
+                                    <line x1="35" y1={maxY} x2="490" y2={maxY} stroke="#fbbf24" strokeWidth="0.75" strokeDasharray="2,2" />
+                                    <line x1="35" y1={minY} x2="490" y2={minY} stroke="#38bdf8" strokeWidth="0.75" strokeDasharray="2,2" />
+                                    <circle cx="250" cy={avgY} r="4" fill="#10b981" stroke="#0f172a" strokeWidth="1" />
+                                    <text x={260} y={avgY + 3} fill="#10b981" fontWeight="bold">
+                                      AVERAGE {avgVal.toFixed(2)}°C (MIN {minVal.toFixed(1)}°C / MAX {maxVal.toFixed(1)}°C)
+                                    </text>
                                   </g>
-                                );
-                              })
-                            ) : (
-                              <g>
-                                <circle cx={180} cy={35} r="3" fill="#38bdf8" stroke="#0f172a" strokeWidth="1" />
-                                <text x={190} y={38} fill="#38bdf8" fontWeight="bold">STABLE PROFILE ({((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(1)}°C)</text>
-                              </g>
-                            )}
-                          </svg>
+                                )}
+                              </svg>
+                            );
+                          })()}
                         </div>
                       </div>
                     </>
@@ -1102,15 +1208,17 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         {sections['18'].data.items.map(item => (
                           <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
                             {item.imageDataUrl ? (
-                              <img 
-                                src={item.imageDataUrl} 
-                                alt={item.title} 
-                                crossOrigin="anonymous"
-                                className="w-full h-16 object-cover rounded border border-slate-100 bg-slate-50" 
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
-                              />
+                              <div className="w-full h-20 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
+                                <img 
+                                  src={item.imageDataUrl} 
+                                  alt={item.title} 
+                                  crossOrigin="anonymous"
+                                  className="h-full w-auto max-w-full object-contain" 
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
                             ) : (
                               <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
                                 [ATTACHMENT]

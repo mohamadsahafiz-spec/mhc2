@@ -441,26 +441,42 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
 
         {/* DISPLAY CONCISE TEMPERATURE SUMMARY (No duplicate graph, pure authoritative stats) */}
         {hasValidAnalysis && stats && (
-          <div className="space-y-4 pt-2 border-t border-slate-700/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <span className="text-xs font-bold text-slate-200">
-                  Attached Record: {tempEvidenceData?.temperatureRecordTitle || 'Temperature Log Analysis'}
-                </span>
-                {tempEvidenceData?.rawRecordsCount && (
-                  <span className="ml-2 text-[11px] font-mono text-cyan-400">
-                    ({tempEvidenceData.rawRecordsCount.toLocaleString()} parsed points)
-                  </span>
-                )}
+          <div className="space-y-4 pt-3 border-t border-slate-700/40">
+            {/* Active Record Banner */}
+            <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              isDark ? 'bg-cyan-950/30 border-cyan-500/40 text-slate-200' : 'bg-cyan-50 border-cyan-200 text-slate-800'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Thermometer className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+                      ACTIVE TEMPERATURE SOURCE
+                    </span>
+                    <strong className="text-xs text-slate-100">
+                      {tempEvidenceData?.temperatureRecordTitle || 'Temperature Telemetry Record'}
+                    </strong>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                    File: <span className="text-cyan-300">{tempEvidenceData?.temperatureLogFileName || 'Raw Log Feed'}</span>
+                    {tempEvidenceData?.rawRecordsCount && (
+                      <span className="ml-2 text-slate-400">
+                        • {tempEvidenceData.rawRecordsCount.toLocaleString()} parsed points
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {onSwitchToCanvas && (
                 <button
                   type="button"
                   onClick={onSwitchToCanvas}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shrink-0 self-start sm:self-center shadow-sm"
                 >
-                  <span>View Full Interactive Temperature Chart</span>
+                  <span>Interactive Chart</span>
                   <ExternalLink className="w-3 h-3" />
                 </button>
               )}

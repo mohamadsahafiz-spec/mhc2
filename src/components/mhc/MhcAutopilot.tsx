@@ -325,19 +325,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   };
 
   // Handle Action: Mark Complete & Advance
-  const handleCompleteCurrentActivity = () => {
-    if (isReadOnlyMode || !effectiveSession) return;
-    const currentCode = progress.currentActivityCode;
-    let updated = advanceAutopilotActivity(effectiveSession, currentCode, 'COMPLETED', activeNoteText);
+  const handleCompleteCurrentActivity = (latestSession?: MHCSession) => {
+    const sessToAdvance = latestSession || effectiveSession;
+    if (isReadOnlyMode || !sessToAdvance) return;
+    const currentCode = sessToAdvance.autopilotProgress?.currentActivityCode || progress.currentActivityCode;
+    let updated = advanceAutopilotActivity(sessToAdvance, currentCode, 'COMPLETED', activeNoteText);
 
     // If completing 02_power or 03_power (Laser Head 1 / 2 Power), advance side-by-side power checks preserving pass/fail review status
     if (currentCode === '02_power' || currentCode === '03_power') {
-      const power1 = effectiveSession.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
-      const power2 = effectiveSession.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
+      const power1 = sessToAdvance.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
+      const power2 = sessToAdvance.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
       const status1 = power1?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
       const status2 = power2?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
 
-      updated = advanceAutopilotActivity(effectiveSession, '02_power', status1, activeNoteText || (status1 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
+      updated = advanceAutopilotActivity(sessToAdvance, '02_power', status1, activeNoteText || (status1 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
       updated = advanceAutopilotActivity(updated, '03_power', status2, activeNoteText || (status2 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
       if (updated.autopilotProgress) {
         updated.autopilotProgress.currentActivityCode = '02_beam';
@@ -462,7 +463,17 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       subtext: 'Welcome & Introduction',
       status: currentStep === 'welcome' 
         ? 'current' 
-        : ['customer', 'machine', 'session_check', 'session_active'].includes(currentStep) 
+        : ['session_check', 'customer', 'machine', 'session_active'].includes(currentStep) 
+        ? 'completed' 
+        : 'upcoming'
+    },
+    {
+      id: 'session_check' as SetupStep,
+      title: 'Session Detection',
+      subtext: existingIncompleteSession ? 'Session Found' : 'Detection & Recovery',
+      status: currentStep === 'session_check' 
+        ? 'current' 
+        : ['customer', 'machine', 'session_active'].includes(currentStep) 
         ? 'completed' 
         : 'upcoming'
     },
@@ -472,7 +483,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       subtext: selectedCustomer ? selectedCustomer.name : 'Select Account',
       status: currentStep === 'customer' 
         ? 'current' 
-        : ['machine', 'session_check', 'session_active'].includes(currentStep) 
+        : ['machine', 'session_active'].includes(currentStep) 
         ? 'completed' 
         : 'upcoming'
     },
@@ -481,16 +492,6 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       title: 'Machine Passport',
       subtext: localSelectedMachine ? `${localSelectedMachine.model}` : 'Select Machine',
       status: currentStep === 'machine' 
-        ? 'current' 
-        : ['session_check', 'session_active'].includes(currentStep) 
-        ? 'completed' 
-        : 'upcoming'
-    },
-    {
-      id: 'session_check' as SetupStep,
-      title: 'Session Detection',
-      subtext: existingIncompleteSession ? 'Session Found' : 'Restore or Create',
-      status: currentStep === 'session_check' 
         ? 'current' 
         : currentStep === 'session_active' 
         ? 'completed' 
@@ -791,13 +792,156 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 <div className="pt-4 flex items-center justify-between">
                   <span className="text-xs text-slate-500 font-mono">Step 1 of 4 • Welcome</span>
                   <button
-                    onClick={() => setCurrentStep('customer')}
+                    onClick={() => setCurrentStep('session_check')}
                     className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
                   >
                     <span>Start Autopilot Setup</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+              </motion.div>
+            )}
+
+            {/* QUESTION STEP 1: SESSION RECOVERY & DETECTION */}
+            {currentStep === 'session_check' && (
+              <motion.div
+                key="session_check"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-5 my-auto"
+              >
+                <div className="space-y-1">
+                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                    Question 1 of 3 • Session Detection
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Session Detection &amp; Brain Recovery
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Checking active inspection session history for {localSelectedMachine?.model} ({localSelectedMachine?.machineNumber || localSelectedMachine?.serialNumber}).
+                  </p>
+                </div>
+
+                {/* IF INCOMPLETE SESSION EXISTS */}
+                {existingIncompleteSession ? (
+                  <div className={`p-5 rounded-2xl border space-y-4 ${
+                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                        <span className="font-bold text-xs text-cyan-300 uppercase tracking-wider">Incomplete Session Found</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        {existingIncompleteSession.id}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <div className="text-[10px] text-slate-400">Start Date</div>
+                        <div className="font-semibold text-slate-200">{existingIncompleteSession.startDate}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400">Last Updated</div>
+                        <div className="font-semibold text-slate-200">
+                          {new Date(existingIncompleteSession.lastUpdated).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400">Engineer</div>
+                        <div className="font-semibold text-slate-200">{existingIncompleteSession.engineerName || 'Field Engineer'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400">Readiness</div>
+                        <div className="font-semibold text-cyan-400">
+                          {computeAutopilotReadiness(existingIncompleteSession.autopilotProgress).readinessScore}% Complete
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      An active inspection session was detected for this machine. You can continue the existing session without losing data or start a new clean session.
+                    </p>
+
+                    {/* ACTIONS */}
+                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleContinueExisting}
+                        className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                      >
+                        <Play className="w-4 h-4 fill-slate-950" />
+                        <span>Continue Existing Session</span>
+                      </button>
+
+                      <button
+                        onClick={handleStartNew}
+                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                          isDark 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                        }`}
+                      >
+                        <span>Start New Session</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentStep('customer')}
+                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                          isDark 
+                            ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700' 
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                        }`}
+                      >
+                        <span>Change Machine / Account</span>
+                      </button>
+
+                      <button
+                        onClick={handleReviewProgress}
+                        className="px-3 py-2 text-xs text-cyan-300 hover:text-cyan-200 font-semibold transition-colors ml-auto flex items-center gap-1.5"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Review Progress (Read-Only)</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* IF NO INCOMPLETE SESSION FOUND */
+                  <div className={`p-5 rounded-2xl border space-y-4 ${
+                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="flex items-center gap-3 text-slate-400">
+                      <Clock className="w-5 h-5 text-slate-500" />
+                      <div>
+                        <div className="font-bold text-xs text-slate-200">No Active Session Found for Current Machine</div>
+                        <div className="text-[11px] text-slate-400">Ready to launch a new Machine Health Check session or choose a different customer account.</div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleStartNew}
+                        className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Create &amp; Start New MHC Session</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentStep('customer')}
+                        className={`px-4 py-3 rounded-xl font-semibold text-xs border transition-all ${
+                          isDark 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                        }`}
+                      >
+                        <span>Select Other Customer / Machine</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -813,7 +957,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               >
                 <div className="space-y-1">
                   <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 1 of 3
+                    Question 2 of 3
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
                     Which customer account are you servicing today?
@@ -913,7 +1057,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               >
                 <div className="space-y-1">
                   <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 2 of 3
+                    Question 3 of 3
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
                     Select target machine for {selectedCustomer?.name}
@@ -988,137 +1132,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 {/* NEXT ACTION */}
                 <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
                   <span className="text-xs text-slate-400">
-                    Selected: <strong className="text-cyan-300">{localSelectedMachine.model} ({localSelectedMachine.serialNumber})</strong>
+                    Selected: <strong className="text-cyan-300">{localSelectedMachine?.model} ({localSelectedMachine?.serialNumber})</strong>
                   </span>
                   <button
                     onClick={() => setCurrentStep('session_check')}
                     className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all"
                   >
-                    <span>Next: Check Session</span>
+                    <span>Check Session</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
-              </motion.div>
-            )}
-
-            {/* QUESTION STEP 4: SESSION RECOVERY & DETECTION */}
-            {currentStep === 'session_check' && (
-              <motion.div
-                key="session_check"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-5 my-auto"
-              >
-                <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 3 of 3
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Session Detection & Brain Recovery
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Checking active inspection history for {localSelectedMachine.model} ({localSelectedMachine.serialNumber}).
-                  </p>
-                </div>
-
-                {/* IF INCOMPLETE SESSION EXISTS */}
-                {existingIncompleteSession ? (
-                  <div className={`p-5 rounded-2xl border space-y-4 ${
-                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                        <span className="font-bold text-xs text-cyan-300 uppercase tracking-wider">Incomplete Session Found</span>
-                      </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                        {existingIncompleteSession.id}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div>
-                        <div className="text-[10px] text-slate-400">Start Date</div>
-                        <div className="font-semibold text-slate-200">{existingIncompleteSession.startDate}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Last Updated</div>
-                        <div className="font-semibold text-slate-200">
-                          {new Date(existingIncompleteSession.lastUpdated).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Engineer</div>
-                        <div className="font-semibold text-slate-200">{existingIncompleteSession.engineerName || 'Field Engineer'}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Readiness</div>
-                        <div className="font-semibold text-cyan-400">
-                          {computeAutopilotReadiness(existingIncompleteSession.autopilotProgress).readinessScore}% Complete
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      An active inspection session was detected for this machine. You can continue the existing session without losing data or start a new clean session.
-                    </p>
-
-                    {/* ACTIONS */}
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
-                      <button
-                        onClick={handleContinueExisting}
-                        className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
-                      >
-                        <Play className="w-4 h-4 fill-slate-950" />
-                        <span>Continue Existing Session</span>
-                      </button>
-
-                      <button
-                        onClick={handleStartNew}
-                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
-                          isDark 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
-                            : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
-                        }`}
-                      >
-                        <span>Start New Session</span>
-                      </button>
-
-                      <button
-                        onClick={handleReviewProgress}
-                        className="px-3 py-2 text-xs text-cyan-300 hover:text-cyan-200 font-semibold transition-colors ml-auto flex items-center gap-1.5"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Review Progress (Read-Only)</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* IF NO INCOMPLETE SESSION FOUND */
-                  <div className={`p-5 rounded-2xl border space-y-4 ${
-                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <div className="flex items-center gap-3 text-slate-400">
-                      <Clock className="w-5 h-5 text-slate-500" />
-                      <div>
-                        <div className="font-bold text-xs text-slate-200">No Active Session Found</div>
-                        <div className="text-[11px] text-slate-400">Ready to launch a new Machine Health Check session for this machine.</div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        onClick={handleStartNew}
-                        className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Create & Start New MHC Session</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
               </motion.div>
             )}
 
