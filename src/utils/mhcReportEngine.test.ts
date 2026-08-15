@@ -277,4 +277,65 @@ describe('mhcReportEngine', () => {
     expect(beamHead1.comparison.deltaBeamSizeMm).toBeCloseTo(-0.08, 3);
     expect(beamHead1.comparison.statusText).toContain('-0.080 mm');
   });
+
+  it('should correctly calculate partial Stage and AGC status when only 1 item is completed', () => {
+    const session = createDummySession('SESS-PARTIAL');
+    // Set only stage 1 (stage 2 undefined)
+    session.stageCalibrationData = {
+      stage1: {
+        stageId: 'stage1',
+        stageName: 'Stage 1',
+        xMinUm: 0.2,
+        xMaxUm: 0.5,
+        yMinUm: -0.8,
+        yMaxUm: 0.4,
+        maxAbsXUm: 0.5,
+        maxAbsYUm: 0.8,
+        overallMaxDevUm: 0.8,
+        specToleranceUm: 2.0,
+        verdict: 'PASS',
+        status: 'COMPLETED'
+      }
+    };
+
+    // Set only agc 1 (agc 2 undefined)
+    session.agcData = {
+      agc1: {
+        agcId: 'agc1',
+        agcName: 'AGC 1',
+        indices: [
+          { indexNum: 1, xUm: 1.1, yUm: -1.2, specToleranceUm: 3.0, verdict: 'PASS' }
+        ],
+        xMinUm: 1.1,
+        xMaxUm: 1.1,
+        yMinUm: -1.2,
+        yMaxUm: -1.2,
+        maxAbsXUm: 1.1,
+        maxAbsYUm: 1.2,
+        overallMaxDevUm: 1.2,
+        specToleranceUm: 3.0,
+        verdict: 'PASS',
+        status: 'COMPLETED',
+        scannerConditionFlag: false
+      }
+    };
+
+    const doc = buildMhcReportDocument(session);
+
+    // Section 10 Stage Calibration
+    expect(doc.sections['10'].status).toBe('COMPLETE');
+    expect(doc.sections['10'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['10'].data.stages[0].verdict).toBe('PASS');
+    expect(doc.sections['10'].data.stages[1].verdict).toBe('UNANSWERED');
+
+    // Section 11 AGC Calibration
+    expect(doc.sections['11'].status).toBe('COMPLETE');
+    expect(doc.sections['11'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['11'].data.agcs[0].verdict).toBe('PASS');
+    expect(doc.sections['11'].data.agcs[1].verdict).toBe('UNANSWERED');
+
+    // Evidence aggregation should contain stage03 power images + temp evidence
+    expect(doc.sections['18'].data.totalEvidenceItems).toBeGreaterThanOrEqual(2);
+    expect(doc.sections['18'].status).toBe('COMPLETE');
+  });
 });

@@ -354,10 +354,11 @@ export function buildMhcReportDocument(
     engineerNote: data?.engineerNote
   }));
 
-  const hasAnyStage = Boolean(stage1Data || stage2Data);
-  const stageOverallVerdict = stagesList.some(s => s.verdict === 'OUT_OF_SPEC')
+  const collectedStages = stagesList.filter(s => s.verdict !== 'UNANSWERED');
+  const hasAnyStage = collectedStages.length > 0;
+  const stageOverallVerdict = collectedStages.some(s => s.verdict === 'OUT_OF_SPEC')
     ? 'OUT_OF_SPEC'
-    : stagesList.every(s => s.verdict === 'PASS') && hasAnyStage
+    : hasAnyStage && collectedStages.every(s => s.verdict === 'PASS')
       ? 'PASS'
       : 'NOT_COLLECTED';
 
@@ -410,11 +411,12 @@ export function buildMhcReportDocument(
     };
   });
 
-  const hasAnyAgc = Boolean(agc1Data || agc2Data);
-  const agcScannerAttention = agcsList.some(a => a.scannerConditionFlag || a.verdict === 'OUT_OF_SPEC');
-  const agcOverallVerdict = agcsList.some(a => a.verdict === 'OUT_OF_SPEC')
+  const collectedAgcs = agcsList.filter(a => a.verdict !== 'UNANSWERED');
+  const hasAnyAgc = collectedAgcs.length > 0;
+  const agcScannerAttention = collectedAgcs.some(a => a.scannerConditionFlag || a.verdict === 'OUT_OF_SPEC');
+  const agcOverallVerdict = collectedAgcs.some(a => a.verdict === 'OUT_OF_SPEC')
     ? 'OUT_OF_SPEC'
-    : agcsList.every(a => a.verdict === 'PASS') && hasAnyAgc
+    : hasAnyAgc && collectedAgcs.every(a => a.verdict === 'PASS')
       ? 'PASS'
       : 'NOT_COLLECTED';
 
@@ -430,7 +432,7 @@ export function buildMhcReportDocument(
     title: 'AGC / Scanner Calibration',
     displayOrder: 11,
     isVisible: options?.sectionVisibilityOverrides?.['11'] ?? true,
-    status: hasAnyAgc ? (agcOverallVerdict === 'PASS' ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
+    status: hasAnyAgc ? (agcOverallVerdict === 'PASS' && !agcScannerAttention ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: agcData
   };
 
@@ -588,16 +590,95 @@ export function buildMhcReportDocument(
     data: sparePartsData
   };
 
-  // 18 EVIDENCE (REFERENCES EXISTING EVIDENCE/IMAGE RECORDS)
-  const evidenceList = (tempEvData?.evidences || []).map(ev => ({
-    id: ev.id,
-    category: ev.category || 'General',
-    title: ev.title || 'Evidence Image',
-    sourceSection: ev.category || 'Maintenance Audit',
-    imageDataUrl: ev.imageDataUrl,
-    notes: ev.notes,
-    createdAt: ev.createdAt || generatedAt
-  }));
+  // 18 EVIDENCE (REFERENCES EXISTING EVIDENCE/IMAGE RECORDS ACROSS MHC STAGES)
+  const evidenceList: Array<{
+    id: string;
+    category: string;
+    title: string;
+    sourceSection: string;
+    imageDataUrl?: string;
+    notes?: string;
+    createdAt?: string;
+  }> = [];
+
+  // 1. Evidence items from TemperatureEvidenceData
+  (tempEvData?.evidences || []).forEach(ev => {
+    if (ev.imageDataUrl) {
+      evidenceList.push({
+        id: ev.id,
+        category: ev.category || 'Thermal & Environmental',
+        title: ev.title || 'Temperature / Environment Evidence',
+        sourceSection: ev.category || 'Thermal & Environmental',
+        imageDataUrl: ev.imageDataUrl,
+        notes: ev.notes,
+        createdAt: ev.createdAt || generatedAt
+      });
+    }
+  });
+
+  // 2. Inspection Findings Images from Laser Heads
+  formattedHeadsFindings.forEach(h => {
+    h.findingsList.forEach(f => {
+      if (f.evidenceImage) {
+        evidenceList.push({
+          id: `EVID-INSP-${f.id}`,
+          category: 'Head Visual Inspection',
+          title: `${h.headName} • ${f.component}`,
+          sourceSection: '04 Head Inspection',
+          imageDataUrl: f.evidenceImage,
+          notes: f.actionRecommendation || f.engineerNote || f.aiGeneratedWording || 'Inspection photo evidence',
+          createdAt: generatedAt
+        });
+      }
+    });
+  });
+
+  // 3. Stage Calibration Evidence Images
+  stagesList.forEach(s => {
+    if (s.evidenceImage) {
+      evidenceList.push({
+        id: `EVID-STAGE-${s.stageId}`,
+        category: 'Stage Calibration',
+        title: `${s.stageName} Telemetry`,
+        sourceSection: '10 Stage Calibration',
+        imageDataUrl: s.evidenceImage,
+        notes: s.engineerNote || (s.overallMaxDevUm !== undefined ? `Max Dev: ${s.overallMaxDevUm.toFixed(2)} µm` : 'Stage Calibration Evidence'),
+        createdAt: generatedAt
+      });
+    }
+  });
+
+  // 4. AGC Calibration Evidence Images
+  agcsList.forEach(a => {
+    if (a.evidenceImage) {
+      evidenceList.push({
+        id: `EVID-AGC-${a.agcId}`,
+        category: 'AGC Calibration',
+        title: `${a.agcName} Telemetry`,
+        sourceSection: '11 AGC Calibration',
+        imageDataUrl: a.evidenceImage,
+        notes: a.engineerNote || (a.overallMaxDevUm !== undefined ? `Max Dev: ${a.overallMaxDevUm.toFixed(2)} µm` : 'AGC Calibration Evidence'),
+        createdAt: generatedAt
+      });
+    }
+  });
+
+  // 5. Laser Power Evidence Images
+  (session.stage03_laserPower || []).forEach((lp, idx) => {
+    (lp.evidenceImages || []).forEach((imgUrl, imgIdx) => {
+      if (imgUrl) {
+        evidenceList.push({
+          id: `EVID-LP-${lp.laserId || idx}-${imgIdx}`,
+          category: 'Laser Power Check',
+          title: `${lp.laserIdentifier || `Laser Head ${idx + 1}`} Power Evidence`,
+          sourceSection: '03 Laser Power',
+          imageDataUrl: imgUrl,
+          notes: lp.notes || 'Laser power meter verification capture',
+          createdAt: generatedAt
+        });
+      }
+    });
+  });
 
   const evidenceData: MhcReportEvidenceData = {
     totalEvidenceItems: evidenceList.length,

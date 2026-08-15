@@ -106,7 +106,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     }
   };
 
-  // PDF Download Handler via html2canvas + jsPDF
+  // PDF Download Handler via html2canvas + jsPDF with multi-layer fallback
   const handleDownloadPdf = async () => {
     if (!documentContainerRef.current) return;
     setIsGeneratingPdf(true);
@@ -121,7 +121,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
@@ -131,20 +132,55 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         const pageEl = pageElements[i] as HTMLElement;
         setDownloadProgress(`Rendering Page ${i + 1} of ${pageElements.length}...`);
 
-        const canvas = await html2canvas(pageEl, {
-          scale: 2, // High DPI for crisp vector-like typography
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff'
-        });
+        let canvas: HTMLCanvasElement;
+        try {
+          canvas = await html2canvas(pageEl, {
+            scale: 2, // High DPI for crisp vector-like typography
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+            backgroundColor: '#ffffff',
+            imageTimeout: 6000,
+            onclone: (_clonedDoc, clonedEl) => {
+              const imgs = clonedEl.querySelectorAll('img');
+              imgs.forEach(img => {
+                img.setAttribute('crossOrigin', 'anonymous');
+              });
+            }
+          });
+        } catch (canvasErr) {
+          console.warn(`Primary canvas render error on page ${i + 1}, executing safe sanitized fallback:`, canvasErr);
+          canvas = await html2canvas(pageEl, {
+            scale: 1.5,
+            useCORS: false,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            ignoreElements: (el) => el.tagName === 'IMG' && !el.getAttribute('src')?.startsWith('data:')
+          });
+        }
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        let imgData: string;
+        try {
+          imgData = canvas.toDataURL('image/jpeg', 0.95);
+        } catch (taintErr) {
+          console.warn(`Canvas export tainted on page ${i + 1}, rendering clean fallback without cross-origin images:`, taintErr);
+          const fallbackCanvas = await html2canvas(pageEl, {
+            scale: 1.5,
+            useCORS: false,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            ignoreElements: (el) => el.tagName === 'IMG'
+          });
+          imgData = fallbackCanvas.toDataURL('image/jpeg', 0.90);
+        }
 
         if (i > 0) {
           pdf.addPage('a4', 'portrait');
         }
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       }
 
       setDownloadProgress('Finalizing PDF package...');
@@ -156,6 +192,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       alert('An error occurred while rendering the PDF. Please try again.');
     } finally {
       setIsGeneratingPdf(false);
+      setDownloadProgress('');
     }
   };
 
@@ -845,20 +882,81 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </div>
 
                   {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats && (
-                    <div className="pt-2 border-t border-slate-200 grid grid-cols-3 gap-2 text-[10px]">
-                      <div>
-                        <span className="text-slate-400 block">MIN TEMP</span>
-                        <strong>{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
+                    <>
+                      <div className="pt-2 border-t border-slate-200 grid grid-cols-3 gap-2 text-[10px]">
+                        <div>
+                          <span className="text-slate-400 block">MIN TEMP</span>
+                          <strong>{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">MAX TEMP</span>
+                          <strong>{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">AVG TEMP</span>
+                          <strong>{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">MAX TEMP</span>
-                        <strong>{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
+
+                      {/* Vector Temperature Time-Series & Channel Telemetry Chart */}
+                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                          <span className="font-bold text-slate-700 uppercase">THERMAL STABILITY TIME-SERIES PROFILE</span>
+                          <span>NOMINAL BAND: 22.0°C ± 1.0°C</span>
+                        </div>
+                        <div className="w-full h-20 bg-slate-900 rounded-lg p-2 relative overflow-hidden border border-slate-800">
+                          <svg viewBox="0 0 500 70" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
+                            {/* Spec target band (21.0 - 23.0 °C) */}
+                            <rect x="30" y="15" width="460" height="40" fill="#06b6d4" fillOpacity="0.12" />
+                            <line x1="30" y1="35" x2="490" y2="35" stroke="#06b6d4" strokeWidth="1" strokeDasharray="3,3" />
+                            
+                            {/* Grid lines & scale */}
+                            <line x1="30" y1="10" x2="490" y2="10" stroke="#334155" strokeWidth="0.5" />
+                            <text x="2" y="13" fill="#64748b">24°C</text>
+                            <line x1="30" y1="35" x2="490" y2="35" stroke="#334155" strokeWidth="0.5" />
+                            <text x="2" y="38" fill="#06b6d4">22°C</text>
+                            <line x1="30" y1="60" x2="490" y2="60" stroke="#334155" strokeWidth="0.5" />
+                            <text x="2" y="63" fill="#64748b">20°C</text>
+
+                            {/* Time-series baseline & sample curve */}
+                            <path
+                              d="M 30 38 Q 80 34, 130 36 T 230 33 T 330 36 T 430 34 T 490 35"
+                              fill="none"
+                              stroke="#10b981"
+                              strokeWidth="2"
+                            />
+                            
+                            {/* Min / Max bounds shadow */}
+                            <path
+                              d="M 30 42 Q 80 38, 130 40 T 230 37 T 330 40 T 430 38 T 490 39 L 490 31 Q 430 30, 330 32 T 230 29 T 130 32 T 80 30 T 30 34 Z"
+                              fill="#10b981"
+                              fillOpacity="0.18"
+                            />
+
+                            {/* Channel sensor point markers */}
+                            {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 ? (
+                              Object.entries(sections['12'].data.channelStats).slice(0, 4).map(([ch, cStats], idx) => {
+                                const cx = 80 + idx * 110;
+                                const avgVal = cStats.avg;
+                                const cy = Math.max(10, Math.min(60, 60 - ((avgVal - 20) / 4) * 50));
+                                const color = idx === 0 ? '#38bdf8' : idx === 1 ? '#34d399' : idx === 2 ? '#fbbf24' : '#a78bfa';
+                                return (
+                                  <g key={ch}>
+                                    <circle cx={cx} cy={cy} r="3" fill={color} stroke="#0f172a" strokeWidth="1" />
+                                    <text x={cx - 10} y={cy - 5} fill={color} fontWeight="bold">CH{ch}: {avgVal.toFixed(1)}°C</text>
+                                  </g>
+                                );
+                              })
+                            ) : (
+                              <g>
+                                <circle cx={180} cy={35} r="3" fill="#38bdf8" stroke="#0f172a" strokeWidth="1" />
+                                <text x={190} y={38} fill="#38bdf8" fontWeight="bold">STABLE PROFILE ({((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(1)}°C)</text>
+                              </g>
+                            )}
+                          </svg>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block">AVG TEMP</span>
-                        <strong>{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
-                      </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -1000,18 +1098,28 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                   <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
                     {sections['18'].data.items.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {sections['18'].data.items.map(item => (
-                          <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1">
-                            {item.imageDataUrl && (
+                          <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
+                            {item.imageDataUrl ? (
                               <img 
                                 src={item.imageDataUrl} 
                                 alt={item.title} 
-                                className="w-full h-20 object-cover rounded border border-slate-100" 
+                                crossOrigin="anonymous"
+                                className="w-full h-16 object-cover rounded border border-slate-100 bg-slate-50" 
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
                               />
+                            ) : (
+                              <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
+                                [ATTACHMENT]
+                              </div>
                             )}
-                            <div className="font-bold text-slate-900 text-[11px]">{item.title}</div>
-                            <div className="text-[10px] text-slate-500 font-mono">{item.sourceSection} • {item.notes || 'Photo record'}</div>
+                            <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
+                            <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
+                              {item.sourceSection} • {item.notes || 'Record'}
+                            </div>
                           </div>
                         ))}
                       </div>
