@@ -1,5 +1,6 @@
 import { SyncStatus, SyncQueueItem, SyncState, CloudRecord } from '../types/sync';
 import { ImageStore } from './imageStore';
+import { safeJsonStringify } from './persistence';
 
 const QUEUE_KEY = 'fsos_sync_queue';
 const DEVICE_ID_KEY = 'fsos_device_id';
@@ -127,16 +128,7 @@ class SyncEngineManager {
 
   private saveQueue() {
     try {
-      const seen = new WeakSet();
-      const safeQueueStr = JSON.stringify(this.queue, (_key, value) => {
-        if (typeof value === 'object' && value !== null) {
-          if (seen.has(value)) {
-            return undefined;
-          }
-          seen.add(value);
-        }
-        return value;
-      });
+      const safeQueueStr = safeJsonStringify(this.queue);
       localStorage.setItem(QUEUE_KEY, safeQueueStr);
     } catch (e) {
       console.warn('[SyncEngine] Failed to save queue to localStorage', e);
@@ -210,7 +202,7 @@ class SyncEngineManager {
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: safeJsonStringify({
             deviceId: this.deviceId,
             items: batchToUpload
           })
@@ -262,7 +254,7 @@ class SyncEngineManager {
             await fetch('/api/images', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+              body: safeJsonStringify({
                 imageId: ref,
                 dataUrl: cachedPayload,
                 deviceId: this.deviceId

@@ -131,7 +131,7 @@ export const ImageStore = {
   },
 
   // Synchronously offload image payloads into memory cache & enqueue IDB persistence
-  extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = ''): T {
+  extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = '', seen = new WeakSet<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
 
@@ -144,16 +144,21 @@ export const ImageStore = {
       return data;
     }
 
-    if (Array.isArray(data)) {
-      return data.map((item, idx) =>
-        this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`)
-      ) as unknown as T;
-    }
-
     if (typeof data === 'object') {
+      if (seen.has(data as object)) {
+        return undefined as unknown as T;
+      }
+      seen.add(data as object);
+
+      if (Array.isArray(data)) {
+        return data.map((item, idx) =>
+          this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, seen)
+        ) as unknown as T;
+      }
+
       const result: any = {};
       for (const key of Object.keys(data as any)) {
-        result[key] = this.extractAndStoreImagesSync((data as any)[key], recordId, `${pathPrefix}_${key}`);
+        result[key] = this.extractAndStoreImagesSync((data as any)[key], recordId, `${pathPrefix}_${key}`, seen);
       }
       return result as T;
     }
@@ -162,7 +167,7 @@ export const ImageStore = {
   },
 
   // Hydrate object replacing "idb:..." with actual base64/SVG strings
-  hydrateImagesSync<T>(data: T): T {
+  hydrateImagesSync<T>(data: T, seen = new WeakSet<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
 
@@ -176,14 +181,19 @@ export const ImageStore = {
       return data;
     }
 
-    if (Array.isArray(data)) {
-      return data.map(item => this.hydrateImagesSync(item)) as unknown as T;
-    }
-
     if (typeof data === 'object') {
+      if (seen.has(data as object)) {
+        return undefined as unknown as T;
+      }
+      seen.add(data as object);
+
+      if (Array.isArray(data)) {
+        return data.map(item => this.hydrateImagesSync(item, seen)) as unknown as T;
+      }
+
       const result: any = {};
       for (const key of Object.keys(data as any)) {
-        result[key] = this.hydrateImagesSync((data as any)[key]);
+        result[key] = this.hydrateImagesSync((data as any)[key], seen);
       }
       return result as T;
     }

@@ -491,10 +491,17 @@ export const StorageService = {
   getWorkspaceMode: (): WorkspaceMode => getStorage(KEYS.WORKSPACE_MODE, 'MHC_MODE'),
   saveWorkspaceMode: (mode: WorkspaceMode) => setStorage(KEYS.WORKSPACE_MODE, mode),
 
-  getMhcSessions: (): MHCSession[] => getStorage(KEYS.MHC_SESSIONS, []),
+  getMhcSessions: (): MHCSession[] => {
+    const raw = getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []);
+    return ImageStore.hydrateImagesSync(raw);
+  },
   saveMhcSessions: (data: MHCSession[]) => {
-    syncEnqueueList('mhc_sessions', KEYS.MHC_SESSIONS, data);
-    setStorage(KEYS.MHC_SESSIONS, data);
+    const processedSessions = data.map(s => {
+      const recordId = s.id || `MHC-${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(s, recordId);
+    });
+    syncEnqueueList('mhc_sessions', KEYS.MHC_SESSIONS, processedSessions);
+    setStorage(KEYS.MHC_SESSIONS, processedSessions);
   },
 
   getMhcReportDrafts: (): MHCReportDraftConfig[] => getStorage(KEYS.MHC_REPORT_DRAFTS, []),

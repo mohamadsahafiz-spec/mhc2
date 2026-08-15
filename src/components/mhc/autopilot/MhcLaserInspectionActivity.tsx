@@ -27,7 +27,7 @@ export interface MhcLaserInspectionActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: (latestSession?: MHCSession) => void;
+  onCompleteActivity: (latestSession?: MHCSession, targetCode?: string, finalStatus?: 'COMPLETED' | 'NEEDS_REVIEW') => void;
   onUpdateMachine?: (updatedMachine: Machine) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
@@ -374,8 +374,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
       showNotification(`✓ ${headState.headName} Inspection recorded (${finalStatus})`);
     }
 
-    // Call journey advancement handler with authoritative updatedSession
-    onCompleteActivity(updatedSession);
+    // Call journey advancement handler with authoritative updatedSession, targetCode, and finalStatus
+    onCompleteActivity(updatedSession, targetCode, finalStatus);
   };
 
   // Evaluate status badges for both heads

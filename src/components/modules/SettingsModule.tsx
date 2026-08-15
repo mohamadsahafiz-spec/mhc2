@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.8',
+      date: '2026-08-15',
+      type: 'MHC Inspection Journey Progression & Image Persistence Engine',
+      highlights: [
+        'SEAMLESS AUTOPILOT ADVANCEMENT: Updated advanceAutopilotActivity to advance the Journey Rail on both COMPLETED and NEEDS_REVIEW finalizations, allowing findings with replacement recommendations to smoothly advance to the next laser head/stage without trapping the engineer.',
+        'MHC SESSION IMAGE OFFLOADING: Integrated ImageStore IndexedDB offloading into saveMhcSessions and getMhcSessions, preventing localStorage QuotaExceededError and preserving all findings/evidence photos across reload.',
+        'CYCLE-SAFE SERIALIZATION & TRAVERSAL: Added WeakSet circular-reference guards to ImageStore image extraction/hydration and unified safe serialization across SyncEngine and Persistence.',
+        'SINGLE AUTHORITATIVE INSPECTION FLOW: Streamlined inspection decision and finding recording into a single, cohesive workflow with direct Save & Complete feedback.'
+      ]
+    },
+    {
       version: 'v1.1.7',
       date: '2026-08-15',
       type: 'MHC Inspection Workflow, Report Audit & Persistence Hardening',

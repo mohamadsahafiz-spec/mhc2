@@ -325,11 +325,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   };
 
   // Handle Action: Mark Complete & Advance
-  const handleCompleteCurrentActivity = (latestSession?: MHCSession) => {
+  const handleCompleteCurrentActivity = (
+    latestSession?: MHCSession,
+    targetCodeOverride?: string,
+    statusOverride?: 'COMPLETED' | 'NEEDS_REVIEW'
+  ) => {
     const sessToAdvance = latestSession || effectiveSession;
     if (isReadOnlyMode || !sessToAdvance) return;
-    const currentCode = sessToAdvance.autopilotProgress?.currentActivityCode || progress.currentActivityCode;
-    let updated = advanceAutopilotActivity(sessToAdvance, currentCode, 'COMPLETED', activeNoteText);
+    const currentCode = targetCodeOverride || sessToAdvance.autopilotProgress?.currentActivityCode || progress.currentActivityCode;
+    const finalStatus = statusOverride || 'COMPLETED';
+    let updated = advanceAutopilotActivity(sessToAdvance, currentCode, finalStatus, activeNoteText);
 
     // If completing 02_power or 03_power (Laser Head 1 / 2 Power), advance side-by-side power checks preserving pass/fail review status
     if (currentCode === '02_power' || currentCode === '03_power') {

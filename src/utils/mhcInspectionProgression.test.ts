@@ -4,14 +4,11 @@ import { safeJsonStringify } from './persistence';
 import { MHCSession } from '../types';
 
 describe('MHC Inspection & Findings Progression & Persistence', () => {
-  const createMockSession = (): MHCSession => ({
+  const createMockSession = (): MHCSession => (({
     id: 'mhc_test_101',
     machineId: 'M-TEST',
-    machineSerial: 'TEST-001',
     customerName: 'Acme Semi',
     engineerName: 'Lead Eng',
-    date: '2026-08-15',
-    status: 'IN_PROGRESS',
     overallStatus: 'IN_PROGRESS',
     stage01_readiness: { completed: true, status: 'PASS', date: '2026-08-15' },
     stage02_laserProfile: {
@@ -22,20 +19,17 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
         machineId: 'M-TEST',
         date: '2026-08-15',
         laserHeadIds: ['6A', '6B'],
-        readings: {
-          '6A': { targetDiameterMm: 3.5, measuredDiameterMm: 3.5, tolerancePercent: 5, pass: true },
-          '6B': { targetDiameterMm: 3.5, measuredDiameterMm: 3.5, tolerancePercent: 5, pass: true }
-        },
+        readings: {} as any,
         overallResult: 'PASS',
         status: 'COMPLETED'
-      }
-    },
+      } as any
+    } as any,
     stage03_laserPower: [],
     stage04_temperature: { completed: true, status: 'PASS', date: '2026-08-15' },
     stage05_stageCalibration: { completed: true, status: 'PASS', date: '2026-08-15' },
     stage06_agc: { completed: true, status: 'PASS', date: '2026-08-15' },
     autopilotProgress: {
-      currentDay: 1,
+      currentDay: 'DAY 1',
       currentActivityCode: '02_findings',
       activityStatuses: {
         '01': 'COMPLETED',
@@ -59,7 +53,7 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
         updatedAt: '2026-08-15T00:00:00.000Z'
       }
     }
-  });
+  }) as unknown as MHCSession);
 
   it('advances 02_findings -> 03_findings when NO_ISSUE is recorded and completed', () => {
     const session = createMockSession();
@@ -74,7 +68,7 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
       headId: 'lh1',
       headName: 'Laser Head 1',
       decision: 'ISSUE_FOUND',
-      status: 'COMPLETED',
+      status: 'NEEDS_REVIEW',
       findings: [
         {
           id: 'f1',
@@ -85,13 +79,13 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
           conditions: ['Burn mark'],
           actionRecommendation: 'Replacement required',
           createdAt: '2026-08-15T00:00:00.000Z',
-          photoData: 'idb:img_finding_1'
+          evidenceImage: 'idb:img_finding_1'
         }
       ],
       updatedAt: '2026-08-15T00:00:00.000Z'
     };
 
-    const advanced = advanceAutopilotActivity(session, '02_findings', 'COMPLETED');
+    const advanced = advanceAutopilotActivity(session, '02_findings', 'NEEDS_REVIEW');
     expect(advanced.autopilotProgress?.currentActivityCode).toBe('03_findings');
 
     // Head 2 also completed with findings

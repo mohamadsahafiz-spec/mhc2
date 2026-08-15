@@ -887,14 +887,15 @@ export function advanceAutopilotActivity(
   let nextCode = targetCode;
   let nextDay = currentProgress.currentDay;
 
-  if (newStatus === 'COMPLETED') {
-    // Find next actionable activity index that is not already completed
+  if (newStatus === 'COMPLETED' || newStatus === 'NEEDS_REVIEW') {
+    // Find next actionable activity index that is not already completed/finalized
     const currIndex = ACTIONABLE_ACTIVITIES.findIndex(a => a.code === targetCode);
     if (currIndex >= 0 && currIndex < ACTIONABLE_ACTIVITIES.length - 1) {
       let nextIndex = currIndex + 1;
       while (
         nextIndex < ACTIONABLE_ACTIVITIES.length &&
-        activityStatuses[ACTIONABLE_ACTIVITIES[nextIndex].code] === 'COMPLETED'
+        (activityStatuses[ACTIONABLE_ACTIVITIES[nextIndex].code] === 'COMPLETED' ||
+         activityStatuses[ACTIONABLE_ACTIVITIES[nextIndex].code] === 'NEEDS_REVIEW')
       ) {
         nextIndex++;
       }
