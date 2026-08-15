@@ -1,5 +1,6 @@
 import {
   MHCSession,
+  MHCLaserPowerItem,
   MhcReportDocument,
   MhcReportSection,
   MhcReportSectionCode,
@@ -211,45 +212,66 @@ export function buildMhcReportDocument(
   // 06 LASER POWER (WITH PREVIOUS/CURRENT COMPARISON)
   const hasPreviousPower = Boolean(previousSession?.stage03_laserPower && previousSession.stage03_laserPower.length > 0);
   const powerItems = session.stage03_laserPower || [];
+  const prevPowerItems = previousSession?.stage03_laserPower || [];
 
   const headsPowerComparison: MhcPowerComparisonItem[] = [
     { headId: 'lh1', headName: 'Laser Head 1' },
     { headId: 'lh2', headName: 'Laser Head 2' }
-  ].map(({ headId, headName }) => {
-    const curr = powerItems.find(p => p.laserId === headId || p.laserId === (headId === 'lh1' ? 'head1' : 'head2'));
-    const prevItem = previousSession?.stage03_laserPower?.find(p => p.laserId === headId || p.laserId === (headId === 'lh1' ? 'head1' : 'head2'));
-    const hasBaseline = Boolean(prevItem && prevItem.afterValueWatts > 0);
+  ].map(({ headId, headName }, idx) => {
+    const isHead1 = headId === 'lh1' || idx === 0;
+
+    const matchesHead = (p: MHCLaserPowerItem, targetHead1: boolean) => {
+      const lid = (p.laserId || '').toLowerCase();
+      const lident = (p.laserIdentifier || '').toLowerCase();
+      if (targetHead1) {
+        return lid === 'lh1' || lid === 'head1' || lid === 'lh-1' || lid.includes('lh1') || lid.includes('lh-1') || lid.endsWith('-1') || lid.endsWith('-l1') || lident.includes('head 1') || lident.includes('head #1') || lident.includes('head1');
+      } else {
+        return lid === 'lh2' || lid === 'head2' || lid === 'lh-2' || lid.includes('lh2') || lid.includes('lh-2') || lid.endsWith('-2') || lid.endsWith('-l2') || lident.includes('head 2') || lident.includes('head #2') || lident.includes('head2');
+      }
+    };
+
+    const curr = powerItems.find(p => matchesHead(p, isHead1)) || powerItems[idx];
+    const prevItem = prevPowerItems.find(p => matchesHead(p, isHead1)) || prevPowerItems[idx];
+
+    const rawBefore = curr?.beforeValueWatts ?? (curr?.powerRecord?.laserSource ? (isHead1 ? curr.powerRecord.laserSource.headA : curr.powerRecord.laserSource.headB) : undefined);
+    const rawAfter = curr?.afterValueWatts ?? (curr?.powerRecord?.opticsTopHat ? (isHead1 ? curr.powerRecord.opticsTopHat.headA : curr.powerRecord.opticsTopHat.headB) : undefined);
+
+    const currBeforeWatts = typeof rawBefore === 'number' && rawBefore > 0 ? rawBefore : (curr?.beforeValueWatts || 0);
+    const currAfterWatts = typeof rawAfter === 'number' && rawAfter > 0 ? rawAfter : (curr?.afterValueWatts || 0);
+
+    const rawPrevAfter = prevItem?.afterValueWatts ?? (prevItem?.powerRecord?.opticsTopHat ? (isHead1 ? prevItem.powerRecord.opticsTopHat.headA : prevItem.powerRecord.opticsTopHat.headB) : undefined);
+    const prevAfterWatts = typeof rawPrevAfter === 'number' && rawPrevAfter > 0 ? rawPrevAfter : (prevItem?.afterValueWatts || 0);
+
+    const hasBaseline = Boolean(prevItem && prevAfterWatts > 0);
 
     let deltaWatts: number | null = null;
     let deltaPercent: number | null = null;
     let statusText = 'No previous baseline';
 
-    const currWatts = curr?.afterValueWatts || 0;
-
-    if (hasBaseline && prevItem && currWatts > 0) {
-      deltaWatts = currWatts - prevItem.afterValueWatts;
-      deltaPercent = prevItem.afterValueWatts > 0 ? (deltaWatts / prevItem.afterValueWatts) * 100 : 0;
+    if (hasBaseline && prevAfterWatts > 0 && currAfterWatts > 0) {
+      deltaWatts = currAfterWatts - prevAfterWatts;
+      deltaPercent = (deltaWatts / prevAfterWatts) * 100;
       const sign = deltaWatts >= 0 ? '+' : '';
       statusText = `${sign}${deltaWatts.toFixed(2)} W (${sign}${deltaPercent.toFixed(1)}%)`;
     }
 
     return {
       headId,
-      headName,
+      headName: curr?.laserIdentifier || headName,
       specification: '15.0 W ± 10% (13.5–16.5 W)',
       hasPreviousBaseline: hasBaseline,
       current: {
         ratedPowerWatts: curr?.ratedPowerWatts || 15.0,
         referenceValueWatts: curr?.referenceValueWatts || 15.0,
-        beforeValueWatts: curr?.beforeValueWatts || 0,
-        afterValueWatts: currWatts,
+        beforeValueWatts: currBeforeWatts,
+        afterValueWatts: currAfterWatts,
         stabilityPercent: curr?.stabilityPercent || 0,
-        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : 'WARNING',
+        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : (currAfterWatts > 0 ? 'PASS' : 'WARNING'),
         notes: curr?.notes
       },
       previous: hasBaseline && prevItem ? {
         recordedDate: previousSession?.completedDate || previousSession?.startDate || 'Previous MHC',
-        afterValueWatts: prevItem.afterValueWatts,
+        afterValueWatts: prevAfterWatts,
         stabilityPercent: prevItem.stabilityPercent || 0,
         verdict: prevItem.result
       } : null,
