@@ -478,13 +478,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 1: COVER PAGE (01 COVER)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Background Header Accent */}
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-slate-900 via-cyan-800 to-slate-900" />
 
             {/* COVER HEADER */}
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 pt-2 shrink-0">
               <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-900 text-cyan-400 font-extrabold flex items-center justify-center text-xl font-mono">
@@ -592,16 +592,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 2: TABLE OF CONTENTS (02 INDEX) - DEDICATED PAGE
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>SECTION 02 — TABLE OF CONTENTS</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-6 my-2 flex-1">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 02: TABLE OF CONTENTS */}
               <div className="space-y-4">
@@ -654,7 +654,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 2 of 7</span>
             </div>
@@ -664,16 +664,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 3: MACHINE INFORMATION & CONFIGURATION (03) - DEDICATED NEW PAGE
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>SECTION 03 — MACHINE CONFIGURATION</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-6 my-2 flex-1">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 03: MACHINE INFORMATION */}
               <div className="space-y-4">
@@ -790,7 +790,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 3 of 7</span>
             </div>
@@ -800,16 +800,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 4: EXECUTIVE SUMMARY (04) & LASER LIFECYCLE (05)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>EXECUTIVE SUMMARY &amp; LASER LIFECYCLE</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-5 my-2 flex-1">
+            <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
               {/* SECTION 04: EXECUTIVE SUMMARY */}
               <div className="space-y-3">
@@ -986,7 +986,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 4 of 7</span>
             </div>
@@ -996,16 +996,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 5: LASER POWER (06) & BEAM PROFILE (07)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>LASER POWER &amp; BEAM PROFILE</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-6 my-2 flex-1">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 06: LASER POWER */}
               <div className="space-y-3">
@@ -1118,7 +1118,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 5 of 7</span>
             </div>
@@ -1128,16 +1128,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 6: MOTION & CALIBRATION (10 STAGE, 11 AGC, 12 TEMP)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>STAGE, AGC &amp; THERMAL TELEMETRY</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-5 my-2 flex-1">
+            <div className="space-y-3 my-1.5 flex-1 min-h-0">
               
               {/* SECTION 10: STAGE CALIBRATION */}
               <div className="space-y-3">
@@ -1430,7 +1430,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 6 of 7</span>
             </div>
@@ -1440,16 +1440,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           {/* =========================================================================
               PAGE 7: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] min-h-[297mm] h-[297mm] bg-white text-slate-900 p-[20mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans">
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-5 my-2 flex-1">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 15 & 16: FINDINGS & CORRECTIVE ACTIONS */}
               <div className="space-y-3">
@@ -1619,7 +1619,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 7 of 7</span>
             </div>
