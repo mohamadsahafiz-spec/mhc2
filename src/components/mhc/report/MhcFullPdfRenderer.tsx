@@ -67,8 +67,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   const [machineNumber, setMachineNumber] = useState<string>(
     (session as any).machineNumber || sections['01']?.data?.machineNumber || 'WLVIA#3'
   );
-  const [releaseStatus, setReleaseStatus] = useState<'PASS' | 'WARNING' | 'FAIL'>(
-    (sections['19']?.data?.productionReleaseVerdict as any) || (sections['04']?.data?.overallStatus as any) || 'PASS'
+  const [releaseStatus, setReleaseStatus] = useState<'APPROVED' | 'CONDITIONAL_RELEASE' | 'HALTED' | 'PENDING' | 'PASS' | 'WARNING' | 'FAIL'>(
+    (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
   );
 
   // Reference for printable document container
@@ -85,6 +85,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300">
             <span>✓</span>
             <span>{label || status}</span>
+          </span>
+        );
+      case 'PENDING':
+      case 'PENDING_APPROVAL':
+      case 'PENDING_REVIEW':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-300">
+            <span>⏳</span>
+            <span>{label || 'PENDING REVIEW'}</span>
           </span>
         );
       case 'WARNING':
@@ -447,9 +456,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 onChange={(e) => setReleaseStatus(e.target.value as any)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
               >
-                <option value="PASS">PASS (Ready for Production)</option>
-                <option value="WARNING">WARNING (Conditional Release)</option>
-                <option value="FAIL">FAIL (Action Required)</option>
+                <option value="PENDING">PENDING (Customer Review)</option>
+                <option value="APPROVED">APPROVED (Customer Signed)</option>
+                <option value="CONDITIONAL_RELEASE">CONDITIONAL RELEASE</option>
+                <option value="HALTED">HALTED</option>
               </select>
             </div>
 

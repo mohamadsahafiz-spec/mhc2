@@ -762,18 +762,26 @@ export function buildMhcReportDocument(
 
   // 19 BUYOFF
   const remarksData = session.stage08_engineerRemarks;
+  const hasCustomerApproval = Boolean(
+    (session as any).customerApproved || 
+    (session as any).customerApprovalStatus === 'APPROVED' ||
+    Boolean((session as any).customerSignatureDataUrl)
+  );
 
   const buyoffData: MhcReportBuyoffData = {
-    productionReleaseVerdict: remarksData?.productionReleaseVerdict || (sessionAudit.isReadyForReport ? 'APPROVED' : 'PENDING'),
+    productionReleaseVerdict: hasCustomerApproval 
+      ? 'APPROVED' 
+      : ((session as any).customerApprovalStatus || 'PENDING'),
     engineerSignoff: {
       name: coverData.engineerName,
       title: coverData.engineerTitle,
       date: coverData.date
     },
     customerSignoff: {
-      name: 'Customer Representative',
-      title: 'Plant Manager / Engineer',
-      date: coverData.date
+      name: (session as any).customerSignoffName || (session as any).customerContactName || 'Customer Representative',
+      title: (session as any).customerSignoffTitle || (session as any).customerContactTitle || 'Plant Manager / Engineer',
+      date: (session as any).customerSignoffDate || (hasCustomerApproval ? coverData.date : '—'),
+      signatureDataUrl: (session as any).customerSignatureDataUrl
     },
     founderBranding: coverData.founderBranding
   };
@@ -783,7 +791,7 @@ export function buildMhcReportDocument(
     title: 'Buyoff & Approvals',
     displayOrder: 19,
     isVisible: options?.sectionVisibilityOverrides?.['19'] ?? true,
-    status: remarksData?.productionReleaseVerdict ? 'COMPLETE' : 'NEEDS_REVIEW',
+    status: hasCustomerApproval ? 'COMPLETE' : 'NEEDS_REVIEW',
     data: buyoffData
   };
 
