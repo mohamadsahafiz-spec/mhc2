@@ -1071,17 +1071,17 @@ export const LaserEngine = {
   normalizeMachine(m: any): MachineDomain {
     if (!m) {
       return {
-        id: 'WD-' + Math.floor(Math.random() * 100000),
-        machineNo: 'WD-000',
-        machineName: 'Wafer Driller BMD302W',
-        serialNo: 'SN-0000',
+        id: 'MCH-UNKNOWN',
+        machineNo: 'MCH-UNKNOWN',
+        machineName: 'Unknown Machine',
+        serialNo: 'SN-UNKNOWN',
         manufacturer: 'SemiconTech',
         model: 'BMD302W',
         department: 'Wafer Prep',
         lasers: [{
-          id: 'WD-000-L1',
+          id: 'MCH-UNKNOWN-L1',
           name: 'Laser Head 1',
-          serialNo: 'SN-0000-L1',
+          serialNo: 'SN-UNKNOWN-L1',
           ratedLife: 25000,
           warningLife: 20000,
           contingencyCeiling: 28000,
@@ -1096,10 +1096,10 @@ export const LaserEngine = {
       };
     }
 
-    const id = m.id || 'WD-' + Math.floor(Math.random() * 100000);
-    const machineNo = m.machineNo || m.machineNumber || 'WD-000';
+    const machineNo = m.machineNo || m.machineNumber || m.serialNo || m.serialNumber || m.id || 'MCH-01';
+    const serialNo = m.serialNo || m.serialNumber || m.machineNo || m.machineNumber || 'SN-0000';
+    const id = m.id || m.machineNumber || m.machineNo || m.serialNumber || m.serialNo || 'MCH-01';
     const machineName = m.machineName || ('Wafer Driller ' + (m.model || 'BMD302W'));
-    const serialNo = m.serialNo || m.serialNumber || 'SN-0000';
     const manufacturer = m.manufacturer || 'SemiconTech';
     const model = m.model || 'BMD302W';
     const department = m.department || 'Wafer Prep';
