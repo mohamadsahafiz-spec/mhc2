@@ -106,7 +106,93 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     }
   };
 
-  // PDF Download Handler via html2canvas + jsPDF with multi-layer fallback
+  // Helper to convert any modern CSS color (OKLCH, LAB, etc.) to standard sRGB via canvas 2D serialization
+  const normalizeCssColorsForExport = (clonedDoc: Document, clonedEl: HTMLElement) => {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 1;
+    tempCanvas.height = 1;
+    const ctx = tempCanvas.getContext('2d');
+    const colorCache = new Map<string, string>();
+
+    const toRgbColor = (colorStr: string): string => {
+      if (!colorStr || colorStr === 'transparent' || colorStr === 'none' || colorStr === 'inherit' || colorStr === 'currentColor') {
+        return colorStr;
+      }
+      if (colorCache.has(colorStr)) return colorCache.get(colorStr)!;
+      if (!ctx) return colorStr;
+      try {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillStyle = colorStr;
+        const computed = ctx.fillStyle;
+        if (computed && !computed.includes('oklch') && !computed.includes('lab')) {
+          colorCache.set(colorStr, computed);
+          return computed;
+        }
+        return colorStr;
+      } catch {
+        return colorStr;
+      }
+    };
+
+    // 1. Replace oklch/lab definitions inside all cloned <style> tags
+    try {
+      const styleTags = clonedDoc.querySelectorAll('style');
+      styleTags.forEach(styleTag => {
+        if (styleTag.textContent && (styleTag.textContent.includes('oklch') || styleTag.textContent.includes('lab('))) {
+          styleTag.textContent = styleTag.textContent
+            .replace(/oklch\([^)]+\)/g, (match) => toRgbColor(match))
+            .replace(/lab\([^)]+\)/g, (match) => toRgbColor(match));
+        }
+      });
+    } catch (styleErr) {
+      console.warn('[PDF Export] Style tag normalization warning:', styleErr);
+    }
+
+    // 2. Explicitly normalize computed colors and inline styles on all elements
+    const colorProps = [
+      'color',
+      'background-color',
+      'border-top-color',
+      'border-right-color',
+      'border-bottom-color',
+      'border-left-color',
+      'fill',
+      'stroke',
+      'outline-color'
+    ];
+
+    const allElements = [clonedEl, ...Array.from(clonedEl.querySelectorAll('*'))] as HTMLElement[];
+    allElements.forEach(el => {
+      if (!el.style) return;
+
+      // Normalize existing inline styles
+      for (let i = 0; i < el.style.length; i++) {
+        const propName = el.style[i];
+        const val = el.style.getPropertyValue(propName);
+        if (val && (val.includes('oklch') || val.includes('lab('))) {
+          const converted = val
+            .replace(/oklch\([^)]+\)/g, (m) => toRgbColor(m))
+            .replace(/lab\([^)]+\)/g, (m) => toRgbColor(m));
+          el.style.setProperty(propName, converted);
+        }
+      }
+
+      // Check computed colors for any remaining modern formats and freeze them as inline sRGB
+      try {
+        const computed = window.getComputedStyle(el);
+        colorProps.forEach(prop => {
+          const compVal = computed.getPropertyValue(prop);
+          if (compVal && (compVal.includes('oklch') || compVal.includes('lab('))) {
+            el.style.setProperty(prop, toRgbColor(compVal), 'important');
+          }
+        });
+      } catch {
+        // Ignore computed style lookup errors on detached nodes
+      }
+    });
+  };
+
+  // PDF Download Handler via html2canvas + jsPDF with OKLCH compatibility pipeline
   const handleDownloadPdf = async () => {
     if (!documentContainerRef.current) return;
     setIsGeneratingPdf(true);
@@ -120,12 +206,17 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     container.style.transform = 'none';
     container.style.transformOrigin = 'initial';
 
+    let lastFailingOperation = 'INIT';
+    let currentProcessingPage = 0;
+
     try {
+      lastFailingOperation = 'QUERY_PAGES';
       const pageElements = container.querySelectorAll('.mhc-a4-page');
       if (!pageElements || pageElements.length === 0) {
-        throw new Error('No printable pages found.');
+        throw new Error('No printable pages found (.mhc-a4-page missing).');
       }
 
+      lastFailingOperation = 'INIT_JSPDF';
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -137,74 +228,51 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
 
       for (let i = 0; i < pageElements.length; i++) {
+        currentProcessingPage = i + 1;
         const pageEl = pageElements[i] as HTMLElement;
         setDownloadProgress(`Rendering Page ${i + 1} of ${pageElements.length}...`);
 
-        let canvas: HTMLCanvasElement;
-        try {
-          canvas = await html2canvas(pageEl, {
-            scale: 2, // High DPI for crisp vector-like typography
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            scrollX: 0,
-            scrollY: 0,
-            imageTimeout: 8000,
-            onclone: (_clonedDoc, clonedEl) => {
-              clonedEl.style.transform = 'none';
-              const imgs = clonedEl.querySelectorAll('img');
-              imgs.forEach(img => {
-                img.setAttribute('crossOrigin', 'anonymous');
-              });
-            }
-          });
-        } catch (canvasErr) {
-          console.warn(`Primary canvas render error on page ${i + 1}, executing safe fallback:`, canvasErr);
-          canvas = await html2canvas(pageEl, {
-            scale: 1.5,
-            useCORS: false,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            scrollX: 0,
-            scrollY: 0,
-            ignoreElements: (el) => el.tagName === 'IMG' && !el.getAttribute('src')?.startsWith('data:')
-          });
-        }
+        lastFailingOperation = `HTML2CANVAS_PAGE_${i + 1}`;
+        const canvas = await html2canvas(pageEl, {
+          scale: 2, // High DPI for crisp typography
+          useCORS: true,
+          allowTaint: false, // Prevents tainted canvas security exceptions
+          logging: false,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          imageTimeout: 10000,
+          onclone: (clonedDoc, clonedEl) => {
+            clonedEl.style.transform = 'none';
+            // Normalize modern OKLCH/LAB colors so html2canvas color parser doesn't throw
+            normalizeCssColorsForExport(clonedDoc, clonedEl);
+            const imgs = clonedEl.querySelectorAll('img');
+            imgs.forEach(img => {
+              img.setAttribute('crossOrigin', 'anonymous');
+            });
+          }
+        });
 
-        let imgData: string;
-        try {
-          imgData = canvas.toDataURL('image/jpeg', 0.95);
-        } catch (taintErr) {
-          console.warn(`Canvas export tainted on page ${i + 1}, rendering clean fallback:`, taintErr);
-          const fallbackCanvas = await html2canvas(pageEl, {
-            scale: 1.5,
-            useCORS: false,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            scrollX: 0,
-            scrollY: 0,
-            ignoreElements: (el) => el.tagName === 'IMG'
-          });
-          imgData = fallbackCanvas.toDataURL('image/jpeg', 0.90);
-        }
+        lastFailingOperation = `CANVAS_TO_DATA_URL_PAGE_${i + 1}`;
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
+        lastFailingOperation = `JSPDF_ADD_PAGE_${i + 1}`;
         if (i > 0) {
           pdf.addPage('a4', 'portrait');
         }
 
+        lastFailingOperation = `JSPDF_ADD_IMAGE_PAGE_${i + 1}`;
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       }
 
+      lastFailingOperation = 'JSPDF_SAVE';
       setDownloadProgress('Finalizing PDF package...');
       const fileName = `${metadata.reportNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}_Full_MHC_Report.pdf`;
       pdf.save(fileName);
       setDownloadProgress('');
     } catch (err) {
-      console.error('PDF Generation Error:', err);
-      alert('An error occurred while rendering the PDF. Please try again.');
+      console.error(`[PDF Export Error] Operation: ${lastFailingOperation} (Page: ${currentProcessingPage})`, err);
+      alert(`An error occurred while rendering the PDF (Failed at ${lastFailingOperation}). Please check the console for details.`);
     } finally {
       if (container) {
         container.style.transform = originalTransform;
