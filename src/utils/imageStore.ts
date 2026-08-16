@@ -6,6 +6,12 @@ const STORE_NAME = 'evidence_images';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
+const persistedInIdbKeys = new Set<string>();
+
+// Batched asynchronous IndexedDB write queue
+const pendingIdbWrites = new Map<string, string>();
+let isBatchWriting = false;
+let batchFlushTimer: any = null;
 
 function openDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
@@ -32,22 +38,79 @@ function openDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+// Flush all enqueued writes in a single, batched IndexedDB transaction
+async function flushPendingWrites(): Promise<void> {
+  if (pendingIdbWrites.size === 0 || isBatchWriting) return;
+  if (typeof indexedDB === 'undefined') {
+    pendingIdbWrites.clear();
+    return;
+  }
+
+  isBatchWriting = true;
+  const currentBatch = Array.from(pendingIdbWrites.entries());
+  pendingIdbWrites.clear();
+
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+
+        currentBatch.forEach(([id, dataUrl]) => {
+          store.put(dataUrl, id);
+        });
+
+        tx.oncomplete = () => {
+          currentBatch.forEach(([id]) => persistedInIdbKeys.add(id));
+          resolve();
+        };
+        tx.onerror = () => {
+          console.warn('[ImageStore] Batched transaction error:', tx.error);
+          reject(tx.error);
+        };
+        tx.onabort = () => {
+          reject(new Error('IndexedDB transaction aborted'));
+        };
+      } catch (err) {
+        reject(err);
+      }
+    });
+  } catch (err) {
+    console.warn('[ImageStore] Error executing batched IDB save:', err);
+  } finally {
+    isBatchWriting = false;
+    // If more writes accumulated while this batch was running, flush again
+    if (pendingIdbWrites.size > 0) {
+      scheduleBatchFlush();
+    }
+  }
+}
+
+function scheduleBatchFlush() {
+  if (batchFlushTimer) return;
+  batchFlushTimer = setTimeout(() => {
+    batchFlushTimer = null;
+    flushPendingWrites().catch(() => {});
+  }, 16);
+}
+
 export const ImageStore = {
   async saveImage(id: string, dataUrl: string): Promise<void> {
     if (!id || !dataUrl) return;
-    imageMemoryCache.set(id, dataUrl);
-    try {
-      const db = await openDB();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(dataUrl, id);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-    } catch (err) {
-      console.warn('[ImageStore] Error saving image to IndexedDB:', err);
+
+    const existing = imageMemoryCache.get(id);
+    if (existing === dataUrl && persistedInIdbKeys.has(id)) {
+      return; // Identical image payload already persisted in IDB
     }
+
+    imageMemoryCache.set(id, dataUrl);
+    if (existing !== dataUrl) {
+      persistedInIdbKeys.delete(id);
+    }
+
+    pendingIdbWrites.set(id, dataUrl);
+    scheduleBatchFlush();
   },
 
   async getImage(id: string): Promise<string | null> {
@@ -63,7 +126,10 @@ export const ImageStore = {
         const req = store.get(id);
         req.onsuccess = () => {
           const val = req.result || null;
-          if (val) imageMemoryCache.set(id, val);
+          if (val) {
+            imageMemoryCache.set(id, val);
+            persistedInIdbKeys.add(id);
+          }
           resolve(val);
         };
         req.onerror = () => reject(req.error);
@@ -77,6 +143,9 @@ export const ImageStore = {
   async deleteImage(id: string): Promise<void> {
     if (!id) return;
     imageMemoryCache.delete(id);
+    persistedInIdbKeys.delete(id);
+    pendingIdbWrites.delete(id);
+
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
@@ -98,6 +167,8 @@ export const ImageStore = {
       for (const key of Array.from(imageMemoryCache.keys())) {
         if (key.startsWith(prefix)) {
           imageMemoryCache.delete(key);
+          persistedInIdbKeys.delete(key);
+          pendingIdbWrites.delete(key);
         }
       }
 
@@ -130,12 +201,15 @@ export const ImageStore = {
     return undefined;
   },
 
-  // Synchronously offload image payloads into memory cache & enqueue IDB persistence
+  // Synchronously offload image payloads into memory cache & enqueue IDB persistence with structural sharing
   extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = '', activeAncestors = new Set<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
 
     if (typeof data === 'string') {
+      if (data.startsWith('idb:')) {
+        return data;
+      }
       if (data.startsWith('data:image/') || data.startsWith('data:application/') || (data.startsWith('<svg') && data.length > 50)) {
         const imageKey = `idb:${recordId}_${pathPrefix || 'img'}`;
         this.saveImage(imageKey, data);
@@ -152,16 +226,25 @@ export const ImageStore = {
 
       try {
         if (Array.isArray(data)) {
-          return data.map((item, idx) =>
-            this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, activeAncestors)
-          ) as unknown as T;
+          let hasChanges = false;
+          const mapped = data.map((item, idx) => {
+            const res = this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, activeAncestors);
+            if (res !== item) hasChanges = true;
+            return res;
+          });
+          return (hasChanges ? mapped : data) as unknown as T;
         }
 
+        let hasChanges = false;
         const result: any = {};
-        for (const key of Object.keys(data as any)) {
-          result[key] = this.extractAndStoreImagesSync((data as any)[key], recordId, `${pathPrefix}_${key}`, activeAncestors);
+        const keys = Object.keys(data as any);
+        for (const key of keys) {
+          const val = (data as any)[key];
+          const res = this.extractAndStoreImagesSync(val, recordId, `${pathPrefix}_${key}`, activeAncestors);
+          if (res !== val) hasChanges = true;
+          result[key] = res;
         }
-        return result as T;
+        return (hasChanges ? result : data) as T;
       } finally {
         activeAncestors.delete(data as object);
       }
@@ -170,7 +253,7 @@ export const ImageStore = {
     return data;
   },
 
-  // Hydrate object replacing "idb:..." with actual base64/SVG strings
+  // Hydrate object replacing "idb:..." with actual base64/SVG strings with structural sharing
   hydrateImagesSync<T>(data: T, activeAncestors = new Set<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
@@ -193,14 +276,25 @@ export const ImageStore = {
 
       try {
         if (Array.isArray(data)) {
-          return data.map(item => this.hydrateImagesSync(item, activeAncestors)) as unknown as T;
+          let hasChanges = false;
+          const mapped = data.map(item => {
+            const res = this.hydrateImagesSync(item, activeAncestors);
+            if (res !== item) hasChanges = true;
+            return res;
+          });
+          return (hasChanges ? mapped : data) as unknown as T;
         }
 
+        let hasChanges = false;
         const result: any = {};
-        for (const key of Object.keys(data as any)) {
-          result[key] = this.hydrateImagesSync((data as any)[key], activeAncestors);
+        const keys = Object.keys(data as any);
+        for (const key of keys) {
+          const val = (data as any)[key];
+          const res = this.hydrateImagesSync(val, activeAncestors);
+          if (res !== val) hasChanges = true;
+          result[key] = res;
         }
-        return result as T;
+        return (hasChanges ? result : data) as T;
       } finally {
         activeAncestors.delete(data as object);
       }
@@ -219,7 +313,9 @@ export const ImageStore = {
         req.onsuccess = (event) => {
           const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
           if (cursor) {
-            imageMemoryCache.set(cursor.key as string, cursor.value as string);
+            const keyStr = cursor.key as string;
+            imageMemoryCache.set(keyStr, cursor.value as string);
+            persistedInIdbKeys.add(keyStr);
             cursor.continue();
           } else {
             resolve();
@@ -234,6 +330,8 @@ export const ImageStore = {
 
   async clearAll(): Promise<void> {
     imageMemoryCache.clear();
+    persistedInIdbKeys.clear();
+    pendingIdbWrites.clear();
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {

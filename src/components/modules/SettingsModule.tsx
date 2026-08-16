@@ -14,6 +14,27 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.13',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Activity Completion Out-of-Memory Freeze Resolution',
+      highlights: [
+        'BATCHED INDEXEDDB WRITE QUEUE: Replaced individual unawaited transaction spawns with a single batched write queue, eliminating transaction queue buildup and IndexedDB out-of-memory lock exhaustion during session state updates.',
+        'REDUNDANT PERSISTENCE FILTERING: Introduced a persisted key registry to skip redundant writes for already stored images, drastically cutting transaction volume and storage thread pressure.',
+        'STRUCTURAL SHARING EXTRACTION & HYDRATION: Refactored ImageStore.extractAndStoreImagesSync and hydrateImagesSync with structural sharing, returning untouched object references when no images are modified and eliminating unnecessary deep object cloning across unchanged session branches.',
+        'ZERO-LATENCY ACTIVITY ADVANCE: Enabled smooth, instantaneous Journey Rail completion and navigation transitions on Activity 01 (Laser Hours) and all downstream Autopilot stages.'
+      ]
+    },
+    {
+      version: 'v1.1.12',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Multi-Machine Session Detection & Resume UX',
+      highlights: [
+        'MULTI-MACHINE SESSION DISPATCH: Enhanced Autopilot machine selection and session discovery to cleanly isolate and match sessions per specific machine ID.',
+        'CONTINUATION FLOW RESILIENCE: Enabled robust continuation and hydration of existing incomplete Autopilot sessions across machine switches without forcing unnecessary new session creation.',
+        'AUDIT READINESS SEEDING: Refined pre-flight readiness checks and baseline data validation for multi-head machine configurations.'
+      ]
+    },
+    {
       version: 'v1.1.11',
       date: '2026-08-16',
       type: 'MHC Autopilot Temperature Workspace & Scroll Architecture',
