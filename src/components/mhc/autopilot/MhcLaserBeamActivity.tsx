@@ -411,7 +411,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
         {/* Head 1 Status */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER HEAD 1 (HEAD A)</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 1</div>
             <div className="text-xs font-bold text-slate-200">{laserHeads[0]?.name || 'Laser Head 1'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
@@ -428,7 +428,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
         {/* Head 2 Status */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER HEAD 2 (HEAD B)</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 2</div>
             <div className="text-xs font-bold text-slate-200">{laserHeads[1]?.name || 'Laser Head 2'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
@@ -474,7 +474,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
-                LH1
+                L1
               </div>
               <div>
                 <h4 className="font-bold text-sm text-slate-100">
@@ -665,7 +665,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
-                LH2
+                L2
               </div>
               <div>
                 <h4 className="font-bold text-sm text-slate-100">

@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.9',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Mechanics, Progression & Unified Workspace Architecture',
+      highlights: [
+        'UNIFIED INSPECTION DECISION & PROGRESSION: Streamlined inspection mechanics into a single authoritative flow where both "No Issue Found" (COMPLETED) and "Issue / Recommendation Found" (NEEDS REVIEW) reliably advance the Journey Rail without trapping the engineer.',
+        'CYCLE-SAFE PERSISTENCE HARDENING: Replaced naive global WeakSet tracking with an active ancestor recursion stack in ImageStore and StorageService serialization, ensuring shared non-circular objects and findings survive browser reloads intact.',
+        'UNIFIED LASER POWER WORKSPACE: Standardized Laser 1 and Laser 2 side-by-side matrix terminology, removing legacy Head A/B references and unifying the power measurement experience.',
+        'AUTHORITATIVE SESSION DISPATCH: Ensured completion triggers pass the newly updated session state directly to journey advancement handlers, preventing stale React state race conditions.'
+      ]
+    },
+    {
       version: 'v1.1.8',
       date: '2026-08-15',
       type: 'MHC Inspection Journey Progression & Image Persistence Engine',

@@ -79,16 +79,21 @@ function getStorage<T>(key: string, defaultValue: T): T {
   return defaultValue;
 }
 
-// Cycle-safe JSON stringify replacer
+// Cycle-safe JSON stringify replacer that drops only actual circular references
 function getCircularReplacer() {
-  const seen = new WeakSet();
-  return (_key: string, value: any) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return undefined; // Drop circular reference safely
-      }
-      seen.add(value);
+  const ancestors: any[] = [];
+  return function(this: any, _key: string, value: any) {
+    if (typeof value !== 'object' || value === null) {
+      return value;
     }
+    // `this` refers to the parent object containing this `value`
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+      ancestors.pop();
+    }
+    if (ancestors.includes(value)) {
+      return undefined; // Drop circular reference safely
+    }
+    ancestors.push(value);
     return value;
   };
 }

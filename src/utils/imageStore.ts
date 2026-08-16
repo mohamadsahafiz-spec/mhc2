@@ -131,7 +131,7 @@ export const ImageStore = {
   },
 
   // Synchronously offload image payloads into memory cache & enqueue IDB persistence
-  extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = '', seen = new WeakSet<object>()): T {
+  extractAndStoreImagesSync<T>(data: T, recordId: string, pathPrefix = '', activeAncestors = new Set<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
 
@@ -145,29 +145,33 @@ export const ImageStore = {
     }
 
     if (typeof data === 'object') {
-      if (seen.has(data as object)) {
+      if (activeAncestors.has(data as object)) {
         return undefined as unknown as T;
       }
-      seen.add(data as object);
+      activeAncestors.add(data as object);
 
-      if (Array.isArray(data)) {
-        return data.map((item, idx) =>
-          this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, seen)
-        ) as unknown as T;
-      }
+      try {
+        if (Array.isArray(data)) {
+          return data.map((item, idx) =>
+            this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, activeAncestors)
+          ) as unknown as T;
+        }
 
-      const result: any = {};
-      for (const key of Object.keys(data as any)) {
-        result[key] = this.extractAndStoreImagesSync((data as any)[key], recordId, `${pathPrefix}_${key}`, seen);
+        const result: any = {};
+        for (const key of Object.keys(data as any)) {
+          result[key] = this.extractAndStoreImagesSync((data as any)[key], recordId, `${pathPrefix}_${key}`, activeAncestors);
+        }
+        return result as T;
+      } finally {
+        activeAncestors.delete(data as object);
       }
-      return result as T;
     }
 
     return data;
   },
 
   // Hydrate object replacing "idb:..." with actual base64/SVG strings
-  hydrateImagesSync<T>(data: T, seen = new WeakSet<object>()): T {
+  hydrateImagesSync<T>(data: T, activeAncestors = new Set<object>()): T {
     if (!data) return data;
     if (data instanceof Date) return data;
 
@@ -182,20 +186,24 @@ export const ImageStore = {
     }
 
     if (typeof data === 'object') {
-      if (seen.has(data as object)) {
+      if (activeAncestors.has(data as object)) {
         return undefined as unknown as T;
       }
-      seen.add(data as object);
+      activeAncestors.add(data as object);
 
-      if (Array.isArray(data)) {
-        return data.map(item => this.hydrateImagesSync(item, seen)) as unknown as T;
-      }
+      try {
+        if (Array.isArray(data)) {
+          return data.map(item => this.hydrateImagesSync(item, activeAncestors)) as unknown as T;
+        }
 
-      const result: any = {};
-      for (const key of Object.keys(data as any)) {
-        result[key] = this.hydrateImagesSync((data as any)[key], seen);
+        const result: any = {};
+        for (const key of Object.keys(data as any)) {
+          result[key] = this.hydrateImagesSync((data as any)[key], activeAncestors);
+        }
+        return result as T;
+      } finally {
+        activeAncestors.delete(data as object);
       }
-      return result as T;
     }
 
     return data;

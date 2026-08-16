@@ -323,10 +323,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
   const allFailingPoints = useMemo(() => {
     const list: { headLabel: string; pointName: string; msg: string }[] = [];
     evalSummaryA.failingPoints.forEach(f => {
-      list.push({ headLabel: 'Laser Head 1 (Head A)', pointName: f.pointName, msg: f.msg });
+      list.push({ headLabel: 'Laser 1', pointName: f.pointName, msg: f.msg });
     });
     evalSummaryB.failingPoints.forEach(f => {
-      list.push({ headLabel: 'Laser Head 2 (Head B)', pointName: f.pointName, msg: f.msg });
+      list.push({ headLabel: 'Laser 2', pointName: f.pointName, msg: f.msg });
     });
     return list;
   }, [evalSummaryA, evalSummaryB]);
@@ -504,7 +504,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         {/* Head 1 Status */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER HEAD 1 (HEAD A)</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 1</div>
             <div className="text-xs font-bold text-slate-200">{laserHeads[0]?.name || 'Laser Head 1'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
@@ -521,7 +521,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         {/* Head 2 Status */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER HEAD 2 (HEAD B)</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 2</div>
             <div className="text-xs font-bold text-slate-200">{laserHeads[1]?.name || 'Laser Head 2'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
@@ -558,7 +558,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       {/* SIDE-BY-SIDE MEASUREMENT CARDS MATRIX */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* ================= LASER HEAD 1 (HEAD A) ================= */}
+        {/* ================= LASER 1 ================= */}
         <div className={`p-5 rounded-2xl border space-y-4 ${
           evalSummaryA.isAllPass 
             ? 'bg-slate-900/80 border-emerald-500/30' 
@@ -567,11 +567,11 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
-                LH1
+                L1
               </div>
               <div>
                 <h4 className="font-bold text-sm text-slate-100">
-                  {laserHeads[0]?.name || 'Laser Head 1'} (Head A)
+                  {laserHeads[0]?.name || 'Laser Head 1'} (Laser 1)
                 </h4>
                 <div className="text-[10px] font-mono text-slate-400">
                   {laserHeads[0]?.serialNo || 'Primary Source Unit'}
@@ -683,7 +683,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           </div>
         </div>
 
-        {/* ================= LASER HEAD 2 (HEAD B) ================= */}
+        {/* ================= LASER 2 ================= */}
         <div className={`p-5 rounded-2xl border space-y-4 ${
           evalSummaryB.isAllPass 
             ? 'bg-slate-900/80 border-emerald-500/30' 
@@ -692,11 +692,11 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
-                LH2
+                L2
               </div>
               <div>
                 <h4 className="font-bold text-sm text-slate-100">
-                  {laserHeads[1]?.name || 'Laser Head 2'} (Head B)
+                  {laserHeads[1]?.name || 'Laser Head 2'} (Laser 2)
                 </h4>
                 <div className="text-[10px] font-mono text-slate-400">
                   {laserHeads[1]?.serialNo || 'Secondary Source Unit'}
