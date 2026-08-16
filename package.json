@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
+    "test": "vitest run",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

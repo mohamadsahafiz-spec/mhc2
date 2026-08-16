@@ -130,6 +130,7 @@ function AppLayout() {
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
       setMachines(rec.machines);
       setCustomers(rec.customers);
+      SyncEngine.notifyListeners();
     });
 
     setPlants(StorageService.getPlants());

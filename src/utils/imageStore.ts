@@ -191,14 +191,29 @@ export const ImageStore = {
   },
 
   getCachedImage(id?: string | null): string | undefined {
+    return this.resolveImage(id);
+  },
+
+  resolveImage(id?: string | null): string | undefined {
     if (!id) return undefined;
-    if (id.startsWith('data:') || id.startsWith('<svg')) return id;
+    if (id.startsWith('data:') || id.startsWith('<svg') || id.startsWith('http:') || id.startsWith('https:') || id.startsWith('blob:')) return id;
     if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
 
     if (id.startsWith('idb:')) {
       this.getImage(id);
     }
     return undefined;
+  },
+
+  async resolveImageAsync(id?: string | null): Promise<string | undefined> {
+    if (!id) return undefined;
+    if (id.startsWith('data:') || id.startsWith('<svg') || id.startsWith('http:') || id.startsWith('https:') || id.startsWith('blob:')) return id;
+    if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
+    if (id.startsWith('idb:')) {
+      const val = await this.getImage(id);
+      return val || undefined;
+    }
+    return id;
   },
 
   // Synchronously offload image payloads into memory cache & enqueue IDB persistence with structural sharing
@@ -291,6 +306,58 @@ export const ImageStore = {
         for (const key of keys) {
           const val = (data as any)[key];
           const res = this.hydrateImagesSync(val, activeAncestors);
+          if (res !== val) hasChanges = true;
+          result[key] = res;
+        }
+        return (hasChanges ? result : data) as T;
+      } finally {
+        activeAncestors.delete(data as object);
+      }
+    }
+
+    return data;
+  },
+
+  // Asynchronously hydrate object replacing "idb:..." with actual base64/SVG strings from IDB if missing from cache
+  async hydrateImagesAsync<T>(data: T, activeAncestors = new Set<object>()): Promise<T> {
+    if (!data) return data;
+    if (data instanceof Date) return data;
+
+    if (typeof data === 'string') {
+      if (data.startsWith('idb:')) {
+        const cached = imageMemoryCache.get(data);
+        if (cached) return cached as unknown as T;
+        const fetched = await this.getImage(data);
+        return (fetched || data) as unknown as T;
+      }
+      return data;
+    }
+
+    if (typeof data === 'object') {
+      if (activeAncestors.has(data as object)) {
+        return undefined as unknown as T;
+      }
+      activeAncestors.add(data as object);
+
+      try {
+        if (Array.isArray(data)) {
+          let hasChanges = false;
+          const mapped = await Promise.all(
+            data.map(async item => {
+              const res = await this.hydrateImagesAsync(item, activeAncestors);
+              if (res !== item) hasChanges = true;
+              return res;
+            })
+          );
+          return (hasChanges ? mapped : data) as unknown as T;
+        }
+
+        let hasChanges = false;
+        const result: any = {};
+        const keys = Object.keys(data as any);
+        for (const key of keys) {
+          const val = (data as any)[key];
+          const res = await this.hydrateImagesAsync(val, activeAncestors);
           if (res !== val) hasChanges = true;
           result[key] = res;
         }
