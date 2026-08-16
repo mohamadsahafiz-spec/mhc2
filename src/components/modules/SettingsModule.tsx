@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.15',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Multi-Head Inspection Unified Routing & State Preservation',
+      highlights: [
+        'UNIFIED ACTIVITY CODE ROUTING: Consolidated multi-head laser inspection workflow into a single unified 02_findings activity, eliminating dead-end routing through nonexistent 03_findings.',
+        'MULTI-HEAD COMPLETION RULE: Implemented strict dual-head verification requiring both Laser Head 1 and Laser Head 2 to be evaluated before advancing to Day 2 (04_stage1), with automatic NEEDS_REVIEW propagation.',
+        'PERSISTENT HEAD STATE & DISCOVERY: Replaced destructive activeCode tab resets with unaddressed-first head discovery and robust alphanumeric head matching (6A/7B, lh1/lh2).',
+        'INDEPENDENT FINDINGS & RESILIENT EVIDENCE: Ensured independent finding and draft isolation per head and seamless resolution of idb: image pointers upon session rehydration.'
+      ]
+    },
+    {
       version: 'v1.1.14',
       date: '2026-08-16',
       type: 'MHC Autopilot Activity Completion Event Injection & OOM Elimination',

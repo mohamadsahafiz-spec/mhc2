@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Machine, MHCSession, MHCInspectionFindingItem, MHCHeadInspectionState } from '../../../types';
 import { StorageService } from '../../../utils/persistence';
+import { ImageStore } from '../../../utils/imageStore';
 import { generateFindingWording } from '../../../utils/aiFindingGenerator';
 
 export interface MhcLaserInspectionActivityProps {
@@ -31,7 +32,7 @@ export interface MhcLaserInspectionActivityProps {
   onUpdateMachine?: (updatedMachine: Machine) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
-  activeCode?: string; // '02_findings' | '03_findings'
+  activeCode?: string; // '02_findings'
 }
 
 const COMPONENT_OPTIONS = [
@@ -92,22 +93,28 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
     ];
   }, [machine]);
 
-  // Active Head Selection (Default to Head 1 for 02_findings, Head 2 for 03_findings)
-  const defaultHeadId = activeCode === '03_findings' ? 'lh2' : 'lh1';
-  const [activeHeadId, setActiveHeadId] = useState<string>(defaultHeadId);
-
-  useEffect(() => {
-    if (activeCode === '03_findings') {
-      setActiveHeadId('lh2');
-    } else {
-      setActiveHeadId('lh1');
-    }
-  }, [activeCode]);
-
   // Hydrate findings from session
   const inspectionData = session.inspectionFindings || {};
 
-  const activeHeadObj = laserHeads.find(h => h.id === activeHeadId || (activeHeadId === 'lh1' && h.id.includes('1')) || (activeHeadId === 'lh2' && h.id.includes('2'))) || laserHeads[0];
+  // Initial head selection: pick first unaddressed head, or lh1
+  const initialHeadId = useMemo(() => {
+    const h1 = inspectionData['lh1'] || inspectionData['head1'];
+    const h2 = inspectionData['lh2'] || inspectionData['head2'];
+    if (h1 && (h1.decision === 'NO_ISSUE' || h1.findings.length > 0) && (!h2 || (h2.decision === 'UNANSWERED' && h2.findings.length === 0))) {
+      return 'lh2';
+    }
+    return 'lh1';
+  }, [inspectionData]);
+
+  const [activeHeadId, setActiveHeadId] = useState<string>(initialHeadId);
+
+  const activeHeadObj = useMemo(() => {
+    if (activeHeadId === 'lh2') {
+      return laserHeads.find(h => h.id === 'lh2' || h.id.includes('2') || h.id === '7B' || h.id.includes('B')) || laserHeads[1] || laserHeads[0];
+    }
+    return laserHeads.find(h => h.id === 'lh1' || h.id.includes('1') || h.id === '6A' || h.id.includes('A')) || laserHeads[0];
+  }, [laserHeads, activeHeadId]);
+
   const activeHeadKey = activeHeadId === 'lh2' ? 'lh2' : 'lh1';
 
   const headState: MHCHeadInspectionState = inspectionData[activeHeadKey] || {
@@ -116,6 +123,16 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
     decision: 'UNANSWERED',
     findings: [],
     status: 'NOT_STARTED'
+  };
+
+  // Helper to resolve image URI from memory or ImageStore IDB cache
+  const resolveImage = (imgSrc?: string | null): string | undefined => {
+    if (!imgSrc) return undefined;
+    if (imgSrc.startsWith('idb:')) {
+      const cached = ImageStore.getCachedImage(imgSrc);
+      return cached || imgSrc;
+    }
+    return imgSrc;
   };
 
   // Local Form state for active finding draft
@@ -331,6 +348,14 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
     if (showNotification) showNotification('Finding removed.');
   };
 
+  // Evaluate status badges for both heads
+  const head1Data = inspectionData['lh1'] || inspectionData['head1'] || { decision: 'UNANSWERED', status: 'NOT_STARTED', findings: [] };
+  const head2Data = inspectionData['lh2'] || inspectionData['head2'] || { decision: 'UNANSWERED', status: 'NOT_STARTED', findings: [] };
+
+  const isHead1Addressed = head1Data.decision === 'NO_ISSUE' || (head1Data.decision === 'ISSUE_FOUND' && (head1Data.findings || []).length > 0);
+  const isHead2Addressed = head2Data.decision === 'NO_ISSUE' || (head2Data.decision === 'ISSUE_FOUND' && (head2Data.findings || []).length > 0);
+  const areBothHeadsAddressed = isHead1Addressed && isHead2Addressed;
+
   // Complete and Advance Activity in Autopilot
   const handleSaveAndAdvance = () => {
     if (isReadOnly) return;
@@ -345,42 +370,61 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
       return;
     }
 
-    // Determine target code & status for Autopilot advancement
-    const isHead1 = activeHeadKey === 'lh1';
-    const targetCode = isHead1 ? '02_findings' : '03_findings';
-    const finalStatus = headState.findings.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement') 
+    // Determine status for this head
+    const currentHeadStatus = headState.findings.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement') 
       ? 'NEEDS_REVIEW' 
       : 'COMPLETED';
 
-    // Update head status in session
+    // Update current head status in session
     const updatedHeadState: MHCHeadInspectionState = {
       ...headState,
-      status: finalStatus,
+      status: currentHeadStatus,
       updatedAt: new Date().toISOString()
+    };
+
+    const updatedInspectionFindings = {
+      ...inspectionData,
+      [activeHeadKey]: updatedHeadState
     };
 
     const updatedSession: MHCSession = {
       ...session,
-      inspectionFindings: {
-        ...inspectionData,
-        [activeHeadKey]: updatedHeadState
-      },
+      inspectionFindings: updatedInspectionFindings,
       lastUpdated: new Date().toISOString()
     };
 
     onUpdateSession(updatedSession);
 
-    if (showNotification) {
-      showNotification(`✓ ${headState.headName} Inspection recorded (${finalStatus})`);
+    // Check if other head is also addressed
+    const otherHeadKey = activeHeadKey === 'lh1' ? 'lh2' : 'lh1';
+    const otherHeadData = updatedInspectionFindings[otherHeadKey];
+    const isOtherAddressed = otherHeadData && (otherHeadData.decision === 'NO_ISSUE' || (otherHeadData.decision === 'ISSUE_FOUND' && (otherHeadData.findings || []).length > 0));
+
+    if (!isOtherAddressed) {
+      const otherHeadName = activeHeadKey === 'lh1' ? 'Laser Head 2' : 'Laser Head 1';
+      if (showNotification) {
+        showNotification(`✓ ${headState.headName} saved. Please switch to ${otherHeadName} to complete optical inspection.`);
+      }
+      // Switch to the other head automatically
+      setActiveHeadId(otherHeadKey);
+      return;
     }
 
-    // Call journey advancement handler with authoritative updatedSession, targetCode, and finalStatus
-    onCompleteActivity(updatedSession, targetCode, finalStatus);
-  };
+    // Both heads are addressed: calculate combined status for Activity 02
+    const h1 = updatedInspectionFindings['lh1'] || updatedInspectionFindings['head1'];
+    const h2 = updatedInspectionFindings['lh2'] || updatedInspectionFindings['head2'];
+    const hasNeedsReview = (h1?.findings || []).some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement') ||
+      (h2?.findings || []).some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
 
-  // Evaluate status badges for both heads
-  const head1Data = inspectionData['lh1'] || { decision: 'UNANSWERED', status: 'NOT_STARTED', findings: [] };
-  const head2Data = inspectionData['lh2'] || { decision: 'UNANSWERED', status: 'NOT_STARTED', findings: [] };
+    const finalCombinedStatus: 'COMPLETED' | 'NEEDS_REVIEW' = hasNeedsReview ? 'NEEDS_REVIEW' : 'COMPLETED';
+
+    if (showNotification) {
+      showNotification(`✓ Both Laser Heads Inspected (${finalCombinedStatus}). Advancing Journey Rail.`);
+    }
+
+    // Advance 02_findings with combined status
+    onCompleteActivity(updatedSession, '02_findings', finalCombinedStatus);
+  };
 
   return (
     <div className="space-y-6">
@@ -852,10 +896,10 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                       <div className="pt-1 flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setPreviewImageModal(item.evidenceImage!)}
+                          onClick={() => setPreviewImageModal(resolveImage(item.evidenceImage) || item.evidenceImage!)}
                           className="relative group rounded overflow-hidden border border-cyan-500/40 w-10 h-10 shrink-0 cursor-pointer"
                         >
-                          <img src={item.evidenceImage} alt="Evidence" className="w-full h-full object-cover" />
+                          <img src={resolveImage(item.evidenceImage) || item.evidenceImage} alt="Evidence" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Maximize2 className="w-3.5 h-3.5 text-cyan-300" />
                           </div>
@@ -894,7 +938,9 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                 ? 'No issues reported. Ready to confirm inspection completion for this head.'
                 : headState.findings.length === 0
                 ? 'Please add at least one finding before completing.'
-                : 'Findings recorded. Ready to save inspection and advance Journey Rail.'}
+                : areBothHeadsAddressed
+                ? 'Both heads recorded. Ready to save inspection and advance to Day 2.'
+                : 'Head findings recorded. Save and proceed to other head to complete activity.'}
             </p>
           </div>
 
@@ -922,7 +968,18 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Save & Complete {headState.headName} Inspection</span>
+              <span>
+                {(() => {
+                  const otherKey = activeHeadKey === 'lh1' ? 'lh2' : 'lh1';
+                  const otherData = inspectionData[otherKey];
+                  const isOtherDone = otherData && (otherData.decision === 'NO_ISSUE' || (otherData.decision === 'ISSUE_FOUND' && (otherData.findings || []).length > 0));
+                  if (isOtherDone) {
+                    return `Save & Advance Optics Inspection (Activity 02)`;
+                  }
+                  const otherName = activeHeadKey === 'lh1' ? 'Laser Head 2' : 'Laser Head 1';
+                  return `Save ${headState.headName} & Proceed to ${otherName}`;
+                })()}
+              </span>
             </button>
           </div>
         )}

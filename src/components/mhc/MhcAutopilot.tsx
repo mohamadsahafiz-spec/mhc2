@@ -383,6 +383,26 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       }
     }
 
+    // If completing 02_findings (Optics Inspection Laser 1 & 2), aggregate both heads and advance to Day 2 (04_stage1)
+    if (currentCode === '02_findings' || currentCode === '03_findings') {
+      const inspFindings = sessToAdvance.inspectionFindings || {};
+      const h1 = inspFindings['lh1'] || inspFindings['head1'];
+      const h2 = inspFindings['lh2'] || inspFindings['head2'];
+      const hasReview = (h1?.findings || []).some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement') ||
+        (h2?.findings || []).some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement') ||
+        statusOverride === 'NEEDS_REVIEW';
+
+      const combinedInspStatus: 'COMPLETED' | 'NEEDS_REVIEW' = hasReview ? 'NEEDS_REVIEW' : 'COMPLETED';
+      updated = advanceAutopilotActivity(sessToAdvance, '02_findings', combinedInspStatus, activeNoteText || 'Completed Optics and Mechanical Inspection');
+      if (updated.autopilotProgress) {
+        updated.autopilotProgress.currentActivityCode = '04_stage1';
+        updated.autopilotProgress.currentDay = 'DAY 2';
+        if (updated.autopilotProgress.activityStatuses['04_stage1'] === 'LOCKED' || updated.autopilotProgress.activityStatuses['04_stage1'] === 'UPCOMING') {
+          updated.autopilotProgress.activityStatuses['04_stage1'] = 'IN_PROGRESS';
+        }
+      }
+    }
+
     onUpdateSession(updated);
     showNotification(`Activity ${currentCode} marked COMPLETED ✓`);
   };
