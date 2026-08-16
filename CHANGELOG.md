@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v1.1.12 — MHC Autopilot Multi-Machine Session Detection & Resume UX (2026-08-16)
+
+### Multi-Machine Session Detection & Continuation
+- **De-coupled Machine Selection Sequence**: Refactored the Autopilot setup flow into a clear 4-step wizard (`Welcome` → `Customer Passport` → `Machine Passport` → `Session Detection & Recovery`), preventing eager default detection on the first machine (MC#1) before the engineer selects the intended target asset.
+- **Accurate Machine-Scoped Session Detection**: Session detection and resumption (`handleContinueExisting`) now reliably match and resume the session belonging strictly to the selected machine.
+- **Active Job Indicators**: Added visible "Active Job" badges in Customer selection and "Active Session" pulses in Machine selection to instantly show assets with ongoing incomplete inspections.
+- **Quick Machine Switch**: Added a "Switch Machine" action directly in the active Autopilot session header for rapid multi-machine navigation without losing progress.
+- **Parent State Alignment**: Fixed `activeSession` calculation in `MachineHealthCheckModule` to strictly filter by `selectedMachineId` without fallback pollution.
+
 ## v1.0.15 — Client-Side Storage Quota Fix & Raw Telemetry IndexedDB Offloading (2026-08-09)
 
 ### Quota Optimization & Local Storage Fix

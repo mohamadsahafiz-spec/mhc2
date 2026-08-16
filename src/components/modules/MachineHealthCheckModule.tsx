@@ -47,7 +47,7 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
   // Active Session for current machine
   const activeSession = mhcSessions.find(
     (s) => s.machineId === selectedMachineId && s.completionStatus !== 'COMPLETED'
-  ) || mhcSessions.find((s) => s.machineId === selectedMachineId) || mhcSessions[0];
+  ) || mhcSessions.find((s) => s.machineId === selectedMachineId);
 
   // 3. View Mode: 'mhc_autopilot' | 'smart_workspace' | 'mhc_history'
   const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'smart_workspace' | 'mhc_history'>('mhc_autopilot');

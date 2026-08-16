@@ -243,15 +243,23 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
   // Effective Active Session with Session Brain Progress initialized
   const effectiveSession = useMemo(() => {
-    if (!activeSession) return null;
-    if (!activeSession.autopilotProgress) {
+    let target = activeSession;
+    if (target && localSelectedMachine && target.machineId !== localSelectedMachine.id) {
+      target = undefined;
+    }
+    if (!target && localSelectedMachine) {
+      target = mhcSessions.find(s => s.machineId === localSelectedMachine.id && s.completionStatus !== 'COMPLETED') ||
+               mhcSessions.find(s => s.machineId === localSelectedMachine.id);
+    }
+    if (!target) return null;
+    if (!target.autopilotProgress) {
       return {
-        ...activeSession,
+        ...target,
         autopilotProgress: createDefaultAutopilotProgress()
       };
     }
-    return activeSession;
-  }, [activeSession]);
+    return target;
+  }, [activeSession, localSelectedMachine, mhcSessions]);
 
   const progress = useMemo(() => {
     return effectiveSession?.autopilotProgress || createDefaultAutopilotProgress();
@@ -469,20 +477,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     {
       id: 'welcome' as SetupStep,
       title: 'Autopilot Setup',
-      subtext: 'Welcome & Introduction',
+      subtext: 'Welcome & Overview',
       status: currentStep === 'welcome' 
         ? 'current' 
-        : ['session_check', 'customer', 'machine', 'session_active'].includes(currentStep) 
-        ? 'completed' 
-        : 'upcoming'
-    },
-    {
-      id: 'session_check' as SetupStep,
-      title: 'Session Detection',
-      subtext: existingIncompleteSession ? 'Session Found' : 'Detection & Recovery',
-      status: currentStep === 'session_check' 
-        ? 'current' 
-        : ['customer', 'machine', 'session_active'].includes(currentStep) 
+        : ['customer', 'machine', 'session_check', 'session_active'].includes(currentStep) 
         ? 'completed' 
         : 'upcoming'
     },
@@ -492,7 +490,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       subtext: selectedCustomer ? selectedCustomer.name : 'Select Account',
       status: currentStep === 'customer' 
         ? 'current' 
-        : ['machine', 'session_active'].includes(currentStep) 
+        : ['machine', 'session_check', 'session_active'].includes(currentStep) 
         ? 'completed' 
         : 'upcoming'
     },
@@ -501,6 +499,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       title: 'Machine Passport',
       subtext: localSelectedMachine ? `${localSelectedMachine.model}` : 'Select Machine',
       status: currentStep === 'machine' 
+        ? 'current' 
+        : ['session_check', 'session_active'].includes(currentStep) 
+        ? 'completed' 
+        : 'upcoming'
+    },
+    {
+      id: 'session_check' as SetupStep,
+      title: 'Session Detection',
+      subtext: existingIncompleteSession ? 'Session Found' : 'Detection & Recovery',
+      status: currentStep === 'session_check' 
         ? 'current' 
         : currentStep === 'session_active' 
         ? 'completed' 
@@ -801,7 +809,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 <div className="pt-4 flex items-center justify-between">
                   <span className="text-xs text-slate-500 font-mono">Step 1 of 4 • Welcome</span>
                   <button
-                    onClick={() => setCurrentStep('session_check')}
+                    onClick={() => setCurrentStep('customer')}
                     className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
                   >
                     <span>Start Autopilot Setup</span>
@@ -811,7 +819,243 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               </motion.div>
             )}
 
-            {/* QUESTION STEP 1: SESSION RECOVERY & DETECTION */}
+            {/* STEP 2: SELECT CUSTOMER */}
+            {currentStep === 'customer' && (
+              <motion.div
+                key="customer"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-5 my-auto"
+              >
+                <div className="space-y-1">
+                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                    Step 2 of 4 • Customer Account
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Which customer account are you servicing today?
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Select a Customer Passport account to view associated machine assets.
+                  </p>
+                </div>
+
+                {/* SEARCH INPUT */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Search by customer name, industry, or contact..."
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
+                      isDark 
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                    }`}
+                  />
+                </div>
+
+                {/* CUSTOMER SELECTION LIST */}
+                <div className="space-y-2">
+                  {filteredCustomers.map((c) => {
+                    const isSelected = selectedCustomer?.id === c.id;
+                    const custMachines = machines.filter(m => m.customerId === c.id || m.customerName === c.name);
+                    const machineCount = custMachines.length;
+                    const hasActiveSessions = custMachines.some(m => 
+                      mhcSessions.some(s => s.machineId === m.id && s.completionStatus !== 'COMPLETED')
+                    );
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setSelectedCustomer(c);
+                          if (custMachines.length > 0) {
+                            if (!localSelectedMachine || !custMachines.some(m => m.id === localSelectedMachine.id)) {
+                              setLocalSelectedMachine(custMachines[0]);
+                              onSelectMachine(custMachines[0]);
+                            }
+                          }
+                        }}
+                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
+                            : isDark
+                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
+                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                          }`}>
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs">{c.name}</div>
+                            <div className="text-[10px] text-slate-400">{c.industry} • {c.contactPerson}</div>
+                          </div>
+                        </div>
+                        <div className="text-right font-mono flex items-center gap-2">
+                          {hasActiveSessions && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                              <span>Active Job</span>
+                            </span>
+                          )}
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {machineCount} Assets
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* NEXT ACTION */}
+                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
+                  <button
+                    onClick={() => setCurrentStep('welcome')}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    ← Back
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 hidden sm:inline">
+                      Selected: <strong className="text-cyan-300">{selectedCustomer?.name || 'None'}</strong>
+                    </span>
+                    <button
+                      disabled={!selectedCustomer}
+                      onClick={() => setCurrentStep('machine')}
+                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      <span>Next: Select Machine</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: SELECT MACHINE */}
+            {currentStep === 'machine' && (
+              <motion.div
+                key="machine"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-5 my-auto"
+              >
+                <div className="space-y-1">
+                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                    Step 3 of 4 • Target Machine
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Select target machine for {selectedCustomer?.name || 'Customer'}
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Choose the specific machine asset to inspect or continue an active Autopilot session.
+                  </p>
+                </div>
+
+                {/* SEARCH INPUT */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={machineSearch}
+                    onChange={(e) => setMachineSearch(e.target.value)}
+                    placeholder="Search by model, serial number, plant..."
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
+                      isDark 
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                    }`}
+                  />
+                </div>
+
+                {/* MACHINE SELECTION LIST */}
+                <div className="space-y-2">
+                  {filteredMachines.map((m) => {
+                    const isSelected = localSelectedMachine?.id === m.id;
+                    const hasIncomplete = mhcSessions.some(s => s.machineId === m.id && s.completionStatus !== 'COMPLETED');
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setLocalSelectedMachine(m);
+                          onSelectMachine(m);
+                        }}
+                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
+                            : isDark
+                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
+                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                          }`}>
+                            <Cpu className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs">{m.model}</div>
+                            <div className="text-[10px] text-slate-400">
+                              SN: {m.serialNumber} • Plant: {m.plantName}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right flex items-center gap-2">
+                          {hasIncomplete ? (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                              <span>Active Session</span>
+                            </span>
+                          ) : (
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                              m.status === 'OPERATIONAL' 
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            }`}>
+                              {m.status}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* NEXT ACTION */}
+                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
+                  <button
+                    onClick={() => setCurrentStep('customer')}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    ← Back: Customers
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 hidden sm:inline">
+                      Selected: <strong className="text-cyan-300">{localSelectedMachine?.model} ({localSelectedMachine?.serialNumber})</strong>
+                    </span>
+                    <button
+                      disabled={!localSelectedMachine}
+                      onClick={() => setCurrentStep('session_check')}
+                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      <span>Check Session</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 4: SESSION RECOVERY & DETECTION FOR SELECTED MACHINE */}
             {currentStep === 'session_check' && (
               <motion.div
                 key="session_check"
@@ -823,13 +1067,13 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               >
                 <div className="space-y-1">
                   <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 1 of 3 • Session Detection
+                    Step 4 of 4 • Session Detection
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
                     Session Detection &amp; Brain Recovery
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Checking active inspection session history for {localSelectedMachine?.model} ({localSelectedMachine?.machineNumber || localSelectedMachine?.serialNumber}).
+                    Checking active inspection session history for {localSelectedMachine?.model} ({localSelectedMachine?.machineNumber || localSelectedMachine?.serialNumber}) — {selectedCustomer?.name || localSelectedMachine?.customerName}.
                   </p>
                 </div>
 
@@ -897,6 +1141,17 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       </button>
 
                       <button
+                        onClick={() => setCurrentStep('machine')}
+                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                          isDark 
+                            ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700' 
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                        }`}
+                      >
+                        <span>Change Machine</span>
+                      </button>
+
+                      <button
                         onClick={() => setCurrentStep('customer')}
                         className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
                           isDark 
@@ -904,7 +1159,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                         }`}
                       >
-                        <span>Change Machine / Account</span>
+                        <span>Change Customer</span>
                       </button>
 
                       <button
@@ -924,8 +1179,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     <div className="flex items-center gap-3 text-slate-400">
                       <Clock className="w-5 h-5 text-slate-500" />
                       <div>
-                        <div className="font-bold text-xs text-slate-200">No Active Session Found for Current Machine</div>
-                        <div className="text-[11px] text-slate-400">Ready to launch a new Machine Health Check session or choose a different customer account.</div>
+                        <div className="font-bold text-xs text-slate-200">No Active Session Found for {localSelectedMachine?.model}</div>
+                        <div className="text-[11px] text-slate-400">Ready to launch a new Machine Health Check session for this machine.</div>
                       </div>
                     </div>
 
@@ -939,6 +1194,17 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       </button>
 
                       <button
+                        onClick={() => setCurrentStep('machine')}
+                        className={`px-4 py-3 rounded-xl font-semibold text-xs border transition-all ${
+                          isDark 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                        }`}
+                      >
+                        <span>Select Other Machine</span>
+                      </button>
+
+                      <button
                         onClick={() => setCurrentStep('customer')}
                         className={`px-4 py-3 rounded-xl font-semibold text-xs border transition-all ${
                           isDark 
@@ -946,211 +1212,11 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
                         }`}
                       >
-                        <span>Select Other Customer / Machine</span>
+                        <span>Change Customer Account</span>
                       </button>
                     </div>
                   </div>
                 )}
-              </motion.div>
-            )}
-
-            {/* QUESTION STEP 2: SELECT CUSTOMER */}
-            {currentStep === 'customer' && (
-              <motion.div
-                key="customer"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-5 my-auto"
-              >
-                <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 2 of 3
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Which customer account are you servicing today?
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Select a Customer Passport account to view associated machine assets.
-                  </p>
-                </div>
-
-                {/* SEARCH INPUT */}
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    placeholder="Search by customer name, industry, or contact..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
-                      isDark 
-                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-                    }`}
-                  />
-                </div>
-
-                {/* CUSTOMER SELECTION LIST */}
-                <div className="space-y-2">
-                  {filteredCustomers.map((c) => {
-                    const isSelected = selectedCustomer?.id === c.id;
-                    const machineCount = machines.filter(m => m.customerId === c.id || m.customerName === c.name).length;
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => {
-                          setSelectedCustomer(c);
-                          const firstM = machines.find(m => m.customerId === c.id || m.customerName === c.name);
-                          if (firstM) {
-                            setLocalSelectedMachine(firstM);
-                            onSelectMachine(firstM);
-                          }
-                        }}
-                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
-                            : isDark
-                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
-                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
-                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
-                          }`}>
-                            <Building2 className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-xs">{c.name}</div>
-                            <div className="text-[10px] text-slate-400">{c.industry} • {c.contactPerson}</div>
-                          </div>
-                        </div>
-                        <div className="text-right font-mono">
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                            {machineCount} Assets
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* NEXT ACTION */}
-                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
-                  <span className="text-xs text-slate-400">
-                    Selected: <strong className="text-cyan-300">{selectedCustomer?.name || 'None'}</strong>
-                  </span>
-                  <button
-                    disabled={!selectedCustomer}
-                    onClick={() => setCurrentStep('machine')}
-                    className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all"
-                  >
-                    <span>Next: Select Machine</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* QUESTION STEP 3: SELECT MACHINE */}
-            {currentStep === 'machine' && (
-              <motion.div
-                key="machine"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-5 my-auto"
-              >
-                <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Question 3 of 3
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Select target machine for {selectedCustomer?.name}
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Choose an active machine passport asset to perform Machine Health Check.
-                  </p>
-                </div>
-
-                {/* SEARCH INPUT */}
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={machineSearch}
-                    onChange={(e) => setMachineSearch(e.target.value)}
-                    placeholder="Search by model, serial number, plant..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
-                      isDark 
-                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-                    }`}
-                  />
-                </div>
-
-                {/* MACHINE SELECTION LIST */}
-                <div className="space-y-2">
-                  {filteredMachines.map((m) => {
-                    const isSelected = localSelectedMachine?.id === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          setLocalSelectedMachine(m);
-                          onSelectMachine(m);
-                        }}
-                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
-                            : isDark
-                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
-                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
-                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
-                          }`}>
-                            <Cpu className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-xs">{m.model}</div>
-                            <div className="text-[10px] text-slate-400">
-                              SN: {m.serialNumber} • Plant: {m.plantName}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                            m.status === 'OPERATIONAL' 
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          }`}>
-                            {m.status}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* NEXT ACTION */}
-                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
-                  <span className="text-xs text-slate-400">
-                    Selected: <strong className="text-cyan-300">{localSelectedMachine?.model} ({localSelectedMachine?.serialNumber})</strong>
-                  </span>
-                  <button
-                    onClick={() => setCurrentStep('session_check')}
-                    className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all"
-                  >
-                    <span>Check Session</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
               </motion.div>
             )}
 
@@ -1179,11 +1245,23 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-slate-400 hidden sm:inline">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs font-mono text-slate-400 hidden md:inline">
                       ID: <strong className="text-slate-200">{effectiveSession?.id}</strong>
                     </span>
                     
+                    <button
+                      onClick={() => setCurrentStep('customer')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                        isDark 
+                          ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white' 
+                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Switch Machine</span>
+                    </button>
+
                     <button
                       onClick={() => setIsReadOnlyMode(!isReadOnlyMode)}
                       className={`px-3 py-1 rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 border transition-all ${
