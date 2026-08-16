@@ -1,7 +1,8 @@
 import { 
   MHCSession, 
   MHCAutopilotSessionProgress, 
-  MHCActivityStatus 
+  MHCActivityStatus,
+  MHCActivityDisposition
 } from '../types';
 
 export interface WorkflowActivity {
@@ -114,6 +115,7 @@ export function createDefaultAutopilotProgress(): MHCAutopilotSessionProgress {
     currentActivityCode: '01',
     activityStatuses,
     activityNotes: {},
+    dispositions: {},
     readinessScore: 0,
     isReadOnly: false,
     lastActiveTimestamp: new Date().toISOString()
@@ -138,6 +140,91 @@ export function getParentActivityStatus(
   return 'UPCOMING';
 }
 
+/**
+ * Checks whether an activity has an acknowledged engineer disposition.
+ */
+export function isActivityDispositioned(session?: MHCSession | null, code?: string): boolean {
+  if (!session || !code) return false;
+  const disp = session.autopilotProgress?.dispositions?.[code];
+  if (!disp) return false;
+  if (typeof disp === 'boolean') return disp;
+  return Boolean(disp.acknowledged);
+}
+
+/**
+ * Retrieves the structured disposition object for an activity if present.
+ */
+export function getActivityDisposition(session?: MHCSession | null, code?: string): MHCActivityDisposition | null {
+  if (!session || !code) return null;
+  const disp = session.autopilotProgress?.dispositions?.[code];
+  if (!disp) return null;
+  if (typeof disp === 'boolean') {
+    return {
+      acknowledged: disp,
+      dispositionedAt: new Date().toISOString(),
+      engineerNote: 'Review Complete — Continued with Finding'
+    };
+  }
+  return disp;
+}
+
+/**
+ * Records an explicit engineer disposition for an activity without altering its underlying status or findings.
+ */
+export function dispositionAutopilotActivity(
+  session: MHCSession,
+  code: string,
+  rationaleOrNote?: string,
+  engineerName?: string,
+  actionTaken?: string
+): MHCSession {
+  if (!session) return session;
+  const currProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+  const existingDispositions = currProgress.dispositions || {};
+  const newDisposition: MHCActivityDisposition = {
+    acknowledged: true,
+    dispositionedAt: new Date().toISOString(),
+    dispositionedBy: engineerName || session.engineerName || 'Lead Field Engineer',
+    rationale: rationaleOrNote || 'Review Complete — Continued with Finding',
+    engineerNote: rationaleOrNote || 'Review Complete — Continued with Finding',
+    actionTaken: actionTaken || 'Acknowledged for report generation'
+  };
+
+  return {
+    ...session,
+    autopilotProgress: {
+      ...currProgress,
+      dispositions: {
+        ...existingDispositions,
+        [code]: newDisposition
+      },
+      lastActiveTimestamp: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * Revokes an engineer disposition if re-opening for review.
+ */
+export function revokeActivityDisposition(
+  session: MHCSession,
+  code: string
+): MHCSession {
+  if (!session) return session;
+  const currProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+  const existingDispositions = { ...(currProgress.dispositions || {}) };
+  delete existingDispositions[code];
+
+  return {
+    ...session,
+    autopilotProgress: {
+      ...currProgress,
+      dispositions: existingDispositions,
+      lastActiveTimestamp: new Date().toISOString()
+    }
+  };
+}
+
 export interface AutopilotReadinessReport {
   completedCount: number;
   totalCount: number;
@@ -158,6 +245,8 @@ export interface MhcAuditItem {
   detail: string;
   isBlocker: boolean;
   blockerReason: string | null;
+  isDispositioned?: boolean;
+  disposition?: MHCActivityDisposition | null;
 }
 
 export interface MhcReadinessAuditResult {
@@ -200,20 +289,27 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       detail: string;
       isBlocker: boolean;
       blockerReason: string | null;
+      isDispositioned?: boolean;
+      disposition?: MHCActivityDisposition | null;
     }
   ) => {
     const res = evaluate();
+    const isDisp = res.isDispositioned ?? isActivityDispositioned(session, code);
+    const dispObj = res.disposition ?? getActivityDisposition(session, code);
     auditItems.push({
       code,
       title,
       day,
-      ...res
+      ...res,
+      isDispositioned: isDisp,
+      disposition: dispObj
     });
   };
 
   // 1. Laser Hours (01)
   addItem('01', 'Laser Hours', 'DAY 1', () => {
     const st = statuses['01'];
+    const isDisp = isActivityDispositioned(session, '01');
     const hrsItem = session.stage01_laserHours?.[0];
     if (st === 'COMPLETED' || (session.stage01_laserHours && session.stage01_laserHours.length > 0)) {
       const displayHrs = hrsItem ? (hrsItem.verifiedHour || hrsItem.calculatedCurrentHour || hrsItem.recordedLaserHour) : null;
@@ -223,6 +319,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         detail: displayHrs ? `${displayHrs.toLocaleString()} laser hrs` : 'Laser hours recorded',
         isBlocker: false,
         blockerReason: null
+      };
+    }
+    if (st === 'NEEDS_REVIEW') {
+      return {
+        status: 'NEEDS_REVIEW',
+        statusSymbol: '⚠',
+        detail: isDisp ? 'Laser hours flagged for review (Reviewed & Acknowledged)' : 'Laser hours flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Laser hours record requires review.'
       };
     }
     return {
@@ -237,6 +342,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 2. Laser Power (02_power) — Laser 1 & 2
   addItem('02_power', 'Laser Power (Laser 1 & 2)', 'DAY 1', () => {
     const st = statuses['02_power'];
+    const isDisp = isActivityDispositioned(session, '02_power');
     const power1 = session.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
     const power2 = session.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
     const hasFail = (power1 && power1.result === 'FAIL') || (power2 && power2.result === 'FAIL');
@@ -245,9 +351,11 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Laser power out of specification on one or more heads',
-        isBlocker: true,
-        blockerReason: 'Laser power measurement contains out-of-spec points.'
+        detail: isDisp 
+          ? 'Laser power out of specification (Reviewed & Acknowledged)' 
+          : 'Laser power out of specification on one or more heads',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Laser power measurement contains out-of-spec points.'
       };
     }
     if (st === 'COMPLETED' || (session.stage03_laserPower && session.stage03_laserPower.length > 0 && !hasFail)) {
@@ -263,9 +371,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Laser power measurement requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Laser power measurement requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -289,6 +397,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 3. Beam Profile / Mode (02_beam) — Laser 1 & 2
   addItem('02_beam', 'Beam Profile / Mode (Laser 1 & 2)', 'DAY 1', () => {
     const st = statuses['02_beam'];
+    const isDisp = isActivityDispositioned(session, '02_beam');
     const beamRecord = session.stage02_laserProfile?.beamProfileRecord;
     if (st === 'COMPLETED' || beamRecord?.overallResult === 'PASS') {
       return {
@@ -303,9 +412,11 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Beam profile flagged for review',
-        isBlocker: true,
-        blockerReason: 'Beam profile contains out-of-spec measurement points.'
+        detail: isDisp 
+          ? 'Beam profile out of specification (Reviewed & Acknowledged)' 
+          : 'Beam profile flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Beam profile contains out-of-spec measurement points.'
       };
     }
     if (st === 'LOCKED') {
@@ -329,6 +440,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 4. Laser Optics & Head Inspection (02_findings)
   addItem('02_findings', 'Laser Optics & Head Inspection', 'DAY 1', () => {
     const st = statuses['02_findings'];
+    const isDisp = isActivityDispositioned(session, '02_findings');
     const insp1 = session.inspectionFindings?.['lh1'] || session.inspectionFindings?.['head1'];
     const insp2 = session.inspectionFindings?.['lh2'] || session.inspectionFindings?.['head2'];
     const allFindings = [...(insp1?.findings || []), ...(insp2?.findings || [])];
@@ -340,7 +452,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         status: hasReplacement ? 'NEEDS_REVIEW' : 'COMPLETE',
         statusSymbol: hasReplacement ? '⚠' : '✓',
         detail: hasReplacement 
-          ? `${allFindings.length} Finding(s) — Recommendation / Replacement recorded` 
+          ? `${allFindings.length} Finding(s) — Recommendation / Replacement recorded${isDisp ? ' (Reviewed)' : ''}` 
           : allFindings.length > 0 
           ? `${allFindings.length} Finding(s) recorded` 
           : 'Optics & head inspections passed',
@@ -352,7 +464,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Inspection finding recorded (requires review)',
+        detail: isDisp 
+          ? 'Inspection finding recorded (Reviewed & Acknowledged)' 
+          : 'Inspection finding recorded (requires review)',
         isBlocker: false,
         blockerReason: null
       };
@@ -378,14 +492,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 8. Stage 1 Calibration (04_stage1)
   addItem('04_stage1', 'Stage 1 Calibration', 'DAY 2', () => {
     const st = statuses['04_stage1'];
+    const isDisp = isActivityDispositioned(session, '04_stage1');
     const stageData = session.stageCalibrationData?.['stage1'];
     if (stageData && stageData.verdict === 'OUT_OF_SPEC') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Out of specification',
-        isBlocker: true,
-        blockerReason: 'Stage 1 calibration result is out of specification.'
+        detail: isDisp ? 'Out of specification (Reviewed & Acknowledged)' : 'Out of specification',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Stage 1 calibration result is out of specification.'
       };
     }
     if (st === 'COMPLETED') {
@@ -401,9 +516,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Stage 1 calibration requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Stage 1 calibration requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -427,14 +542,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 9. Stage 2 Calibration (04_stage2)
   addItem('04_stage2', 'Stage 2 Calibration', 'DAY 2', () => {
     const st = statuses['04_stage2'];
+    const isDisp = isActivityDispositioned(session, '04_stage2');
     const stageData = session.stageCalibrationData?.['stage2'];
     if (stageData && stageData.verdict === 'OUT_OF_SPEC') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Out of specification',
-        isBlocker: true,
-        blockerReason: 'Stage 2 calibration result is out of specification.'
+        detail: isDisp ? 'Out of specification (Reviewed & Acknowledged)' : 'Out of specification',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Stage 2 calibration result is out of specification.'
       };
     }
     if (st === 'COMPLETED') {
@@ -450,9 +566,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Stage 2 calibration requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Stage 2 calibration requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -476,14 +592,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 10. AGC 1 (05_agc1)
   addItem('05_agc1', 'AGC 1', 'DAY 3', () => {
     const st = statuses['05_agc1'];
+    const isDisp = isActivityDispositioned(session, '05_agc1');
     const agcData = session.agcData?.['agc1'];
     if (agcData && agcData.verdict === 'OUT_OF_SPEC') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Out of specification',
-        isBlocker: true,
-        blockerReason: 'AGC 1 measurement is out of specification.'
+        detail: isDisp ? 'Out of specification (Reviewed & Acknowledged)' : 'Out of specification',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'AGC 1 measurement is out of specification.'
       };
     }
     if (st === 'COMPLETED') {
@@ -499,9 +616,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'AGC 1 requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'AGC 1 requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -525,14 +642,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 11. AGC 2 (05_agc2)
   addItem('05_agc2', 'AGC 2', 'DAY 3', () => {
     const st = statuses['05_agc2'];
+    const isDisp = isActivityDispositioned(session, '05_agc2');
     const agcData = session.agcData?.['agc2'];
     if (agcData && agcData.verdict === 'OUT_OF_SPEC') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Out of specification',
-        isBlocker: true,
-        blockerReason: 'AGC 2 measurement is out of specification.'
+        detail: isDisp ? 'Out of specification (Reviewed & Acknowledged)' : 'Out of specification',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'AGC 2 measurement is out of specification.'
       };
     }
     if (st === 'COMPLETED') {
@@ -548,9 +666,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'AGC 2 requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'AGC 2 requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -574,6 +692,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   // 12. Temperature & Evidence (06)
   addItem('06', 'Temperature & Evidence', 'DAY 3', () => {
     const st = statuses['06'];
+    const isDisp = isActivityDispositioned(session, '06');
     const tempData = session.temperatureEvidenceData;
     const hasValidTemp = Boolean(tempData?.hasValidTemperatureAnalysis && tempData?.stats);
     if (hasValidTemp && st === 'COMPLETED') {
@@ -589,9 +708,9 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Temperature log requires review.'
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Temperature log requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -623,9 +742,12 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
 
   const isReadyForReport = blockers.length === 0;
   const statusCategory = isReadyForReport ? 'READY_FOR_REPORT' : 'ATTENTION_REQUIRED';
-  const statusText = isReadyForReport ? '🟢 READY FOR REPORT' : '🟠 ATTENTION REQUIRED';
+  const hasNeedsReview = auditItems.some(i => i.status === 'NEEDS_REVIEW');
+  const statusText = isReadyForReport 
+    ? (hasNeedsReview ? '🟢 READY FOR REPORT (WITH FINDINGS)' : '🟢 READY FOR REPORT') 
+    : '🟠 ATTENTION REQUIRED';
 
-  const completedRequiredCount = auditItems.filter(i => i.status === 'COMPLETE').length;
+  const completedRequiredCount = auditItems.filter(i => i.status === 'COMPLETE' || (i.status === 'NEEDS_REVIEW' && i.isDispositioned)).length;
   const totalRequiredCount = auditItems.length;
   const readinessScore = Math.round((completedRequiredCount / totalRequiredCount) * 100);
 
@@ -715,8 +837,23 @@ export function computeAutopilotReadiness(
   const readinessScore = Math.round((completedCount / totalCount) * 100);
 
   const coreEngineeringItems = ACTIONABLE_ACTIVITIES.filter(a => ['DAY 1', 'DAY 2', 'DAY 3'].includes(a.day));
-  const coreCompleted = coreEngineeringItems.every(a => (statuses[a.code] === 'COMPLETED'));
-  const isReadyForReport = coreCompleted && needsReviewList.length === 0;
+  const undispositionedNeedsReview = needsReviewList.filter(item => {
+    const disp = currentProgress.dispositions?.[item.code];
+    if (!disp) return true;
+    if (typeof disp === 'boolean') return !disp;
+    return !disp.acknowledged;
+  });
+  const coreCompleted = coreEngineeringItems.every(a => {
+    const st = statuses[a.code];
+    if (st === 'COMPLETED') return true;
+    if (st === 'NEEDS_REVIEW') {
+      const disp = currentProgress.dispositions?.[a.code];
+      if (typeof disp === 'boolean') return disp;
+      return Boolean(disp?.acknowledged);
+    }
+    return false;
+  });
+  const isReadyForReport = coreCompleted && undispositionedNeedsReview.length === 0;
 
   return {
     completedCount,

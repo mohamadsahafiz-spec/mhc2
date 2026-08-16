@@ -647,11 +647,21 @@ export interface MHCEngineerRemarksData {
 
 export type MHCActivityStatus = 'LOCKED' | 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'NEEDS_REVIEW';
 
+export interface MHCActivityDisposition {
+  acknowledged: boolean;
+  dispositionedAt: string;
+  dispositionedBy?: string;
+  rationale?: string;
+  engineerNote?: string;
+  actionTaken?: string;
+}
+
 export interface MHCAutopilotSessionProgress {
   currentDay: 'DAY 1' | 'DAY 2' | 'DAY 3' | 'DAY 4';
   currentActivityCode: string;
   activityStatuses: Record<string, MHCActivityStatus>;
   activityNotes?: Record<string, string>;
+  dispositions?: Record<string, MHCActivityDisposition | boolean>;
   readinessScore?: number;
   isReadOnly?: boolean;
   lastActiveTimestamp?: string;

@@ -215,28 +215,31 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
     // Check status of BOTH stages
     const otherStageId = activeStageId === 'stage1' ? 'stage2' : 'stage1';
     const otherStageRecord = newStageData[otherStageId];
-    const isOtherCompleted = otherStageRecord?.status === 'COMPLETED' && otherStageRecord?.verdict === 'PASS';
+    const isOtherAddressed = otherStageRecord?.verdict === 'PASS' || otherStageRecord?.verdict === 'OUT_OF_SPEC';
+    const isBothPass = verdict === 'PASS' && otherStageRecord?.verdict === 'PASS';
 
     onUpdateSession(updatedSession);
 
-    if (status === 'COMPLETED' && verdict === 'PASS') {
-      if (isOtherCompleted) {
-        // Both Stage 1 and Stage 2 complete! Advance Autopilot
-        if (showNotification) {
-          showNotification('Stage 1 & Stage 2 Calibration PASS! Advanced to Day 3 AGC.');
-        }
-        onCompleteActivity(updatedSession);
-      } else {
-        // Switch tab to the other stage automatically
-        if (showNotification) {
-          showNotification(`${stageName} Calibration PASS recorded. Switching to ${otherStageId === 'stage1' ? 'Stage 1' : 'Stage 2'}...`);
-        }
-        setActiveStageId(otherStageId);
-      }
-    } else {
+    if (isOtherAddressed) {
+      // Both Stage 1 and Stage 2 addressed! Advance Autopilot
       if (showNotification) {
-        showNotification(`${stageName} flagged as NEEDS_REVIEW (Out of Spec).`);
+        if (isBothPass) {
+          showNotification('Stage 1 & Stage 2 Calibration PASS! Advanced to Day 3 AGC.');
+        } else {
+          showNotification(`${stageName} saved as OUT_OF_SPEC. Both stages addressed — Advanced to Day 3 AGC (Finding recorded for Readiness Review).`);
+        }
       }
+      onCompleteActivity(updatedSession);
+    } else {
+      // Switch tab to the other stage automatically
+      if (showNotification) {
+        if (verdict === 'PASS') {
+          showNotification(`${stageName} Calibration PASS recorded. Switching to ${otherStageId === 'stage1' ? 'Stage 1' : 'Stage 2'}...`);
+        } else {
+          showNotification(`${stageName} flagged as NEEDS_REVIEW (Out of Spec). Switching to ${otherStageId === 'stage1' ? 'Stage 1' : 'Stage 2'}...`);
+        }
+      }
+      setActiveStageId(otherStageId);
     }
   };
 

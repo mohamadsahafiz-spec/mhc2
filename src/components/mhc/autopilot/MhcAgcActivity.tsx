@@ -280,26 +280,29 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
 
     const otherAgcId = activeAgcId === 'agc1' ? 'agc2' : 'agc1';
     const otherRecord = newAgcData[otherAgcId];
-    const isOtherCompleted = otherRecord?.status === 'COMPLETED' && otherRecord?.verdict === 'PASS';
+    const isOtherAddressed = otherRecord?.verdict === 'PASS' || otherRecord?.verdict === 'OUT_OF_SPEC';
+    const isBothPass = verdict === 'PASS' && otherRecord?.verdict === 'PASS';
 
     onUpdateSession(updatedSession);
 
-    if (status === 'COMPLETED' && verdict === 'PASS') {
-      if (isOtherCompleted) {
-        if (showNotification) {
+    if (isOtherAddressed) {
+      if (showNotification) {
+        if (isBothPass) {
           showNotification('AGC 1 & AGC 2 Calibration PASS! Advanced to Day 3 Temperature & Evidence.');
+        } else {
+          showNotification(`${agcName} saved as OUT_OF_SPEC. Both AGCs addressed — Advanced to Day 3 Temperature & Evidence (Finding recorded for Readiness Review).`);
         }
-        onCompleteActivity(updatedSession);
-      } else {
-        if (showNotification) {
-          showNotification(`${agcName} Calibration PASS recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
-        }
-        setActiveAgcId(otherAgcId);
       }
+      onCompleteActivity(updatedSession);
     } else {
       if (showNotification) {
-        showNotification(`${agcName} flagged as NEEDS_REVIEW (Scanner Out of Spec).`);
+        if (verdict === 'PASS') {
+          showNotification(`${agcName} Calibration PASS recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
+        } else {
+          showNotification(`${agcName} flagged as NEEDS_REVIEW (Scanner Out of Spec). Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
+        }
       }
+      setActiveAgcId(otherAgcId);
     }
   };
 

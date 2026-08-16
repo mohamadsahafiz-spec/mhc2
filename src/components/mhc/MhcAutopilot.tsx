@@ -1476,6 +1476,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     onNavigateToActivity={handleJumpToActivityCode}
                     onProceedToReportGeneration={handleProceedToReportGeneration}
                     onUpdateEngineerNote={(note) => handleUpdateNoteForActivity('07', note)}
+                    onUpdateSession={onUpdateSession}
+                    showNotification={showNotification}
                   />
                 ) : (progress.currentActivityCode === '08' || progress.currentActivityCode === '08_report') ? (
                   <MhcFullPdfRenderer
