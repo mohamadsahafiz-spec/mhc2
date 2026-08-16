@@ -23,21 +23,11 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
   {
     day: 'DAY 1',
     code: '02',
-    title: 'Laser Head 1',
+    title: 'Laser System Calibration',
     subItems: [
-      { code: '02_power', title: 'Power' },
-      { code: '02_beam', title: 'Beam Profile / Mode' },
-      { code: '02_findings', title: 'Inspection / Findings' }
-    ]
-  },
-  {
-    day: 'DAY 1',
-    code: '03',
-    title: 'Laser Head 2',
-    subItems: [
-      { code: '03_power', title: 'Power' },
-      { code: '03_beam', title: 'Beam Profile / Mode' },
-      { code: '03_findings', title: 'Inspection / Findings' }
+      { code: '02_power', title: 'Laser Power (Laser 1 & 2)' },
+      { code: '02_beam', title: 'Beam Profile / Mode (Laser 1 & 2)' },
+      { code: '02_findings', title: 'Laser Optics & Head Inspection' }
     ]
   },
   {
@@ -87,12 +77,9 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
 // Flat list of all atomic actionable activity codes in sequential order
 export const ACTIONABLE_ACTIVITIES: { code: string; title: string; day: 'DAY 1' | 'DAY 2' | 'DAY 3' | 'DAY 4'; parentCode?: string }[] = [
   { code: '01', title: 'Laser Hours', day: 'DAY 1' },
-  { code: '02_power', title: 'Laser Head 1 — Power', day: 'DAY 1', parentCode: '02' },
-  { code: '02_beam', title: 'Laser Head 1 — Beam Profile / Mode', day: 'DAY 1', parentCode: '02' },
-  { code: '02_findings', title: 'Laser Head 1 — Inspection / Findings', day: 'DAY 1', parentCode: '02' },
-  { code: '03_power', title: 'Laser Head 2 — Power', day: 'DAY 1', parentCode: '03' },
-  { code: '03_beam', title: 'Laser Head 2 — Beam Profile / Mode', day: 'DAY 1', parentCode: '03' },
-  { code: '03_findings', title: 'Laser Head 2 — Inspection / Findings', day: 'DAY 1', parentCode: '03' },
+  { code: '02_power', title: 'Laser Power (Laser 1 & 2)', day: 'DAY 1', parentCode: '02' },
+  { code: '02_beam', title: 'Beam Profile / Mode (Laser 1 & 2)', day: 'DAY 1', parentCode: '02' },
+  { code: '02_findings', title: 'Laser Optics & Head Inspection', day: 'DAY 1', parentCode: '02' },
   { code: '04_stage1', title: 'Stage Calibration — Stage 1', day: 'DAY 2', parentCode: '04' },
   { code: '04_stage2', title: 'Stage Calibration — Stage 2', day: 'DAY 2', parentCode: '04' },
   { code: '05_agc1', title: 'AGC — AGC 1', day: 'DAY 3', parentCode: '05' },
@@ -111,9 +98,6 @@ export function createDefaultAutopilotProgress(): MHCAutopilotSessionProgress {
   activityStatuses['02_power'] = 'UPCOMING';
   activityStatuses['02_beam'] = 'UPCOMING';
   activityStatuses['02_findings'] = 'UPCOMING';
-  activityStatuses['03_power'] = 'UPCOMING';
-  activityStatuses['03_beam'] = 'UPCOMING';
-  activityStatuses['03_findings'] = 'UPCOMING';
 
   // Day 2-4 initially locked
   activityStatuses['04_stage1'] = 'LOCKED';
@@ -250,24 +234,27 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
     };
   });
 
-  // 2. Head 1 Power (02_power)
-  addItem('02_power', 'Head 1 Power', 'DAY 1', () => {
+  // 2. Laser Power (02_power) — Laser 1 & 2
+  addItem('02_power', 'Laser Power (Laser 1 & 2)', 'DAY 1', () => {
     const st = statuses['02_power'];
-    const powerData = session.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
-    if (powerData && powerData.result === 'FAIL') {
+    const power1 = session.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
+    const power2 = session.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
+    const hasFail = (power1 && power1.result === 'FAIL') || (power2 && power2.result === 'FAIL');
+
+    if (hasFail) {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: powerData.afterValueWatts ? `${powerData.afterValueWatts} W (Out of Spec)` : 'Out of specification',
+        detail: 'Laser power out of specification on one or more heads',
         isBlocker: true,
-        blockerReason: 'Head 1 Power result is out of specification.'
+        blockerReason: 'Laser power measurement contains out-of-spec points.'
       };
     }
-    if (st === 'COMPLETED') {
+    if (st === 'COMPLETED' || (session.stage03_laserPower && session.stage03_laserPower.length > 0 && !hasFail)) {
       return {
         status: 'COMPLETE',
         statusSymbol: '✓',
-        detail: powerData?.afterValueWatts ? `${powerData.afterValueWatts} W (Pass)` : 'Power measured (Pass)',
+        detail: 'Laser 1 & Laser 2 power verified (Pass)',
         isBlocker: false,
         blockerReason: null
       };
@@ -278,7 +265,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         statusSymbol: '⚠',
         detail: 'Flagged for review',
         isBlocker: true,
-        blockerReason: 'Head 1 Power measurement requires review.'
+        blockerReason: 'Laser power measurement requires review.'
       };
     }
     if (st === 'LOCKED') {
@@ -287,7 +274,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         statusSymbol: '🔒',
         detail: 'Activity locked',
         isBlocker: true,
-        blockerReason: 'Head 1 Power measurement is locked and incomplete.'
+        blockerReason: 'Laser power measurement is locked and incomplete.'
       };
     }
     return {
@@ -295,30 +282,30 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       statusSymbol: '○',
       detail: 'Power measurement missing',
       isBlocker: true,
-      blockerReason: 'Head 1 Power measurement is incomplete.'
+      blockerReason: 'Laser power measurement is incomplete.'
     };
   });
 
-  // 3. Head 1 Beam Profile / Mode (02_beam)
-  addItem('02_beam', 'Head 1 Beam Profile / Mode', 'DAY 1', () => {
+  // 3. Beam Profile / Mode (02_beam) — Laser 1 & 2
+  addItem('02_beam', 'Beam Profile / Mode (Laser 1 & 2)', 'DAY 1', () => {
     const st = statuses['02_beam'];
     const beamRecord = session.stage02_laserProfile?.beamProfileRecord;
-    if (st === 'COMPLETED') {
+    if (st === 'COMPLETED' || beamRecord?.overallResult === 'PASS') {
       return {
         status: 'COMPLETE',
         statusSymbol: '✓',
-        detail: beamRecord?.overallResult ? `Beam profile captured (${beamRecord.overallResult})` : 'Beam profile captured',
+        detail: beamRecord?.overallResult ? `Beam profile & mode verified (${beamRecord.overallResult})` : 'Beam profile & mode captured (Pass)',
         isBlocker: false,
         blockerReason: null
       };
     }
-    if (st === 'NEEDS_REVIEW') {
+    if (st === 'NEEDS_REVIEW' || beamRecord?.overallResult === 'FAIL') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
-        detail: 'Flagged for review',
+        detail: 'Beam profile flagged for review',
         isBlocker: true,
-        blockerReason: 'Head 1 Beam Profile requires review.'
+        blockerReason: 'Beam profile contains out-of-spec measurement points.'
       };
     }
     if (st === 'LOCKED') {
@@ -327,7 +314,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         statusSymbol: '🔒',
         detail: 'Activity locked',
         isBlocker: true,
-        blockerReason: 'Head 1 Beam Profile is locked and incomplete.'
+        blockerReason: 'Beam Profile measurement is locked and incomplete.'
       };
     }
     return {
@@ -335,27 +322,33 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       statusSymbol: '○',
       detail: 'Beam profile missing',
       isBlocker: true,
-      blockerReason: 'Head 1 Beam Profile is incomplete.'
+      blockerReason: 'Beam profile measurement is incomplete.'
     };
   });
 
-  // 4. Head 1 Inspection / Findings (02_findings)
-  addItem('02_findings', 'Head 1 Inspection / Findings', 'DAY 1', () => {
+  // 4. Laser Optics & Head Inspection (02_findings)
+  addItem('02_findings', 'Laser Optics & Head Inspection', 'DAY 1', () => {
     const st = statuses['02_findings'];
-    const inspData = session.inspectionFindings?.['lh1'] || session.inspectionFindings?.['head1'];
-    
-    // An inspection marked complete or with recorded findings should never block report readiness
-    if (st === 'COMPLETED' || inspData?.status === 'COMPLETED' || (inspData?.decision === 'ISSUE_FOUND' && (inspData?.findings?.length ?? 0) > 0)) {
-      const hasReplacement = inspData?.findings?.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
+    const insp1 = session.inspectionFindings?.['lh1'] || session.inspectionFindings?.['head1'];
+    const insp2 = session.inspectionFindings?.['lh2'] || session.inspectionFindings?.['head2'];
+    const allFindings = [...(insp1?.findings || []), ...(insp2?.findings || [])];
+    const isCompleted = st === 'COMPLETED' || (insp1?.status === 'COMPLETED' || insp2?.status === 'COMPLETED') || (allFindings.length > 0);
+
+    if (isCompleted) {
+      const hasReplacement = allFindings.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
       return {
         status: hasReplacement ? 'NEEDS_REVIEW' : 'COMPLETE',
         statusSymbol: hasReplacement ? '⚠' : '✓',
-        detail: hasReplacement ? `${inspData?.findings?.length || 1} Finding(s) — Recommendation / Replacement recorded` : (inspData?.decision === 'ISSUE_FOUND' ? `${inspData?.findings?.length} Finding(s) recorded` : 'Optics & head inspection passed'),
+        detail: hasReplacement 
+          ? `${allFindings.length} Finding(s) — Recommendation / Replacement recorded` 
+          : allFindings.length > 0 
+          ? `${allFindings.length} Finding(s) recorded` 
+          : 'Optics & head inspections passed',
         isBlocker: false,
         blockerReason: null
       };
     }
-    if (inspData?.status === 'NEEDS_REVIEW' || st === 'NEEDS_REVIEW') {
+    if (st === 'NEEDS_REVIEW' || insp1?.status === 'NEEDS_REVIEW' || insp2?.status === 'NEEDS_REVIEW') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
@@ -370,7 +363,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         statusSymbol: '🔒',
         detail: 'Activity locked',
         isBlocker: true,
-        blockerReason: 'Head 1 Inspection is locked and incomplete.'
+        blockerReason: 'Laser Optics & Head Inspection is locked and incomplete.'
       };
     }
     return {
@@ -378,139 +371,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       statusSymbol: '○',
       detail: 'Inspection missing',
       isBlocker: true,
-      blockerReason: 'Head 1 Inspection is incomplete.'
-    };
-  });
-
-  // 5. Head 2 Power (03_power)
-  addItem('03_power', 'Head 2 Power', 'DAY 1', () => {
-    const st = statuses['03_power'];
-    const powerData = session.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
-    if (powerData && powerData.result === 'FAIL') {
-      return {
-        status: 'NEEDS_REVIEW',
-        statusSymbol: '⚠',
-        detail: powerData.afterValueWatts ? `${powerData.afterValueWatts} W (Out of Spec)` : 'Out of specification',
-        isBlocker: true,
-        blockerReason: 'Head 2 Power result is out of specification.'
-      };
-    }
-    if (st === 'COMPLETED') {
-      return {
-        status: 'COMPLETE',
-        statusSymbol: '✓',
-        detail: powerData?.afterValueWatts ? `${powerData.afterValueWatts} W (Pass)` : 'Power measured (Pass)',
-        isBlocker: false,
-        blockerReason: null
-      };
-    }
-    if (st === 'NEEDS_REVIEW') {
-      return {
-        status: 'NEEDS_REVIEW',
-        statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Head 2 Power measurement requires review.'
-      };
-    }
-    if (st === 'LOCKED') {
-      return {
-        status: 'LOCKED',
-        statusSymbol: '🔒',
-        detail: 'Activity locked',
-        isBlocker: true,
-        blockerReason: 'Head 2 Power measurement is locked and incomplete.'
-      };
-    }
-    return {
-      status: 'INCOMPLETE',
-      statusSymbol: '○',
-      detail: 'Power measurement missing',
-      isBlocker: true,
-      blockerReason: 'Head 2 Power measurement is incomplete.'
-    };
-  });
-
-  // 6. Head 2 Beam Profile / Mode (03_beam)
-  addItem('03_beam', 'Head 2 Beam Profile / Mode', 'DAY 1', () => {
-    const st = statuses['03_beam'];
-    const beamRecord = session.stage02_laserProfile?.beamProfileRecord;
-    if (st === 'COMPLETED') {
-      return {
-        status: 'COMPLETE',
-        statusSymbol: '✓',
-        detail: beamRecord?.overallResult ? `Beam profile captured (${beamRecord.overallResult})` : 'Beam profile captured',
-        isBlocker: false,
-        blockerReason: null
-      };
-    }
-    if (st === 'NEEDS_REVIEW') {
-      return {
-        status: 'NEEDS_REVIEW',
-        statusSymbol: '⚠',
-        detail: 'Flagged for review',
-        isBlocker: true,
-        blockerReason: 'Head 2 Beam Profile requires review.'
-      };
-    }
-    if (st === 'LOCKED') {
-      return {
-        status: 'LOCKED',
-        statusSymbol: '🔒',
-        detail: 'Activity locked',
-        isBlocker: true,
-        blockerReason: 'Head 2 Beam Profile is locked and incomplete.'
-      };
-    }
-    return {
-      status: 'INCOMPLETE',
-      statusSymbol: '○',
-      detail: 'Beam profile missing',
-      isBlocker: true,
-      blockerReason: 'Head 2 Beam Profile is incomplete.'
-    };
-  });
-
-  // 7. Head 2 Inspection / Findings (03_findings)
-  addItem('03_findings', 'Head 2 Inspection / Findings', 'DAY 1', () => {
-    const st = statuses['03_findings'];
-    const inspData = session.inspectionFindings?.['lh2'] || session.inspectionFindings?.['head2'];
-    
-    // An inspection marked complete or with recorded findings should never block report readiness
-    if (st === 'COMPLETED' || inspData?.status === 'COMPLETED' || (inspData?.decision === 'ISSUE_FOUND' && (inspData?.findings?.length ?? 0) > 0)) {
-      const hasReplacement = inspData?.findings?.some(f => f.actionRecommendation === 'Replacement required' || f.actionRecommendation === 'Recommended replacement');
-      return {
-        status: hasReplacement ? 'NEEDS_REVIEW' : 'COMPLETE',
-        statusSymbol: hasReplacement ? '⚠' : '✓',
-        detail: hasReplacement ? `${inspData?.findings?.length || 1} Finding(s) — Recommendation / Replacement recorded` : (inspData?.decision === 'ISSUE_FOUND' ? `${inspData?.findings?.length} Finding(s) recorded` : 'Optics & head inspection passed'),
-        isBlocker: false,
-        blockerReason: null
-      };
-    }
-    if (inspData?.status === 'NEEDS_REVIEW' || st === 'NEEDS_REVIEW') {
-      return {
-        status: 'NEEDS_REVIEW',
-        statusSymbol: '⚠',
-        detail: 'Inspection finding recorded (requires review)',
-        isBlocker: false,
-        blockerReason: null
-      };
-    }
-    if (st === 'LOCKED') {
-      return {
-        status: 'LOCKED',
-        statusSymbol: '🔒',
-        detail: 'Activity locked',
-        isBlocker: true,
-        blockerReason: 'Head 2 Inspection is locked and incomplete.'
-      };
-    }
-    return {
-      status: 'INCOMPLETE',
-      statusSymbol: '○',
-      detail: 'Inspection missing',
-      isBlocker: true,
-      blockerReason: 'Head 2 Inspection is incomplete.'
+      blockerReason: 'Laser Optics & Head Inspection is incomplete.'
     };
   });
 

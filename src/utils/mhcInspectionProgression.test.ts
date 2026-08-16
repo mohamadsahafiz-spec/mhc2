@@ -55,11 +55,11 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
     }
   }) as unknown as MHCSession);
 
-  it('advances 02_findings -> 03_findings when NO_ISSUE is recorded and completed', () => {
+  it('advances 02_findings -> 04_stage1 when NO_ISSUE is recorded and completed', () => {
     const session = createMockSession();
     const advanced = advanceAutopilotActivity(session, '02_findings', 'COMPLETED');
     expect(advanced.autopilotProgress?.activityStatuses['02_findings']).toBe('COMPLETED');
-    expect(advanced.autopilotProgress?.currentActivityCode).toBe('03_findings');
+    expect(advanced.autopilotProgress?.currentActivityCode).toBe('04_stage1');
   });
 
   it('advances 02_findings with findings and recommendation without blocking report readiness', () => {
@@ -86,9 +86,9 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
     };
 
     const advanced = advanceAutopilotActivity(session, '02_findings', 'NEEDS_REVIEW');
-    expect(advanced.autopilotProgress?.currentActivityCode).toBe('03_findings');
+    expect(advanced.autopilotProgress?.currentActivityCode).toBe('04_stage1');
 
-    // Head 2 also completed with findings
+    // Head 2 also recorded with findings
     session.inspectionFindings!.lh2 = {
       headId: 'lh2',
       headName: 'Laser Head 2',
@@ -110,13 +110,11 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
     };
 
     const audit = auditMhcSession(session);
-    const head1Item = audit.auditItems.find(i => i.code === '02_findings');
-    const head2Item = audit.auditItems.find(i => i.code === '03_findings');
+    const findingsItem = audit.auditItems.find(i => i.code === '02_findings');
 
-    expect(head1Item?.isBlocker).toBe(false);
-    expect(head2Item?.isBlocker).toBe(false);
-    expect(head1Item?.status).toBe('NEEDS_REVIEW');
-    expect(head2Item?.status).toBe('COMPLETE');
+    expect(findingsItem?.isBlocker).toBe(false);
+    expect(findingsItem?.status).toBe('NEEDS_REVIEW');
+    expect(findingsItem?.detail).toContain('Replacement recorded');
   });
 
   it('safeJsonStringify safely serializes circular objects without throwing', () => {

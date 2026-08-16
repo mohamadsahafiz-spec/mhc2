@@ -336,15 +336,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     const finalStatus = statusOverride || 'COMPLETED';
     let updated = advanceAutopilotActivity(sessToAdvance, currentCode, finalStatus, activeNoteText);
 
-    // If completing 02_power or 03_power (Laser Head 1 / 2 Power), advance side-by-side power checks preserving pass/fail review status
+    // If completing 02_power (Laser Power Laser 1 & 2), advance side-by-side power checks preserving pass/fail review status
     if (currentCode === '02_power' || currentCode === '03_power') {
       const power1 = sessToAdvance.stage03_laserPower?.find(p => p.laserId === 'lh1' || p.laserId === 'head1' || p.laserIdentifier?.includes('1'));
       const power2 = sessToAdvance.stage03_laserPower?.find(p => p.laserId === 'lh2' || p.laserId === 'head2' || p.laserIdentifier?.includes('2'));
       const status1 = power1?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
       const status2 = power2?.result === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
+      const combinedStatus = (status1 === 'NEEDS_REVIEW' || status2 === 'NEEDS_REVIEW') ? 'NEEDS_REVIEW' : 'COMPLETED';
 
-      updated = advanceAutopilotActivity(sessToAdvance, '02_power', status1, activeNoteText || (status1 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
-      updated = advanceAutopilotActivity(updated, '03_power', status2, activeNoteText || (status2 === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
+      updated = advanceAutopilotActivity(sessToAdvance, '02_power', combinedStatus, activeNoteText || (combinedStatus === 'COMPLETED' ? 'Completed in side-by-side Power Workspace' : 'Flagged for review (Out of spec points)'));
       if (updated.autopilotProgress) {
         updated.autopilotProgress.currentActivityCode = '02_beam';
         if (updated.autopilotProgress.activityStatuses['02_beam'] === 'LOCKED' || updated.autopilotProgress.activityStatuses['02_beam'] === 'UPCOMING') {
@@ -353,12 +353,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       }
     }
 
-    // If completing 02_beam or 03_beam (Laser Head 1 / 2 Beam Profile), mark both completed since both heads were measured side-by-side
+    // If completing 02_beam (Beam Profile / Mode Laser 1 & 2), advance to 02_findings
     if (currentCode === '02_beam' || currentCode === '03_beam') {
-      updated = advanceAutopilotActivity(updated, '02_beam', 'COMPLETED', activeNoteText || 'Completed in side-by-side Beam Profile Workspace');
-      updated = advanceAutopilotActivity(updated, '03_beam', 'COMPLETED', activeNoteText || 'Completed in side-by-side Beam Profile Workspace');
+      const beamRecord = sessToAdvance.stage02_laserProfile?.beamProfileRecord;
+      const beamStatus = beamRecord?.overallResult === 'FAIL' ? 'NEEDS_REVIEW' : 'COMPLETED';
+      updated = advanceAutopilotActivity(sessToAdvance, '02_beam', beamStatus, activeNoteText || 'Completed in side-by-side Beam Profile Workspace');
       if (updated.autopilotProgress) {
         updated.autopilotProgress.currentActivityCode = '02_findings';
+        if (updated.autopilotProgress.activityStatuses['02_findings'] === 'LOCKED' || updated.autopilotProgress.activityStatuses['02_findings'] === 'UPCOMING') {
+          updated.autopilotProgress.activityStatuses['02_findings'] = 'IN_PROGRESS';
+        }
       }
     }
 

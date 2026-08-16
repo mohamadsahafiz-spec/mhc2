@@ -34,7 +34,7 @@ export interface MhcLaserBeamActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: () => void;
+  onCompleteActivity: (latestSession?: MHCSession) => void;
   onUpdateMachine?: (updatedMachine: Machine) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
@@ -356,8 +356,8 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       showNotification('✓ Authoritative Beam Profile Record saved & Journey Rail advanced!');
     }
 
-    // Complete activity in Journey Rail
-    onCompleteActivity();
+    // Complete activity in Journey Rail with updated session
+    onCompleteActivity(updatedSession);
   };
 
   return (
@@ -370,7 +370,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
           <div className="flex items-center gap-2">
             <Aperture className="w-5 h-5 text-cyan-400 shrink-0" />
             <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
-              Day 1 • Activity 02 & 03: Beam Profile / Mode Workspace
+              Day 1 • Activity 02: Laser Beam Profile & Mode Workspace (Laser 1 & 2)
             </h3>
           </div>
           <div className="flex items-center gap-2">

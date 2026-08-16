@@ -120,9 +120,8 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
       }
     };
 
-    // Advance Head 1 (FAIL -> NEEDS_REVIEW) and Head 2 (PASS -> COMPLETED)
+    // Advance 02_power with NEEDS_REVIEW due to out of spec on Head 1
     let updated = advanceAutopilotActivity(session as MHCSession, '02_power', 'NEEDS_REVIEW', 'Flagged for review (Out of spec points)');
-    updated = advanceAutopilotActivity(updated, '03_power', 'COMPLETED', 'Completed in side-by-side Power Workspace');
     
     // Journey rail moves to 02_beam
     if (updated.autopilotProgress) {
@@ -131,15 +130,14 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
     }
 
     expect(updated.autopilotProgress?.activityStatuses['02_power']).toBe('NEEDS_REVIEW');
-    expect(updated.autopilotProgress?.activityStatuses['03_power']).toBe('COMPLETED');
     expect(updated.autopilotProgress?.currentActivityCode).toBe('02_beam');
 
     // Audit check: auditMhcSession detects Head 1 FAIL and registers blocker
     const audit = auditMhcSession(updated);
-    const head1Audit = audit.auditItems.find(i => i.code === '02_power');
-    expect(head1Audit?.status).toBe('NEEDS_REVIEW');
-    expect(head1Audit?.isBlocker).toBe(true);
-    expect(head1Audit?.detail).toContain('Out of Spec');
+    const powerAudit = audit.auditItems.find(i => i.code === '02_power');
+    expect(powerAudit?.status).toBe('NEEDS_REVIEW');
+    expect(powerAudit?.isBlocker).toBe(true);
+    expect(powerAudit?.detail).toContain('out of specification');
   });
 
   it('4. Preserves all laser power measurements and state when session is saved', () => {
@@ -183,18 +181,11 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
       }
     };
 
-    let updatedSession = advanceAutopilotActivity(
+    const updatedSession = advanceAutopilotActivity(
       session as MHCSession,
       '02_power',
       'COMPLETED',
-      'Laser Head 1 Power Checked'
-    );
-
-    updatedSession = advanceAutopilotActivity(
-      updatedSession,
-      '03_power',
-      'COMPLETED',
-      'Laser Head 2 Power Checked'
+      'Laser 1 & Laser 2 Power Checked'
     );
 
     // Verify stage03_laserPower is intact and populated with both heads

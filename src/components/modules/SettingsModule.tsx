@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.10',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Laser Workflow Unification & Beam Profile Persistence',
+      highlights: [
+        'UNIFIED LASER WORKSPACE & SCHEDULE: Consolidated Laser 1 & Laser 2 into unified side-by-side matrix workspaces for Laser Power (02_power), Beam Profile (02_beam), and Optical Inspection (02_findings), eliminating duplicate workflow schedule entries.',
+        'CUSTOMER-FACING NOMENCLATURE: Standardized on "Laser 1" and "Laser 2" naming across all workspaces, stage labels, and journey rails, eliminating legacy Head A / Head B terminology.',
+        'BEAM PROFILE PERSISTENCE INTEGRITY: Sealed state persistence for Beam Profile & Mode inspection data, ensuring all 16 measurement points, image references, and evaluation verdicts survive navigation roundtrips to Report Generation and browser reloads with 100% fidelity.',
+        'AUTHORITATIVE SESSION ROUNDTRIP: Connected child activity state dispatches directly into the parent Autopilot progression pipeline to prevent state clobbering and stale React prop re-initialization.'
+      ]
+    },
+    {
       version: 'v1.1.9',
       date: '2026-08-16',
       type: 'MHC Autopilot Mechanics, Progression & Unified Workspace Architecture',

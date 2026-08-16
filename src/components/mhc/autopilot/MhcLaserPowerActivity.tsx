@@ -27,7 +27,7 @@ export interface MhcLaserPowerActivityProps {
   machine: Machine;
   isReadOnly: boolean;
   onUpdateSession: (updatedSession: MHCSession) => void;
-  onCompleteActivity: () => void;
+  onCompleteActivity: (latestSession?: MHCSession) => void;
   onUpdateMachine?: (updatedMachine: Machine) => void;
   isDark: boolean;
   showNotification?: (msg: string) => void;
@@ -451,6 +451,9 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         showNotification(`⚠ Laser Power Record saved with ${allFailingPoints.length} out-of-spec point(s) (NEEDS REVIEW) & Journey Rail advanced.`);
       }
     }
+
+    // Complete activity in Journey Rail with updated session
+    onCompleteActivity(updatedSession);
   };
 
   return (
@@ -463,7 +466,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-cyan-400 shrink-0" />
             <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
-              Day 1 • Activity 02 & 03: Laser Power Measurement Workspace
+              Day 1 • Activity 02: Laser Power Measurement Workspace (Laser 1 & 2)
             </h3>
           </div>
           <div className="flex items-center gap-2">
