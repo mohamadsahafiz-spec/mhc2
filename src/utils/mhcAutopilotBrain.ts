@@ -736,7 +736,20 @@ export function advanceAutopilotActivity(
   newStatus: 'COMPLETED' | 'NEEDS_REVIEW' | 'IN_PROGRESS',
   note?: string
 ): MHCSession {
-  const currentProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+  if (!session || typeof session !== 'object') {
+    return session;
+  }
+  // Strip any accidental DOM / React Event properties if present
+  const {
+    _reactName,
+    nativeEvent,
+    target,
+    currentTarget,
+    view,
+    ...cleanSession
+  } = session as any;
+
+  const currentProgress = cleanSession.autopilotProgress || createDefaultAutopilotProgress();
   const activityStatuses = { ...currentProgress.activityStatuses };
   const activityNotes = { ...(currentProgress.activityNotes || {}) };
 
@@ -797,7 +810,7 @@ export function advanceAutopilotActivity(
   const isAllComplete = readiness.completedCount === readiness.totalCount;
 
   return {
-    ...session,
+    ...cleanSession,
     lastUpdated: new Date().toISOString(),
     completionStatus: isAllComplete ? 'COMPLETED' : 'IN_PROGRESS',
     autopilotProgress: updatedProgress
@@ -808,7 +821,19 @@ export function flagDownstreamNeedsReview(
   session: MHCSession,
   editedCode: string
 ): MHCSession {
-  const currentProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+  if (!session || typeof session !== 'object') {
+    return session;
+  }
+  const {
+    _reactName,
+    nativeEvent,
+    target,
+    currentTarget,
+    view,
+    ...cleanSession
+  } = session as any;
+
+  const currentProgress = cleanSession.autopilotProgress || createDefaultAutopilotProgress();
   const activityStatuses = { ...currentProgress.activityStatuses };
 
   const editIndex = ACTIONABLE_ACTIVITIES.findIndex(a => a.code === editedCode);
@@ -831,7 +856,7 @@ export function flagDownstreamNeedsReview(
   updatedProgress.readinessScore = readiness.readinessScore;
 
   return {
-    ...session,
+    ...cleanSession,
     lastUpdated: new Date().toISOString(),
     autopilotProgress: updatedProgress
   };

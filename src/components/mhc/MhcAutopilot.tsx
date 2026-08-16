@@ -338,10 +338,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     targetCodeOverride?: string,
     statusOverride?: 'COMPLETED' | 'NEEDS_REVIEW'
   ) => {
-    const sessToAdvance = latestSession || effectiveSession;
+    const isAuthenticSession = Boolean(
+      latestSession &&
+      typeof latestSession === 'object' &&
+      typeof (latestSession as any).id === 'string' &&
+      (latestSession as any).id.length > 0 &&
+      !('_reactName' in (latestSession as any)) &&
+      !('nativeEvent' in (latestSession as any)) &&
+      !('view' in (latestSession as any))
+    );
+    const sessToAdvance = isAuthenticSession ? latestSession : effectiveSession;
     if (isReadOnlyMode || !sessToAdvance) return;
-    const currentCode = targetCodeOverride || sessToAdvance.autopilotProgress?.currentActivityCode || progress.currentActivityCode;
-    const finalStatus = statusOverride || 'COMPLETED';
+    const currentCode = (typeof targetCodeOverride === 'string' ? targetCodeOverride : undefined) || sessToAdvance.autopilotProgress?.currentActivityCode || progress.currentActivityCode;
+    const finalStatus = (statusOverride === 'COMPLETED' || statusOverride === 'NEEDS_REVIEW') ? statusOverride : 'COMPLETED';
     let updated = advanceAutopilotActivity(sessToAdvance, currentCode, finalStatus, activeNoteText);
 
     // If completing 02_power (Laser Power Laser 1 & 2), advance side-by-side power checks preserving pass/fail review status
@@ -1527,7 +1536,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     {!isReadOnlyMode ? (
                       <div className="pt-2 flex flex-wrap items-center gap-3">
                         <button
-                          onClick={handleCompleteCurrentActivity}
+                          onClick={() => handleCompleteCurrentActivity()}
                           className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
                         >
                           <Check className="w-4 h-4 stroke-[3]" />
@@ -1535,7 +1544,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         </button>
 
                         <button
-                          onClick={handleFlagCurrentNeedsReview}
+                          onClick={() => handleFlagCurrentNeedsReview()}
                           className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-2 transition-all"
                         >
                           <AlertTriangle className="w-4 h-4 text-amber-400" />

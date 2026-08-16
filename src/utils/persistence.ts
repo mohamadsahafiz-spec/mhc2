@@ -498,11 +498,17 @@ export const StorageService = {
 
   getMhcSessions: (): MHCSession[] => {
     const raw = getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []);
-    return ImageStore.hydrateImagesSync(raw);
+    const validSessions = Array.isArray(raw)
+      ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
+      : [];
+    return ImageStore.hydrateImagesSync(validSessions);
   },
   saveMhcSessions: (data: MHCSession[]) => {
-    const processedSessions = data.map(s => {
-      const recordId = s.id || `MHC-${Date.now()}`;
+    const validSessions = Array.isArray(data)
+      ? data.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
+      : [];
+    const processedSessions = validSessions.map(s => {
+      const recordId = s.id;
       return ImageStore.extractAndStoreImagesSync(s, recordId);
     });
     syncEnqueueList('mhc_sessions', KEYS.MHC_SESSIONS, processedSessions);

@@ -416,7 +416,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
           <div className="pt-2 flex justify-end">
             <button
               disabled={!isAllVerified}
-              onClick={onCompleteActivity}
+              onClick={() => onCompleteActivity()}
               className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
                 isAllVerified
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'

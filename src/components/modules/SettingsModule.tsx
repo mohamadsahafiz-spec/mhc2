@@ -14,6 +14,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.14',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Activity Completion Event Injection & OOM Elimination',
+      highlights: [
+        'EVENT-ARGUMENT STRIPPING: Wrapped Autopilot and Activity 01 completion callbacks in zero-argument handlers to prevent React click MouseEvents from leaking into the session pipeline.',
+        'DEFENSIVE SESSION VALIDATION: Hardened handleCompleteCurrentActivity and advanceAutopilotActivity to strictly validate session shape and require valid string IDs before updating or advancing.',
+        'CORRUPTION PURGING IN PERSISTENCE: Filtered malformed/DOM-contaminated session entries from getMhcSessions and saveMhcSessions to ensure clean, isolated session storage.'
+      ]
+    },
+    {
       version: 'v1.1.13',
       date: '2026-08-16',
       type: 'MHC Autopilot Activity Completion Out-of-Memory Freeze Resolution',
