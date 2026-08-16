@@ -519,7 +519,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   }, [progress.currentActivityCode]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md flex items-start justify-center">
       
       {/* Toast Notification */}
       {notification && (
@@ -535,14 +535,14 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       )}
 
       {/* Main Autopilot Container */}
-      <div className={`w-full max-w-7xl h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] md:h-[calc(100vh-3rem)] rounded-2xl border shadow-2xl overflow-hidden flex flex-col md:flex-row ${
+      <div className={`w-full max-w-7xl min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-3rem)] my-auto rounded-2xl border shadow-2xl flex flex-col md:flex-row ${
         isDark 
           ? 'bg-[#0f1319] border-slate-800 text-slate-100 shadow-cyan-950/20' 
           : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
       }`}>
 
         {/* LEFT COLUMN: MHC JOURNEY RAIL & SESSION BRAIN */}
-        <div className={`w-full md:w-80 shrink-0 h-auto md:h-full overflow-y-auto p-4 sm:p-5 border-b md:border-b-0 md:border-r flex flex-col justify-between custom-scrollbar ${
+        <div className={`w-full md:w-80 shrink-0 p-4 sm:p-5 border-b md:border-b-0 md:border-r flex flex-col justify-between ${
           isDark ? 'bg-[#0b0d11] border-slate-800/80' : 'bg-slate-50 border-slate-200'
         }`}>
           <div>
@@ -629,7 +629,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 </span>
               </div>
               
-              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+              <div className="space-y-2.5">
                 {MHC_WORKFLOW_SCHEDULE.map((dayGroup) => (
                   <div key={dayGroup.code + dayGroup.day} className="space-y-1">
                     {/* Activity Code Item */}
@@ -742,7 +742,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         </div>
 
         {/* RIGHT COLUMN: FOCUSED AUTOPILOT STEPS */}
-        <div className="flex-1 h-full p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col justify-between">
           
           <AnimatePresence mode="wait">
             
@@ -993,7 +993,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 </div>
 
                 {/* CUSTOMER SELECTION LIST */}
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="space-y-2">
                   {filteredCustomers.map((c) => {
                     const isSelected = selectedCustomer?.id === c.id;
                     const machineCount = machines.filter(m => m.customerId === c.id || m.customerName === c.name).length;
@@ -1093,7 +1093,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 </div>
 
                 {/* MACHINE SELECTION LIST */}
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="space-y-2">
                   {filteredMachines.map((m) => {
                     const isSelected = localSelectedMachine?.id === m.id;
                     return (

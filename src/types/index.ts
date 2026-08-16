@@ -751,6 +751,7 @@ export interface MHCTemperatureEvidenceData {
     points: number;
   };
   channelStats?: Record<number, { min: number; max: number; avg: number; range: number; points: number }>;
+  channelData?: Record<number, Array<{ ts: Date | string | number; val: number }>>;
   hasValidTemperatureAnalysis: boolean;
   evidences?: MHCEvidenceItem[];
   engineerNote?: string;

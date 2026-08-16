@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.11',
+      date: '2026-08-16',
+      type: 'MHC Autopilot Temperature Workspace & Scroll Architecture',
+      highlights: [
+        'TEMPERATURE TELEMETRY VISUALIZATION: Integrated the authoritative multi-channel TemperatureGraph directly inside the MHC Autopilot Temperature activity (06), displaying real multi-station thermal data without fake or duplicated values.',
+        'REMOVAL OF MISPLACED EVIDENCE BLOCK: Cleaned up Activity 06 by removing the misplaced generic evidence collection form, keeping the activity strictly focused on machine thermal telemetry log integration.',
+        'NATURAL VIEWPORT SCROLLING: Removed unnecessary nested and internal vertical scroll containers across Autopilot activities, allowing workflow content to expand naturally downward with smooth viewport-level scrolling.',
+        'SEAMLESS THERMAL METRIC DISPATCH: Preserved channelData and thermal statistics across session persistence and autopilot progression pipeline.'
+      ]
+    },
+    {
       version: 'v1.1.10',
       date: '2026-08-16',
       type: 'MHC Autopilot Laser Workflow Unification & Beam Profile Persistence',

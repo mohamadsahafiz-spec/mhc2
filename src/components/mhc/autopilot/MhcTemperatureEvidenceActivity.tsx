@@ -5,29 +5,23 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   FileText, 
-  Image as ImageIcon, 
   ExternalLink, 
-  Plus, 
-  Trash2, 
-  Check, 
   ArrowRight, 
   RefreshCw, 
-  Layers, 
-  ShieldCheck,
   Cpu,
-  Info
+  LineChart as LineChartIcon
 } from 'lucide-react';
 import { 
   Machine, 
   MHCSession, 
-  MHCTemperatureEvidenceData, 
-  MHCEvidenceItem 
+  MHCTemperatureEvidenceData 
 } from '../../../types';
 import { SavedTemperatureRecord, ChannelStats } from '../../../types/temperature';
 import { TemperatureEngine } from '../../../utils/temperatureEngine';
 import { TempRawStore } from '../../../utils/tempRawStore';
 import { StorageService } from '../../../utils/persistence';
 import { advanceAutopilotActivity, flagDownstreamNeedsReview } from '../../../utils/mhcAutopilotBrain';
+import { TemperatureGraph } from '../../common/TemperatureGraph';
 
 export interface MhcTemperatureEvidenceActivityProps {
   session: MHCSession;
@@ -54,7 +48,6 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
   showNotification
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
 
   // Existing saved temperature records for this machine
   const savedTempRecords = useMemo(() => {
@@ -66,14 +59,21 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
     return session.temperatureEvidenceData;
   }, [session.temperatureEvidenceData]);
 
+  // Find active record from saved records
+  const activeRecord = useMemo(() => {
+    if (tempEvidenceData?.temperatureRecordId) {
+      return savedTempRecords.find(r => r.id === tempEvidenceData.temperatureRecordId);
+    }
+    return savedTempRecords.length === 1 ? savedTempRecords[0] : undefined;
+  }, [tempEvidenceData?.temperatureRecordId, savedTempRecords]);
+
+  // Authoritative channel data for graph rendering
+  const effectiveChannelData = useMemo(() => {
+    return activeRecord?.channelData || tempEvidenceData?.channelData;
+  }, [activeRecord?.channelData, tempEvidenceData?.channelData]);
+
   // Local state for uploading / processing
   const [isProcessingLog, setIsProcessingLog] = useState(false);
-
-  // Local state for adding custom evidence
-  const [newEvTitle, setNewEvTitle] = useState('');
-  const [newEvCategory, setNewEvCategory] = useState<MHCEvidenceItem['category']>('inspection_image');
-  const [newEvNotes, setNewEvNotes] = useState('');
-  const [newEvImageDataUrl, setNewEvImageDataUrl] = useState<string>('');
   const [engineerNote, setEngineerNote] = useState<string>(tempEvidenceData?.engineerNote || '');
 
   useEffect(() => {
@@ -166,6 +166,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
       rawRecordsCount: rec.rawRecordsCount,
       stats: rec.stats,
       channelStats: rec.channelStats,
+      channelData: rec.channelData,
       hasValidTemperatureAnalysis: true,
       updatedAt: new Date().toISOString()
     };
@@ -185,78 +186,6 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
       attachRecordToSession(found);
       if (showNotification) showNotification(`Selected record "${found.title}" attached to MHC session.`);
     }
-  };
-
-  // Add custom evidence item
-  const handleAddEvidenceItem = () => {
-    if (!newEvTitle.trim()) {
-      if (showNotification) showNotification('Please enter an evidence title');
-      return;
-    }
-
-    const newItem: MHCEvidenceItem = {
-      id: `EV-${Date.now()}`,
-      category: newEvCategory,
-      title: newEvTitle.trim(),
-      imageDataUrl: newEvImageDataUrl || undefined,
-      notes: newEvNotes.trim() || undefined,
-      createdAt: new Date().toISOString()
-    };
-
-    const currentEvidences = session.temperatureEvidenceData?.evidences || [];
-    const updatedEvidences = [...currentEvidences, newItem];
-
-    const updatedSession: MHCSession = {
-      ...session,
-      temperatureEvidenceData: {
-        ...session.temperatureEvidenceData,
-        hasValidTemperatureAnalysis: session.temperatureEvidenceData?.hasValidTemperatureAnalysis ?? false,
-        evidences: updatedEvidences,
-        updatedAt: new Date().toISOString()
-      }
-    };
-
-    onUpdateSession(updatedSession);
-
-    // Reset local inputs
-    setNewEvTitle('');
-    setNewEvNotes('');
-    setNewEvImageDataUrl('');
-    if (showNotification) showNotification('MHC Evidence item added.');
-  };
-
-  const handleEvidenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      if (showNotification) showNotification('File size exceeds 5MB limit');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewEvImageDataUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveEvidenceItem = (id: string) => {
-    const currentEvidences = session.temperatureEvidenceData?.evidences || [];
-    const updatedEvidences = currentEvidences.filter(e => e.id !== id);
-
-    const updatedSession: MHCSession = {
-      ...session,
-      temperatureEvidenceData: {
-        ...session.temperatureEvidenceData,
-        hasValidTemperatureAnalysis: session.temperatureEvidenceData?.hasValidTemperatureAnalysis ?? false,
-        evidences: updatedEvidences,
-        updatedAt: new Date().toISOString()
-      }
-    };
-
-    onUpdateSession(updatedSession);
-    if (showNotification) showNotification('Evidence item removed.');
   };
 
   // Save Activity 06 & Complete
@@ -294,7 +223,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
     onUpdateSession(updatedSession);
 
     if (showNotification) {
-      showNotification('Activity 06 Temperature & Evidence COMPLETED! Advanced to Day 4 MHC Readiness Review.');
+      showNotification('Activity 06 Temperature Telemetry COMPLETED! Advanced to Day 4 MHC Readiness Review.');
     }
 
     onCompleteActivity();
@@ -303,7 +232,6 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
   const hasValidAnalysis = Boolean(tempEvidenceData?.hasValidTemperatureAnalysis && tempEvidenceData?.stats);
   const stats = tempEvidenceData?.stats;
   const channelStats = tempEvidenceData?.channelStats;
-  const customEvidences = tempEvidenceData?.evidences || [];
 
   return (
     <div className={`p-4 sm:p-6 rounded-2xl border space-y-6 ${
@@ -320,10 +248,10 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 DAY 3 • 06
               </span>
-              <h2 className="text-lg font-bold text-slate-100">Temperature & Evidence Integration</h2>
+              <h2 className="text-lg font-bold text-slate-100">Machine Temperature Telemetry Integration</h2>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Machine thermal telemetry log analysis & authoritative MHC evidence collection
+              Machine thermal telemetry log analysis, station equilibrium, and real-time visualization
             </p>
           </div>
         </div>
@@ -348,7 +276,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
             <Cpu className="w-4 h-4 text-cyan-400" />
-            <span>1. Machine Temperature Telemetry Log Integration</span>
+            <span>Machine Temperature Telemetry Log Integration</span>
           </h3>
 
           {hasValidAnalysis && (
@@ -439,9 +367,9 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
           </div>
         </div>
 
-        {/* DISPLAY CONCISE TEMPERATURE SUMMARY (No duplicate graph, pure authoritative stats) */}
+        {/* DISPLAY CONCISE TEMPERATURE SUMMARY & AUTHORITATIVE GRAPH */}
         {hasValidAnalysis && stats && (
-          <div className="space-y-4 pt-3 border-t border-slate-700/40">
+          <div className="space-y-5 pt-3 border-t border-slate-700/40">
             {/* Active Record Banner */}
             <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
               isDark ? 'bg-cyan-950/30 border-cyan-500/40 text-slate-200' : 'bg-cyan-50 border-cyan-200 text-slate-800'
@@ -476,7 +404,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
                   onClick={onSwitchToCanvas}
                   className="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shrink-0 self-start sm:self-center shadow-sm"
                 >
-                  <span>Interactive Chart</span>
+                  <span>Interactive Canvas</span>
                   <ExternalLink className="w-3 h-3" />
                 </button>
               )}
@@ -505,36 +433,71 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
               </div>
             </div>
 
+            {/* AUTHORITATIVE MULTI-CHANNEL TEMPERATURE GRAPH */}
+            {effectiveChannelData && Object.keys(effectiveChannelData).length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="flex items-center gap-2">
+                    <LineChartIcon className="w-4 h-4 text-cyan-400" />
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">
+                      Thermal Telemetry Visualization
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {stats.points ? stats.points.toLocaleString() : '1,500'} Data Points • Multi-Station Thermal Equilibrium
+                  </span>
+                </div>
+
+                <div className="p-3 sm:p-4 rounded-xl border border-slate-700/80 bg-slate-950/70 shadow-inner">
+                  <TemperatureGraph
+                    channelData={effectiveChannelData}
+                    stats={stats}
+                    preset="engineering"
+                    height={320}
+                    showGrid={true}
+                    showLegend={true}
+                    showStatsBanner={false}
+                    showYAxisControls={true}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Channel Station Breakdown Table */}
             {channelStats && Object.keys(channelStats).length > 0 && (
-              <div className="overflow-x-auto rounded-xl border border-slate-700/60">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-700/60 uppercase text-[10px]">
-                      <th className="py-2 px-3">Station / Channel</th>
-                      <th className="py-2 px-3">Min (°C)</th>
-                      <th className="py-2 px-3">Max (°C)</th>
-                      <th className="py-2 px-3">Avg (°C)</th>
-                      <th className="py-2 px-3">Range (°C)</th>
-                      <th className="py-2 px-3">Points</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800">
-                    {Object.entries(channelStats).map(([chStr, rawStat]) => {
-                      const chStat = rawStat as ChannelStats;
-                      return (
-                        <tr key={chStr} className="hover:bg-slate-800/40 font-mono">
-                          <td className="py-2 px-3 font-bold text-cyan-300">Station {chStr}</td>
-                          <td className="py-2 px-3 text-slate-300">{chStat.min.toFixed(2)}</td>
-                          <td className="py-2 px-3 text-slate-300">{chStat.max.toFixed(2)}</td>
-                          <td className="py-2 px-3 font-semibold text-emerald-400">{chStat.avg.toFixed(2)}</td>
-                          <td className="py-2 px-3 text-slate-400">{chStat.range.toFixed(2)}</td>
-                          <td className="py-2 px-3 text-slate-500">{chStat.points.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-2 pt-1">
+                <div className="text-xs font-bold text-slate-300 font-mono uppercase">
+                  Station Channel Breakdown
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-slate-700/60">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-700/60 uppercase text-[10px]">
+                        <th className="py-2 px-3">Station / Channel</th>
+                        <th className="py-2 px-3">Min (°C)</th>
+                        <th className="py-2 px-3">Max (°C)</th>
+                        <th className="py-2 px-3">Avg (°C)</th>
+                        <th className="py-2 px-3">Range (°C)</th>
+                        <th className="py-2 px-3">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {Object.entries(channelStats).map(([chStr, rawStat]) => {
+                        const chStat = rawStat as ChannelStats;
+                        return (
+                          <tr key={chStr} className="hover:bg-slate-800/40 font-mono">
+                            <td className="py-2 px-3 font-bold text-cyan-300">Station {chStr}</td>
+                            <td className="py-2 px-3 text-slate-300">{chStat.min.toFixed(2)}</td>
+                            <td className="py-2 px-3 text-slate-300">{chStat.max.toFixed(2)}</td>
+                            <td className="py-2 px-3 font-semibold text-emerald-400">{chStat.avg.toFixed(2)}</td>
+                            <td className="py-2 px-3 text-slate-400">{chStat.range.toFixed(2)}</td>
+                            <td className="py-2 px-3 text-slate-500">{chStat.points.toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -545,174 +508,6 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
           <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Machine temperature telemetry log file required to complete Activity 06. Upload or select a saved record above.</span>
-          </div>
-        )}
-      </div>
-
-      {/* 2. LIGHTWEIGHT EVIDENCE COLLECTION WORKSPACE */}
-      <div className={`p-5 rounded-xl border space-y-5 ${
-        isDark ? 'bg-slate-800/30 border-slate-700/60' : 'bg-slate-50/80 border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-cyan-400" />
-            <span>2. Authoritative MHC Evidence Collection</span>
-          </h3>
-          <span className="text-xs text-slate-400">Linked to Session {session.id}</span>
-        </div>
-
-        {/* Evidence List */}
-        <div className="space-y-3">
-          {/* Auto-linked Temperature Analysis Evidence Card */}
-          {hasValidAnalysis && (
-            <div className="p-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300">
-                  <Thermometer className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-200">
-                    [System Auto-Linked] {tempEvidenceData?.temperatureRecordTitle || 'Temperature Analysis Record'}
-                  </div>
-                  <div className="text-[10px] font-mono text-cyan-300/80">
-                    Avg {stats?.avg.toFixed(1)}°C • Range {stats?.range.toFixed(1)}°C ({tempEvidenceData?.rawRecordsCount?.toLocaleString()} points)
-                  </div>
-                </div>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                TEMPERATURE ANALYSIS
-              </span>
-            </div>
-          )}
-
-          {/* Custom Evidence List */}
-          {customEvidences.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {customEvidences.map((ev) => (
-                <div key={ev.id} className="p-3 rounded-xl border border-slate-700 bg-slate-900/60 flex items-start gap-3 relative group">
-                  {ev.imageDataUrl ? (
-                    <img
-                      src={ev.imageDataUrl}
-                      alt={ev.title}
-                      className="w-14 h-14 object-cover rounded-lg border border-slate-700 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0 text-slate-500">
-                      <ImageIcon className="w-6 h-6" />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0 text-xs">
-                    <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
-                      {ev.category.replace('_', ' ')}
-                    </span>
-                    <div className="font-semibold text-slate-200 mt-1 truncate">{ev.title}</div>
-                    {ev.notes && <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">{ev.notes}</p>}
-                  </div>
-
-                  {!isReadOnly && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveEvidenceItem(ev.id)}
-                      className="p-1 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 transition-colors"
-                      title="Remove Evidence"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {customEvidences.length === 0 && !hasValidAnalysis && (
-            <div className="text-xs text-slate-500 italic p-3 text-center border border-dashed border-slate-700 rounded-xl">
-              No evidence items attached yet.
-            </div>
-          )}
-        </div>
-
-        {/* Form to Add New Custom Evidence */}
-        {!isReadOnly && (
-          <div className="p-4 rounded-xl border border-slate-700/60 bg-slate-900/40 space-y-3 pt-3">
-            <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-cyan-400" />
-              <span>Attach Additional MHC Evidence (Photo / Calibration Document)</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Evidence Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Laser Head 1 Optics Inspection Photo"
-                  value={newEvTitle}
-                  onChange={(e) => setNewEvTitle(e.target.value)}
-                  className={`w-full px-3 py-1.5 rounded-lg border text-xs ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-900'
-                  }`}
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Evidence Category</label>
-                <select
-                  value={newEvCategory}
-                  onChange={(e) => setNewEvCategory(e.target.value as any)}
-                  className={`w-full px-3 py-1.5 rounded-lg border text-xs ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-900'
-                  }`}
-                >
-                  <option value="inspection_image">Inspection Image</option>
-                  <option value="calibration_evidence">Calibration Evidence</option>
-                  <option value="temperature_result">Temperature Result Document</option>
-                  <option value="other_evidence">Other MHC Evidence</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-              {newEvImageDataUrl ? (
-                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Image attached</span>
-                  <button
-                    type="button"
-                    onClick={() => setNewEvImageDataUrl('')}
-                    className="text-[10px] text-rose-400 underline ml-1"
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => evidenceInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition-colors flex items-center gap-1.5"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Attach Image File (PNG, JPG)</span>
-                  </button>
-                  <input
-                    ref={evidenceInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleEvidenceImageUpload}
-                    className="hidden"
-                  />
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleAddEvidenceItem}
-                className="w-full sm:w-auto px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Evidence Item</span>
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -739,7 +534,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-700/50">
           <div className="text-xs text-slate-400">
-            Target Activity: <span className="font-bold text-slate-200">06 Temperature & Evidence</span>
+            Target Activity: <span className="font-bold text-slate-200">06 Machine Temperature Telemetry</span>
           </div>
 
           {hasValidAnalysis && !isReadOnly ? (
