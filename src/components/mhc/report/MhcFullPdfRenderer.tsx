@@ -23,6 +23,7 @@ import { MHCSession, MhcReportDocument, MhcReportSectionCode } from '../../../ty
 import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
 import { APP_VERSION } from '../../../constants/version';
 import { LaserEngine } from '../../../utils/laserEngine';
+import { ImageStore } from '../../../utils/imageStore';
 
 export interface MhcFullPdfRendererProps {
   session: MHCSession;
@@ -826,10 +827,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div>
                       <span className="font-mono text-slate-500 font-bold uppercase text-[10px] block">MHC RESULT</span>
-                      <strong className="text-slate-900 font-extrabold text-sm font-mono">PASS — 100%</strong>
+                      <strong className="text-slate-900 font-extrabold text-sm font-mono">
+                        {sections['04'].data.overallStatus === 'PASS'
+                          ? `PASS — ${sections['04'].data.readinessScore || 100}%`
+                          : sections['04'].data.overallStatus === 'CONDITIONAL_PASS'
+                          ? `CONDITIONAL PASS — ${sections['04'].data.readinessScore || 100}% (DISPOSITIONED FINDINGS)`
+                          : sections['04'].data.overallStatus === 'ACTION_REQUIRED'
+                          ? `ACTION REQUIRED — ${sections['04'].data.readinessScore || 0}%`
+                          : `FAIL — ${sections['04'].data.readinessScore || 0}%`}
+                      </strong>
                     </div>
                     <div>
-                      {renderStatusBadge('PASS')}
+                      {renderStatusBadge(sections['04'].data.overallStatus)}
                     </div>
                   </div>
 
@@ -1183,7 +1192,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       {sections['10'].data.stages.filter(s => s.evidenceImage).map(stg => (
                         <div key={stg.stageId} className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200">
                           <img
-                            src={stg.evidenceImage}
+                            src={ImageStore.resolveImage(stg.evidenceImage) || stg.evidenceImage}
                             alt={stg.stageName}
                             crossOrigin="anonymous"
                             className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
@@ -1253,7 +1262,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       {sections['11'].data.agcs.filter(a => a.evidenceImage).map(agc => (
                         <div key={agc.agcId} className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200">
                           <img
-                            src={agc.evidenceImage}
+                            src={ImageStore.resolveImage(agc.evidenceImage) || agc.evidenceImage}
                             alt={agc.agcName}
                             crossOrigin="anonymous"
                             className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
@@ -1544,7 +1553,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             {item.imageDataUrl ? (
                               <div className="w-full h-20 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
                                 <img 
-                                  src={item.imageDataUrl} 
+                                  src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
                                   alt={item.title} 
                                   crossOrigin="anonymous"
                                   className="h-full w-auto max-w-full object-contain" 

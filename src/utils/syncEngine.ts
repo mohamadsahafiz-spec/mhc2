@@ -115,6 +115,10 @@ class SyncEngineManager {
     };
   }
 
+  public notifyListeners() {
+    this.notify();
+  }
+
   private notify() {
     const state = this.getState();
     this.listeners.forEach(fn => {

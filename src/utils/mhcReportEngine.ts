@@ -32,6 +32,7 @@ import {
 } from '../types';
 import { auditMhcSession } from './mhcAutopilotBrain';
 import { LaserEngine } from './laserEngine';
+import { ImageStore } from './imageStore';
 
 /**
  * Builds a normalized, single MhcReportDocument from an authoritative MHCSession.
@@ -44,10 +45,14 @@ import { LaserEngine } from './laserEngine';
  * 5. Future renderers (PDF, Compact PDF, PPTX) can consume this single model independently.
  */
 export function buildMhcReportDocument(
-  session: MHCSession,
-  previousSession?: MHCSession,
+  rawSession: MHCSession,
+  previousSessionRaw?: MHCSession,
   options?: MhcReportOptions
 ): MhcReportDocument {
+  // Deeply hydrate any IDB image references in session data
+  const session: MHCSession = ImageStore.hydrateImagesSync(rawSession);
+  const previousSession = previousSessionRaw ? ImageStore.hydrateImagesSync(previousSessionRaw) : undefined;
+
   const generatedAt = new Date().toISOString();
   const reportId = `RPT-${session.id || 'SESSION'}-${Date.now()}`;
   const reportNumber = options?.reportNumber || `MHC-${session.machineSerialNumber || 'SN'}-${new Date().getFullYear()}`;
@@ -431,7 +436,7 @@ export function buildMhcReportDocument(
     maxAbsYUm: data?.maxAbsYUm,
     overallMaxDevUm: data?.overallMaxDevUm,
     verdict: data?.verdict === 'PASS' ? ('PASS' as const) : data?.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const),
-    evidenceImage: data?.evidenceImage,
+    evidenceImage: ImageStore.resolveImage(data?.evidenceImage) || data?.evidenceImage,
     engineerNote: data?.engineerNote
   }));
 
@@ -487,7 +492,7 @@ export function buildMhcReportDocument(
       overallMaxDevUm: data?.overallMaxDevUm,
       verdict: data?.verdict === 'PASS' ? ('PASS' as const) : data?.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const),
       scannerConditionFlag: data?.scannerConditionFlag || false,
-      evidenceImage: data?.evidenceImage,
+      evidenceImage: ImageStore.resolveImage(data?.evidenceImage) || data?.evidenceImage,
       engineerNote: data?.engineerNote
     };
   });
@@ -593,7 +598,7 @@ export function buildMhcReportDocument(
       conditions: f.conditions || [],
       actionRecommendation: f.actionRecommendation,
       engineerNote: f.engineerNote,
-      evidenceImage: f.evidenceImage,
+      evidenceImage: ImageStore.resolveImage(f.evidenceImage) || f.evidenceImage,
       aiGeneratedWording: f.aiGeneratedWording
     }))
   }));
@@ -684,13 +689,14 @@ export function buildMhcReportDocument(
 
   // 1. Evidence items from TemperatureEvidenceData
   (tempEvData?.evidences || []).forEach(ev => {
-    if (ev.imageDataUrl) {
+    const resolved = ImageStore.resolveImage(ev.imageDataUrl) || ev.imageDataUrl;
+    if (resolved) {
       evidenceList.push({
         id: ev.id,
         category: ev.category || 'Thermal & Environmental',
         title: ev.title || 'Temperature / Environment Evidence',
         sourceSection: ev.category || 'Thermal & Environmental',
-        imageDataUrl: ev.imageDataUrl,
+        imageDataUrl: resolved,
         notes: ev.notes,
         createdAt: ev.createdAt || generatedAt
       });
@@ -700,13 +706,14 @@ export function buildMhcReportDocument(
   // 2. Inspection Findings Images from Laser Heads
   formattedHeadsFindings.forEach(h => {
     h.findingsList.forEach(f => {
-      if (f.evidenceImage) {
+      const resolved = ImageStore.resolveImage(f.evidenceImage) || f.evidenceImage;
+      if (resolved) {
         evidenceList.push({
           id: `EVID-INSP-${f.id}`,
           category: 'Head Visual Inspection',
           title: `${h.headName} • ${f.component}`,
           sourceSection: '04 Head Inspection',
-          imageDataUrl: f.evidenceImage,
+          imageDataUrl: resolved,
           notes: f.actionRecommendation || f.engineerNote || f.aiGeneratedWording || 'Inspection photo evidence',
           createdAt: generatedAt
         });
@@ -716,13 +723,14 @@ export function buildMhcReportDocument(
 
   // 3. Stage Calibration Evidence Images
   stagesList.forEach(s => {
-    if (s.evidenceImage) {
+    const resolved = ImageStore.resolveImage(s.evidenceImage) || s.evidenceImage;
+    if (resolved) {
       evidenceList.push({
         id: `EVID-STAGE-${s.stageId}`,
         category: 'Stage Calibration',
         title: `${s.stageName} Telemetry`,
         sourceSection: '10 Stage Calibration',
-        imageDataUrl: s.evidenceImage,
+        imageDataUrl: resolved,
         notes: s.engineerNote || (s.overallMaxDevUm !== undefined ? `Max Dev: ${s.overallMaxDevUm.toFixed(2)} µm` : 'Stage Calibration Evidence'),
         createdAt: generatedAt
       });
@@ -731,13 +739,14 @@ export function buildMhcReportDocument(
 
   // 4. AGC Calibration Evidence Images
   agcsList.forEach(a => {
-    if (a.evidenceImage) {
+    const resolved = ImageStore.resolveImage(a.evidenceImage) || a.evidenceImage;
+    if (resolved) {
       evidenceList.push({
         id: `EVID-AGC-${a.agcId}`,
         category: 'AGC Calibration',
         title: `${a.agcName} Telemetry`,
         sourceSection: '11 AGC Calibration',
-        imageDataUrl: a.evidenceImage,
+        imageDataUrl: resolved,
         notes: a.engineerNote || (a.overallMaxDevUm !== undefined ? `Max Dev: ${a.overallMaxDevUm.toFixed(2)} µm` : 'AGC Calibration Evidence'),
         createdAt: generatedAt
       });
@@ -747,13 +756,14 @@ export function buildMhcReportDocument(
   // 5. Laser Power Evidence Images
   (session.stage03_laserPower || []).forEach((lp, idx) => {
     (lp.evidenceImages || []).forEach((imgUrl, imgIdx) => {
-      if (imgUrl) {
+      const resolved = ImageStore.resolveImage(imgUrl) || imgUrl;
+      if (resolved) {
         evidenceList.push({
           id: `EVID-LP-${lp.laserId || idx}-${imgIdx}`,
           category: 'Laser Power Check',
           title: `${lp.laserIdentifier || `Laser Head ${idx + 1}`} Power Evidence`,
           sourceSection: '03 Laser Power',
-          imageDataUrl: imgUrl,
+          imageDataUrl: resolved,
           notes: lp.notes || 'Laser power meter verification capture',
           createdAt: generatedAt
         });
@@ -832,10 +842,20 @@ export function buildMhcReportDocument(
     keyFindingsList.push('All core laser power, optical beam profile, stage alignment, and scanner parameters meet specification standards.');
   }
 
+  const hasOutOfSpecOrFindings = (
+    stageOverallVerdict === 'OUT_OF_SPEC' ||
+    agcOverallVerdict === 'OUT_OF_SPEC' ||
+    laserPowerData.heads.some(h => h.current.verdict === 'FAIL' || h.current.verdict === 'OUT_OF_SPEC') ||
+    temperatureData.coolingResult === 'FAIL' ||
+    totalFindingsCount > 0
+  );
+
+  const calculatedOverallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'ACTION_REQUIRED' | 'FAIL' = sessionAudit.isReadyForReport
+    ? (hasOutOfSpecOrFindings ? 'CONDITIONAL_PASS' : 'PASS')
+    : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL');
+
   const executiveSummaryData: MhcReportExecutiveSummaryData = {
-    overallStatus: sessionAudit.isReadyForReport
-      ? (keyFindingsList.length === 1 && totalFindingsCount === 0 ? 'PASS' : 'CONDITIONAL_PASS')
-      : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'),
+    overallStatus: calculatedOverallStatus,
     readinessScore: sessionAudit.readinessScore,
     summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}.`,
     keyFindings: keyFindingsList,
