@@ -338,4 +338,109 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['18'].data.totalEvidenceItems).toBeGreaterThanOrEqual(2);
     expect(doc.sections['18'].status).toBe('COMPLETE');
   });
+
+  it('should not inject ghost machine or thermal fallbacks when session data is missing', () => {
+    const minimalSession: MHCSession = {
+      id: 'SESS-MINIMAL',
+      machineId: 'M-101',
+      machineModel: 'ESI Model X',
+      machineSerialNumber: 'SN-001',
+      startDate: '2026-08-15',
+      completionStatus: 'IN_PROGRESS',
+      currentSection: 1,
+      sectionStatuses: {}
+    };
+
+    const doc = buildMhcReportDocument(minimalSession);
+
+    // Cover page should not contain WD-44367 or WLVIA#3
+    expect(doc.sections['01'].data.machineNumber).toBeUndefined();
+    expect(doc.sections['03'].data.machineNumber).toBeUndefined();
+
+    // Section 12 Thermal telemetry should not have fabricated 21.5 or 4.8 values
+    expect(doc.sections['12'].data.chillerTempCelsius).toBeUndefined();
+    expect(doc.sections['12'].data.chillerFlowLpm).toBeUndefined();
+    expect(doc.sections['12'].data.coolingResult).toBe('NOT_COLLECTED');
+    expect(doc.sections['12'].data.hasValidTemperatureAnalysis).toBe(false);
+
+    // Section 05 Laser hours should not have fabricated laser heads
+    expect(doc.sections['05'].data.laserHours.length).toBe(0);
+    expect(doc.sections['05'].status).toBe('NOT_COLLECTED');
+  });
+
+  it('should preserve complete Laser Power breakdown (masks, source, optics) from powerRecord', () => {
+    const session = createDummySession('SESS-POWER-RECORD');
+    session.stage03_laserPower = [
+      {
+        laserId: 'lh1',
+        laserIdentifier: 'Laser Head 1',
+        ratedPowerWatts: 15.0,
+        referenceValueWatts: 15.0,
+        beforeValueWatts: 14.5,
+        afterValueWatts: 14.8,
+        stabilityPercent: 0.5,
+        result: 'PASS',
+        powerRecord: {
+          id: 'PR-1',
+          date: '2026-08-10',
+          laserSource: { headA: 15.2, headB: null },
+          opticsTopHat: { headA: 14.8, headB: null },
+          workingZoneMasks: [
+            { maskSize: '2.2mm', minWatts: 13.5, headA: 14.2, headB: null, passA: true, passB: false },
+            { maskSize: '2.0mm', minWatts: 13.0, headA: 13.8, headB: null, passA: true, passB: false },
+            { maskSize: '1.8mm', minWatts: 12.5, headA: 13.2, headB: null, passA: true, passB: false },
+            { maskSize: '1.3mm', minWatts: 12.0, headA: 12.6, headB: null, passA: true, passB: false },
+            { maskSize: '1.1mm', minWatts: 11.5, headA: 12.0, headB: null, passA: true, passB: false },
+            { maskSize: '0.9mm', minWatts: 11.0, headA: 11.4, headB: null, passA: true, passB: false }
+          ],
+          overallResult: 'PASS'
+        }
+      }
+    ];
+
+    const doc = buildMhcReportDocument(session);
+    const head1Power = doc.sections['06'].data.heads[0];
+
+    expect(head1Power.current.laserSourceWatts).toBe(15.2);
+    expect(head1Power.current.opticsTopHatWatts).toBe(14.8);
+    expect(head1Power.current.maskReadings).toBeDefined();
+    expect(head1Power.current.maskReadings?.length).toBe(6);
+    expect(head1Power.current.maskReadings?.[0].maskSize).toBe('2.2mm');
+    expect(head1Power.current.maskReadings?.[0].measuredWatts).toBe(14.2);
+    expect(head1Power.current.maskReadings?.[0].pass).toBe(true);
+  });
+
+  it('should reflect truth in Executive Summary when Stage or AGC has OUT_OF_SPEC results', () => {
+    const session = createDummySession('SESS-OUT-OF-SPEC');
+    session.stageCalibrationData = {
+      stage1: {
+        stageId: 'stage1',
+        stageName: 'Stage 1',
+        xMinUm: -2.5,
+        xMaxUm: 2.8,
+        yMinUm: -1.0,
+        yMaxUm: 1.1,
+        maxAbsXUm: 2.8,
+        maxAbsYUm: 1.1,
+        overallMaxDevUm: 2.8,
+        specToleranceUm: 2.0,
+        verdict: 'OUT_OF_SPEC',
+        status: 'COMPLETED'
+      }
+    };
+
+    const doc = buildMhcReportDocument(session);
+
+    // Section 10 verdict
+    expect(doc.sections['10'].data.overallVerdict).toBe('OUT_OF_SPEC');
+    expect(doc.sections['10'].status).toBe('NEEDS_REVIEW');
+
+    // Executive summary must NOT show unconditioned pure PASS
+    expect(doc.sections['04'].data.overallStatus).not.toBe('PASS');
+    expect(['CONDITIONAL_PASS', 'ACTION_REQUIRED', 'FAIL']).toContain(doc.sections['04'].data.overallStatus);
+
+    // Major results table must accurately list Stage as FAIL
+    const stageResult = doc.sections['04'].data.majorPassFailResults.find(r => r.component === 'Stage Calibration');
+    expect(stageResult?.verdict).toBe('FAIL');
+  });
 });

@@ -109,6 +109,8 @@ export interface MhcReportMachineInfoData {
   serialNumber: string;
   customerName: string;
   plantName: string;
+  department?: string;
+  productionLine?: string;
   installationDate?: string;
   baselineDate?: string;
   lastMhcDate?: string;
@@ -181,12 +183,23 @@ export interface MhcPowerComparisonItem {
     stabilityPercent: number;
     verdict: 'PASS' | 'WARNING' | 'FAIL';
     notes?: string;
+    // Complete authoritative measurement breakdown
+    laserSourceWatts?: number | null;
+    opticsTopHatWatts?: number | null;
+    maskReadings?: Array<{
+      maskSize: string;
+      minWatts: number;
+      measuredWatts: number | null;
+      pass: boolean;
+    }>;
   };
   previous: {
     recordedDate: string;
     afterValueWatts: number;
     stabilityPercent: number;
     verdict?: string;
+    laserSourceWatts?: number | null;
+    opticsTopHatWatts?: number | null;
   } | null;
   comparison: {
     deltaWatts: number | null;
@@ -218,6 +231,15 @@ export interface MhcBeamProfileComparisonItem {
     modeQuality?: string;
     overallResult?: string;
     notes?: string;
+    // Complete authoritative checkpoint readings
+    checkpoints?: Array<{
+      checkpointId: string;
+      stageLabel?: string;
+      measuredDiameterMm: number | null;
+      specText?: string;
+      pass: boolean;
+      imageDataUrl?: string;
+    }>;
   };
   previous: {
     recordedDate: string;

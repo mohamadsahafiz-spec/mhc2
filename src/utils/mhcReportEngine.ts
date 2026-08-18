@@ -60,22 +60,22 @@ export function buildMhcReportDocument(
   // Run authoritative session audit derived view
   const sessionAudit = auditMhcSession(session);
 
-  const machineNumber = (session as any).machineNumber || (session.machineName?.includes('#') ? session.machineName : undefined) || 'WLVIA#3';
+  const machineNumber = (session as any).machineNumber || (session.machineName?.includes('#') ? session.machineName : undefined) || '';
 
   // 01 COVER
   const coverData: MhcReportCoverData = {
     title: options?.title || 'Maintenance & Health Check (MHC) Report',
     subtitle: 'System Health, Calibration & Optical Performance Audit',
     reportNumber,
-    date: session.completedDate || session.startDate || (session as any).inspectionDate || '2026-08-01',
-    customerName: session.customerName || 'Customer',
-    plantName: session.plantName || 'Facility',
-    machineModel: session.machineModel || 'ESI Laser System',
-    machineSerialNumber: session.machineSerialNumber || 'N/A',
-    machineName: session.machineName || session.machineModel || 'MHC System',
-    machineNumber,
-    engineerName: session.engineerName || 'Field Service Engineer',
-    engineerTitle: options?.engineerTitle || 'Senior Field Service Engineer',
+    date: session.completedDate || session.startDate || (session as any).inspectionDate || '',
+    customerName: session.customerName || '',
+    plantName: session.plantName || '',
+    machineModel: session.machineModel || '',
+    machineSerialNumber: session.machineSerialNumber || '',
+    machineName: session.machineName || session.machineModel || '',
+    machineNumber: machineNumber || undefined,
+    engineerName: session.engineerName || '',
+    engineerTitle: options?.engineerTitle || 'Field Service Engineer',
     founderBranding: options?.founderBranding
   };
 
@@ -91,34 +91,7 @@ export function buildMhcReportDocument(
   // 05 LASER HOURS & LIFECYCLE (AUTHORITATIVE CALCULATION VIA LaserEngine)
   const hrsItems = session.stage01_laserHours && session.stage01_laserHours.length > 0
     ? session.stage01_laserHours
-    : [
-        {
-          laserId: 'lh1',
-          laserIdentifier: 'Laser Head 1 (Main Oscillator)',
-          recordedLaserHour: 10250,
-          calculatedCurrentHour: 11480,
-          verifiedHour: 11480,
-          warningThreshold: 20000,
-          criticalThreshold: 25000,
-          runtimeStatus: 'NORMAL' as const,
-          readingDate: session.startDate || '2026-08-01',
-          readingTime: '08:30',
-          isVerified: true
-        },
-        {
-          laserId: 'lh2',
-          laserIdentifier: 'Laser Head 2 (Auxiliary Amplifier)',
-          recordedLaserHour: 9800,
-          calculatedCurrentHour: 10920,
-          verifiedHour: 10920,
-          warningThreshold: 20000,
-          criticalThreshold: 25000,
-          runtimeStatus: 'NORMAL' as const,
-          readingDate: session.startDate || '2026-08-01',
-          readingTime: '08:30',
-          isVerified: true
-        }
-      ];
+    : [];
 
   const laserHoursDetails: MhcReportLaserHourHeadDetail[] = hrsItems.map((item, idx) => {
     // ONE authoritative current-hour value only
@@ -139,7 +112,7 @@ export function buildMhcReportDocument(
     const verdict: 'PASS' | 'WARNING' | 'FAIL' = calcStatus === 'SAFE' ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
     const runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL' = calcStatus === 'SAFE' ? 'NORMAL' : calcStatus === 'WARNING' ? 'WARNING' : 'CRITICAL';
 
-    const serialNumber = (item as any).serialNumber || (item as any).serialNo || `${session.machineSerialNumber || 'SN'}-LH0${idx + 1}`;
+    const serialNumber = (item as any).serialNumber || (item as any).serialNo || (session.machineSerialNumber ? `${session.machineSerialNumber}-LH0${idx + 1}` : undefined);
 
     return {
       laserId: item.laserId,
@@ -169,7 +142,7 @@ export function buildMhcReportDocument(
     laserHours: laserHoursDetails,
     summaryText: laserHoursDetails.length > 0
       ? `Authoritative laser lifecycle telemetry computed for ${laserHoursDetails.length} head(s) against rated EOL and warning limits.`
-      : 'Laser hour telemetry pending verification.'
+      : 'Laser hour telemetry not recorded.'
   };
 
   const laserHoursSection: MhcReportSection<MhcReportLaserHoursData> = {
@@ -184,17 +157,19 @@ export function buildMhcReportDocument(
 
   // 03 MACHINE INFO
   const machineInfoData: MhcReportMachineInfoData = {
-    machineId: session.machineId || session.machineSerialNumber || 'MCH-01',
-    machineName: session.machineName || session.machineModel || 'ESI Machine',
-    machineModel: session.machineModel || 'ESI System',
-    machineNumber,
-    serialNumber: session.machineSerialNumber || 'N/A',
-    customerName: session.customerName || 'Customer',
-    plantName: session.plantName || 'Facility',
+    machineId: session.machineId || session.machineSerialNumber || '',
+    machineName: session.machineName || session.machineModel || '',
+    machineModel: session.machineModel || '',
+    machineNumber: machineNumber || undefined,
+    serialNumber: session.machineSerialNumber || '',
+    customerName: session.customerName || '',
+    plantName: session.plantName || '',
+    department: (session as any).department,
+    productionLine: (session as any).productionLine || (session as any).productionLineName,
     installationDate: (session as any).installationDate,
     baselineDate: previousSession?.completedDate || previousSession?.startDate,
     lastMhcDate: session.completedDate || session.startDate,
-    engineerName: session.engineerName || 'Engineer',
+    engineerName: session.engineerName || '',
     laserHeads: laserHoursDetails.map(item => ({
       laserId: item.laserId,
       identifier: item.laserIdentifier,
@@ -235,16 +210,19 @@ export function buildMhcReportDocument(
       }
     };
 
-    const curr = powerItems.find(p => matchesHead(p, isHead1)) || powerItems[idx];
-    const prevItem = prevPowerItems.find(p => matchesHead(p, isHead1)) || prevPowerItems[idx];
+    const curr = powerItems.find(p => matchesHead(p, isHead1)) || (powerItems.length > idx ? powerItems[idx] : undefined);
+    const prevItem = prevPowerItems.find(p => matchesHead(p, isHead1)) || (prevPowerItems.length > idx ? prevPowerItems[idx] : undefined);
 
-    const rawBefore = curr?.beforeValueWatts ?? (curr?.powerRecord?.laserSource ? (isHead1 ? curr.powerRecord.laserSource.headA : curr.powerRecord.laserSource.headB) : undefined);
-    const rawAfter = curr?.afterValueWatts ?? (curr?.powerRecord?.opticsTopHat ? (isHead1 ? curr.powerRecord.opticsTopHat.headA : curr.powerRecord.opticsTopHat.headB) : undefined);
+    const pRec = curr?.powerRecord;
+    const prevPRec = prevItem?.powerRecord;
+
+    const rawBefore = curr?.beforeValueWatts ?? (pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : undefined);
+    const rawAfter = curr?.afterValueWatts ?? (pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : undefined);
 
     const currBeforeWatts = typeof rawBefore === 'number' && rawBefore > 0 ? rawBefore : (curr?.beforeValueWatts || 0);
     const currAfterWatts = typeof rawAfter === 'number' && rawAfter > 0 ? rawAfter : (curr?.afterValueWatts || 0);
 
-    const rawPrevAfter = prevItem?.afterValueWatts ?? (prevItem?.powerRecord?.opticsTopHat ? (isHead1 ? prevItem.powerRecord.opticsTopHat.headA : prevItem.powerRecord.opticsTopHat.headB) : undefined);
+    const rawPrevAfter = prevItem?.afterValueWatts ?? (prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : undefined);
     const prevAfterWatts = typeof rawPrevAfter === 'number' && rawPrevAfter > 0 ? rawPrevAfter : (prevItem?.afterValueWatts || 0);
 
     const hasBaseline = Boolean(prevItem && prevAfterWatts > 0);
@@ -260,6 +238,20 @@ export function buildMhcReportDocument(
       statusText = `${sign}${deltaWatts.toFixed(2)} W (${sign}${deltaPercent.toFixed(1)}%)`;
     }
 
+    // Map complete power breakdown from stored powerRecord (laserSource, opticsTopHat, workingZoneMasks)
+    const laserSourceWatts = pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : (curr?.beforeValueWatts || null);
+    const opticsTopHatWatts = pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : (curr?.afterValueWatts || null);
+    
+    const maskReadings = pRec?.workingZoneMasks ? pRec.workingZoneMasks.map(m => ({
+      maskSize: m.maskSize,
+      minWatts: m.minWatts,
+      measuredWatts: isHead1 ? m.headA : m.headB,
+      pass: isHead1 ? m.passA : m.passB
+    })) : undefined;
+
+    const prevLaserSourceWatts = prevPRec?.laserSource ? (isHead1 ? prevPRec.laserSource.headA : prevPRec.laserSource.headB) : null;
+    const prevOpticsTopHatWatts = prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : null;
+
     return {
       headId,
       headName: curr?.laserIdentifier || headName,
@@ -272,20 +264,25 @@ export function buildMhcReportDocument(
         afterValueWatts: currAfterWatts,
         stabilityPercent: curr?.stabilityPercent || 0,
         verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : (currAfterWatts > 0 ? 'PASS' : 'WARNING'),
-        notes: curr?.notes
+        notes: curr?.notes,
+        laserSourceWatts,
+        opticsTopHatWatts,
+        maskReadings
       },
       previous: hasBaseline && prevItem ? {
         recordedDate: previousSession?.completedDate || previousSession?.startDate || 'Previous MHC',
         afterValueWatts: prevAfterWatts,
         stabilityPercent: prevItem.stabilityPercent || 0,
-        verdict: prevItem.result
+        verdict: prevItem.result,
+        laserSourceWatts: prevLaserSourceWatts,
+        opticsTopHatWatts: prevOpticsTopHatWatts
       } : null,
       comparison: {
         deltaWatts,
         deltaPercent,
         statusText
       },
-      evidenceImages: curr?.evidenceImages || []
+      evidenceImages: (curr?.evidenceImages || []).map(img => ImageStore.resolveImage(img) || img)
     };
   });
 
@@ -317,8 +314,8 @@ export function buildMhcReportDocument(
     const isHead1 = headId === 'lh1';
     // Helper to get 6A reading for Laser 1 or 7A for Laser 2
     const checkpointKey = isHead1 ? '6A' : '7A';
-    const currReading = beamRecord?.readings?.[checkpointKey];
-    const prevReading = prevBeamRecord?.readings?.[checkpointKey];
+    const currReading = beamRecord?.readings?.[checkpointKey as any];
+    const prevReading = prevBeamRecord?.readings?.[checkpointKey as any];
 
     const currDiameter = currReading?.measuredDiameterMm || null;
     const prevDiameter = prevReading?.measuredDiameterMm || null;
@@ -337,7 +334,36 @@ export function buildMhcReportDocument(
 
     const images: string[] = [];
     if (currReading?.imageDataUrl) {
-      images.push(currReading.imageDataUrl);
+      const resolved = ImageStore.resolveImage(currReading.imageDataUrl) || currReading.imageDataUrl;
+      images.push(resolved);
+    }
+
+    // Collect complete checkpoint readings for this head
+    const prefix = isHead1 ? '6' : '7';
+    const checkpointsList: Array<{
+      checkpointId: string;
+      stageLabel?: string;
+      measuredDiameterMm: number | null;
+      specText?: string;
+      pass: boolean;
+      imageDataUrl?: string;
+    }> = [];
+
+    if (beamRecord?.readings) {
+      Object.entries(beamRecord.readings).forEach(([cpId, r]) => {
+        if (cpId.startsWith(prefix)) {
+          const imgResolved = r.imageDataUrl ? (ImageStore.resolveImage(r.imageDataUrl) || r.imageDataUrl) : undefined;
+          checkpointsList.push({
+            checkpointId: cpId,
+            measuredDiameterMm: r.measuredDiameterMm,
+            pass: r.pass,
+            imageDataUrl: imgResolved
+          });
+          if (imgResolved && !images.includes(imgResolved)) {
+            images.push(imgResolved);
+          }
+        }
+      });
     }
 
     return {
@@ -349,7 +375,8 @@ export function buildMhcReportDocument(
       current: {
         beamSizeMm: currDiameter || undefined,
         overallResult: beamRecord?.overallResult,
-        notes: beamRecord?.engineerRemarks
+        notes: beamRecord?.engineerRemarks,
+        checkpoints: checkpointsList.length > 0 ? checkpointsList : undefined
       },
       previous: hasBaseline && prevDiameter ? {
         recordedDate: previousSession?.completedDate || previousSession?.startDate || 'Previous MHC',
@@ -387,7 +414,7 @@ export function buildMhcReportDocument(
     head1FocusOffsetMm: null,
     head2FocusOffsetMm: null,
     optimalFocusPointMm: null,
-    notes: 'Focus optimization module skipped or optional for current service scope.'
+    notes: undefined
   };
 
   const focusOptimizationSection: MhcReportSection<MhcReportFocusOptimizationData> = {
@@ -405,7 +432,7 @@ export function buildMhcReportDocument(
     head1PowerOffsetWatts: null,
     head2PowerOffsetWatts: null,
     offsetCorrectionApplied: false,
-    notes: 'Power offset adjustment not required during routine check.'
+    notes: undefined
   };
 
   const powerOffsetSection: MhcReportSection<MhcReportPowerOffsetData> = {

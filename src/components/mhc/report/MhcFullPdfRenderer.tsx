@@ -54,19 +54,19 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   // Data-Driven Editable Report Metadata State
   const [showMetadataEditor, setShowMetadataEditor] = useState(false);
   const [engineerName, setEngineerName] = useState<string>(
-    session.engineerName || sections['01']?.data?.engineerName || 'Sahafiz'
+    session.engineerName || sections['01']?.data?.engineerName || ''
   );
   const [customerCompany, setCustomerCompany] = useState<string>(
-    session.customerName || metadata.customerName || 'TSMC Microelectronics Fab 18'
+    session.customerName || metadata.customerName || ''
   );
   const [plantFacility, setPlantFacility] = useState<string>(
-    session.plantName || metadata.plantName || 'Tainan Cleanroom Fab 18A'
+    session.plantName || metadata.plantName || ''
   );
   const [inspectionDate, setInspectionDate] = useState<string>(
-    session.completedDate || session.startDate || (session as any).inspectionDate || sections['01']?.data?.date || '2026-08-01'
+    session.completedDate || session.startDate || (session as any).inspectionDate || sections['01']?.data?.date || ''
   );
   const [machineNumber, setMachineNumber] = useState<string>(
-    (session as any).machineNumber || sections['01']?.data?.machineNumber || 'WLVIA#3'
+    (session as any).machineNumber || sections['01']?.data?.machineNumber || ''
   );
   const [releaseStatus, setReleaseStatus] = useState<'APPROVED' | 'CONDITIONAL_RELEASE' | 'HALTED' | 'PENDING' | 'PASS' | 'WARNING' | 'FAIL'>(
     (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
@@ -1292,7 +1292,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <strong className="text-slate-800">
                         {sections['12'].data.chillerTempCelsius !== undefined && sections['12'].data.chillerTempCelsius !== null
                           ? `${sections['12'].data.chillerTempCelsius.toFixed(1)} °C`
-                          : '21.5 °C'}
+                          : '—'}
                       </strong>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
@@ -1300,12 +1300,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <strong className="text-slate-800">
                         {sections['12'].data.chillerFlowLpm !== undefined && sections['12'].data.chillerFlowLpm !== null
                           ? `${sections['12'].data.chillerFlowLpm.toFixed(1)} L/min`
-                          : '4.8 L/min'}
+                          : '—'}
                       </strong>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
                       <span className="text-[9px] text-slate-400 block font-sans">COOLING STATUS</span>
-                      <div>{renderStatusBadge(sections['12'].data.coolingResult || 'PASS')}</div>
+                      <div>{renderStatusBadge(sections['12'].data.coolingResult || 'NOT_COLLECTED')}</div>
                     </div>
                   </div>
 
