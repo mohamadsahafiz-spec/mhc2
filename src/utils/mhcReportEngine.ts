@@ -28,6 +28,7 @@ import {
   MhcReportCorrectiveActionsData,
   MhcReportSparePartsData,
   MhcReportEvidenceData,
+  MhcReportEvidenceItem,
   MhcReportBuyoffData
 } from '../types';
 import { auditMhcSession } from './mhcAutopilotBrain';
@@ -676,7 +677,7 @@ export function buildMhcReportDocument(
   };
 
   // 17 SPARE PARTS / RECOMMENDATIONS
-  const sparePartsList = (session.stage07_spareParts || []).map(sp => ({
+  const rawSparePartsList = (session.stage07_spareParts || []).map(sp => ({
     id: sp.id,
     partName: sp.partName,
     partNumber: sp.partNumber,
@@ -688,8 +689,51 @@ export function buildMhcReportDocument(
     notes: sp.notes
   }));
 
+  const consumedParts = rawSparePartsList.filter(sp => sp.action === 'REPLACED' || sp.action === 'USED') as MhcReportSparePartsData['consumedParts'];
+  
+  // Extract explicit recommended parts from findings if no consumed parts exist but actions recommend parts
+  const derivedRecommendedParts: MhcReportSparePartsData['recommendedParts'] = [];
+  rawSparePartsList.filter(sp => sp.action === 'RECOMMENDED').forEach(sp => {
+    derivedRecommendedParts.push({
+      id: sp.id,
+      partName: sp.partName,
+      partNumber: sp.partNumber,
+      category: sp.category,
+      quantity: sp.quantity,
+      reason: sp.reason,
+      notes: sp.notes
+    });
+  });
+
+  // Cross-reference findings for recommended parts
+  formattedHeadsFindings.forEach(h => {
+    h.findingsList.forEach(f => {
+      if (f.actionRecommendation && (
+        f.actionRecommendation.toLowerCase().includes('replace') ||
+        f.actionRecommendation.toLowerCase().includes('spare') ||
+        f.actionRecommendation.toLowerCase().includes('lens') ||
+        f.actionRecommendation.toLowerCase().includes('mirror') ||
+        f.actionRecommendation.toLowerCase().includes('filter')
+      )) {
+        // Only add if not already in list
+        const alreadyExists = derivedRecommendedParts.some(p => p.sourceFinding === f.id || p.reason.includes(f.component));
+        if (!alreadyExists) {
+          derivedRecommendedParts.push({
+            id: `REC-PART-${f.id}`,
+            partName: `${f.component} (Replacement Recommended)`,
+            reason: f.actionRecommendation,
+            sourceFinding: f.id,
+            notes: `${h.headName}: ${f.actionRecommendation}`
+          });
+        }
+      }
+    });
+  });
+
   const sparePartsData: MhcReportSparePartsData = {
-    spareParts: sparePartsList,
+    spareParts: rawSparePartsList,
+    consumedParts,
+    recommendedParts: derivedRecommendedParts,
     recommendations: derivedActions.map(a => a.actionText),
     generalFindingsNote: session.stage08_engineerRemarks?.generalFindings
   };
@@ -699,28 +743,22 @@ export function buildMhcReportDocument(
     title: 'Spare Parts / Recommendations',
     displayOrder: 17,
     isVisible: options?.sectionVisibilityOverrides?.['17'] ?? true,
-    status: sparePartsList.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (consumedParts.length > 0 || derivedRecommendedParts.length > 0) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: sparePartsData
   };
 
   // 18 EVIDENCE (REFERENCES EXISTING EVIDENCE/IMAGE RECORDS ACROSS MHC STAGES)
-  const evidenceList: Array<{
-    id: string;
-    category: string;
-    title: string;
-    sourceSection: string;
-    imageDataUrl?: string;
-    notes?: string;
-    createdAt?: string;
-  }> = [];
+  const inspectionEvidence: MhcReportEvidenceItem[] = [];
+  const calibrationEvidence: MhcReportEvidenceItem[] = [];
 
-  // 1. Evidence items from TemperatureEvidenceData
+  // 1. Evidence items from TemperatureEvidenceData (Calibration / Telemetry)
   (tempEvData?.evidences || []).forEach(ev => {
     const resolved = ImageStore.resolveImage(ev.imageDataUrl) || ev.imageDataUrl;
     if (resolved) {
-      evidenceList.push({
+      calibrationEvidence.push({
         id: ev.id,
         category: ev.category || 'Thermal & Environmental',
+        evidenceType: 'CALIBRATION_TELEMETRY',
         title: ev.title || 'Temperature / Environment Evidence',
         sourceSection: ev.category || 'Thermal & Environmental',
         imageDataUrl: resolved,
@@ -730,14 +768,15 @@ export function buildMhcReportDocument(
     }
   });
 
-  // 2. Inspection Findings Images from Laser Heads
+  // 2. Inspection Findings Images from Laser Heads (Inspection Evidence)
   formattedHeadsFindings.forEach(h => {
     h.findingsList.forEach(f => {
       const resolved = ImageStore.resolveImage(f.evidenceImage) || f.evidenceImage;
       if (resolved) {
-        evidenceList.push({
+        inspectionEvidence.push({
           id: `EVID-INSP-${f.id}`,
           category: 'Head Visual Inspection',
+          evidenceType: 'INSPECTION',
           title: `${h.headName} • ${f.component}`,
           sourceSection: '04 Head Inspection',
           imageDataUrl: resolved,
@@ -748,13 +787,14 @@ export function buildMhcReportDocument(
     });
   });
 
-  // 3. Stage Calibration Evidence Images
+  // 3. Stage Calibration Evidence Images (Calibration / Telemetry)
   stagesList.forEach(s => {
     const resolved = ImageStore.resolveImage(s.evidenceImage) || s.evidenceImage;
     if (resolved) {
-      evidenceList.push({
+      calibrationEvidence.push({
         id: `EVID-STAGE-${s.stageId}`,
         category: 'Stage Calibration',
+        evidenceType: 'CALIBRATION_TELEMETRY',
         title: `${s.stageName} Telemetry`,
         sourceSection: '10 Stage Calibration',
         imageDataUrl: resolved,
@@ -764,13 +804,14 @@ export function buildMhcReportDocument(
     }
   });
 
-  // 4. AGC Calibration Evidence Images
+  // 4. AGC Calibration Evidence Images (Calibration / Telemetry)
   agcsList.forEach(a => {
     const resolved = ImageStore.resolveImage(a.evidenceImage) || a.evidenceImage;
     if (resolved) {
-      evidenceList.push({
+      calibrationEvidence.push({
         id: `EVID-AGC-${a.agcId}`,
         category: 'AGC Calibration',
+        evidenceType: 'CALIBRATION_TELEMETRY',
         title: `${a.agcName} Telemetry`,
         sourceSection: '11 AGC Calibration',
         imageDataUrl: resolved,
@@ -780,14 +821,15 @@ export function buildMhcReportDocument(
     }
   });
 
-  // 5. Laser Power Evidence Images
+  // 5. Laser Power Evidence Images (Calibration / Telemetry)
   (session.stage03_laserPower || []).forEach((lp, idx) => {
     (lp.evidenceImages || []).forEach((imgUrl, imgIdx) => {
       const resolved = ImageStore.resolveImage(imgUrl) || imgUrl;
       if (resolved) {
-        evidenceList.push({
+        calibrationEvidence.push({
           id: `EVID-LP-${lp.laserId || idx}-${imgIdx}`,
           category: 'Laser Power Check',
+          evidenceType: 'CALIBRATION_TELEMETRY',
           title: `${lp.laserIdentifier || `Laser Head ${idx + 1}`} Power Evidence`,
           sourceSection: '03 Laser Power',
           imageDataUrl: resolved,
@@ -798,9 +840,13 @@ export function buildMhcReportDocument(
     });
   });
 
+  const allEvidenceItems = [...inspectionEvidence, ...calibrationEvidence];
+
   const evidenceData: MhcReportEvidenceData = {
-    totalEvidenceItems: evidenceList.length,
-    items: evidenceList
+    totalEvidenceItems: allEvidenceItems.length,
+    inspectionEvidence,
+    calibrationEvidence,
+    items: allEvidenceItems
   };
 
   const evidenceSection: MhcReportSection<MhcReportEvidenceData> = {
@@ -808,9 +854,9 @@ export function buildMhcReportDocument(
     title: 'Evidence',
     displayOrder: 18,
     isVisible: options?.sectionVisibilityOverrides?.['18'] ?? true,
-    status: evidenceList.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: allEvidenceItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
     data: evidenceData,
-    evidenceReferences: evidenceList.map(e => ({
+    evidenceReferences: allEvidenceItems.map(e => ({
       id: e.id,
       category: e.category,
       title: e.title,
@@ -872,7 +918,7 @@ export function buildMhcReportDocument(
   const hasOutOfSpecOrFindings = (
     stageOverallVerdict === 'OUT_OF_SPEC' ||
     agcOverallVerdict === 'OUT_OF_SPEC' ||
-    laserPowerData.heads.some(h => h.current.verdict === 'FAIL' || h.current.verdict === 'OUT_OF_SPEC') ||
+    laserPowerData.heads.some(h => (h.current.verdict as string) === 'FAIL' || (h.current.verdict as string) === 'OUT_OF_SPEC') ||
     temperatureData.coolingResult === 'FAIL' ||
     totalFindingsCount > 0
   );
@@ -893,7 +939,7 @@ export function buildMhcReportDocument(
       { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±3.0 µm Tolerance' },
       { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: 'Thermal stability telemetry' }
     ],
-    replacementRecommendations: sparePartsList.map(s => `${s.partName} (${s.partNumber}) - ${s.action}`),
+    replacementRecommendations: rawSparePartsList.map(s => `${s.partName} (${s.partNumber}) - ${s.action}`),
     importantObservations: sessionAudit.blockers.map(b => b.reason)
   };
 

@@ -422,23 +422,49 @@ export interface MhcReportSparePartsData {
     costIndicator: 'CUSTOMER_COST' | 'EO_SUPPORT' | 'WARRANTY';
     notes: string;
   }>;
+  consumedParts: Array<{
+    id: string;
+    partName: string;
+    partNumber: string;
+    category: string;
+    quantity: number;
+    reason: string;
+    action: 'REPLACED' | 'USED';
+    costIndicator: 'CUSTOMER_COST' | 'EO_SUPPORT' | 'WARRANTY';
+    notes: string;
+  }>;
+  recommendedParts: Array<{
+    id: string;
+    partName: string;
+    partNumber?: string;
+    category?: string;
+    quantity?: number;
+    reason: string;
+    sourceFinding?: string;
+    notes?: string;
+  }>;
   recommendations: string[];
   generalFindingsNote?: string;
 }
 
 // 18 Evidence Data
+export interface MhcReportEvidenceItem {
+  id: string;
+  category: string;
+  evidenceType: 'INSPECTION' | 'CALIBRATION_TELEMETRY';
+  title: string;
+  sourceSection: string;
+  imageDataUrl?: string;
+  referenceId?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface MhcReportEvidenceData {
   totalEvidenceItems: number;
-  items: Array<{
-    id: string;
-    category: string;
-    title: string;
-    sourceSection: string;
-    imageDataUrl?: string;
-    referenceId?: string;
-    notes?: string;
-    createdAt?: string;
-  }>;
+  inspectionEvidence: MhcReportEvidenceItem[];
+  calibrationEvidence: MhcReportEvidenceItem[];
+  items: MhcReportEvidenceItem[];
 }
 
 // 19 Buyoff Data

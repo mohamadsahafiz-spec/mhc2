@@ -700,32 +700,42 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">CUSTOMER ACCOUNT</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{customerCompany}</strong>
+                      <strong className="text-slate-900 font-bold text-sm block">{customerCompany || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">PLANT / FACILITY</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{plantFacility}</strong>
+                      <strong className="text-slate-900 font-bold text-sm block">{plantFacility || '—'}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono block">DEPARTMENT</span>
+                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.department || '—'}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono block">PRODUCTION LINE</span>
+                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.productionLine || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">MACHINE NUMBER / SOURCE</span>
-                      <strong className="text-cyan-900 font-bold font-mono text-sm block">{machineNumber}</strong>
+                      <strong className="text-cyan-900 font-bold font-mono text-sm block">{machineNumber || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">MACHINE MODEL</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.machineModel}</strong>
+                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.machineModel || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">SERIAL NUMBER</span>
-                      <strong className="text-slate-900 font-bold font-mono text-sm block">{sections['03'].data.serialNumber}</strong>
+                      <strong className="text-slate-900 font-bold font-mono text-sm block">{sections['03'].data.serialNumber || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">MACHINE ID</span>
-                      <strong className="text-slate-800 font-mono text-sm block">{sections['03'].data.machineId}</strong>
+                      <strong className="text-slate-800 font-mono text-sm block">{sections['03'].data.machineId || '—'}</strong>
                     </div>
                   </div>
 
@@ -804,18 +814,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
               <span>EXECUTIVE SUMMARY &amp; LASER LIFECYCLE</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-3.5 my-2 flex-1 min-h-0">
+            <div className="space-y-3 my-1 flex-1 min-h-0">
               
               {/* SECTION 04: EXECUTIVE SUMMARY */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
+                  <h2 className="text-base font-extrabold tracking-tight text-slate-900">
                     04 EXECUTIVE SUMMARY
                   </h2>
                   <span className="text-xs font-mono font-bold text-slate-400">
@@ -823,11 +833,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                     <div>
-                      <span className="font-mono text-slate-500 font-bold uppercase text-[10px] block">MHC RESULT</span>
-                      <strong className="text-slate-900 font-extrabold text-sm font-mono">
+                      <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">MHC RESULT</span>
+                      <strong className="text-slate-900 font-extrabold text-xs font-mono">
                         {sections['04'].data.overallStatus === 'PASS'
                           ? `PASS — ${sections['04'].data.readinessScore || 100}%`
                           : sections['04'].data.overallStatus === 'CONDITIONAL_PASS'
@@ -842,31 +852,27 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </div>
                   </div>
 
-                  <p className="text-slate-700 leading-relaxed font-sans text-xs">
+                  <p className="text-slate-700 leading-snug font-sans text-xs">
                     {sections['04'].data.summaryText}
                   </p>
 
-                  <p className="text-[11px] text-slate-500 italic">
-                    Final customer acceptance remains subject to customer review and approval.
-                  </p>
-
                   {/* Major Pass/Fail Table */}
-                  <div className="pt-2 border-t border-slate-200 space-y-1">
-                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">CORE AUDIT RESULTS</span>
+                  <div className="pt-1.5 border-t border-slate-200 space-y-1">
+                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">CORE AUDIT RESULTS</span>
                     <table className="w-full text-left text-xs border-collapse font-sans">
                       <thead>
-                        <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400">
-                          <th className="py-1">SUBSYSTEM / AUDIT ITEM</th>
-                          <th className="py-1">SPECIFICATION</th>
-                          <th className="py-1 text-right">VERDICT</th>
+                        <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
+                          <th className="py-0.5">SUBSYSTEM / AUDIT ITEM</th>
+                          <th className="py-0.5">SPECIFICATION</th>
+                          <th className="py-0.5 text-right">VERDICT</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {sections['04'].data.majorPassFailResults.map((item, idx) => (
                           <tr key={idx}>
-                            <td className="py-1.5 font-bold text-slate-800">{item.component}</td>
-                            <td className="py-1.5 text-slate-500 font-mono text-[11px]">{item.note}</td>
-                            <td className="py-1.5 text-right">{renderStatusBadge(item.verdict)}</td>
+                            <td className="py-1 font-bold text-slate-800">{item.component}</td>
+                            <td className="py-1 text-slate-500 font-mono text-[10px]">{item.note}</td>
+                            <td className="py-1 text-right">{renderStatusBadge(item.verdict)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -876,9 +882,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               </div>
 
               {/* SECTION 05: LASER HOURS & DETAILED LIFECYCLE BREAKDOWN */}
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+              <div className="space-y-2 pt-0.5">
+                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
+                  <h2 className="text-base font-extrabold tracking-tight text-slate-900">
                     05 LASER LIFECYCLE &amp; LIFETIME TELEMETRY
                   </h2>
                   <span className="text-xs font-mono font-bold text-cyan-800">
@@ -887,7 +893,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 {/* Laser Lifecycle Cards for Each Head */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {laserLifecycleHeads.map((head) => {
                     const isHealthy = head.lifeRemainingPercent >= 30;
                     const isWarning = head.lifeRemainingPercent < 30 && head.lifeRemainingPercent >= 15;
@@ -895,13 +901,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     return (
                       <div 
                         key={head.laserId} 
-                        className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs"
+                        className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs"
                       >
                         {/* Head Header */}
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-sm font-sans">{head.laserIdentifier}</span>
-                            <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
+                            <span className="font-bold text-slate-900 text-xs font-sans">{head.laserIdentifier}</span>
+                            <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
                               SN: {head.serialNumber}
                             </span>
                           </div>
@@ -909,34 +915,34 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
 
                         {/* Top Metrics Row: Current Hours & Limits */}
-                        <div className="grid grid-cols-4 gap-2 font-mono text-[11px]">
-                          <div className="p-2 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 font-sans block">CURRENT LASER HOURS</span>
-                            <strong className="text-cyan-950 text-sm block font-bold">
+                        <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
+                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
+                            <span className="text-[8px] text-slate-400 font-sans block">CURRENT LASER HOURS</span>
+                            <strong className="text-cyan-950 text-xs block font-bold">
                               {head.currentLaserHour.toLocaleString()} hrs
                             </strong>
                             <span className="text-[8px] text-emerald-700 font-sans">Authoritative Telemetry</span>
                           </div>
 
-                          <div className="p-2 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 font-sans block">WARNING LIMIT</span>
+                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
+                            <span className="text-[8px] text-slate-400 font-sans block">WARNING LIMIT</span>
                             <strong className="text-amber-800 block font-bold">
                               {head.warningLimit.toLocaleString()} hrs
                             </strong>
                             <span className="text-[8px] text-slate-400 font-sans">Maintenance Alert</span>
                           </div>
 
-                          <div className="p-2 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 font-sans block">ERROR / EOL LIMIT</span>
+                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
+                            <span className="text-[8px] text-slate-400 font-sans block">ERROR / EOL LIMIT</span>
                             <strong className="text-slate-800 block font-bold">
                               {head.errorEolLimit.toLocaleString()} hrs
                             </strong>
                             <span className="text-[8px] text-slate-400 font-sans">Rated Tube Lifespan</span>
                           </div>
 
-                          <div className="p-2 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 font-sans block">LIFE REMAINING %</span>
-                            <strong className={`block text-sm font-bold ${
+                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
+                            <span className="text-[8px] text-slate-400 font-sans block">LIFE REMAINING %</span>
+                            <strong className={`block text-xs font-bold ${
                               isHealthy ? 'text-emerald-700' : isWarning ? 'text-amber-700' : 'text-rose-700'
                             }`}>
                               {head.lifeRemainingPercent.toFixed(1)}%
@@ -946,15 +952,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
 
                         {/* Visual Life Bar */}
-                        <div className="space-y-1 pt-1">
-                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                        <div className="space-y-0.5 pt-0.5">
+                          <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
                             <span>0 hrs</span>
                             <span className="font-bold text-slate-700">
                               {head.remainingHours.toLocaleString()} HOURS REMAINING BEFORE EOL
                             </span>
                             <span>{head.errorEolLimit.toLocaleString()} hrs</span>
                           </div>
-                          <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
+                          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
                             <div 
                               className={`h-full rounded-full transition-all duration-500 ${
                                 isHealthy 
@@ -969,7 +975,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
 
                         {/* Bottom Projections Row */}
-                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-[10px] font-mono">
+                        <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-slate-200 text-[9px] font-mono">
                           <div>
                             <span className="text-slate-400 font-sans block">REMAINING HOURS</span>
                             <strong className="text-slate-800 font-bold">{head.remainingHours.toLocaleString()} hrs</strong>
@@ -1061,6 +1067,54 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             </strong>
                           </div>
                         </div>
+
+                        {/* Detailed Power Breakdown Matrix: Source, Optics Top Hat & Working Zone Masks */}
+                        {(head.current.laserSourceWatts || head.current.opticsTopHatWatts || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
+                          <div className="pt-2 border-t border-slate-200 space-y-1.5 font-mono text-[10px]">
+                            <div className="flex items-center justify-between text-slate-500 font-bold uppercase text-[9px]">
+                              <span>OPTICAL POWER PATH &amp; WORKING ZONE MASKS</span>
+                              <span className="text-cyan-800">AUTHORITATIVE POWER RECORD</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pb-1">
+                              <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
+                                <span className="text-slate-500 font-sans">Laser Source (Raw):</span>
+                                <strong className="text-slate-900">{head.current.laserSourceWatts !== null && head.current.laserSourceWatts !== undefined ? `${head.current.laserSourceWatts.toFixed(2)} W` : '—'}</strong>
+                              </div>
+                              <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
+                                <span className="text-slate-500 font-sans">Optics Top Hat:</span>
+                                <strong className="text-slate-900">{head.current.opticsTopHatWatts !== null && head.current.opticsTopHatWatts !== undefined ? `${head.current.opticsTopHatWatts.toFixed(2)} W` : '—'}</strong>
+                              </div>
+                            </div>
+
+                            {head.current.maskReadings && head.current.maskReadings.length > 0 && (
+                              <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
+                                    <th className="py-1 px-2">MASK SIZE</th>
+                                    <th className="py-1 px-2">TARGET MIN</th>
+                                    <th className="py-1 px-2">MEASURED</th>
+                                    <th className="py-1 px-2 text-right">STATUS</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {head.current.maskReadings.map((m, mIdx) => (
+                                    <tr key={mIdx}>
+                                      <td className="py-1 px-2 font-bold text-slate-800">{m.maskSize}</td>
+                                      <td className="py-1 px-2 text-slate-500">{m.minWatts.toFixed(2)} W</td>
+                                      <td className="py-1 px-2 font-bold text-cyan-900">{m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}</td>
+                                      <td className="py-1 px-2 text-right">
+                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                          {m.pass ? 'PASS' : 'FAIL'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1081,8 +1135,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                   <div className="grid grid-cols-2 gap-3 font-mono">
                     {sections['07'].data.heads.map(head => (
-                      <div key={head.headId} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1">
-                        <div className="font-bold text-slate-900 font-sans">{head.headName}</div>
+                      <div key={head.headId} className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 font-sans">{head.headName}</span>
+                          {head.current.overallResult && renderStatusBadge(head.current.overallResult)}
+                        </div>
                         <div className="text-[11px] text-slate-600">
                           Current Spot Size: <strong className="text-cyan-800">{head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : (head.beamImages && head.beamImages.length > 0 ? 'Evidence Captured' : 'Not Collected')}</strong>
                         </div>
@@ -1092,6 +1149,35 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="text-[10px] font-bold text-slate-700">
                           Delta: {head.comparison.statusText}
                         </div>
+
+                        {/* Beam Profile Checkpoint Matrix Table */}
+                        {head.current.checkpoints && head.current.checkpoints.length > 0 && (
+                          <div className="pt-1 border-t border-slate-100 space-y-1">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block font-sans">CHECKPOINTS TELEMETRY</span>
+                            <table className="w-full text-left text-[9px] border-collapse bg-slate-50 rounded">
+                              <thead>
+                                <tr className="border-b border-slate-200 text-slate-400">
+                                  <th className="py-0.5 px-1">POINT</th>
+                                  <th className="py-0.5 px-1">MEASURED</th>
+                                  <th className="py-0.5 px-1 text-right">STATUS</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {head.current.checkpoints.map(cp => (
+                                  <tr key={cp.checkpointId}>
+                                    <td className="py-0.5 px-1 font-bold text-slate-700">{cp.checkpointId}</td>
+                                    <td className="py-0.5 px-1 text-cyan-900">{cp.measuredDiameterMm.toFixed(3)} mm</td>
+                                    <td className="py-0.5 px-1 text-right">
+                                      <span className={cp.pass ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+                                        {cp.pass ? 'PASS' : 'FAIL'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1326,6 +1412,55 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
                       </div>
 
+                      {/* 6-Channel Telemetry Matrix Table */}
+                      {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
+                        <div className="pt-2 border-t border-slate-200 space-y-1">
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+                            <span>6-CHANNEL SENSOR READINGS MATRIX</span>
+                            <span className="text-cyan-800">SPEC: 22.0°C ± 1.0°C</span>
+                          </div>
+                          <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
+                                <th className="py-1 px-2">CHANNEL</th>
+                                <th className="py-1 px-2">LOCATION / SENSOR</th>
+                                <th className="py-1 px-2">MIN (°C)</th>
+                                <th className="py-1 px-2">MAX (°C)</th>
+                                <th className="py-1 px-2">AVG (°C)</th>
+                                <th className="py-1 px-2 text-right">STATUS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
+                                const chLabels: Record<string, string> = {
+                                  '1': 'Laser Head 1 Enclosure',
+                                  '2': 'Laser Head 2 Enclosure',
+                                  '3': 'Main Optics Chamber',
+                                  '4': 'Work Area / Stage Base',
+                                  '5': 'Electrical Cabinet',
+                                  '6': 'Ambient Cleanroom'
+                                };
+                                const isPass = cStat.avg >= 21.0 && cStat.avg <= 23.0;
+                                return (
+                                  <tr key={chNum}>
+                                    <td className="py-1 px-2 font-bold text-slate-800">CH{chNum}</td>
+                                    <td className="py-1 px-2 text-slate-600 font-sans">{chLabels[chNum] || `Sensor Station ${chNum}`}</td>
+                                    <td className="py-1 px-2 text-slate-500">{cStat.min.toFixed(2)}</td>
+                                    <td className="py-1 px-2 text-slate-500">{cStat.max.toFixed(2)}</td>
+                                    <td className="py-1 px-2 font-bold text-cyan-900">{cStat.avg.toFixed(2)}</td>
+                                    <td className="py-1 px-2 text-right">
+                                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                        {isPass ? 'PASS' : 'WARN'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
                       {/* Vector Temperature Time-Series Chart */}
                       <div className="pt-2 border-t border-slate-200 space-y-1.5">
                         <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
@@ -1497,38 +1632,72 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 17: SPARE PARTS */}
+              {/* SECTION 17: SPARE PARTS & RECOMMENDATIONS */}
               <div className="space-y-3">
-                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1">
-                  17 SPARE PARTS &amp; RECOMMENDATIONS
+                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <span>17 SPARE PARTS &amp; RECOMMENDATIONS</span>
+                  <span className="text-xs font-mono font-bold text-slate-500">CONSUMED VS RECOMMENDED</span>
                 </h2>
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                  {sections['17'].data.spareParts.length > 0 ? (
-                    <table className="w-full text-left text-xs border-collapse font-sans">
-                      <thead>
-                        <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400">
-                          <th className="py-1">PART NAME</th>
-                          <th className="py-1 font-mono">PART NUMBER</th>
-                          <th className="py-1">QTY</th>
-                          <th className="py-1">ACTION</th>
-                          <th className="py-1 text-right">COSTING</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {sections['17'].data.spareParts.map(sp => (
-                          <tr key={sp.id}>
-                            <td className="py-1.5 font-bold text-slate-800">{sp.partName}</td>
-                            <td className="py-1.5 font-mono text-[11px] text-slate-600">{sp.partNumber}</td>
-                            <td className="py-1.5 font-mono">{sp.quantity}</td>
-                            <td className="py-1.5 font-bold text-cyan-900">{sp.action}</td>
-                            <td className="py-1.5 text-right font-mono text-[10px] text-slate-500">{sp.costIndicator}</td>
+                <div className="space-y-3">
+                  {/* Consumed / Replaced Parts */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                    <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
+                      CONSUMED &amp; REPLACED PARTS (MAINTENANCE ACTIONS)
+                    </span>
+                    {sections['17'].data.consumedParts && sections['17'].data.consumedParts.length > 0 ? (
+                      <table className="w-full text-left text-xs border-collapse font-sans">
+                        <thead>
+                          <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400">
+                            <th className="py-1">PART NAME</th>
+                            <th className="py-1 font-mono">PART NUMBER</th>
+                            <th className="py-1">QTY</th>
+                            <th className="py-1">ACTION</th>
+                            <th className="py-1 text-right">COSTING</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p className="text-slate-600 italic text-xs">No spare parts recorded.</p>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {sections['17'].data.consumedParts.map(sp => (
+                            <tr key={sp.id}>
+                              <td className="py-1.5 font-bold text-slate-800">{sp.partName}</td>
+                              <td className="py-1.5 font-mono text-[11px] text-slate-600">{sp.partNumber}</td>
+                              <td className="py-1.5 font-mono">{sp.quantity}</td>
+                              <td className="py-1.5 font-bold text-cyan-900">{sp.action}</td>
+                              <td className="py-1.5 text-right font-mono text-[10px] text-slate-500">{sp.costIndicator}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-slate-500 italic text-xs">No consumed/replaced parts required during this service execution.</p>
+                    )}
+                  </div>
+
+                  {/* Recommended Spare Parts for Future Service */}
+                  {sections['17'].data.recommendedParts && sections['17'].data.recommendedParts.length > 0 && (
+                    <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/80 text-xs space-y-1.5">
+                      <span className="font-mono text-amber-800 font-bold uppercase text-[9px] block">
+                        RECOMMENDED SPARE PARTS (PROACTIVE REPLACEMENT / PROCUREMENT)
+                      </span>
+                      <table className="w-full text-left text-xs border-collapse font-sans">
+                        <thead>
+                          <tr className="border-b border-amber-200 font-mono text-[10px] text-amber-700/70">
+                            <th className="py-1">RECOMMENDED ITEM</th>
+                            <th className="py-1">SOURCE / FINDING</th>
+                            <th className="py-1 text-right">ENGINEER RECOMMENDATION</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-amber-100">
+                          {sections['17'].data.recommendedParts.map(rec => (
+                            <tr key={rec.id}>
+                              <td className="py-1.5 font-bold text-amber-950">{rec.partName}</td>
+                              <td className="py-1.5 font-mono text-[11px] text-amber-800">{rec.sourceFinding ? `Finding #${rec.sourceFinding}` : 'System Inspection'}</td>
+                              <td className="py-1.5 text-right text-slate-700 font-sans text-xs">{rec.reason}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1540,42 +1709,78 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <h2 className="text-sm font-bold text-slate-900 font-mono flex items-center justify-between w-full">
                       <span>18 EVIDENCE ATTACHMENTS</span>
                       <span className="text-xs text-slate-500 font-normal">
-                        {sections['18'].data.totalEvidenceItems} ATTACHED
+                        {sections['18'].data.totalEvidenceItems} ATTACHED ({sections['18'].data.inspectionEvidence?.length || 0} INSPECTION / {sections['18'].data.calibrationEvidence?.length || 0} TELEMETRY)
                       </span>
                     </h2>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-                    {sections['18'].data.items.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {sections['18'].data.items.map(item => (
-                          <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
-                            {item.imageDataUrl ? (
-                              <div className="w-full h-20 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
-                                <img 
-                                  src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
-                                  alt={item.title} 
-                                  crossOrigin="anonymous"
-                                  className="h-full w-auto max-w-full object-contain" 
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
+                  <div className="space-y-2">
+                    {/* Visual Inspection Evidence */}
+                    {sections['18'].data.inspectionEvidence && sections['18'].data.inspectionEvidence.length > 0 && (
+                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                        <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">ENGINEER VISUAL INSPECTION PHOTOS</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {sections['18'].data.inspectionEvidence.map(item => (
+                            <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
+                              {item.imageDataUrl ? (
+                                <div className="w-full h-16 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
+                                  <img 
+                                    src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
+                                    alt={item.title} 
+                                    crossOrigin="anonymous"
+                                    className="h-full w-auto max-w-full object-contain" 
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
+                                  [PHOTO]
+                                </div>
+                              )}
+                              <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
+                              <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
+                                {item.sourceSection} • {item.notes || 'Record'}
                               </div>
-                            ) : (
-                              <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
-                                [ATTACHMENT]
-                              </div>
-                            )}
-                            <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
-                            <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
-                              {item.sourceSection} • {item.notes || 'Record'}
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-slate-600 italic text-xs">No evidence attachments recorded.</p>
+                    )}
+
+                    {/* Calibration & Telemetry Artifacts */}
+                    {sections['18'].data.calibrationEvidence && sections['18'].data.calibrationEvidence.length > 0 && (
+                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                        <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">CALIBRATION &amp; TELEMETRY CAPTURES</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {sections['18'].data.calibrationEvidence.map(item => (
+                            <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
+                              {item.imageDataUrl ? (
+                                <div className="w-full h-16 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
+                                  <img 
+                                    src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
+                                    alt={item.title} 
+                                    crossOrigin="anonymous"
+                                    className="h-full w-auto max-w-full object-contain" 
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
+                                  [TELEMETRY]
+                                </div>
+                              )}
+                              <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
+                              <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
+                                {item.sourceSection} • {item.notes || 'Record'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

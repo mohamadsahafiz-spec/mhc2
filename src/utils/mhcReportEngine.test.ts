@@ -340,16 +340,23 @@ describe('mhcReportEngine', () => {
   });
 
   it('should not inject ghost machine or thermal fallbacks when session data is missing', () => {
-    const minimalSession: MHCSession = {
+    const minimalSession = {
       id: 'SESS-MINIMAL',
       machineId: 'M-101',
       machineModel: 'ESI Model X',
       machineSerialNumber: 'SN-001',
+      machineName: 'Minimal Machine',
+      customerId: 'CUST-001',
+      customerName: 'Customer',
+      plantName: 'Plant',
+      engineerName: 'Engineer',
       startDate: '2026-08-15',
+      startTime: '09:00',
+      lastUpdated: '2026-08-15T09:00:00Z',
       completionStatus: 'IN_PROGRESS',
       currentSection: 1,
       sectionStatuses: {}
-    };
+    } as unknown as MHCSession;
 
     const doc = buildMhcReportDocument(minimalSession);
 
@@ -380,18 +387,21 @@ describe('mhcReportEngine', () => {
         afterValueWatts: 14.8,
         stabilityPercent: 0.5,
         result: 'PASS',
+        notes: 'Head 1 Power stable with complete masks',
+        evidenceImages: ['data:image/png;base64,sample1'],
         powerRecord: {
           id: 'PR-1',
           date: '2026-08-10',
-          laserSource: { headA: 15.2, headB: null },
-          opticsTopHat: { headA: 14.8, headB: null },
+          frequencyKhz: 50,
+          laserSource: { headA: 15.2, headB: null, minWatts: 14.0, maxWatts: 16.0, specText: '15.0W ±1.0W', passA: true, passB: false },
+          opticsTopHat: { headA: 14.8, headB: null, minWatts: 13.5, maxWatts: 15.5, specText: '14.5W ±1.0W', passA: true, passB: false },
           workingZoneMasks: [
-            { maskSize: '2.2mm', minWatts: 13.5, headA: 14.2, headB: null, passA: true, passB: false },
-            { maskSize: '2.0mm', minWatts: 13.0, headA: 13.8, headB: null, passA: true, passB: false },
-            { maskSize: '1.8mm', minWatts: 12.5, headA: 13.2, headB: null, passA: true, passB: false },
-            { maskSize: '1.3mm', minWatts: 12.0, headA: 12.6, headB: null, passA: true, passB: false },
-            { maskSize: '1.1mm', minWatts: 11.5, headA: 12.0, headB: null, passA: true, passB: false },
-            { maskSize: '0.9mm', minWatts: 11.0, headA: 11.4, headB: null, passA: true, passB: false }
+            { maskSize: '2.2mm', minWatts: 13.5, headA: 14.2, headB: null, passA: true, passB: false, specText: '>13.5W' },
+            { maskSize: '2.0mm', minWatts: 13.0, headA: 13.8, headB: null, passA: true, passB: false, specText: '>13.0W' },
+            { maskSize: '1.8mm', minWatts: 12.5, headA: 13.2, headB: null, passA: true, passB: false, specText: '>12.5W' },
+            { maskSize: '1.3mm', minWatts: 12.0, headA: 12.6, headB: null, passA: true, passB: false, specText: '>12.0W' },
+            { maskSize: '1.1mm', minWatts: 11.5, headA: 12.0, headB: null, passA: true, passB: false, specText: '>11.5W' },
+            { maskSize: '0.9mm', minWatts: 11.0, headA: 11.4, headB: null, passA: true, passB: false, specText: '>11.0W' }
           ],
           overallResult: 'PASS'
         }
@@ -442,5 +452,47 @@ describe('mhcReportEngine', () => {
     // Major results table must accurately list Stage as FAIL
     const stageResult = doc.sections['04'].data.majorPassFailResults.find(r => r.component === 'Stage Calibration');
     expect(stageResult?.verdict).toBe('FAIL');
+  });
+
+  it('should correctly preserve department, production line and separate evidence and spare parts', () => {
+    const session = createDummySession('SESS-DEPT-PARTS');
+    (session as any).department = 'Microvia Drilling Dept';
+    (session as any).productionLine = 'Line 04 - High Density';
+
+    session.inspectionFindings = {
+      lh1: {
+        headId: 'lh1',
+        headName: 'Laser Head 1',
+        status: 'COMPLETED',
+        decision: 'ISSUE_FOUND',
+        findings: [
+          {
+            id: 'F-1',
+            headId: 'lh1',
+            headName: 'Laser Head 1',
+            component: 'Turning Mirror 2',
+            conditions: ['Coating degradation observed'],
+            actionRecommendation: 'Order replacement spare mirror for next PM',
+            engineerNote: 'Reflectivity degraded ~3%',
+            createdAt: '2026-08-10T10:00:00Z'
+          }
+        ]
+      }
+    };
+
+    const doc = buildMhcReportDocument(session);
+
+    // Machine info
+    expect(doc.sections['03'].data.department).toBe('Microvia Drilling Dept');
+    expect(doc.sections['03'].data.productionLine).toBe('Line 04 - High Density');
+
+    // Spare parts separation
+    expect(doc.sections['17'].data.consumedParts.length).toBe(1);
+    expect(doc.sections['17'].data.consumedParts[0].partName).toBe('Air Filter Element');
+    expect(doc.sections['17'].data.recommendedParts.length).toBe(1);
+    expect(doc.sections['17'].data.recommendedParts[0].partName).toContain('Turning Mirror 2');
+
+    // Evidence separation
+    expect(doc.sections['18'].data.calibrationEvidence.length).toBeGreaterThan(0);
   });
 });
