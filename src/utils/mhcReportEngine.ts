@@ -34,6 +34,7 @@ import {
 import { auditMhcSession } from './mhcAutopilotBrain';
 import { LaserEngine } from './laserEngine';
 import { ImageStore } from './imageStore';
+import { StorageService } from './persistence';
 
 /**
  * Builds a normalized, single MhcReportDocument from an authoritative MHCSession.
