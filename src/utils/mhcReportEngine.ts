@@ -61,7 +61,13 @@ export function buildMhcReportDocument(
   // Run authoritative session audit derived view
   const sessionAudit = auditMhcSession(session);
 
-  const machineNumber = (session as any).machineNumber || (session.machineName?.includes('#') ? session.machineName : undefined) || '';
+  // Authoritative Machine Record Resolution
+  const savedMachines = StorageService.getMachines();
+  const matchedMachine = savedMachines.find(m => m.id === session.machineId || m.serialNumber === session.machineSerialNumber);
+
+  const machineNumber = (session as any).machineNumber || matchedMachine?.machineNumber || matchedMachine?.machineNo || (session.machineName?.includes('#') ? session.machineName : undefined) || '';
+  const department = (session as any).department || matchedMachine?.department || undefined;
+  const productionLine = (session as any).productionLine || (session as any).productionLineName || matchedMachine?.productionLineName || undefined;
 
   // 01 COVER
   const coverData: MhcReportCoverData = {
@@ -69,11 +75,11 @@ export function buildMhcReportDocument(
     subtitle: 'System Health, Calibration & Optical Performance Audit',
     reportNumber,
     date: session.completedDate || session.startDate || (session as any).inspectionDate || '',
-    customerName: session.customerName || '',
-    plantName: session.plantName || '',
-    machineModel: session.machineModel || '',
-    machineSerialNumber: session.machineSerialNumber || '',
-    machineName: session.machineName || session.machineModel || '',
+    customerName: session.customerName || matchedMachine?.customerName || '',
+    plantName: session.plantName || matchedMachine?.plantName || '',
+    machineModel: session.machineModel || matchedMachine?.model || '',
+    machineSerialNumber: session.machineSerialNumber || matchedMachine?.serialNumber || '',
+    machineName: session.machineName || matchedMachine?.machineName || session.machineModel || '',
     machineNumber: machineNumber || undefined,
     engineerName: session.engineerName || '',
     engineerTitle: options?.engineerTitle || 'Field Service Engineer',
@@ -158,18 +164,18 @@ export function buildMhcReportDocument(
 
   // 03 MACHINE INFO
   const machineInfoData: MhcReportMachineInfoData = {
-    machineId: session.machineId || session.machineSerialNumber || '',
-    machineName: session.machineName || session.machineModel || '',
-    machineModel: session.machineModel || '',
+    machineId: session.machineId || matchedMachine?.id || session.machineSerialNumber || '',
+    machineName: session.machineName || matchedMachine?.machineName || session.machineModel || '',
+    machineModel: session.machineModel || matchedMachine?.model || '',
     machineNumber: machineNumber || undefined,
-    serialNumber: session.machineSerialNumber || '',
-    customerName: session.customerName || '',
-    plantName: session.plantName || '',
-    department: (session as any).department,
-    productionLine: (session as any).productionLine || (session as any).productionLineName,
-    installationDate: (session as any).installationDate,
-    baselineDate: previousSession?.completedDate || previousSession?.startDate,
-    lastMhcDate: session.completedDate || session.startDate,
+    serialNumber: session.machineSerialNumber || matchedMachine?.serialNumber || '',
+    customerName: session.customerName || matchedMachine?.customerName || '',
+    plantName: session.plantName || matchedMachine?.plantName || '',
+    department: department,
+    productionLine: productionLine,
+    installationDate: (session as any).installationDate || matchedMachine?.installationDate,
+    baselineDate: previousSession?.completedDate || previousSession?.startDate || matchedMachine?.baselineDate,
+    lastMhcDate: session.completedDate || session.startDate || matchedMachine?.lastMhcDate,
     engineerName: session.engineerName || '',
     laserHeads: laserHoursDetails.map(item => ({
       laserId: item.laserId,
@@ -196,9 +202,9 @@ export function buildMhcReportDocument(
   const prevPowerItems = previousSession?.stage03_laserPower || [];
 
   const headsPowerComparison: MhcPowerComparisonItem[] = [
-    { headId: 'lh1', headName: 'Laser Head 1' },
-    { headId: 'lh2', headName: 'Laser Head 2' }
-  ].map(({ headId, headName }, idx) => {
+    { headId: 'lh1', defaultHeadName: 'Laser Head 1' },
+    { headId: 'lh2', defaultHeadName: 'Laser Head 2' }
+  ].map(({ headId, defaultHeadName }, idx) => {
     const isHead1 = headId === 'lh1' || idx === 0;
 
     const matchesHead = (p: MHCLaserPowerItem, targetHead1: boolean) => {
@@ -253,9 +259,13 @@ export function buildMhcReportDocument(
     const prevLaserSourceWatts = prevPRec?.laserSource ? (isHead1 ? prevPRec.laserSource.headA : prevPRec.laserSource.headB) : null;
     const prevOpticsTopHatWatts = prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : null;
 
+    // Resolve authoritative head name & serial
+    const headSerial = isHead1 ? (matchedMachine?.laserHeads?.[0]?.serialNumber || laserHoursDetails[0]?.serialNumber) : (matchedMachine?.laserHeads?.[1]?.serialNumber || laserHoursDetails[1]?.serialNumber);
+    const resolvedHeadName = defaultHeadName + (headSerial ? ` (${headSerial})` : '');
+
     return {
       headId,
-      headName: curr?.laserIdentifier || headName,
+      headName: resolvedHeadName,
       specification: '15.0 W ± 10% (13.5–16.5 W)',
       hasPreviousBaseline: hasBaseline,
       current: {
@@ -367,9 +377,12 @@ export function buildMhcReportDocument(
       });
     }
 
+    const headSerial = isHead1 ? (matchedMachine?.laserHeads?.[0]?.serialNumber || laserHoursDetails[0]?.serialNumber) : (matchedMachine?.laserHeads?.[1]?.serialNumber || laserHoursDetails[1]?.serialNumber);
+    const resolvedHeadName = headName + (headSerial ? ` (${headSerial})` : '');
+
     return {
       headId,
-      headName,
+      headName: resolvedHeadName,
       specification: 'Gaussian Mode, Spot Size Spec',
       hasPreviousBaseline: hasBaseline,
       measurementStation: 'Standard Beam Profiler',
