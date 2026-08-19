@@ -50,19 +50,15 @@ export const Header: React.FC<HeaderProps> = ({
   const getTabTitle = (tab: NavigationTab) => {
     switch (tab) {
       case 'start_page': return 'Daily Work — Operational Home';
-      case 'workflow_guide': return 'Workflow Guide (SOP Manual)';
       case 'mission_control': return 'Mission Control & Directives';
+      case 'mhc_autopilot': return '★ MHC Autopilot Workspace';
+      case 'mhc': return 'Machine Health Check (MHC)';
+      case 'mhc_history': return 'MHC Inspection History & Reports';
       case 'contracts': return 'Contract Management';
-      case 'planner': return 'Execution Planner';
       case 'customers': return 'Customers & Plants';
       case 'machines': return 'Machine Passport';
-      case 'mhc': return 'Health Check (MHC)';
-      case 'laser_calibration': return 'Laser Calibration';
-      case 'baseline_check': return 'Baseline Verification';
-      case 'quality_investigation': return 'Quality Investigation';
       case 'reports': return 'Executive Reports';
       case 'analytics': return 'Operational Analytics';
-      case 'knowledge_base': return 'Knowledge Base';
       case 'users': return 'User Management & Multi-Engineer Directory';
       case 'settings': return 'Internal Architecture Milestone Changelog';
       case 'profile': return 'My Engineer Profile';

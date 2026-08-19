@@ -83,9 +83,9 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
   const handlePrimaryAction = () => {
     if (!isMissionActive) {
       setIsMissionActive(true);
-      onNavigate('workflow_guide');
+      onNavigate('mhc_autopilot');
     } else {
-      onNavigate('workflow_guide');
+      onNavigate('mhc_autopilot');
     }
   };
 
@@ -461,36 +461,36 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
           </div>
 
-          {/* Card 2: Workflow Guide */}
+          {/* Card 2: MHC Autopilot */}
           <div 
-            onClick={() => onNavigate('workflow_guide')}
+            onClick={() => onNavigate('mhc_autopilot')}
             className={`p-5 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between ${
               isDark 
                 ? 'bg-[#1A1D21] border-[#2B323A] hover:border-[#8B9DFF]/50 hover:bg-[#20252B]' 
-                : 'bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md shadow-xs'
+                : 'bg-white border-slate-200/90 hover:border-cyan-300 hover:shadow-md shadow-xs'
             }`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                isDark ? 'bg-[#8B9DFF]/15 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-700'
+                isDark ? 'bg-cyan-950/40 text-cyan-400' : 'bg-cyan-50 text-cyan-700'
               }`}>
-                <BookOpen className="w-5 h-5" />
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-[#8B9DFF] transition-colors">
-                  Workflow Guide
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors">
+                  MHC Autopilot
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                  6-Phase Cleanroom SOP
+                  Automated inspection flow
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-600 group-hover:translate-x-1 transition-all" />
           </div>
 
-          {/* Card 3: Execution Planner */}
+          {/* Card 3: MHC History */}
           <div 
-            onClick={() => onNavigate('planner')}
+            onClick={() => onNavigate('mhc_history')}
             className={`p-5 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between ${
               isDark 
                 ? 'bg-[#1A1D21] border-[#2B323A] hover:border-[#7FD4A6]/50 hover:bg-[#20252B]' 
@@ -505,41 +505,41 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-[#7FD4A6] transition-colors">
-                  Execution Planner
+                  MHC History
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                  2-Year contract SLA schedule
+                  Historical sessions & reports
                 </p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
           </div>
 
-          {/* Card 4: Report Studio */}
+          {/* Card 4: Canvas / Workspace */}
           <div 
-            onClick={() => onNavigate('reports')}
+            onClick={() => onNavigate('mhc')}
             className={`p-5 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between ${
               isDark 
                 ? 'bg-[#1A1D21] border-[#2B323A] hover:border-[#EFCB7A]/50 hover:bg-[#20252B]' 
-                : 'bg-white border-slate-200/90 hover:border-amber-300 hover:shadow-md shadow-xs'
+                : 'bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md shadow-xs'
             }`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                isDark ? 'bg-[#EFCB7A]/15 text-[#EFCB7A]' : 'bg-amber-50 text-amber-700'
+                isDark ? 'bg-indigo-950/40 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
               }`}>
                 <FileBarChart2 className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-amber-700 dark:group-hover:text-[#EFCB7A] transition-colors">
-                  Report Studio
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
+                  MHC Canvas
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                  Executive PDF report engine
+                  Interactive stage execution
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
           </div>
 
         </div>

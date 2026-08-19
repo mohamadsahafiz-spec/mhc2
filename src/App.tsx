@@ -34,18 +34,12 @@ import { LoginPage } from './components/auth/LoginPage';
 // Modules
 import { StartPageModule } from './components/modules/StartPageModule';
 import { MHCModeHome } from './components/modules/MHCModeHome';
-import { WorkflowGuideModule } from './components/modules/WorkflowGuideModule';
 import { MissionControl } from './components/modules/MissionControl';
 import { ContractsModule } from './components/modules/ContractsModule';
-import { ExecutionPlannerModule } from './components/modules/ExecutionPlannerModule';
 import { CustomersPlantsModule } from './components/modules/CustomersPlantsModule';
 import { MachinePassportModule } from './components/modules/MachinePassportModule';
 import { MachineHealthCheckModule } from './components/modules/MachineHealthCheckModule';
-import { LaserCalibrationModule } from './components/modules/LaserCalibrationModule';
-import { BaselineCheckModule } from './components/modules/BaselineCheckModule';
-import { QualityInvestigationModule } from './components/modules/QualityInvestigationModule';
 import { AnalyticsModule } from './components/modules/AnalyticsModule';
-import { KnowledgeBaseModule } from './components/modules/KnowledgeBaseModule';
 import { UsersModule } from './components/modules/UsersModule';
 import { ProfileModule } from './components/modules/ProfileModule';
 import { SettingsModule } from './components/modules/SettingsModule';
@@ -202,7 +196,7 @@ function AppLayout() {
 
     // Auto-redirect to start page if current active tab is not visible in MHC Mode
     if (newMode === 'MHC_MODE') {
-      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'workflow_guide', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile'];
+      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'mission_control', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
       if (!mhcAllowedTabs.includes(activeTab)) {
         setActiveTab('start_page');
       }
@@ -457,8 +451,6 @@ function AppLayout() {
         <main className={`flex-1 ${
           (activeTab === 'mhc' || activeTab.startsWith('mhc_'))
             ? 'p-2 sm:p-3 max-w-none w-full overflow-y-auto'
-            : activeTab === 'workflow_guide'
-            ? 'p-4 md:p-6 max-w-7xl w-full mx-auto overflow-hidden flex flex-col h-[calc(100vh-4rem)]'
             : 'p-4 md:p-6 max-w-7xl w-full mx-auto overflow-y-auto'
         }`}>
           {activeTab === 'start_page' && (
@@ -492,12 +484,6 @@ function AppLayout() {
             )
           )}
 
-          {activeTab === 'workflow_guide' && (
-            <WorkflowGuideModule
-              onNavigate={setActiveTab}
-            />
-          )}
-
           {activeTab === 'mission_control' && (
             <MissionControl
               tasks={tasks}
@@ -520,18 +506,7 @@ function AppLayout() {
             <ContractsModule
               contracts={contracts}
               onUpdateContract={handleUpdateContract}
-              onOpenPlannerForContract={() => setActiveTab('planner')}
-            />
-          )}
-
-          {activeTab === 'planner' && (
-            <ExecutionPlannerModule
-              schedule={schedule}
-              contracts={contracts}
-              machines={machines}
-              onAddScheduleItem={handleAddScheduleItem}
-              onUpdateScheduleItem={handleUpdateScheduleItem}
-              onDeleteScheduleItem={handleDeleteScheduleItem}
+              onOpenPlannerForContract={() => setActiveTab('contracts')}
             />
           )}
 
@@ -579,28 +554,8 @@ function AppLayout() {
             />
           )}
 
-          {activeTab === 'laser_calibration' && (
-            <LaserCalibrationModule machines={machines} />
-          )}
-
-          {activeTab === 'baseline_check' && (
-            <BaselineCheckModule baselines={baselines} machines={machines} />
-          )}
-
-          {activeTab === 'quality_investigation' && (
-            <QualityInvestigationModule
-              investigations={investigations}
-              machines={machines}
-              onAddInvestigation={handleAddInvestigation}
-            />
-          )}
-
           {activeTab === 'analytics' && (
             <AnalyticsModule machines={machines} />
-          )}
-
-          {activeTab === 'knowledge_base' && (
-            <KnowledgeBaseModule />
           )}
 
           {activeTab === 'users' && (

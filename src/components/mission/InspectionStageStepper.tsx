@@ -150,9 +150,9 @@ export const InspectionStageStepper: React.FC<InspectionStageStepperProps> = ({
               variant="outline"
               size="sm"
               icon={<Wrench className="w-3.5 h-3.5" />}
-              onClick={() => onNavigate('laser_calibration')}
+              onClick={() => onNavigate('mhc')}
             >
-              Calibration Studio
+              MHC Workspace
             </Button>
             <Button
               variant="primary"

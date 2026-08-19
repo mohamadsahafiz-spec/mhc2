@@ -46,9 +46,6 @@ export const WorkOrderChecklist: React.FC<WorkOrderChecklistProps> = ({
           <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-700 font-medium'}`}>
             Progress: <strong className={`font-bold ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-800'}`}>{completedCount} / {tasks.length} Done</strong>
           </span>
-          <Button variant="ghost" size="sm" onClick={() => onNavigate('planner')}>
-            Full Planner
-          </Button>
         </div>
       </div>
 

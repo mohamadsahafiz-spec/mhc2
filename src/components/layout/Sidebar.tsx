@@ -1,35 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Compass,
-  BookOpenCheck,
   LayoutDashboard, 
   FileText, 
-  CalendarDays, 
   Building2, 
   Cpu, 
-  Activity, 
-  Zap, 
-  SlidersHorizontal, 
-  AlertOctagon, 
-  FileBarChart, 
   LineChart, 
-  BookOpen, 
-  Settings, 
   Users,
   User,
-  ShieldCheck,
-  ChevronRight,
-  ChevronDown,
-  Clock,
-  Sliders,
-  Eye,
-  Thermometer,
-  CheckCircle2,
-  Package,
-  Sparkles,
-  LayoutTemplate,
   History,
   Bot,
+  Sparkles,
+  Zap,
+  ShieldCheck,
+  ChevronDown,
+  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
@@ -90,7 +75,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'start_page', label: 'Daily Work', icon: <Compass className="w-4 h-4" /> },
         { id: 'mission_control', label: 'Mission Control', icon: <LayoutDashboard className="w-4 h-4" /> },
-        { id: 'workflow_guide', label: 'Workflow Guide (SOP)', icon: <BookOpenCheck className="w-4 h-4" /> },
       ]
     },
     {
@@ -107,10 +91,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'SERVICE EXECUTION',
       items: [
         { id: 'machines', label: 'Machine Passport', icon: <Cpu className="w-4 h-4" /> },
-        { id: 'laser_calibration', label: 'Laser Calibration', icon: <Zap className="w-4 h-4" /> },
-        { id: 'baseline_check', label: 'Baseline Checks', icon: <SlidersHorizontal className="w-4 h-4" /> },
-        { id: 'quality_investigation', label: 'Quality Investigation', icon: <AlertOctagon className="w-4 h-4" />, badge: urgentAlertsCount },
-        { id: 'planner', label: 'Execution Planner', icon: <CalendarDays className="w-4 h-4" /> },
       ]
     },
     {
@@ -120,13 +100,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'customers', label: 'Customers & Plants', icon: <Building2 className="w-4 h-4" /> },
         { id: 'contracts', label: 'Contracts', icon: <FileText className="w-4 h-4" /> },
         { id: 'analytics', label: 'Analytics', icon: <LineChart className="w-4 h-4" /> },
-      ]
-    },
-    {
-      key: 'smart_tools',
-      title: 'SMART TOOLS',
-      items: [
-        { id: 'knowledge_base', label: 'Knowledge Base', icon: <BookOpen className="w-4 h-4" /> },
       ]
     },
     {
@@ -152,6 +125,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       allowedIds = ['mhc_autopilot', 'mhc', 'mhc_history'];
     } else if (group.key === 'service_execution') {
       allowedIds = ['machines'];
+    } else if (group.key === 'operations') {
+      allowedIds = ['customers', 'contracts', 'analytics'];
     } else if (group.key === 'system') {
       allowedIds = ['profile', 'settings'];
     }
