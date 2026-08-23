@@ -21,7 +21,8 @@ import {
   Edit3,
   Calendar,
   Layers,
-  Award
+  Award,
+  LogOut
 } from 'lucide-react';
 import { Customer, Machine, MHCSession } from '../../types';
 import { StorageService } from '../../utils/persistence';
@@ -762,18 +763,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             </div>
           </div>
 
-          {/* CANVAS WORKSPACE ESCAPE HATCH */}
+          {/* AUTOPILOT EXIT CONTROL */}
           <div className="pt-4 border-t border-slate-800/80">
             <button
+              id="mhc-autopilot-exit-btn"
               onClick={onSwitchToCanvas}
-              className={`w-full py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+              title="Exit Autopilot and return to MHC Workspace"
+              className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
                 isDark 
-                  ? 'bg-slate-900 hover:bg-slate-800 border-slate-700/80 text-cyan-300' 
-                  : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-800'
+                  ? 'bg-slate-900 hover:bg-rose-950/40 border-slate-700/80 hover:border-rose-700/80 text-slate-300 hover:text-rose-200' 
+                  : 'bg-white hover:bg-rose-50 border-slate-300 hover:border-rose-300 text-slate-700 hover:text-rose-800'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Canvas / Workspace</span>
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span>EXIT</span>
             </button>
           </div>
         </div>

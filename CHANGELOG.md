@@ -1,5 +1,12 @@
 # FSOS CHANGELOG
 
+## v1.2.1 — SPRINT 01 ITEM #1: MHC Autopilot Clear Exit Control (2026-08-23)
+
+### MHC Autopilot Clear Exit Control
+- **Dedicated Exit Control**: Replaced the ambiguous bottom-left "Canvas / Workspace" escape hatch in the Autopilot wizard sidebar with an unmistakable, high-visibility **EXIT** action button featuring a `LogOut` icon.
+- **Immediate Return to MHC Workspace**: Clicking the EXIT button cleanly dismisses the Autopilot overlay and restores the standard FSOS / MHC Smart Workspace without advancing to subsequent Autopilot activities.
+- **Authoritative Session & Data Preservation**: Autopilot session data, step progression, and active machine/customer context are strictly preserved during exit, ensuring zero data loss or session reset.
+
 ## v1.1.21 — SPRINT 01 BATCH F: §06 Laser Power Comparison Presentation (2026-08-23)
 
 ### §06 Laser Power Comparison Redesign

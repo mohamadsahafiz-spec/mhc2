@@ -14,6 +14,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.2.1',
+      date: '2026-08-23',
+      type: 'MHC Autopilot Clear Exit Control (Sprint 01 Item #1)',
+      highlights: [
+        'DEDICATED EXIT CONTROL: Replaced ambiguous "Canvas / Workspace" escape hatch at bottom-left with a high-visibility EXIT button.',
+        'INSTANT WORKSPACE RETURN: Exiting Autopilot immediately restores the standard FSOS/MHC Workspace without advancing activities.',
+        'SESSION PRESERVATION: Active machine context, session data, and progress are strictly retained during exit without resetting.'
+      ]
+    },
+    {
       version: 'v1.1.21',
       date: '2026-08-23',
       type: 'MHC PDF Section §06 Laser Power Comparison Redesign (Batch F)',
