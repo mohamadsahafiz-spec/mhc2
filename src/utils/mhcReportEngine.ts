@@ -598,15 +598,32 @@ export function buildMhcReportDocument(
   // 12 TEMPERATURE MONITORING (CONSUMES EXISTING TEMPERATURE ENGINE RESULT)
   const tempEvData = session.temperatureEvidenceData;
   const coolingData = session.stage05_cooling;
-  const hasTemp = Boolean(tempEvData && tempEvData.hasValidTemperatureAnalysis);
+
+  // Resolve temperature records from session or machine passport
+  const matchedTempRec = matchedMachine?.temperatureRecords?.find(r => r.id === tempEvData?.temperatureRecordId)
+    || (matchedMachine?.temperatureRecords && matchedMachine.temperatureRecords.length > 0 ? matchedMachine.temperatureRecords[0] : undefined);
+
+  const effectiveStats = tempEvData?.stats || matchedTempRec?.stats;
+  const effectiveChannelStats = tempEvData?.channelStats || matchedTempRec?.channelStats;
+  const effectiveChannelData = tempEvData?.channelData || matchedTempRec?.channelData;
+  const effectiveTitle = tempEvData?.temperatureRecordTitle || matchedTempRec?.title;
+  const effectiveFileName = tempEvData?.temperatureLogFileName || (matchedTempRec?.sourceFileNames ? matchedTempRec.sourceFileNames.join(', ') : undefined);
+  const effectiveRawCount = tempEvData?.rawRecordsCount || matchedTempRec?.rawRecordsCount;
+  const effectiveRecordId = tempEvData?.temperatureRecordId || matchedTempRec?.id;
+
+  const hasTempAnalysis = Boolean(tempEvData?.hasValidTemperatureAnalysis || Boolean(effectiveStats));
+  const hasCoolingData = Boolean(coolingData && (coolingData.chillerTempCelsius !== undefined || coolingData.chillerFlowLpm !== undefined || coolingData.result !== undefined));
+  const hasTemp = Boolean(hasTempAnalysis || hasCoolingData);
 
   const temperatureData: MhcReportTemperatureData = {
-    hasValidTemperatureAnalysis: hasTemp,
-    temperatureRecordTitle: tempEvData?.temperatureRecordTitle,
-    temperatureLogFileName: tempEvData?.temperatureLogFileName,
-    rawRecordsCount: tempEvData?.rawRecordsCount,
-    stats: tempEvData?.stats,
-    channelStats: tempEvData?.channelStats,
+    hasValidTemperatureAnalysis: hasTempAnalysis,
+    temperatureRecordId: effectiveRecordId,
+    temperatureRecordTitle: effectiveTitle,
+    temperatureLogFileName: effectiveFileName,
+    rawRecordsCount: effectiveRawCount,
+    stats: effectiveStats,
+    channelStats: effectiveChannelStats,
+    channelData: effectiveChannelData,
     chillerTempCelsius: coolingData?.chillerTempCelsius,
     chillerFlowLpm: coolingData?.chillerFlowLpm,
     diConductivityUs: coolingData?.diConductivityUs,
@@ -614,12 +631,14 @@ export function buildMhcReportDocument(
     engineerNote: tempEvData?.engineerNote || coolingData?.notes
   };
 
+  const isTempPass = (!coolingData?.result || coolingData.result === 'PASS') && (!effectiveStats || (effectiveStats.avg >= 20.0 && effectiveStats.avg <= 24.0));
+
   const temperatureSection: MhcReportSection<MhcReportTemperatureData> = {
     code: '12',
     title: 'Temperature Monitoring',
     displayOrder: 12,
     isVisible: options?.sectionVisibilityOverrides?.['12'] ?? true,
-    status: hasTemp ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: hasTemp ? (isTempPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: temperatureData
   };
 
@@ -1060,14 +1079,14 @@ export function buildMhcReportDocument(
       case '09': return 6;
       case '10': return 7;
       case '11': return 7;
-      case '12': return 7;
+      case '12': return 8;
       case '13': return 7;
       case '14': return 7;
-      case '15': return 8;
-      case '16': return 8;
-      case '17': return 8;
-      case '18': return 8;
-      case '19': return 8;
+      case '15': return 9;
+      case '16': return 9;
+      case '17': return 9;
+      case '18': return 9;
+      case '19': return 9;
       default: return 1;
     }
   };

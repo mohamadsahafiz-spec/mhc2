@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v1.1.17 — MHC PDF Section §12 Temperature & Thermal Telemetry Repair (2026-08-23)
+
+### §12 Temperature MHC PDF Restoration & Architecture
+- **Multi-Source Authoritative Telemetry Resolution**: Traced and restored the §12 data pipeline across `MHCSession` (`temperatureData`, `temperatureEvidenceData`) and `MachinePassport` (`temperatureRecords`). Telemetry points, 6-channel sensor statistics, global Min/Max/Avg temperatures, and chiller status are accurately resolved without synthetic default fabrication.
+- **Dynamic Subsystem Status Assessment**: Section 12 status is dynamically evaluated (`COMPLETE`, `NEEDS_REVIEW`, or `NOT_COLLECTED`) based on measured operating parameters against industrial specifications (20.0°C–24.0°C temperature envelope and chiller loop flow verdict).
+- **Dedicated Page 8 Thermal Telemetry Layout**: Expanded MHC PDF report architecture to a dedicated 9-page layout, separating Motion & Scanner Calibration (§10, §11 on Page 7) from Continuous Thermal Telemetry (§12 on Page 8) and Findings/Buyoff (§15, §16, §17, §19 on Page 9) to eliminate layout crowding, page clipping, and footer overlap.
+- **Multi-Channel Vector SVG Telemetry Profile**: Rendered high-fidelity vector time-series thermal profile chart with tolerance band visualization, dynamic station error bars, and channel sensor matrix table.
+- **TOC & Index Synchronization**: Synchronized Table of Contents page index entries across all 19 subsystem modules to reflect the 9-page report layout.
+
 ## v1.1.12 — MHC Autopilot Multi-Machine Session Detection & Resume UX (2026-08-16)
 
 ### Multi-Machine Session Detection & Continuation

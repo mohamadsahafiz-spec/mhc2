@@ -344,6 +344,7 @@ export interface MhcReportAgcData {
 // 12 Temperature Monitoring Data
 export interface MhcReportTemperatureData {
   hasValidTemperatureAnalysis: boolean;
+  temperatureRecordId?: string;
   temperatureRecordTitle?: string;
   temperatureLogFileName?: string;
   rawRecordsCount?: number;
@@ -355,11 +356,13 @@ export interface MhcReportTemperatureData {
     points: number;
   };
   channelStats?: Record<number, { min: number; max: number; avg: number; range: number; points: number }>;
+  channelData?: Record<number, Array<{ ts: Date | string | number; val: number }>>;
   chillerTempCelsius?: number;
   chillerFlowLpm?: number;
   diConductivityUs?: number;
   coolingResult?: 'PASS' | 'ATTENTION' | 'FAIL' | 'NOT_COLLECTED';
   engineerNote?: string;
+  notes?: string;
 }
 
 // 13 Laser / Product Profile Data [Optional / Placeholder]

@@ -586,7 +586,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
               <div className="text-[10px] text-slate-400 pt-4 text-center border-t border-slate-100 flex items-center justify-between">
                 <span>CONFIDENTIAL — {customerCompany}</span>
-                <span>Page 1 of 8</span>
+                <span>Page 1 of 9</span>
               </div>
             </div>
 
@@ -659,7 +659,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 2 of 8</span>
+              <span>Page 2 of 9</span>
             </div>
 
           </div>
@@ -804,7 +804,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 3 of 8</span>
+              <span>Page 3 of 9</span>
             </div>
 
           </div>
@@ -1002,7 +1002,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 4 of 8</span>
+              <span>Page 4 of 9</span>
             </div>
 
           </div>
@@ -1164,7 +1164,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 5 of 8</span>
+              <span>Page 5 of 9</span>
             </div>
 
           </div>
@@ -1413,24 +1413,24 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 6 of 8</span>
+              <span>Page 6 of 9</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 7: MOTION & CALIBRATION (10 STAGE, 11 AGC, 12 TEMP)
+              PAGE 7: MOTION & CALIBRATION (10 STAGE, 11 AGC, OPTIONAL 13 & 14)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>STAGE, AGC &amp; THERMAL TELEMETRY</span>
+              <span>STAGE, SCANNER &amp; MOTION CALIBRATION</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-3 my-1.5 flex-1 min-h-0">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 10: STAGE CALIBRATION */}
               <div className="space-y-3">
@@ -1564,213 +1564,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 12: TEMPERATURE MONITORING */}
-              <div className="space-y-3 pt-1">
-                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <span>12 TEMPERATURE &amp; THERMAL TELEMETRY</span>
-                  <span className="text-xs font-mono font-normal text-slate-500">SECTION 12</span>
-                </h2>
-
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs font-mono">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-[9px] text-slate-400 block font-sans">CHILLER TEMP</span>
-                      <strong className="text-slate-800">
-                        {sections['12'].data.chillerTempCelsius !== undefined && sections['12'].data.chillerTempCelsius !== null
-                          ? `${sections['12'].data.chillerTempCelsius.toFixed(1)} °C`
-                          : '—'}
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-[9px] text-slate-400 block font-sans">COOLING FLOW</span>
-                      <strong className="text-slate-800">
-                        {sections['12'].data.chillerFlowLpm !== undefined && sections['12'].data.chillerFlowLpm !== null
-                          ? `${sections['12'].data.chillerFlowLpm.toFixed(1)} L/min`
-                          : '—'}
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-[9px] text-slate-400 block font-sans">COOLING STATUS</span>
-                      <div>{renderStatusBadge(sections['12'].data.coolingResult || 'NOT_COLLECTED')}</div>
-                    </div>
-                  </div>
-
-                  {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats && (
-                    <>
-                      <div className="pt-2 border-t border-slate-200 grid grid-cols-3 gap-2 text-[10px]">
-                        <div>
-                          <span className="text-slate-400 block font-sans">MIN TEMP</span>
-                          <strong>{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-sans">MAX TEMP</span>
-                          <strong>{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-sans">AVG TEMP</span>
-                          <strong>{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
-                        </div>
-                      </div>
-
-                      {/* 6-Channel Telemetry Matrix Table */}
-                      {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
-                        <div className="pt-2 border-t border-slate-200 space-y-1">
-                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
-                            <span>6-CHANNEL SENSOR READINGS MATRIX</span>
-                            <span className="text-cyan-800">SPEC: 22.0°C ± 1.0°C</span>
-                          </div>
-                          <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
-                            <thead>
-                              <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
-                                <th className="py-1 px-2">CHANNEL</th>
-                                <th className="py-1 px-2">LOCATION / SENSOR</th>
-                                <th className="py-1 px-2">MIN (°C)</th>
-                                <th className="py-1 px-2">MAX (°C)</th>
-                                <th className="py-1 px-2">AVG (°C)</th>
-                                <th className="py-1 px-2 text-right">STATUS</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
-                                const chLabels: Record<string, string> = {
-                                  '1': 'Laser Head 1 Enclosure',
-                                  '2': 'Laser Head 2 Enclosure',
-                                  '3': 'Main Optics Chamber',
-                                  '4': 'Work Area / Stage Base',
-                                  '5': 'Electrical Cabinet',
-                                  '6': 'Ambient Cleanroom'
-                                };
-                                const isPass = cStat.avg >= 21.0 && cStat.avg <= 23.0;
-                                return (
-                                  <tr key={chNum}>
-                                    <td className="py-1 px-2 font-bold text-slate-800">CH{chNum}</td>
-                                    <td className="py-1 px-2 text-slate-600 font-sans">{chLabels[chNum] || `Sensor Station ${chNum}`}</td>
-                                    <td className="py-1 px-2 text-slate-500">{cStat.min.toFixed(2)}</td>
-                                    <td className="py-1 px-2 text-slate-500">{cStat.max.toFixed(2)}</td>
-                                    <td className="py-1 px-2 font-bold text-cyan-900">{cStat.avg.toFixed(2)}</td>
-                                    <td className="py-1 px-2 text-right">
-                                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                        {isPass ? 'PASS' : 'WARN'}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      {/* Vector Temperature Time-Series Chart */}
-                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                          <span className="font-bold text-slate-700 uppercase">PERSISTED THERMAL TELEMETRY PROFILE</span>
-                          <span>
-                            {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Telemetry Record'}
-                            {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} PTS)` : ''}
-                          </span>
-                        </div>
-                        <div className="w-full h-24 bg-slate-900 rounded-lg p-2 relative overflow-hidden border border-slate-800">
-                          {(() => {
-                            const stats = sections['12'].data.stats;
-                            const chStats = sections['12'].data.channelStats || {};
-                            const chEntries = Object.entries(chStats);
-                            const minVal = (stats as any)?.minTempCelsius ?? stats?.min ?? 20;
-                            const maxVal = (stats as any)?.maxTempCelsius ?? stats?.max ?? 24;
-                            const avgVal = (stats as any)?.avgTempCelsius ?? stats?.avg ?? 22;
-
-                            const plotMin = Math.floor(Math.min(minVal, 20.0));
-                            const plotMax = Math.ceil(Math.max(maxVal, 24.0));
-                            const plotSpan = Math.max(1, plotMax - plotMin);
-                            const getY = (val: number) => {
-                              const clamped = Math.max(plotMin, Math.min(plotMax, val));
-                              return 68 - ((clamped - plotMin) / plotSpan) * 56;
-                            };
-
-                            const avgY = getY(avgVal);
-                            const minY = getY(minVal);
-                            const maxY = getY(maxVal);
-
-                            const channelPoints = chEntries.map(([ch, cStat], idx) => {
-                              const spacing = chEntries.length > 1 ? 380 / (chEntries.length - 1) : 190;
-                              const x = chEntries.length > 1 ? 55 + idx * spacing : 250;
-                              const yAvg = getY(cStat.avg);
-                              const yMin = getY(cStat.min);
-                              const yMax = getY(cStat.max);
-                              return { ch, cStat, x, yAvg, yMin, yMax };
-                            });
-
-                            const polylinePoints = channelPoints.map(p => `${p.x},${p.yAvg}`).join(' ');
-
-                            return (
-                              <svg viewBox="0 0 500 80" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
-                                {/* Spec tolerance band (21.0 - 23.0 °C) */}
-                                <rect 
-                                  x="35" 
-                                  y={getY(23.0)} 
-                                  width="455" 
-                                  height={Math.max(3, getY(21.0) - getY(23.0))} 
-                                  fill="#06b6d4" 
-                                  fillOpacity="0.12" 
-                                />
-                                <line x1="35" y1={getY(22.0)} x2="490" y2={getY(22.0)} stroke="#06b6d4" strokeWidth="0.75" strokeDasharray="3,3" />
-
-                                {/* Temperature Grid Lines & Labels */}
-                                <line x1="35" y1={getY(plotMax)} x2="490" y2={getY(plotMax)} stroke="#334155" strokeWidth="0.5" />
-                                <text x="2" y={getY(plotMax) + 3} fill="#64748b">{plotMax.toFixed(0)}°C</text>
-
-                                <line x1="35" y1={avgY} x2="490" y2={avgY} stroke="#10b981" strokeWidth="1" strokeDasharray="4,2" />
-                                <text x="2" y={avgY + 3} fill="#10b981">AVG</text>
-
-                                <line x1="35" y1={getY(plotMin)} x2="490" y2={getY(plotMin)} stroke="#334155" strokeWidth="0.5" />
-                                <text x="2" y={getY(plotMin) + 3} fill="#64748b">{plotMin.toFixed(0)}°C</text>
-
-                                {/* Polyline connecting stations */}
-                                {channelPoints.length > 1 && (
-                                  <polyline
-                                    points={polylinePoints}
-                                    fill="none"
-                                    stroke="#38bdf8"
-                                    strokeWidth="1.5"
-                                  />
-                                )}
-
-                                {/* Channel stations with real calculated error bars */}
-                                {channelPoints.map((p, idx) => {
-                                  const color = idx % 4 === 0 ? '#38bdf8' : idx % 4 === 1 ? '#34d399' : idx % 4 === 2 ? '#fbbf24' : '#a78bfa';
-                                  return (
-                                    <g key={p.ch}>
-                                      <line x1={p.x} y1={p.yMax} x2={p.x} y2={p.yMin} stroke={color} strokeWidth="2" strokeOpacity="0.7" />
-                                      <line x1={p.x - 3} y1={p.yMax} x2={p.x + 3} y2={p.yMax} stroke={color} strokeWidth="1" />
-                                      <line x1={p.x - 3} y1={p.yMin} x2={p.x + 3} y2={p.yMin} stroke={color} strokeWidth="1" />
-                                      <circle cx={p.x} cy={p.yAvg} r="3.5" fill={color} stroke="#0f172a" strokeWidth="1" />
-                                      <text x={p.x} y={p.yMax - 3} textAnchor="middle" fill={color} fontWeight="bold">
-                                        {`CH${p.ch}: ${p.cStat.avg.toFixed(1)}°`}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-
-                                {channelPoints.length === 0 && (
-                                  <g>
-                                    <line x1="35" y1={maxY} x2="490" y2={maxY} stroke="#fbbf24" strokeWidth="0.75" strokeDasharray="2,2" />
-                                    <line x1="35" y1={minY} x2="490" y2={minY} stroke="#38bdf8" strokeWidth="0.75" strokeDasharray="2,2" />
-                                    <circle cx="250" cy={avgY} r="4" fill="#10b981" stroke="#0f172a" strokeWidth="1" />
-                                    <text x={260} y={avgY + 3} fill="#10b981" fontWeight="bold">
-                                      AVERAGE {avgVal.toFixed(2)}°C (MIN {minVal.toFixed(1)}°C / MAX {maxVal.toFixed(1)}°C)
-                                    </text>
-                                  </g>
-                                )}
-                              </svg>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
               {/* OPTIONAL SECTION 13: LASER / PRODUCT PROFILE */}
               {isSectionVisible('13') && (
                 <div className="space-y-2 pt-1 border-t border-slate-100">
@@ -1802,13 +1595,294 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 7 of 8</span>
+              <span>Page 7 of 9</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 8: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
+              PAGE 8: TEMPERATURE & THERMAL TELEMETRY (12) - DEDICATED FULL PAGE
+             ========================================================================= */}
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
+              <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
+              <span>SECTION 12 — TEMPERATURE &amp; THERMAL TELEMETRY</span>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-4 my-2 flex-1 min-h-0">
+              
+              {/* SECTION 12: TEMPERATURE MONITORING */}
+              <div className="space-y-3">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      12 TEMPERATURE &amp; THERMAL TELEMETRY
+                    </h2>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      Chiller Subsystem Telemetry &amp; Continuous Multi-Channel Thermal Profiling
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['12'].status)}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 text-xs font-mono">
+                  {/* Chiller Subsystem Overview */}
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase block">
+                      PRIMARY CHILLER / COOLING LOOP SUBSYSTEM
+                    </span>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">CHILLER SETPOINT / TEMP</span>
+                        <strong className="text-slate-800 text-sm block font-bold">
+                          {sections['12'].data.chillerTempCelsius !== undefined && sections['12'].data.chillerTempCelsius !== null
+                            ? `${sections['12'].data.chillerTempCelsius.toFixed(1)} °C`
+                            : 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Target: 22.0°C ± 1.0°C</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">COOLING FLOW RATE</span>
+                        <strong className="text-slate-800 text-sm block font-bold">
+                          {sections['12'].data.chillerFlowLpm !== undefined && sections['12'].data.chillerFlowLpm !== null
+                            ? `${sections['12'].data.chillerFlowLpm.toFixed(1)} L/min`
+                            : 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Min Flow: ≥ 4.0 L/min</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+                        <span className="text-[9px] text-slate-400 block font-sans">COOLING SYSTEM VERDICT</span>
+                        <div>{renderStatusBadge(sections['12'].data.coolingResult || 'NOT_COLLECTED')}</div>
+                        <span className="text-[8px] text-slate-400 font-sans">DI Loop Closed</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Record Statistics & Matrix */}
+                  {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats ? (
+                    <>
+                      {/* Overall Telemetry Stats Header */}
+                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+                          <span>PERSISTED THERMAL TELEMETRY RECORD</span>
+                          <span className="text-cyan-800">
+                            {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Authoritative Telemetry Log'}
+                            {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} DATA POINTS)` : ''}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-[10px]">
+                          <div className="p-2 rounded bg-white border border-slate-200">
+                            <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MIN TEMP</span>
+                            <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
+                          </div>
+                          <div className="p-2 rounded bg-white border border-slate-200">
+                            <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MAX TEMP</span>
+                            <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
+                          </div>
+                          <div className="p-2 rounded bg-cyan-50/60 border border-cyan-300">
+                            <span className="text-cyan-800 block font-sans font-bold text-[8px]">GLOBAL AVG TEMP</span>
+                            <strong className="text-cyan-950 font-extrabold text-xs">{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
+                          </div>
+                          <div className="p-2 rounded bg-white border border-slate-200">
+                            <span className="text-slate-400 block font-sans text-[8px]">TEMPERATURE RANGE</span>
+                            <strong className="text-slate-800 font-bold text-xs">
+                              {(((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max) - ((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min)).toFixed(2)} °C
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 6-Channel Telemetry Matrix Table */}
+                      {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
+                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+                            <span>6-CHANNEL SENSOR READINGS MATRIX</span>
+                            <span className="text-cyan-800">SPEC: 22.0°C ± 1.0°C (21.0°C – 23.0°C)</span>
+                          </div>
+                          <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50 font-mono text-[9px]">
+                                <th className="py-1.5 px-2.5">CHANNEL</th>
+                                <th className="py-1.5 px-2.5">LOCATION / SENSOR STATION</th>
+                                <th className="py-1.5 px-2.5">MIN (°C)</th>
+                                <th className="py-1.5 px-2.5">MAX (°C)</th>
+                                <th className="py-1.5 px-2.5">AVG (°C)</th>
+                                <th className="py-1.5 px-2.5 text-right font-sans">STATUS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
+                                const chLabels: Record<string, string> = {
+                                  '1': 'Laser Head 1 Enclosure',
+                                  '2': 'Laser Head 2 Enclosure',
+                                  '3': 'Main Optics Chamber',
+                                  '4': 'Work Area / Stage Base',
+                                  '5': 'Electrical Cabinet',
+                                  '6': 'Ambient Cleanroom'
+                                };
+                                const isPass = cStat.avg >= 21.0 && cStat.avg <= 23.0;
+                                return (
+                                  <tr key={chNum}>
+                                    <td className="py-1.5 px-2.5 font-bold text-slate-800 font-mono">CH{chNum}</td>
+                                    <td className="py-1.5 px-2.5 text-slate-700 font-sans">{chLabels[chNum] || `Sensor Station ${chNum}`}</td>
+                                    <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.min.toFixed(2)}</td>
+                                    <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.max.toFixed(2)}</td>
+                                    <td className="py-1.5 px-2.5 font-bold text-cyan-900 font-mono">{cStat.avg.toFixed(2)}</td>
+                                    <td className="py-1.5 px-2.5 text-right">
+                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                        {isPass ? 'PASS' : 'WARN'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Vector Temperature Time-Series Chart */}
+                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                          <span className="font-bold text-slate-700 uppercase">VECTOR MULTI-CHANNEL THERMAL PROFILE</span>
+                          <span>SPEC TOLERANCE BAND: 21.0°C – 23.0°C</span>
+                        </div>
+                        <div className="w-full h-36 bg-slate-900 rounded-xl p-2.5 relative overflow-hidden border border-slate-800">
+                          {(() => {
+                            const stats = sections['12'].data.stats;
+                            const chStats = sections['12'].data.channelStats || {};
+                            const chEntries = Object.entries(chStats);
+                            const minVal = (stats as any)?.minTempCelsius ?? stats?.min ?? 20;
+                            const maxVal = (stats as any)?.maxTempCelsius ?? stats?.max ?? 24;
+                            const avgVal = (stats as any)?.avgTempCelsius ?? stats?.avg ?? 22;
+
+                            const plotMin = Math.floor(Math.min(minVal, 20.0));
+                            const plotMax = Math.ceil(Math.max(maxVal, 24.0));
+                            const plotSpan = Math.max(1, plotMax - plotMin);
+                            const getY = (val: number) => {
+                              const clamped = Math.max(plotMin, Math.min(plotMax, val));
+                              return 100 - ((clamped - plotMin) / plotSpan) * 82;
+                            };
+
+                            const avgY = getY(avgVal);
+                            const minY = getY(minVal);
+                            const maxY = getY(maxVal);
+
+                            const channelPoints = chEntries.map(([ch, cStat], idx) => {
+                              const spacing = chEntries.length > 1 ? 380 / (chEntries.length - 1) : 190;
+                              const x = chEntries.length > 1 ? 60 + idx * spacing : 250;
+                              const yAvg = getY(cStat.avg);
+                              const yMin = getY(cStat.min);
+                              const yMax = getY(cStat.max);
+                              return { ch, cStat, x, yAvg, yMin, yMax };
+                            });
+
+                            const polylinePoints = channelPoints.map(p => `${p.x},${p.yAvg}`).join(' ');
+
+                            return (
+                              <svg viewBox="0 0 500 120" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
+                                {/* Spec tolerance band (21.0 - 23.0 °C) */}
+                                <rect 
+                                  x="40" 
+                                  y={getY(23.0)} 
+                                  width="450" 
+                                  height={Math.max(3, getY(21.0) - getY(23.0))} 
+                                  fill="#06b6d4" 
+                                  fillOpacity="0.15" 
+                                />
+                                <line x1="40" y1={getY(22.0)} x2="490" y2={getY(22.0)} stroke="#06b6d4" strokeWidth="0.75" strokeDasharray="3,3" />
+                                <text x="440" y={getY(22.0) - 3} fill="#06b6d4" fontSize="7">TARGET 22°C</text>
+
+                                {/* Temperature Grid Lines & Labels */}
+                                <line x1="40" y1={getY(plotMax)} x2="490" y2={getY(plotMax)} stroke="#334155" strokeWidth="0.5" />
+                                <text x="2" y={getY(plotMax) + 3} fill="#64748b">{plotMax.toFixed(0)}°C</text>
+
+                                <line x1="40" y1={avgY} x2="490" y2={avgY} stroke="#10b981" strokeWidth="1" strokeDasharray="4,2" />
+                                <text x="2" y={avgY + 3} fill="#10b981">AVG</text>
+
+                                <line x1="40" y1={getY(plotMin)} x2="490" y2={getY(plotMin)} stroke="#334155" strokeWidth="0.5" />
+                                <text x="2" y={getY(plotMin) + 3} fill="#64748b">{plotMin.toFixed(0)}°C</text>
+
+                                {/* Polyline connecting stations */}
+                                {channelPoints.length > 1 && (
+                                  <polyline
+                                    points={polylinePoints}
+                                    fill="none"
+                                    stroke="#38bdf8"
+                                    strokeWidth="1.5"
+                                  />
+                                )}
+
+                                {/* Channel stations with real calculated error bars */}
+                                {channelPoints.map((p, idx) => {
+                                  const color = idx % 4 === 0 ? '#38bdf8' : idx % 4 === 1 ? '#34d399' : idx % 4 === 2 ? '#fbbf24' : '#a78bfa';
+                                  return (
+                                    <g key={p.ch}>
+                                      <line x1={p.x} y1={p.yMax} x2={p.x} y2={p.yMin} stroke={color} strokeWidth="2.5" strokeOpacity="0.7" />
+                                      <line x1={p.x - 4} y1={p.yMax} x2={p.x + 4} y2={p.yMax} stroke={color} strokeWidth="1.5" />
+                                      <line x1={p.x - 4} y1={p.yMin} x2={p.x + 4} y2={p.yMin} stroke={color} strokeWidth="1.5" />
+                                      <circle cx={p.x} cy={p.yAvg} r="4" fill={color} stroke="#0f172a" strokeWidth="1.5" />
+                                      <text x={p.x} y={p.yMax - 4} textAnchor="middle" fill={color} fontWeight="bold" fontSize="8.5">
+                                        {`CH${p.ch}: ${p.cStat.avg.toFixed(1)}°`}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+
+                                {channelPoints.length === 0 && (
+                                  <g>
+                                    <line x1="40" y1={maxY} x2="490" y2={maxY} stroke="#fbbf24" strokeWidth="0.75" strokeDasharray="2,2" />
+                                    <line x1="40" y1={minY} x2="490" y2={minY} stroke="#38bdf8" strokeWidth="0.75" strokeDasharray="2,2" />
+                                    <circle cx="250" cy={avgY} r="4" fill="#10b981" stroke="#0f172a" strokeWidth="1" />
+                                    <text x={260} y={avgY + 3} fill="#10b981" fontWeight="bold">
+                                      AVERAGE {avgVal.toFixed(2)}°C (MIN {minVal.toFixed(1)}°C / MAX {maxVal.toFixed(1)}°C)
+                                    </text>
+                                  </g>
+                                )}
+                              </svg>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Clean Fallback when no temperature log is linked */
+                    <div className="pt-3 border-t border-slate-200 text-center py-6 space-y-2">
+                      <div className="text-slate-400 font-mono text-xs">
+                        NO CONTINUOUS MULTI-CHANNEL THERMAL LOG LINKED TO THIS SESSION
+                      </div>
+                      <p className="text-slate-500 font-sans text-xs max-w-md mx-auto">
+                        Thermal inspection status was determined from manual chiller telemetry checks. To populate detailed 6-channel sensor matrices and profile curves, link a temperature log record to this machine passport.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Engineer Observation / Notes */}
+                  {(sections['12'].data.engineerNote || sections['12'].data.notes) && (
+                    <div className="text-[10px] text-slate-600 font-sans border-t border-slate-200 pt-2">
+                      <span className="font-bold text-slate-800 font-mono">ENGINEER OBSERVATION:</span> {sections['12'].data.engineerNote || sections['12'].data.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
+              <span>CONFIDENTIAL — {customerCompany}</span>
+              <span>Page 8 of 9</span>
+            </div>
+
+          </div>
+
+          {/* =========================================================================
+              PAGE 9: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -1977,7 +2051,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 8 of 8</span>
+              <span>Page 9 of 9</span>
             </div>
 
           </div>

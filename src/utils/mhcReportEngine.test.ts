@@ -246,9 +246,9 @@ describe('mhcReportEngine', () => {
     expect(hoursSec.laserHours.length).toBe(2);
     expect(hoursSec.laserHours[0].verifiedHour).toBe(12500);
 
-    // Verify optional sections are represented safely
-    expect(doc.sections['08'].status).toBe('NOT_COLLECTED');
-    expect(doc.sections['09'].status).toBe('NOT_COLLECTED');
+    // Verify restored sections 08 & 09 and optional placeholder sections are represented safely
+    expect(doc.sections['08'].status).toBe('COMPLETE');
+    expect(doc.sections['09'].status).toBe('COMPLETE');
     expect(doc.sections['13'].status).toBe('NOT_COLLECTED');
     expect(doc.sections['14'].status).toBe('NOT_COLLECTED');
   });
