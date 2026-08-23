@@ -1020,143 +1020,242 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Content Body */}
-            <div className="space-y-4 my-2 flex-1 min-h-0">
+            <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
               {/* SECTION 06: LASER POWER */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    06 LASER POWER &amp; BASELINE COMPARISON
-                  </h2>
-                  <span className="text-xs font-mono font-bold text-cyan-800">SPEC: 15.0W ± 10%</span>
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      06 LASER POWER &amp; BASELINE COMPARISON
+                    </h2>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Authoritative Optical Power Measurement &amp; Calibration Variance Analysis
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded">
+                      SPEC: 15.0W ± 10% (13.5–16.5 W)
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-3 text-xs">
-                  <p className="text-slate-600 text-xs italic">
-                    {sections['06'].data.comparisonNote}
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {sections['06'].data.heads.map(head => {
-                      const deltaVal = head.comparison.deltaWatts;
-                      const deltaPct = head.comparison.deltaPercent;
-                      const isNegative = deltaVal !== undefined && deltaVal !== null && deltaVal < 0;
-
-                      return (
-                        <div key={head.headId} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                          <div className="flex items-center justify-between font-mono">
-                            <span className="font-bold text-slate-900 text-xs font-sans">{head.headName}</span>
-                            {renderStatusBadge(head.current.verdict)}
-                          </div>
-
-                          {/* Comparison Flow: Previous Measurement ➔ Current Measurement ➔ Delta / % Shift */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 font-mono text-[11px]">
-                            
-                            {/* Step 1: Previous Measurement */}
-                            <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                              <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans border-b border-slate-100 pb-1">
-                                <span className="font-semibold uppercase tracking-wider">1. PREVIOUS MEASUREMENT</span>
-                                <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-slate-100 text-slate-600">
-                                  {head.previous?.recordedDate || 'No Baseline'}
-                                </span>
-                              </div>
-                              <div className="pt-1.5">
-                                <strong className="text-slate-800 text-sm font-extrabold block">
-                                  {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : '—'}
-                                </strong>
-                                <span className="text-[8px] text-slate-400 font-sans">Historical Baseline Reference</span>
-                              </div>
-                            </div>
-
-                            {/* Step 2: Current Measurement */}
-                            <div className="p-2.5 rounded-lg bg-cyan-50/50 border border-cyan-300 flex flex-col justify-between">
-                              <div className="flex items-center justify-between text-[9px] text-cyan-800 font-sans border-b border-cyan-100 pb-1">
-                                <span className="font-bold uppercase tracking-wider">2. CURRENT MEASUREMENT</span>
-                                <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-cyan-100 text-cyan-900 font-bold">
-                                  {head.current.measurementDate || inspectionDate}
-                                </span>
-                              </div>
-                              <div className="pt-1.5">
-                                <strong className="text-cyan-950 text-sm font-extrabold block">
-                                  {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
-                                </strong>
-                                <span className="text-[8px] text-cyan-700 font-sans">MHC Session Verification</span>
-                              </div>
-                            </div>
-
-                            {/* Step 3: Delta & Percentage Shift */}
-                            <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
-                              isNegative ? 'bg-amber-50/60 border-amber-300 text-amber-950' : 'bg-emerald-50/60 border-emerald-300 text-emerald-950'
-                            }`}>
-                              <div className="flex items-center justify-between text-[9px] font-sans border-b pb-1 opacity-80">
-                                <span className="font-bold uppercase tracking-wider">3. VARIATION (Δ / %)</span>
-                                <span className="font-mono text-[8px] font-bold">
-                                  {deltaPct !== undefined && deltaPct !== null ? `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—'}
-                                </span>
-                              </div>
-                              <div className="pt-1.5">
-                                <strong className="text-sm font-extrabold block">
-                                  {deltaVal !== undefined && deltaVal !== null ? `${deltaVal > 0 ? '+' : ''}${deltaVal.toFixed(2)} W` : head.comparison.statusText}
-                                </strong>
-                                <span className="text-[8px] font-sans block opacity-90 font-medium">
-                                  {head.comparison.statusText}
-                                </span>
-                              </div>
-                            </div>
-
-                          </div>
-
-                          {/* Detailed Power Breakdown Matrix: Source, Optics Top Hat & Working Zone Masks */}
-                          {(head.current.laserSourceWatts || head.current.opticsTopHatWatts || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
-                            <div className="pt-2 border-t border-slate-200 space-y-1.5 font-mono text-[10px]">
-                              <div className="flex items-center justify-between text-slate-500 font-bold uppercase text-[9px]">
-                                <span>OPTICAL POWER PATH &amp; WORKING ZONE MASKS</span>
-                                <span className="text-cyan-800">AUTHORITATIVE POWER RECORD</span>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2 pb-1">
-                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
-                                  <span className="text-slate-500 font-sans">Laser Source (Raw):</span>
-                                  <strong className="text-slate-900">{head.current.laserSourceWatts !== null && head.current.laserSourceWatts !== undefined ? `${head.current.laserSourceWatts.toFixed(2)} W` : '—'}</strong>
-                                </div>
-                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
-                                  <span className="text-slate-500 font-sans">Optics Top Hat:</span>
-                                  <strong className="text-slate-900">{head.current.opticsTopHatWatts !== null && head.current.opticsTopHatWatts !== undefined ? `${head.current.opticsTopHatWatts.toFixed(2)} W` : '—'}</strong>
-                                </div>
-                              </div>
-
-                              {head.current.maskReadings && head.current.maskReadings.length > 0 && (
-                                <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
-                                  <thead>
-                                    <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
-                                      <th className="py-1 px-2">MASK SIZE</th>
-                                      <th className="py-1 px-2">TARGET MIN</th>
-                                      <th className="py-1 px-2">MEASURED</th>
-                                      <th className="py-1 px-2 text-right">STATUS</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {head.current.maskReadings.map((m, mIdx) => (
-                                      <tr key={mIdx}>
-                                        <td className="py-1 px-2 font-bold text-slate-800">{m.maskSize}</td>
-                                        <td className="py-1 px-2 text-slate-500">{m.minWatts.toFixed(2)} W</td>
-                                        <td className="py-1 px-2 font-bold text-cyan-900">{m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}</td>
-                                        <td className="py-1 px-2 text-right">
-                                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                            {m.pass ? 'PASS' : 'FAIL'}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                {/* Mental Model Visual Key */}
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100/80 border border-slate-200 text-[10px] font-mono text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <strong className="text-slate-700">LEFT:</strong> Historical Baseline (Previous)
                   </div>
+                  <div className="flex items-center gap-1 text-slate-400 font-bold">
+                    <span>VS</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                    <strong className="text-cyan-900">RIGHT:</strong> Present Measurement (Current)
+                  </div>
+                  <div className="flex items-center gap-1 text-slate-400 font-bold">
+                    <span>➔</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <strong className="text-slate-800">VARIATION:</strong> Δ = Current − Previous
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 text-xs">
+                  {sections['06'].data.heads.map(head => {
+                    const deltaVal = head.comparison.deltaWatts;
+                    const deltaPct = head.comparison.deltaPercent;
+                    const isNegative = deltaVal !== undefined && deltaVal !== null && deltaVal < 0;
+                    const prevDate = head.previous?.recordedDate || 'Baseline';
+                    const currDate = head.current.measurementDate || inspectionDate;
+
+                    // Optical path deltas
+                    const prevSrc = head.previous?.laserSourceWatts;
+                    const currSrc = head.current.laserSourceWatts;
+                    const srcDelta = (typeof currSrc === 'number' && typeof prevSrc === 'number') ? currSrc - prevSrc : null;
+
+                    const prevTop = head.previous?.opticsTopHatWatts;
+                    const currTop = head.current.opticsTopHatWatts;
+                    const topDelta = (typeof currTop === 'number' && typeof prevTop === 'number') ? currTop - prevTop : null;
+
+                    return (
+                      <div key={head.headId} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        {/* Head Header */}
+                        <div className="flex items-center justify-between font-mono border-b border-slate-200 pb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-xs font-sans">{head.headName}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">15.0W Base Spec</span>
+                          </div>
+                          {renderStatusBadge(head.current.verdict)}
+                        </div>
+
+                        {/* Visual 3-Way Comparison: Previous VS Current ➔ Variation */}
+                        <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-stretch font-mono text-[11px]">
+                          
+                          {/* LEFT: Previous Baseline (3 cols) */}
+                          <div className="md:col-span-3 p-2 rounded-lg bg-white border border-slate-300 flex flex-col justify-between shadow-xs">
+                            <div className="flex items-center justify-between text-[9px] text-slate-500 font-sans border-b border-slate-100 pb-1">
+                              <span className="font-bold uppercase tracking-wider text-slate-600">PREVIOUS (BASELINE)</span>
+                              <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-semibold">
+                                {prevDate}
+                              </span>
+                            </div>
+                            <div className="pt-1.5 flex items-baseline justify-between">
+                              <strong className="text-slate-800 text-base font-extrabold block">
+                                {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : '—'}
+                              </strong>
+                              <span className="text-[9px] text-slate-400 font-sans">Historical Baseline</span>
+                            </div>
+                          </div>
+
+                          {/* MIDDLE: Visual "VS" Indicator (1 col) */}
+                          <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
+                            <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[10px] font-black text-slate-700 shadow-xs">
+                              VS
+                            </div>
+                            <span className="text-[8px] font-mono text-slate-400 mt-0.5">COMPARE</span>
+                          </div>
+
+                          {/* RIGHT: Current Measurement (3 cols) */}
+                          <div className="md:col-span-3 p-2 rounded-lg bg-cyan-50/70 border border-cyan-400 flex flex-col justify-between shadow-xs">
+                            <div className="flex items-center justify-between text-[9px] text-cyan-800 font-sans border-b border-cyan-200 pb-1">
+                              <span className="font-extrabold uppercase tracking-wider text-cyan-900">CURRENT (PRESENT)</span>
+                              <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-cyan-100 text-cyan-950 font-bold">
+                                {currDate}
+                              </span>
+                            </div>
+                            <div className="pt-1.5 flex items-baseline justify-between">
+                              <strong className="text-cyan-950 text-base font-extrabold block">
+                                {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
+                              </strong>
+                              <span className="text-[9px] text-cyan-700 font-sans font-medium">Present Verification</span>
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Result Row: Variation Summary */}
+                        <div className={`p-2 rounded-lg border flex items-center justify-between font-mono text-[11px] ${
+                          isNegative ? 'bg-amber-50/70 border-amber-300 text-amber-950' : 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/80 border border-current">
+                              VARIATION = CURRENT − PREVIOUS
+                            </span>
+                            <span className="text-[10px] font-sans text-slate-600">Calibration Shift:</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <strong className="text-sm font-extrabold font-mono">
+                              {deltaVal !== undefined && deltaVal !== null ? `${deltaVal > 0 ? '+' : ''}${deltaVal.toFixed(2)} W` : head.comparison.statusText}
+                            </strong>
+                            {deltaPct !== undefined && deltaPct !== null && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                isNegative ? 'bg-amber-200/80 text-amber-900' : 'bg-emerald-200/80 text-emerald-900'
+                              }`}>
+                                {deltaPct > 0 ? '+' : ''}{deltaPct.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Optical Path Breakdown & Working Zone Mask Comparison Table */}
+                        {(currSrc || currTop || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
+                          <div className="pt-1 space-y-1.5 font-mono text-[10px]">
+                            
+                            {/* Optical Stages Comparison */}
+                            {(currSrc || currTop) && (
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center text-[10px]">
+                                  <span className="text-slate-500 font-sans text-[9px]">Laser Source (Raw):</span>
+                                  <div className="flex items-center gap-1.5 font-mono">
+                                    <span className="text-slate-400">{prevSrc ? `${prevSrc.toFixed(2)}W` : '—'}</span>
+                                    <span className="text-slate-300">➔</span>
+                                    <strong className="text-slate-900">{currSrc ? `${currSrc.toFixed(2)}W` : '—'}</strong>
+                                    {srcDelta !== null && (
+                                      <span className={`text-[9px] ${srcDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        ({srcDelta > 0 ? '+' : ''}{srcDelta.toFixed(2)}W)
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center text-[10px]">
+                                  <span className="text-slate-500 font-sans text-[9px]">Optics Top Hat:</span>
+                                  <div className="flex items-center gap-1.5 font-mono">
+                                    <span className="text-slate-400">{prevTop ? `${prevTop.toFixed(2)}W` : '—'}</span>
+                                    <span className="text-slate-300">➔</span>
+                                    <strong className="text-slate-900">{currTop ? `${currTop.toFixed(2)}W` : '—'}</strong>
+                                    {topDelta !== null && (
+                                      <span className={`text-[9px] ${topDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        ({topDelta > 0 ? '+' : ''}{topDelta.toFixed(2)}W)
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Working Zone Mask Explicit Columns: Mask Size | Previous (date) | Current (date) | Δ Power | Δ % | Status */}
+                            {head.current.maskReadings && head.current.maskReadings.length > 0 && (
+                              <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-slate-500 font-semibold bg-slate-100/90 text-[9px]">
+                                    <th className="py-1 px-2">MASK SIZE</th>
+                                    <th className="py-1 px-2 bg-slate-200/50 text-slate-700">PREVIOUS ({prevDate})</th>
+                                    <th className="py-1 px-2 bg-cyan-100/50 text-cyan-900 font-bold">CURRENT ({currDate})</th>
+                                    <th className="py-1 px-2 text-slate-700">Δ POWER</th>
+                                    <th className="py-1 px-2 text-slate-700">Δ %</th>
+                                    <th className="py-1 px-2 text-right">STATUS</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {head.current.maskReadings.map((m, mIdx) => (
+                                    <tr key={mIdx} className="hover:bg-slate-50/50">
+                                      <td className="py-1 px-2 font-bold text-slate-800">
+                                        {m.maskSize}
+                                        <span className="text-[8px] text-slate-400 ml-1 font-normal">(≥{m.minWatts.toFixed(1)}W)</span>
+                                      </td>
+                                      <td className="py-1 px-2 text-slate-600 bg-slate-50/30">
+                                        {m.prevMeasuredWatts !== null && m.prevMeasuredWatts !== undefined ? `${m.prevMeasuredWatts.toFixed(2)} W` : '—'}
+                                      </td>
+                                      <td className="py-1 px-2 font-bold text-cyan-950 bg-cyan-50/30">
+                                        {m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}
+                                      </td>
+                                      <td className="py-1 px-2 font-semibold">
+                                        {m.deltaWatts !== null && m.deltaWatts !== undefined ? (
+                                          <span className={m.deltaWatts < 0 ? 'text-amber-700' : 'text-emerald-700'}>
+                                            {m.deltaWatts > 0 ? '+' : ''}{m.deltaWatts.toFixed(2)} W
+                                          </span>
+                                        ) : '—'}
+                                      </td>
+                                      <td className="py-1 px-2">
+                                        {m.deltaPercent !== null && m.deltaPercent !== undefined ? (
+                                          <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${
+                                            m.deltaPercent < 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                                          }`}>
+                                            {m.deltaPercent > 0 ? '+' : ''}{m.deltaPercent.toFixed(1)}%
+                                          </span>
+                                        ) : '—'}
+                                      </td>
+                                      <td className="py-1 px-2 text-right">
+                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                          m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                        }`}>
+                                          {m.pass ? 'PASS' : 'FAIL'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -248,16 +248,29 @@ export function buildMhcReportDocument(
     // Map complete power breakdown from stored powerRecord (laserSource, opticsTopHat, workingZoneMasks)
     const laserSourceWatts = pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : null;
     const opticsTopHatWatts = pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : null;
-    
-    const maskReadings = pRec?.workingZoneMasks ? pRec.workingZoneMasks.map(m => ({
-      maskSize: m.maskSize,
-      minWatts: m.minWatts,
-      measuredWatts: isHead1 ? m.headA : m.headB,
-      pass: isHead1 ? m.passA : m.passB
-    })) : undefined;
-
     const prevLaserSourceWatts = prevPRec?.laserSource ? (isHead1 ? prevPRec.laserSource.headA : prevPRec.laserSource.headB) : null;
     const prevOpticsTopHatWatts = prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : null;
+    
+    const maskReadings = pRec?.workingZoneMasks ? pRec.workingZoneMasks.map(m => {
+      const currMaskWatts = isHead1 ? m.headA : m.headB;
+      const prevMask = prevPRec?.workingZoneMasks?.find(pm => pm.maskSize === m.maskSize);
+      const prevMaskWatts = prevMask ? (isHead1 ? prevMask.headA : prevMask.headB) : null;
+      let maskDeltaW: number | null = null;
+      let maskDeltaPct: number | null = null;
+      if (typeof currMaskWatts === 'number' && typeof prevMaskWatts === 'number' && prevMaskWatts > 0) {
+        maskDeltaW = currMaskWatts - prevMaskWatts;
+        maskDeltaPct = (maskDeltaW / prevMaskWatts) * 100;
+      }
+      return {
+        maskSize: m.maskSize,
+        minWatts: m.minWatts,
+        measuredWatts: currMaskWatts,
+        prevMeasuredWatts: prevMaskWatts,
+        deltaWatts: maskDeltaW,
+        deltaPercent: maskDeltaPct,
+        pass: isHead1 ? m.passA : m.passB
+      };
+    }) : undefined;
 
     // Resolve authoritative head name & serial
     const headSerial = isHead1 ? (matchedMachine?.laserHeads?.[0]?.serialNumber || laserHoursDetails[0]?.serialNumber) : (matchedMachine?.laserHeads?.[1]?.serialNumber || laserHoursDetails[1]?.serialNumber);

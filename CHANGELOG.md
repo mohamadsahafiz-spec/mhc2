@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v1.1.21 — SPRINT 01 BATCH F: §06 Laser Power Comparison Presentation (2026-08-23)
+
+### §06 Laser Power Comparison Redesign
+- **Intuitive Baseline vs Measurement Mental Model**: Redesigned §06 on Page 5 with an unmistakable layout:
+  - **LEFT**: Historical Baseline (Previous) with attached baseline date.
+  - **VS**: Visual comparison connector badge.
+  - **RIGHT**: Present Measurement (Current) with active MHC verification date.
+  - **VARIATION**: Resulting variance calculation ($\Delta = \text{Current} - \text{Previous}$ in Watts and percentage shift $\Delta\%$).
+- **Working Zone Mask Comparison Matrix**: Implemented explicit table columns across both Laser Head 1 and Laser Head 2:
+  `Mask Size | Previous (date) | Current (date) | Δ Power | Δ % | Status`
+- **Optical Path Comparison**: Added side-by-side historical vs present tracking for Laser Source (Raw) and Optics Top Hat.
+- **Authoritative Data Integrity**: Maintained all authoritative power readings, tolerance thresholds, and PASS/FAIL verdict logic with zero fabrication or changes to other PDF sections.
+
 ## v1.1.20 — SPRINT 01 RE-RUN BATCH D: Renumber Buyoff Section to §18 (2026-08-23)
 
 ### Continuous Section Numbering & Renumbering of Buyoff to §18

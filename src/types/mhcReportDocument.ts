@@ -190,6 +190,9 @@ export interface MhcPowerComparisonItem {
       maskSize: string;
       minWatts: number;
       measuredWatts: number | null;
+      prevMeasuredWatts?: number | null;
+      deltaWatts?: number | null;
+      deltaPercent?: number | null;
       pass: boolean;
     }>;
   };

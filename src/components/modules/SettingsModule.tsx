@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.21',
+      date: '2026-08-23',
+      type: 'MHC PDF Section §06 Laser Power Comparison Redesign (Batch F)',
+      highlights: [
+        'INTUITIVE COMPARISON MENTAL MODEL: Redesigned §06 on Page 5 with explicit visual comparison: LEFT (Previous Baseline) VS RIGHT (Current Measurement) ➔ VARIATION (Δ = Current − Previous).',
+        'EXPLICIT WORKING ZONE MASK MATRIX: Formatted mask tables with explicit columns: Mask Size | Previous (date) | Current (date) | Δ Power | Δ % | Status across both Laser Head 1 and 2.',
+        'OPTICAL PATH DELTA ANALYSIS: Added historical vs present power tracking for Laser Source (Raw) and Optics Top Hat.',
+        'AUTHORITATIVE RETENTION: All calculations, tolerances (15.0W ± 10%), and verdicts strictly preserved from authoritative session data.'
+      ]
+    },
+    {
       version: 'v1.1.20',
       date: '2026-08-23',
       type: 'MHC PDF Section Numbering Continuous Sequence (§18 Buyoff Renumbering)',

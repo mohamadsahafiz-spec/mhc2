@@ -265,6 +265,26 @@ describe('mhcReportEngine', () => {
     previousSession.stage03_laserPower[0].afterValueWatts = 15.5; // Head 1 previously 15.5 W, now 15.1 W -> -0.4W (-2.6%)
     previousSession.stage03_laserPower[1].afterValueWatts = 15.0; // Head 2 previously 15.0 W, now 14.9 W -> -0.1W (-0.7%)
 
+    // Add previous working zone masks to verify mask comparison columns
+    previousSession.stage03_laserPower[0].powerRecord = {
+      ...currentSession.stage03_laserPower[0].powerRecord!,
+      laserSource: { headA: 18.2, headB: 18.0 },
+      opticsTopHat: { headA: 15.4, headB: 15.2 },
+      workingZoneMasks: [
+        { maskSize: '50 µm', minWatts: 13.0, headA: 14.2, headB: 14.0, passA: true, passB: true },
+        { maskSize: '100 µm', minWatts: 14.0, headA: 15.0, headB: 14.8, passA: true, passB: true }
+      ]
+    };
+    currentSession.stage03_laserPower[0].powerRecord = {
+      ...currentSession.stage03_laserPower[0].powerRecord!,
+      laserSource: { headA: 18.5, headB: 18.1 },
+      opticsTopHat: { headA: 15.1, headB: 14.9 },
+      workingZoneMasks: [
+        { maskSize: '50 µm', minWatts: 13.0, headA: 13.9, headB: 13.7, passA: true, passB: true },
+        { maskSize: '100 µm', minWatts: 14.0, headA: 14.7, headB: 14.5, passA: true, passB: true }
+      ]
+    };
+
     previousSession.stage02_laserProfile.beamProfileRecord!.readings['6A'].measuredDiameterMm = 3.60; // Head 1 previously 3.60mm, now 3.52mm -> -0.080mm (-2.2%)
 
     const doc = buildMhcReportDocument(currentSession, previousSession);
@@ -274,6 +294,14 @@ describe('mhcReportEngine', () => {
     expect(powerHead1.hasPreviousBaseline).toBe(true);
     expect(powerHead1.comparison.deltaWatts).toBeCloseTo(-0.4, 2);
     expect(powerHead1.comparison.statusText).toContain('-0.40 W');
+
+    // Check mask readings comparison
+    expect(powerHead1.current.maskReadings).toBeDefined();
+    const mask50 = powerHead1.current.maskReadings?.find(m => m.maskSize === '50 µm');
+    expect(mask50?.prevMeasuredWatts).toBe(14.2);
+    expect(mask50?.measuredWatts).toBe(13.9);
+    expect(mask50?.deltaWatts).toBeCloseTo(-0.3, 2);
+    expect(mask50?.pass).toBe(true);
 
     // Check beam comparison
     const beamHead1 = doc.sections['07'].data.heads[0];
