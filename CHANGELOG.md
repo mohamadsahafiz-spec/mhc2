@@ -1,5 +1,10 @@
 # FSOS CHANGELOG
 
+## v1.2.2 — SPRINT 01 ITEM #1 MICRO-FIX: Autopilot Exit Button Label (2026-08-23)
+
+### Autopilot Exit Button Label Micro-Fix
+- **Updated Exit Control Label**: Changed the Autopilot bottom-left navigation button label from `EXIT` to **`EXIT AUTOPILOT`** for optimal semantic clarity while preserving instant return to Canvas/Workspace and full session state retention.
+
 ## v1.2.1 — SPRINT 01 ITEM #1: MHC Autopilot Clear Exit Control (2026-08-23)
 
 ### MHC Autopilot Clear Exit Control

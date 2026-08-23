@@ -776,7 +776,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               }`}
             >
               <LogOut className="w-3.5 h-3.5 text-rose-400" />
-              <span>EXIT</span>
+              <span>EXIT AUTOPILOT</span>
             </button>
           </div>
         </div>
