@@ -34,7 +34,6 @@ import { LoginPage } from './components/auth/LoginPage';
 // Modules
 import { StartPageModule } from './components/modules/StartPageModule';
 import { MHCModeHome } from './components/modules/MHCModeHome';
-import { MissionControl } from './components/modules/MissionControl';
 import { ContractsModule } from './components/modules/ContractsModule';
 import { CustomersPlantsModule } from './components/modules/CustomersPlantsModule';
 import { MachinePassportModule } from './components/modules/MachinePassportModule';
@@ -83,7 +82,7 @@ function AppLayout() {
     timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
     language: 'English (US)',
     accountStatus: 'Active',
-    bio: 'Lead Field Engineer specialized in TRUMPFTruMicro ultra-fast laser systems.'
+    bio: 'Field Service Engineer certified for precision laser systems and cleanroom diagnostics.'
   });
 
   // Load state from StorageService on mount
@@ -196,7 +195,7 @@ function AppLayout() {
 
     // Auto-redirect to start page if current active tab is not visible in MHC Mode
     if (newMode === 'MHC_MODE') {
-      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'mission_control', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
+      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
       if (!mhcAllowedTabs.includes(activeTab)) {
         setActiveTab('start_page');
       }
@@ -482,24 +481,6 @@ function AppLayout() {
                 }}
               />
             )
-          )}
-
-          {activeTab === 'mission_control' && (
-            <MissionControl
-              tasks={tasks}
-              onToggleTask={handleToggleTask}
-              alerts={alerts}
-              contracts={contracts}
-              machines={machines}
-              schedule={schedule}
-              recentMhcs={mhcRecords}
-              onNavigate={setActiveTab}
-              onOpenQuickMhc={() => setActiveTab('mhc')}
-              onSelectMachine={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('machines');
-              }}
-            />
           )}
 
           {activeTab === 'contracts' && (

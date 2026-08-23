@@ -1,9 +1,6 @@
 export type NavigationTab = 
   | 'start_page'
-  | 'workflow_guide'
-  | 'mission_control'
   | 'contracts'
-  | 'planner'
   | 'customers'
   | 'machines'
   | 'mhc_autopilot'
@@ -18,12 +15,7 @@ export type NavigationTab =
   | 'mhc_06'
   | 'mhc_07'
   | 'mhc_08'
-  | 'laser_calibration'
-  | 'baseline_check'
-  | 'quality_investigation'
-  | 'reports'
   | 'analytics'
-  | 'knowledge_base'
   | 'users'
   | 'settings'
   | 'profile';

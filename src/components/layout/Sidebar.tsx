@@ -74,7 +74,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'DAILY WORK',
       items: [
         { id: 'start_page', label: 'Daily Work', icon: <Compass className="w-4 h-4" /> },
-        { id: 'mission_control', label: 'Mission Control', icon: <LayoutDashboard className="w-4 h-4" /> },
       ]
     },
     {
@@ -120,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // In MHC Mode, keep only operationally relevant tabs
     let allowedIds: NavigationTab[] = [];
     if (group.key === 'daily_work') {
-      allowedIds = ['start_page', 'mission_control'];
+      allowedIds = ['start_page'];
     } else if (group.key === 'mhc_category') {
       allowedIds = ['mhc_autopilot', 'mhc', 'mhc_history'];
     } else if (group.key === 'service_execution') {

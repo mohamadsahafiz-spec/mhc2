@@ -688,7 +688,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       machineName: `${machine.model} (${machine.machineNumber})`,
       customerId: machine.customerId,
       customerName: machine.customerName,
-      plantName: machine.plantName || 'Fab 18A Cleanroom',
+      plantName: machine.plantName || '—',
       engineerName: 'Sahafiz',
       startDate: new Date().toISOString().split('T')[0],
       startTime: '09:00',
@@ -874,7 +874,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       { id: 'dt-m1', category: 'Machine', key: 'model', label: 'Machine Model', value: machine.model, status: 'AVAILABLE' },
       { id: 'dt-m2', category: 'Machine', key: 'serial', label: 'Serial Number', value: machine.serialNumber, status: 'AVAILABLE' },
       { id: 'dt-m3', category: 'Machine', key: 'customer', label: 'Customer', value: machine.customerName, status: 'AVAILABLE' },
-      { id: 'dt-m4', category: 'Machine', key: 'plant', label: 'Plant / Location', value: machine.plantName || 'Cleanroom Fab 18A', status: 'AVAILABLE' },
+      { id: 'dt-m4', category: 'Machine', key: 'plant', label: 'Plant / Location', value: machine.plantName || '—', status: machine.plantName ? 'AVAILABLE' : 'MISSING' },
       { id: 'dt-m5', category: 'Machine', key: 'health_score', label: 'Machine Health Score', value: `${machine.healthScore || 94}%`, status: 'AVAILABLE' },
 
       // Product & Process
@@ -884,7 +884,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       { id: 'dt-p4', category: 'Product & Process', key: 'sample_id', label: 'Sample Coupon ID', value: sQuality?.sampleId || `SAMPLE-${machine.machineNumber}-001`, status: 'AVAILABLE' },
 
       // Laser Category (Authoritative LaserEngine Data Tray)
-      { id: 'dt-l1', category: 'Laser', key: 'laser_model', label: 'Laser Head Model', value: lm?.name || lh1?.model || 'TruMicro 7070', status: 'AVAILABLE' },
+      { id: 'dt-l1', category: 'Laser', key: 'laser_model', label: 'Laser Head Model', value: lm?.name || lh1?.model || '—', status: (lm?.name || lh1?.model) ? 'AVAILABLE' : 'MISSING' },
       { id: 'dt-l2', category: 'Laser', key: 'recorded_hours', label: 'Base Physical Meter (Hours)', value: sLh1?.recordedLaserHour || lm?.baseLaserHour || 12000, unit: 'hrs', status: 'AVAILABLE' },
       { id: 'dt-l3', category: 'Laser', key: 'calculated_hours', label: 'Calculated Current Hour', value: sLh1?.calculatedCurrentHour || lm?.currentHour || lm?.estimatedCurrentHour || 12048, unit: 'hrs', status: 'AVAILABLE' },
       { id: 'dt-l3a', category: 'Laser', key: 'life_remaining_pct', label: 'Laser Life Remaining', value: lm?.formattedLifeRemaining || '75.2%', status: 'AVAILABLE' },

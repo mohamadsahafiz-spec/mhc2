@@ -36,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
     language: 'English (US)',
     accountStatus: 'Active',
-    bio: 'Lead Field Engineer specialized in TRUMPF TruMicro ultra-fast laser systems.'
+    bio: 'Field Service Engineer certified for precision laser systems and cleanroom diagnostics.'
   };
 
   const [selectedUserId, setSelectedUserId] = useState<string>(activeUser?.id || users[0]?.id || 'usr-8801');

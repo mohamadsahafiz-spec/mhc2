@@ -50,14 +50,12 @@ export const Header: React.FC<HeaderProps> = ({
   const getTabTitle = (tab: NavigationTab) => {
     switch (tab) {
       case 'start_page': return 'Daily Work — Operational Home';
-      case 'mission_control': return 'Mission Control & Directives';
       case 'mhc_autopilot': return '★ MHC Autopilot Workspace';
       case 'mhc': return 'Machine Health Check (MHC)';
       case 'mhc_history': return 'MHC Inspection History & Reports';
       case 'contracts': return 'Contract Management';
       case 'customers': return 'Customers & Plants';
       case 'machines': return 'Machine Passport';
-      case 'reports': return 'Executive Reports';
       case 'analytics': return 'Operational Analytics';
       case 'users': return 'User Management & Multi-Engineer Directory';
       case 'settings': return 'Internal Architecture Milestone Changelog';
@@ -131,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
             DIRECTIVE
           </span>
           <p className={`text-xs font-medium truncate max-w-xl ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
-            {nextPriorityAction || "Execute scheduled Q3 MHC on TRUMPF TruMicro Fab 18A."}
+            {nextPriorityAction || "Execute scheduled machine health inspection."}
           </p>
         </div>
       </div>
