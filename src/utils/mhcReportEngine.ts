@@ -860,7 +860,7 @@ export function buildMhcReportDocument(
     title: 'Spare Parts / Recommendations',
     displayOrder: 17,
     isVisible: options?.sectionVisibilityOverrides?.['17'] ?? true,
-    status: (consumedParts.length > 0 || derivedRecommendedParts.length > 0) ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || derivedRecommendedParts.length > 0 || rawSparePartsList.length > 0) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: sparePartsData
   };
 
@@ -1097,7 +1097,7 @@ export function buildMhcReportDocument(
     '19': buyoffSection
   };
 
-  // GENERATE INDEX (02)
+  // GENERATE INDEX (02) - §17 PROCEEDS DIRECTLY TO §19 (§18 PERMANENTLY REMOVED FROM REPORT FLOW)
   const orderedSectionsList: MhcReportSection[] = [
     coverSection,
     machineInfoSection,
@@ -1115,7 +1115,6 @@ export function buildMhcReportDocument(
     findingsSection,
     correctiveActionsSection,
     sparePartsSection,
-    evidenceSection,
     buyoffSection
   ];
 
@@ -1138,7 +1137,6 @@ export function buildMhcReportDocument(
       case '15': return 10;
       case '16': return 10;
       case '17': return 10;
-      case '18': return 10;
       case '19': return 10;
       default: return 1;
     }
@@ -1185,7 +1183,6 @@ export function buildMhcReportDocument(
     findingsSection,
     correctiveActionsSection,
     sparePartsSection,
-    evidenceSection,
     buyoffSection
   ];
 
@@ -1242,8 +1239,6 @@ function getSectionCategory(code: MhcReportSectionCode): string {
     case '16':
     case '17':
       return 'Inspection & Findings';
-    case '18':
-      return 'Evidence';
     case '19':
       return 'Signoff';
     default:

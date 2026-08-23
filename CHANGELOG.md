@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v1.1.19 — SPRINT 01 REPAIR BATCH D: §17 Spare Parts & §19 Buyoff Numbering/Layout Integrity (2026-08-23)
+
+### §17 Spare Parts & §19 Buyoff Integrity & Section 18 Removal
+- **Seamless §17 → §19 Document Flow**: Permanently excised Section 18 from the report flow and index entries. After §17 (Spare Parts / Recommendations), the document flow and Table of Contents proceed directly and intentionally to §19 (Buyoff & Certification).
+- **Accurate §17 Spare Parts & Recommendations Rendering**: Verified and hardened §17 rendering to cleanly display consumed/replaced parts alongside proactive recommended parts from session findings (`stage07_spareParts`, `consumedParts`, and `recommendedParts`), with clean empty state handling when no spare parts are required.
+- **TOC & Index Pagination Integrity**: Updated `mhcReportEngine.ts` index generator (`indexEntries`, `orderedSectionsList`, `allOrderedSections`, and `getSectionPageNumber`) to reflect 18 active report sections (§01–§17, §19) mapped across 10 pages, ensuring §17 and §19 are indexed on Page 10 without gaps or broken section anchors.
+- **Dedicated Page 10 Final Wrap-up Layout**: Preserved pristine Page 10 layout containing §15 (Optical Findings), §16 (Corrective Actions), §17 (Spare Parts & Recommendations), and §19 (Official Buyoff & Customer Sign-off) with dual sign-off blocks, zero footer collision, and zero blank page insertions.
+- **Full Backward Compatibility & Test Suite Verification**: All 27 tests in the FSOS test suite passing, with new dedicated assertions validating §17 → §19 sequencing and total active section counts.
+
 ## v1.1.18 — SPRINT 01 REPAIR BATCH C: §13 & §14 MHC PDF Restoration (2026-08-23)
 
 ### §13 Laser / Product Profile & §14 Product Via Quality Restoration

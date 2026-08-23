@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.19',
+      date: '2026-08-23',
+      type: 'MHC PDF Section §17 Spare Parts & §19 Buyoff Integrity Repair',
+      highlights: [
+        'INTENTIONAL §17 TO §19 FLOW: Permanently excised Section 18 from the report flow and index. Document flow, Table of Contents, and section pagination proceed directly from §17 to §19.',
+        'SPARE PARTS ARCHITECTURE: Hardened §17 rendering to seamlessly display consumed/replaced parts alongside proactive recommended parts derived from session findings.',
+        'REPORT INDEX HARMONIZATION: Synchronized Table of Contents page index across all 18 active subsystem modules (§01–§17, §19) mapped cleanly to Page 10.',
+        'PRISTINE 10-PAGE LAYOUT: Retained pristine 10-page MHC PDF document with dual sign-off blocks, zero footer collision, and zero blank page insertions.'
+      ]
+    },
+    {
       version: 'v1.1.18',
       date: '2026-08-23',
       type: 'MHC PDF Section §13 Laser Profile & §14 Product Via Quality Restoration',

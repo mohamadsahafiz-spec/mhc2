@@ -228,8 +228,8 @@ describe('mhcReportEngine', () => {
     expect(doc.schemaVersion).toBe('1.0.0');
     expect(doc.sessionId).toBe('SESS-1001');
     expect(doc.machineId).toBe('ESI-5330');
-    expect(doc.orderedSections.length).toBe(19);
-    expect(doc.indexEntries.length).toBe(18); // Index excludes cover or includes entries
+    expect(doc.orderedSections.length).toBe(18); // 18 active sections (§01-§17, §19)
+    expect(doc.indexEntries.length).toBe(17); // Index entries (§01, §03-§17, §19)
 
     // Verify cover
     expect(doc.sections['01'].data.customerName).toBe('Acme PCB Corp');
@@ -498,5 +498,37 @@ describe('mhcReportEngine', () => {
 
     // Evidence separation
     expect(doc.sections['18'].data.calibrationEvidence.length).toBeGreaterThan(0);
+  });
+
+  it('should enforce §17 directly proceeding to §19 in report index and ordered document flow without §18', () => {
+    const session = createDummySession('SESS-SECTION-FLOW');
+    const doc = buildMhcReportDocument(session);
+
+    // Section 17 & 19 presence in orderedSections
+    const orderedCodes = doc.orderedSections.map(s => s.code);
+    expect(orderedCodes).toContain('17');
+    expect(orderedCodes).toContain('19');
+    expect(orderedCodes).not.toContain('18');
+
+    // Exactly 18 sections total (01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 19)
+    expect(doc.orderedSections.length).toBe(18);
+    expect(doc.metadata.totalSectionsCount).toBe(18);
+
+    // Index entries must not contain 18 and must map 17 and 19 to Page 10
+    const indexCodes = doc.indexEntries.map(e => e.code);
+    expect(indexCodes).toContain('17');
+    expect(indexCodes).toContain('19');
+    expect(indexCodes).not.toContain('18');
+
+    const entry17 = doc.indexEntries.find(e => e.code === '17');
+    const entry19 = doc.indexEntries.find(e => e.code === '19');
+    expect(entry17?.pageNumber).toBe(10);
+    expect(entry19?.pageNumber).toBe(10);
+    expect(entry17?.status).toBe('COMPLETE');
+
+    // Position of 17 immediately followed by 19 in indexEntries
+    const idx17 = indexCodes.indexOf('17');
+    const idx19 = indexCodes.indexOf('19');
+    expect(idx19).toBe(idx17 + 1);
   });
 });

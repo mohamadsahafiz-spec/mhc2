@@ -615,7 +615,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       02 TABLE OF CONTENTS / REPORT INDEX
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      19 Standard Subsystem Diagnostics &amp; Certification Modules
+                      18 Standard Subsystem Diagnostics &amp; Certification Modules (§01–§17, §19)
                     </p>
                   </div>
                   <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
@@ -2148,7 +2148,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 15-19 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>SECTION 15–17 &amp; 19 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
