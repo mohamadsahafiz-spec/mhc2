@@ -33,8 +33,8 @@ export type MhcReportSectionCode =
   | '15' // Findings
   | '16' // Corrective Actions
   | '17' // Spare Parts / Recommendations
-  | '18' // Evidence
-  | '19'; // Buyoff
+  | '18' // Buyoff & Sign-off
+  | '19'; // Backward-compatible alias if referenced
 
 export type MhcReportSectionStatus =
   | 'COMPLETE'
@@ -560,8 +560,8 @@ export interface MhcReportSectionMap {
   '15': MhcReportSection<MhcReportFindingsData>;
   '16': MhcReportSection<MhcReportCorrectiveActionsData>;
   '17': MhcReportSection<MhcReportSparePartsData>;
-  '18': MhcReportSection<MhcReportEvidenceData>;
-  '19': MhcReportSection<MhcReportBuyoffData>;
+  '18': MhcReportSection<MhcReportBuyoffData>;
+  '19'?: MhcReportSection<MhcReportBuyoffData>;
 }
 
 export interface MhcReportMetadata {

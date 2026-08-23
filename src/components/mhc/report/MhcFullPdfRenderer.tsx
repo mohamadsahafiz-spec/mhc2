@@ -70,7 +70,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     (session as any).machineNumber || sections['01']?.data?.machineNumber || ''
   );
   const [releaseStatus, setReleaseStatus] = useState<'APPROVED' | 'CONDITIONAL_RELEASE' | 'HALTED' | 'PENDING' | 'PASS' | 'WARNING' | 'FAIL'>(
-    (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
+    (sections['18']?.data?.productionReleaseVerdict as any) || (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
   );
 
   // Reference for printable document container
@@ -615,7 +615,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       02 TABLE OF CONTENTS / REPORT INDEX
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      18 Standard Subsystem Diagnostics &amp; Certification Modules (§01–§17, §19)
+                      18 Standard Subsystem Diagnostics &amp; Certification Modules (§01–§18)
                     </p>
                   </div>
                   <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
@@ -2141,14 +2141,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 10: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
+              PAGE 10: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (18)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 15–17 &amp; 19 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>SECTION 15–18 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
@@ -2261,10 +2261,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 19: BUYOFF & SIGN-OFF */}
+              {/* SECTION 18: BUYOFF & SIGN-OFF */}
               <div className="space-y-3 pt-2">
                 <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <span>19 BUYOFF &amp; OFFICIAL APPROVALS</span>
+                  <span>18 BUYOFF &amp; OFFICIAL APPROVALS</span>
                   {renderStatusBadge(releaseStatus)}
                 </h2>
 
@@ -2292,7 +2292,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         CUSTOMER ACCEPTANCE REPRESENTATIVE
                       </div>
                       <div className="space-y-1">
-                        <strong className="text-slate-900 text-sm block">{sections['19'].data.customerSignoff.name || 'Customer Representative'}</strong>
+                        <strong className="text-slate-900 text-sm block">{(sections['18'] || sections['19'])?.data?.customerSignoff?.name || 'Customer Representative'}</strong>
                         <div className="text-[11px] text-slate-500">{customerCompany}</div>
                         <div className="text-[10px] font-mono text-slate-400">Date: —</div>
                       </div>

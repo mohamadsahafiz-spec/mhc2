@@ -14,6 +14,17 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.20',
+      date: '2026-08-23',
+      type: 'MHC PDF Section Numbering Continuous Sequence (§18 Buyoff Renumbering)',
+      highlights: [
+        'CONTINUOUS §01–§18 NUMBERING: Renumbered the remaining Buyoff & Sign-off section from §19 to §18, eliminating numbering gaps for a clean §17 → §18 sequence.',
+        'SYNCHRONIZED REPORT ENGINE: Updated MhcReportSectionCode, MhcReportSectionMap, buyoffSection, and category/page mappers to treat §18 as the official Buyoff section.',
+        'TABLE OF CONTENTS & HEADINGS: Updated PDF headers, Table of Contents index entries, and Page 10 module titles to display 18 Standard Subsystem Modules (§01–§18).',
+        'CLEAN SCOPE ENFORCEMENT: Old §18 evidence remains removed; no data or visual alterations made to §17 or Buyoff sign-off blocks.'
+      ]
+    },
+    {
       version: 'v1.1.19',
       date: '2026-08-23',
       type: 'MHC PDF Section §17 Spare Parts & §19 Buyoff Integrity Repair',

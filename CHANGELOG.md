@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v1.1.20 — SPRINT 01 RE-RUN BATCH D: Renumber Buyoff Section to §18 (2026-08-23)
+
+### Continuous Section Numbering & Renumbering of Buyoff to §18
+- **Renumbered Buyoff Section to §18**: Renumbered the remaining Buyoff & Sign-off section from §19 to **§18**, establishing a continuous, gapless sequence: **§17 → §18**.
+- **Synchronized Report Engine Identifiers**: Updated `types/mhcReportDocument.ts` (`MhcReportSectionCode`, `MhcReportSectionMap`) and `utils/mhcReportEngine.ts` (`buyoffSection.code = '18'`, `displayOrder = 18`, `sectionsMap['18']`, `getSectionPageNumber`, `getSectionCategory`).
+- **Harmonized PDF & Table of Contents**: Updated `MhcFullPdfRenderer.tsx` with section headers (`SECTION 15–18 — FINDINGS, RECOMMENDATIONS & BUYOFF`, `18 BUYOFF & OFFICIAL APPROVALS`), TOC subtitle (`18 Standard Subsystem Diagnostics & Certification Modules (§01–§18)`), and Table of Contents entries matching section code `18` mapped to Page 10.
+- **Continuous 18-Section Document Sequence**: Validated complete sequence of active sections (§01 through §18) across 10 pages with zero content changes to §17 or the Buyoff section, and verified the old §18 evidence section remains cleanly removed.
+
 ## v1.1.19 — SPRINT 01 REPAIR BATCH D: §17 Spare Parts & §19 Buyoff Numbering/Layout Integrity (2026-08-23)
 
 ### §17 Spare Parts & §19 Buyoff Integrity & Section 18 Removal

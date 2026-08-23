@@ -338,9 +338,9 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['11'].data.agcs[0].verdict).toBe('PASS');
     expect(doc.sections['11'].data.agcs[1].verdict).toBe('UNANSWERED');
 
-    // Evidence aggregation should contain stage03 power images + temp evidence
-    expect(doc.sections['18'].data.totalEvidenceItems).toBeGreaterThanOrEqual(2);
-    expect(doc.sections['18'].status).toBe('COMPLETE');
+    // Section 18 Buyoff & Approvals
+    expect(doc.sections['18'].code).toBe('18');
+    expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
   });
 
   it('should not inject ghost machine or thermal fallbacks when session data is missing', () => {
@@ -496,39 +496,47 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['17'].data.recommendedParts.length).toBe(1);
     expect(doc.sections['17'].data.recommendedParts[0].partName).toContain('Turning Mirror 2');
 
-    // Evidence separation
-    expect(doc.sections['18'].data.calibrationEvidence.length).toBeGreaterThan(0);
+    // Buyoff section verification (renumbered to §18)
+    expect(doc.sections['18'].code).toBe('18');
+    expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
+    expect(doc.sections['18'].data.engineerSignoff.name).toBe('Jane Doe');
   });
 
-  it('should enforce §17 directly proceeding to §19 in report index and ordered document flow without §18', () => {
+  it('should enforce continuous §01 through §18 numbering with §18 as Buyoff & Sign-off without gaps', () => {
     const session = createDummySession('SESS-SECTION-FLOW');
     const doc = buildMhcReportDocument(session);
 
-    // Section 17 & 19 presence in orderedSections
+    // Continuous 01 through 18 in orderedSections
     const orderedCodes = doc.orderedSections.map(s => s.code);
-    expect(orderedCodes).toContain('17');
-    expect(orderedCodes).toContain('19');
-    expect(orderedCodes).not.toContain('18');
+    expect(orderedCodes).toEqual([
+      '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+      '11', '12', '13', '14', '15', '16', '17', '18'
+    ]);
+    expect(orderedCodes).not.toContain('19');
 
-    // Exactly 18 sections total (01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 19)
+    // Exactly 18 sections total
     expect(doc.orderedSections.length).toBe(18);
     expect(doc.metadata.totalSectionsCount).toBe(18);
 
-    // Index entries must not contain 18 and must map 17 and 19 to Page 10
+    // Index entries must be continuous from 01 to 18 (excluding 02 TOC itself)
     const indexCodes = doc.indexEntries.map(e => e.code);
-    expect(indexCodes).toContain('17');
-    expect(indexCodes).toContain('19');
-    expect(indexCodes).not.toContain('18');
+    expect(indexCodes).toEqual([
+      '01', '03', '04', '05', '06', '07', '08', '09', '10',
+      '11', '12', '13', '14', '15', '16', '17', '18'
+    ]);
+    expect(indexCodes).not.toContain('19');
 
     const entry17 = doc.indexEntries.find(e => e.code === '17');
-    const entry19 = doc.indexEntries.find(e => e.code === '19');
+    const entry18 = doc.indexEntries.find(e => e.code === '18');
+    expect(entry17?.title).toBe('Spare Parts / Recommendations');
     expect(entry17?.pageNumber).toBe(10);
-    expect(entry19?.pageNumber).toBe(10);
-    expect(entry17?.status).toBe('COMPLETE');
+    expect(entry18?.title).toBe('Buyoff & Approvals');
+    expect(entry18?.pageNumber).toBe(10);
+    expect(entry18?.category).toBe('Signoff');
 
-    // Position of 17 immediately followed by 19 in indexEntries
+    // Position of 17 immediately followed by 18 in indexEntries
     const idx17 = indexCodes.indexOf('17');
-    const idx19 = indexCodes.indexOf('19');
-    expect(idx19).toBe(idx17 + 1);
+    const idx18 = indexCodes.indexOf('18');
+    expect(idx18).toBe(idx17 + 1);
   });
 });

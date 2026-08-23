@@ -982,7 +982,7 @@ export function buildMhcReportDocument(
     }))
   };
 
-  // 19 BUYOFF
+  // 18 BUYOFF
   const remarksData = session.stage08_engineerRemarks;
   const hasCustomerApproval = Boolean(
     (session as any).customerApproved || 
@@ -1009,10 +1009,10 @@ export function buildMhcReportDocument(
   };
 
   const buyoffSection: MhcReportSection<MhcReportBuyoffData> = {
-    code: '19',
+    code: '18',
     title: 'Buyoff & Approvals',
-    displayOrder: 19,
-    isVisible: options?.sectionVisibilityOverrides?.['19'] ?? true,
+    displayOrder: 18,
+    isVisible: options?.sectionVisibilityOverrides?.['18'] ?? true,
     status: hasCustomerApproval ? 'COMPLETE' : 'NEEDS_REVIEW',
     data: buyoffData
   };
@@ -1093,11 +1093,10 @@ export function buildMhcReportDocument(
     '15': findingsSection,
     '16': correctiveActionsSection,
     '17': sparePartsSection,
-    '18': evidenceSection,
-    '19': buyoffSection
+    '18': buyoffSection
   };
 
-  // GENERATE INDEX (02) - §17 PROCEEDS DIRECTLY TO §19 (§18 PERMANENTLY REMOVED FROM REPORT FLOW)
+  // GENERATE INDEX (02) - CONTINUOUS §01–§18 SEQUENCE (§18 IS BUYOFF & APPROVALS)
   const orderedSectionsList: MhcReportSection[] = [
     coverSection,
     machineInfoSection,
@@ -1137,6 +1136,7 @@ export function buildMhcReportDocument(
       case '15': return 10;
       case '16': return 10;
       case '17': return 10;
+      case '18': return 10;
       case '19': return 10;
       default: return 1;
     }
@@ -1239,6 +1239,7 @@ function getSectionCategory(code: MhcReportSectionCode): string {
     case '16':
     case '17':
       return 'Inspection & Findings';
+    case '18':
     case '19':
       return 'Signoff';
     default:
