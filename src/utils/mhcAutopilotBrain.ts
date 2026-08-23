@@ -176,13 +176,15 @@ export function dispositionAutopilotActivity(
   code: string,
   rationaleOrNote?: string,
   engineerName?: string,
-  actionTaken?: string
+  actionTaken?: string,
+  verdict?: import('../types').MHCEngineerDispositionVerdict
 ): MHCSession {
   if (!session) return session;
   const currProgress = session.autopilotProgress || createDefaultAutopilotProgress();
   const existingDispositions = currProgress.dispositions || {};
   const newDisposition: MHCActivityDisposition = {
     acknowledged: true,
+    verdict: verdict || 'ACCEPTED_DEVIATION',
     dispositionedAt: new Date().toISOString(),
     dispositionedBy: engineerName || session.engineerName || 'Lead Field Engineer',
     rationale: rationaleOrNote || 'Review Complete — Continued with Finding',

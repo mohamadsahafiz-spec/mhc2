@@ -765,6 +765,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-2.5 px-3">SUBSYSTEM / HEAD</th>
                         <th className="py-2.5 px-2 font-mono">SERIAL NO.</th>
                         <th className="py-2.5 px-2">RATED POWER</th>
+                        <th className="py-2.5 px-2">REMAINING LIFE</th>
                         <th className="py-2.5 px-2">OPERATING HOURS</th>
                         <th className="py-2.5 px-3 text-right">SUBSYSTEM STATUS</th>
                       </tr>
@@ -781,7 +782,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <td className="py-3 px-2 font-bold text-slate-800">
                             15.0 W (355 nm UV)
                           </td>
-                          <td className="py-3 px-2 font-bold text-cyan-900">
+                          <td className="py-3 px-2 font-bold text-emerald-800">
+                            {head.remainingHours.toLocaleString()} hrs ({head.lifeRemainingPercent.toFixed(1)}%)
+                          </td>
+                          <td className="py-3 px-2 text-slate-700">
                             {head.currentLaserHour.toLocaleString()} hrs
                           </td>
                           <td className="py-3 px-3 text-right">
@@ -911,18 +915,26 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           {renderStatusBadge(head.verdict)}
                         </div>
 
-                        {/* Top Metrics Row: Current Hours & Limits */}
+                        {/* Top Metrics Row: Primary Remaining Hours, Operating Hours, Limits */}
                         <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
-                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8px] text-slate-400 font-sans block">CURRENT LASER HOURS</span>
-                            <strong className="text-cyan-950 text-xs block font-bold">
-                              {head.currentLaserHour.toLocaleString()} hrs
+                          <div className="p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-300">
+                            <span className="text-[8px] text-emerald-800 font-sans font-bold block">PRIMARY: REMAINING HOURS</span>
+                            <strong className="text-emerald-950 text-xs block font-extrabold">
+                              {head.remainingHours.toLocaleString()} hrs
                             </strong>
-                            <span className="text-[8px] text-emerald-700 font-sans">Accumulated Operating Hours</span>
+                            <span className="text-[8px] text-emerald-700 font-sans">{head.lifeRemainingPercent.toFixed(1)}% Capacity Left</span>
                           </div>
 
                           <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8px] text-slate-400 font-sans block">WARNING LIMIT</span>
+                            <span className="text-[8px] text-slate-400 font-sans block">OPERATING HOURS</span>
+                            <strong className="text-slate-800 text-xs block font-bold">
+                              {head.currentLaserHour.toLocaleString()} hrs
+                            </strong>
+                            <span className="text-[8px] text-slate-500 font-sans">Accumulated Run Time</span>
+                          </div>
+
+                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
+                            <span className="text-[8px] text-slate-400 font-sans block">WARNING THRESHOLD</span>
                             <strong className="text-amber-800 block font-bold">
                               {head.warningLimit.toLocaleString()} hrs
                             </strong>
@@ -930,21 +942,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
 
                           <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8px] text-slate-400 font-sans block">ERROR / EOL LIMIT</span>
+                            <span className="text-[8px] text-slate-400 font-sans block">RATED EOL LIMIT</span>
                             <strong className="text-slate-800 block font-bold">
                               {head.errorEolLimit.toLocaleString()} hrs
                             </strong>
-                            <span className="text-[8px] text-slate-400 font-sans">Rated Tube Lifespan</span>
-                          </div>
-
-                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8px] text-slate-400 font-sans block">LIFE REMAINING %</span>
-                            <strong className={`block text-xs font-bold ${
-                              isHealthy ? 'text-emerald-700' : isWarning ? 'text-amber-700' : 'text-rose-700'
-                            }`}>
-                              {head.lifeRemainingPercent.toFixed(1)}%
-                            </strong>
-                            <span className="text-[8px] text-slate-400 font-sans">Capacity Index</span>
+                            <span className="text-[8px] text-slate-400 font-sans">Total Tube Lifespan</span>
                           </div>
                         </div>
 
@@ -1034,91 +1036,126 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </p>
 
                   <div className="grid grid-cols-1 gap-3">
-                    {sections['06'].data.heads.map(head => (
-                      <div key={head.headId} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                        <div className="flex items-center justify-between font-mono">
-                          <span className="font-bold text-slate-900 text-xs font-sans">{head.headName}</span>
-                          {renderStatusBadge(head.current.verdict)}
-                        </div>
+                    {sections['06'].data.heads.map(head => {
+                      const deltaVal = head.comparison.deltaWatts;
+                      const deltaPct = head.comparison.deltaPercent;
+                      const isNegative = deltaVal !== undefined && deltaVal !== null && deltaVal < 0;
+                      const isZero = deltaVal === 0 || deltaVal === undefined || deltaVal === null;
 
-                        <div className="grid grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans">
-                              <span>PREVIOUS MEASUREMENT</span>
-                              <span className="font-mono text-[8px] text-slate-500">{head.previous?.recordedDate || '—'}</span>
-                            </div>
-                            <strong className="text-slate-800 text-xs block pt-0.5">
-                              {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : 'No Baseline'}
-                            </strong>
+                      return (
+                        <div key={head.headId} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                          <div className="flex items-center justify-between font-mono">
+                            <span className="font-bold text-slate-900 text-xs font-sans">{head.headName}</span>
+                            {renderStatusBadge(head.current.verdict)}
                           </div>
 
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans">
-                              <span>CURRENT MEASUREMENT</span>
-                              <span className="font-mono text-[8px] text-slate-500">{head.current.measurementDate || inspectionDate}</span>
-                            </div>
-                            <strong className="text-cyan-900 text-xs block pt-0.5">
-                              {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
-                            </strong>
-                          </div>
-
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 block font-sans">CHANGE (Δ / %)</span>
-                            <strong className={`text-xs block pt-0.5 ${head.comparison.deltaWatts && head.comparison.deltaWatts < 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
-                              {head.comparison.statusText}
-                            </strong>
-                          </div>
-                        </div>
-
-                        {/* Detailed Power Breakdown Matrix: Source, Optics Top Hat & Working Zone Masks */}
-                        {(head.current.laserSourceWatts || head.current.opticsTopHatWatts || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
-                          <div className="pt-2 border-t border-slate-200 space-y-1.5 font-mono text-[10px]">
-                            <div className="flex items-center justify-between text-slate-500 font-bold uppercase text-[9px]">
-                              <span>OPTICAL POWER PATH &amp; WORKING ZONE MASKS</span>
-                              <span className="text-cyan-800">AUTHORITATIVE POWER RECORD</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 pb-1">
-                              <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
-                                <span className="text-slate-500 font-sans">Laser Source (Raw):</span>
-                                <strong className="text-slate-900">{head.current.laserSourceWatts !== null && head.current.laserSourceWatts !== undefined ? `${head.current.laserSourceWatts.toFixed(2)} W` : '—'}</strong>
+                          {/* Comparison Flow: Previous Measurement ➔ Current Measurement ➔ Delta / % Shift */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 font-mono text-[11px]">
+                            
+                            {/* Step 1: Previous Measurement */}
+                            <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                              <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans border-b border-slate-100 pb-1">
+                                <span className="font-semibold uppercase tracking-wider">1. PREVIOUS MEASUREMENT</span>
+                                <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-slate-100 text-slate-600">
+                                  {head.previous?.recordedDate || 'No Baseline'}
+                                </span>
                               </div>
-                              <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
-                                <span className="text-slate-500 font-sans">Optics Top Hat:</span>
-                                <strong className="text-slate-900">{head.current.opticsTopHatWatts !== null && head.current.opticsTopHatWatts !== undefined ? `${head.current.opticsTopHatWatts.toFixed(2)} W` : '—'}</strong>
+                              <div className="pt-1.5">
+                                <strong className="text-slate-800 text-sm font-extrabold block">
+                                  {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : '—'}
+                                </strong>
+                                <span className="text-[8px] text-slate-400 font-sans">Historical Baseline Reference</span>
                               </div>
                             </div>
 
-                            {head.current.maskReadings && head.current.maskReadings.length > 0 && (
-                              <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
-                                <thead>
-                                  <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
-                                    <th className="py-1 px-2">MASK SIZE</th>
-                                    <th className="py-1 px-2">TARGET MIN</th>
-                                    <th className="py-1 px-2">MEASURED</th>
-                                    <th className="py-1 px-2 text-right">STATUS</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {head.current.maskReadings.map((m, mIdx) => (
-                                    <tr key={mIdx}>
-                                      <td className="py-1 px-2 font-bold text-slate-800">{m.maskSize}</td>
-                                      <td className="py-1 px-2 text-slate-500">{m.minWatts.toFixed(2)} W</td>
-                                      <td className="py-1 px-2 font-bold text-cyan-900">{m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}</td>
-                                      <td className="py-1 px-2 text-right">
-                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                          {m.pass ? 'PASS' : 'FAIL'}
-                                        </span>
-                                      </td>
+                            {/* Step 2: Current Measurement */}
+                            <div className="p-2.5 rounded-lg bg-cyan-50/50 border border-cyan-300 flex flex-col justify-between">
+                              <div className="flex items-center justify-between text-[9px] text-cyan-800 font-sans border-b border-cyan-100 pb-1">
+                                <span className="font-bold uppercase tracking-wider">2. CURRENT MEASUREMENT</span>
+                                <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-cyan-100 text-cyan-900 font-bold">
+                                  {head.current.measurementDate || inspectionDate}
+                                </span>
+                              </div>
+                              <div className="pt-1.5">
+                                <strong className="text-cyan-950 text-sm font-extrabold block">
+                                  {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
+                                </strong>
+                                <span className="text-[8px] text-cyan-700 font-sans">MHC Session Verification</span>
+                              </div>
+                            </div>
+
+                            {/* Step 3: Delta & Percentage Shift */}
+                            <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                              isNegative ? 'bg-amber-50/60 border-amber-300 text-amber-950' : 'bg-emerald-50/60 border-emerald-300 text-emerald-950'
+                            }`}>
+                              <div className="flex items-center justify-between text-[9px] font-sans border-b pb-1 opacity-80">
+                                <span className="font-bold uppercase tracking-wider">3. VARIATION (Δ / %)</span>
+                                <span className="font-mono text-[8px] font-bold">
+                                  {deltaPct !== undefined && deltaPct !== null ? `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—'}
+                                </span>
+                              </div>
+                              <div className="pt-1.5">
+                                <strong className="text-sm font-extrabold block">
+                                  {deltaVal !== undefined && deltaVal !== null ? `${deltaVal > 0 ? '+' : ''}${deltaVal.toFixed(2)} W` : head.comparison.statusText}
+                                </strong>
+                                <span className="text-[8px] font-sans block opacity-90 font-medium">
+                                  {head.comparison.statusText}
+                                </span>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {/* Detailed Power Breakdown Matrix: Source, Optics Top Hat & Working Zone Masks */}
+                          {(head.current.laserSourceWatts || head.current.opticsTopHatWatts || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
+                            <div className="pt-2 border-t border-slate-200 space-y-1.5 font-mono text-[10px]">
+                              <div className="flex items-center justify-between text-slate-500 font-bold uppercase text-[9px]">
+                                <span>OPTICAL POWER PATH &amp; WORKING ZONE MASKS</span>
+                                <span className="text-cyan-800">AUTHORITATIVE POWER RECORD</span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pb-1">
+                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
+                                  <span className="text-slate-500 font-sans">Laser Source (Raw):</span>
+                                  <strong className="text-slate-900">{head.current.laserSourceWatts !== null && head.current.laserSourceWatts !== undefined ? `${head.current.laserSourceWatts.toFixed(2)} W` : '—'}</strong>
+                                </div>
+                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center">
+                                  <span className="text-slate-500 font-sans">Optics Top Hat:</span>
+                                  <strong className="text-slate-900">{head.current.opticsTopHatWatts !== null && head.current.opticsTopHatWatts !== undefined ? `${head.current.opticsTopHatWatts.toFixed(2)} W` : '—'}</strong>
+                                </div>
+                              </div>
+
+                              {head.current.maskReadings && head.current.maskReadings.length > 0 && (
+                                <table className="w-full text-left text-[10px] border-collapse bg-white rounded border border-slate-200">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50">
+                                      <th className="py-1 px-2">MASK SIZE</th>
+                                      <th className="py-1 px-2">TARGET MIN</th>
+                                      <th className="py-1 px-2">MEASURED</th>
+                                      <th className="py-1 px-2 text-right">STATUS</th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {head.current.maskReadings.map((m, mIdx) => (
+                                      <tr key={mIdx}>
+                                        <td className="py-1 px-2 font-bold text-slate-800">{m.maskSize}</td>
+                                        <td className="py-1 px-2 text-slate-500">{m.minWatts.toFixed(2)} W</td>
+                                        <td className="py-1 px-2 font-bold text-cyan-900">{m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}</td>
+                                        <td className="py-1 px-2 text-right">
+                                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                            {m.pass ? 'PASS' : 'FAIL'}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1315,9 +1352,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <thead>
                       <tr className="border-b border-slate-200 text-[10px] text-slate-400">
                         <th className="py-1 font-sans">AGC UNIT</th>
-                        <th className="py-1">INDICES</th>
-                        <th className="py-1">X RANGE (µm)</th>
-                        <th className="py-1">Y RANGE (µm)</th>
+                        <th className="py-1">X-DEV RANGE (µm)</th>
+                        <th className="py-1">Y-DEV RANGE (µm)</th>
+                        <th className="py-1">MAX ABS DEV (µm)</th>
                         <th className="py-1">SPEC RANGE</th>
                         <th className="py-1 text-right font-sans">VERDICT</th>
                       </tr>
@@ -1326,7 +1363,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       {sections['11'].data.agcs.map(agc => (
                         <tr key={agc.agcId}>
                           <td className="py-2 font-bold font-sans text-slate-800">{agc.agcName}</td>
-                          <td className="py-2">{agc.indices.filter(i => i.verdict === 'PASS').length} / {agc.indices.length || 6}</td>
                           <td className="py-2 text-[11px]">
                             {agc.xMinUm !== undefined && agc.xMaxUm !== undefined
                               ? `[${agc.xMinUm > 0 ? `+${agc.xMinUm.toFixed(2)}` : agc.xMinUm.toFixed(2)}, ${agc.xMaxUm > 0 ? `+${agc.xMaxUm.toFixed(2)}` : agc.xMaxUm.toFixed(2)}]`
@@ -1336,6 +1372,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             {agc.yMinUm !== undefined && agc.yMaxUm !== undefined
                               ? `[${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)}, ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)}]`
                               : '—'}
+                          </td>
+                          <td className="py-2 font-bold text-slate-800">
+                            {agc.overallMaxDevUm !== undefined ? `${agc.overallMaxDevUm.toFixed(2)} µm` : (agc.maxAbsXUm !== undefined && agc.maxAbsYUm !== undefined ? `${Math.max(agc.maxAbsXUm, agc.maxAbsYUm).toFixed(2)} µm` : '—')}
                           </td>
                           <td className="py-2 font-bold text-cyan-800">|Δ| ≤ {sections['11'].data.specToleranceUm?.toFixed(1) || '3.0'} µm</td>
                           <td className="py-2 text-right">{renderStatusBadge(agc.verdict)}</td>
@@ -1572,6 +1611,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* OPTIONAL SECTION 13: LASER / PRODUCT PROFILE */}
+              {isSectionVisible('13') && (
+                <div className="space-y-2 pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">13 LASER / PRODUCT PROFILE</h3>
+                    {renderStatusBadge(sections['13'].status)}
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                    {sections['13'].data.profileInfo || 'Standard laser application recipe verified.'}
+                  </div>
+                </div>
+              )}
+
+              {/* OPTIONAL SECTION 14: PRODUCT VIA QUALITY */}
+              {isSectionVisible('14') && (
+                <div className="space-y-2 pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">14 PRODUCT VIA QUALITY</h3>
+                    {renderStatusBadge(sections['14'].status)}
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                    {sections['14'].data.notes || 'Product via drilling quality within IPC inspection tolerances.'}
+                  </div>
+                </div>
+              )}
 
             </div>
 

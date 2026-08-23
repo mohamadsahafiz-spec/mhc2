@@ -285,6 +285,7 @@ export interface MhcReportPowerOffsetData {
 export interface MhcReportStageCalibrationData {
   specToleranceUm: number; // 2.0
   overallVerdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' | 'NOT_COLLECTED';
+  overallDisposition?: string;
   stages: Array<{
     stageId: string;
     stageName: string;
@@ -295,6 +296,8 @@ export interface MhcReportStageCalibrationData {
     maxAbsXUm?: number;
     maxAbsYUm?: number;
     overallMaxDevUm?: number;
+    systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
+    engineerDisposition?: string;
     verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     evidenceImage?: string;
     engineerNote?: string;
@@ -305,6 +308,7 @@ export interface MhcReportStageCalibrationData {
 export interface MhcReportAgcData {
   specToleranceUm: number; // 3.0
   overallVerdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' | 'NOT_COLLECTED';
+  overallDisposition?: string;
   scannerAttentionRequired: boolean;
   agcs: Array<{
     agcId: string;
@@ -322,6 +326,8 @@ export interface MhcReportAgcData {
     maxAbsXUm?: number;
     maxAbsYUm?: number;
     overallMaxDevUm?: number;
+    systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
+    engineerDisposition?: string;
     verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     scannerConditionFlag?: boolean;
     evidenceImage?: string;

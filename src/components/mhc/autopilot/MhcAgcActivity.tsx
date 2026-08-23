@@ -16,7 +16,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Machine, MHCSession, MHCAgcResult, MHCAgcIndexItem } from '../../../types';
-import { advanceAutopilotActivity, flagDownstreamNeedsReview } from '../../../utils/mhcAutopilotBrain';
+import { advanceAutopilotActivity, flagDownstreamNeedsReview, dispositionAutopilotActivity } from '../../../utils/mhcAutopilotBrain';
 
 export interface MhcAgcActivityProps {
   session: MHCSession;
@@ -64,6 +64,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   const [indexNotes, setIndexNotes] = useState<string[]>(Array(INDEX_COUNT).fill(''));
   const [overallNote, setOverallNote] = useState<string>('');
   const [evidenceImage, setEvidenceImage] = useState<string>('');
+  const [selectedDisposition, setSelectedDisposition] = useState<'PASS' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'WARNING' | 'FAIL'>('PASS');
 
   // Hydrate state when activeAgcId or session changes
   useEffect(() => {
@@ -74,12 +75,20 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       setIndexNotes(rec.indices.map(idx => idx.engineerNote || ''));
       setOverallNote(rec.engineerNote || '');
       setEvidenceImage(rec.evidenceImage || '');
+      if (rec.engineerDisposition) {
+        setSelectedDisposition(rec.engineerDisposition);
+      } else if (rec.verdict === 'PASS') {
+        setSelectedDisposition('PASS');
+      } else if (rec.verdict === 'OUT_OF_SPEC') {
+        setSelectedDisposition('ACCEPTED_DEVIATION');
+      }
     } else {
       setIndexXInputs(Array(INDEX_COUNT).fill(''));
       setIndexYInputs(Array(INDEX_COUNT).fill(''));
       setIndexNotes(Array(INDEX_COUNT).fill(''));
       setOverallNote('');
       setEvidenceImage('');
+      setSelectedDisposition('PASS');
     }
   }, [activeAgcId, agcData]);
 
@@ -220,8 +229,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
 
   // Save Result Handler
   const saveAgcResult = (
-    verdict: 'PASS' | 'OUT_OF_SPEC',
-    status: 'COMPLETED' | 'NEEDS_REVIEW'
+    disposition: 'PASS' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'WARNING' | 'FAIL'
   ) => {
     const agcCode = activeAgcId === 'agc1' ? '05_agc1' : '05_agc2';
     const agcName = activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2';
@@ -235,6 +243,10 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       engineerNote: idx.note || undefined
     }));
 
+    const systemVerdict: 'PASS' | 'OUT_OF_SPEC' = isAnyOutOfSpec ? 'OUT_OF_SPEC' : 'PASS';
+    const finalVerdict: 'PASS' | 'OUT_OF_SPEC' = (disposition === 'PASS' || disposition === 'ACCEPTED_DEVIATION' || disposition === 'CONDITIONAL_PASS') ? 'PASS' : 'OUT_OF_SPEC';
+    const status: 'COMPLETED' | 'NEEDS_REVIEW' = (disposition === 'PASS' || disposition === 'ACCEPTED_DEVIATION' || disposition === 'CONDITIONAL_PASS') ? 'COMPLETED' : 'NEEDS_REVIEW';
+
     const updatedAgcResult: MHCAgcResult = {
       agcId: activeAgcId,
       agcName,
@@ -247,9 +259,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       maxAbsYUm: maxAbsY ?? undefined,
       overallMaxDevUm: overallMaxDev ?? undefined,
       specToleranceUm: SPEC_TOLERANCE_UM,
-      verdict,
+      systemVerdict,
+      engineerDisposition: disposition,
+      verdict: finalVerdict,
       status,
-      scannerConditionFlag: verdict === 'OUT_OF_SPEC',
+      scannerConditionFlag: isAnyOutOfSpec,
       evidenceImage: evidenceImage || undefined,
       engineerNote: overallNote || undefined,
       updatedAt: new Date().toISOString()
@@ -278,29 +292,37 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       overallNote
     );
 
+    // If accepted deviation or conditional pass, record explicit engineer disposition in autopilot progress
+    if (disposition === 'ACCEPTED_DEVIATION' || disposition === 'CONDITIONAL_PASS' || disposition === 'WARNING') {
+      updatedSession = dispositionAutopilotActivity(
+        updatedSession,
+        agcCode,
+        overallNote || `Accepted by engineer: ${disposition}. Scanner max deviation ${overallMaxDev?.toFixed(2)} µm.`,
+        session.engineerName || 'Lead Field Engineer',
+        `Engineer Disposition: ${disposition}`,
+        disposition
+      );
+    }
+
     const otherAgcId = activeAgcId === 'agc1' ? 'agc2' : 'agc1';
     const otherRecord = newAgcData[otherAgcId];
     const isOtherAddressed = otherRecord?.verdict === 'PASS' || otherRecord?.verdict === 'OUT_OF_SPEC';
-    const isBothPass = verdict === 'PASS' && otherRecord?.verdict === 'PASS';
+    const isBothPass = finalVerdict === 'PASS' && otherRecord?.verdict === 'PASS';
 
     onUpdateSession(updatedSession);
 
     if (isOtherAddressed) {
       if (showNotification) {
         if (isBothPass) {
-          showNotification('AGC 1 & AGC 2 Calibration PASS! Advanced to Day 3 Temperature & Evidence.');
+          showNotification(`AGC 1 & AGC 2 saved with Engineer Disposition (${disposition}). Advanced to Day 3 Temperature & Evidence.`);
         } else {
-          showNotification(`${agcName} saved as OUT_OF_SPEC. Both AGCs addressed — Advanced to Day 3 Temperature & Evidence (Finding recorded for Readiness Review).`);
+          showNotification(`${agcName} saved as ${disposition}. Advanced to Day 3 Temperature & Evidence (Finding recorded for Readiness Review).`);
         }
       }
       onCompleteActivity(updatedSession);
     } else {
       if (showNotification) {
-        if (verdict === 'PASS') {
-          showNotification(`${agcName} Calibration PASS recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
-        } else {
-          showNotification(`${agcName} flagged as NEEDS_REVIEW (Scanner Out of Spec). Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
-        }
+        showNotification(`${agcName} Disposition (${disposition}) recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
       }
       setActiveAgcId(otherAgcId);
     }
@@ -757,32 +779,123 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
           </div>
         </div>
 
+        {/* Engineer Disposition Selection & Control Block */}
+        {hasAllValues && (
+          <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/20 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+                  Engineer Activity Disposition
+                </span>
+                <span className="text-[10px] text-slate-400 font-sans">
+                  (System Result: <strong className={isAnyOutOfSpec ? 'text-rose-400' : 'text-emerald-400'}>{isAnyOutOfSpec ? 'OUT OF SPEC' : 'PASS'}</strong>)
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400">
+                Independent Field Engineer Review
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedDisposition('PASS')}
+                disabled={isReadOnly}
+                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  selectedDisposition === 'PASS'
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/50 shadow-md shadow-emerald-950/40'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">PASS</span>
+                  {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Within Spec / Verified</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedDisposition('ACCEPTED_DEVIATION')}
+                disabled={isReadOnly}
+                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  selectedDisposition === 'ACCEPTED_DEVIATION'
+                    ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 ring-1 ring-cyan-500/50 shadow-md shadow-cyan-950/40'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
+                  {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Accept Drift & Proceed</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedDisposition('CONDITIONAL_PASS')}
+                disabled={isReadOnly}
+                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  selectedDisposition === 'CONDITIONAL_PASS'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-md shadow-amber-950/40'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">CONDITIONAL PASS</span>
+                  {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Monitor next interval</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedDisposition('FAIL')}
+                disabled={isReadOnly}
+                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  selectedDisposition === 'FAIL'
+                    ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/50 shadow-md shadow-rose-950/40'
+                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">FAIL</span>
+                  {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Scanner fix required</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-700/50">
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-400 font-mono">
             Active Scanner: <span className="font-bold text-slate-200">{activeAgcId === 'agc1' ? 'AGC 1 (Head 1 Scanner)' : 'AGC 2 (Head 2 Scanner)'}</span>
+            {hasAllValues && (
+              <span className="ml-2 text-cyan-400 font-semibold">
+                • Disposition: {selectedDisposition}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {hasAllValues && isAnyOutOfSpec && !isReadOnly && (
+            {hasAllValues && !isReadOnly && (
               <button
                 type="button"
-                onClick={() => saveAgcResult('OUT_OF_SPEC', 'NEEDS_REVIEW')}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors shadow-lg shadow-rose-950/30 flex items-center justify-center gap-2"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                <span>Save as Out-of-Spec (Needs Review)</span>
-              </button>
-            )}
-
-            {hasAllValues && !isAnyOutOfSpec && !isReadOnly && (
-              <button
-                type="button"
-                onClick={() => saveAgcResult('PASS', 'COMPLETED')}
-                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2"
+                onClick={() => saveAgcResult(selectedDisposition)}
+                className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
+                  selectedDisposition === 'FAIL'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/30'
+                    : selectedDisposition === 'ACCEPTED_DEVIATION'
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-950/30'
+                    : selectedDisposition === 'CONDITIONAL_PASS'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/30'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/30'
+                }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm & Save {activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'} (PASS)</span>
+                <span>Confirm & Save {activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'} ({selectedDisposition})</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             )}

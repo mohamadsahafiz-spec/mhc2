@@ -639,8 +639,11 @@ export interface MHCEngineerRemarksData {
 
 export type MHCActivityStatus = 'LOCKED' | 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'NEEDS_REVIEW';
 
+export type MHCEngineerDispositionVerdict = 'PASS' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'WARNING' | 'FAIL';
+
 export interface MHCActivityDisposition {
   acknowledged: boolean;
+  verdict?: MHCEngineerDispositionVerdict;
   dispositionedAt: string;
   dispositionedBy?: string;
   rationale?: string;
@@ -694,6 +697,8 @@ export interface MHCStageCalibrationResult {
   maxAbsYUm?: number;
   overallMaxDevUm?: number;
   specToleranceUm: number; // 2.0
+  systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
+  engineerDisposition?: MHCEngineerDispositionVerdict;
   verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'NEEDS_REVIEW';
   evidenceImage?: string;
@@ -722,6 +727,8 @@ export interface MHCAgcResult {
   maxAbsYUm?: number;
   overallMaxDevUm?: number;
   specToleranceUm: number; // 3.0
+  systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
+  engineerDisposition?: MHCEngineerDispositionVerdict;
   verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'NEEDS_REVIEW';
   scannerConditionFlag?: boolean;
