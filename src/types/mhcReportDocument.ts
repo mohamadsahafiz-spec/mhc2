@@ -263,21 +263,27 @@ export interface MhcReportBeamProfileData {
   heads: MhcBeamProfileComparisonItem[];
 }
 
-// 08 Focus Optimization [Optional / Placeholder]
+// 08 Focus Optimization
 export interface MhcReportFocusOptimizationData {
-  status: 'NOT_COLLECTED' | 'AVAILABLE';
+  status: MhcReportSectionStatus;
   head1FocusOffsetMm?: number | null;
   head2FocusOffsetMm?: number | null;
   optimalFocusPointMm?: number | null;
+  rayleighRangeToleranceMm?: number;
+  verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
   notes?: string;
 }
 
-// 09 Power Offset [Optional / Placeholder]
+// 09 Power Offset
 export interface MhcReportPowerOffsetData {
-  status: 'NOT_COLLECTED' | 'AVAILABLE';
+  status: MhcReportSectionStatus;
   head1PowerOffsetWatts?: number | null;
   head2PowerOffsetWatts?: number | null;
+  head1OffsetPercent?: number | null;
+  head2OffsetPercent?: number | null;
   offsetCorrectionApplied?: boolean;
+  linearityTolerancePercent?: number;
+  verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
   notes?: string;
 }
 
