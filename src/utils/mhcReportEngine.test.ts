@@ -239,7 +239,7 @@ describe('mhcReportEngine', () => {
     const powerSec = doc.sections['06'].data;
     expect(powerSec.hasPreviousBaseline).toBe(false);
     expect(powerSec.heads[0].comparison.statusText).toBe('No previous baseline');
-    expect(powerSec.heads[0].current.afterValueWatts).toBe(15.1);
+    expect(powerSec.heads[0].current.measuredWatts).toBe(15.1);
 
     // Verify Laser Hours
     const hoursSec = doc.sections['05'].data;

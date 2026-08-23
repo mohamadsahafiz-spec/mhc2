@@ -224,31 +224,30 @@ export function buildMhcReportDocument(
     const pRec = curr?.powerRecord;
     const prevPRec = prevItem?.powerRecord;
 
-    const rawBefore = curr?.beforeValueWatts ?? (pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : undefined);
-    const rawAfter = curr?.afterValueWatts ?? (pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : undefined);
+    // Measured power for the current MHC session
+    const rawCurrMeasured = curr?.afterValueWatts ?? curr?.beforeValueWatts ?? (pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : (pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : undefined));
+    const currMeasuredWatts = typeof rawCurrMeasured === 'number' && rawCurrMeasured > 0 ? rawCurrMeasured : (curr?.afterValueWatts || curr?.beforeValueWatts || 0);
 
-    const currBeforeWatts = typeof rawBefore === 'number' && rawBefore > 0 ? rawBefore : (curr?.beforeValueWatts || 0);
-    const currAfterWatts = typeof rawAfter === 'number' && rawAfter > 0 ? rawAfter : (curr?.afterValueWatts || 0);
+    // Measured power from previous MHC session
+    const rawPrevMeasured = prevItem?.afterValueWatts ?? prevItem?.beforeValueWatts ?? (prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : (prevPRec?.laserSource ? (isHead1 ? prevPRec.laserSource.headA : prevPRec.laserSource.headB) : undefined));
+    const prevMeasuredWatts = typeof rawPrevMeasured === 'number' && rawPrevMeasured > 0 ? rawPrevMeasured : (prevItem?.afterValueWatts || prevItem?.beforeValueWatts || 0);
 
-    const rawPrevAfter = prevItem?.afterValueWatts ?? (prevPRec?.opticsTopHat ? (isHead1 ? prevPRec.opticsTopHat.headA : prevPRec.opticsTopHat.headB) : undefined);
-    const prevAfterWatts = typeof rawPrevAfter === 'number' && rawPrevAfter > 0 ? rawPrevAfter : (prevItem?.afterValueWatts || 0);
-
-    const hasBaseline = Boolean(prevItem && prevAfterWatts > 0);
+    const hasBaseline = Boolean(prevItem && prevMeasuredWatts > 0);
 
     let deltaWatts: number | null = null;
     let deltaPercent: number | null = null;
     let statusText = 'No previous baseline';
 
-    if (hasBaseline && prevAfterWatts > 0 && currAfterWatts > 0) {
-      deltaWatts = currAfterWatts - prevAfterWatts;
-      deltaPercent = (deltaWatts / prevAfterWatts) * 100;
+    if (hasBaseline && prevMeasuredWatts > 0 && currMeasuredWatts > 0) {
+      deltaWatts = currMeasuredWatts - prevMeasuredWatts;
+      deltaPercent = (deltaWatts / prevMeasuredWatts) * 100;
       const sign = deltaWatts >= 0 ? '+' : '';
       statusText = `${sign}${deltaWatts.toFixed(2)} W (${sign}${deltaPercent.toFixed(1)}%)`;
     }
 
     // Map complete power breakdown from stored powerRecord (laserSource, opticsTopHat, workingZoneMasks)
-    const laserSourceWatts = pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : (curr?.beforeValueWatts || null);
-    const opticsTopHatWatts = pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : (curr?.afterValueWatts || null);
+    const laserSourceWatts = pRec?.laserSource ? (isHead1 ? pRec.laserSource.headA : pRec.laserSource.headB) : null;
+    const opticsTopHatWatts = pRec?.opticsTopHat ? (isHead1 ? pRec.opticsTopHat.headA : pRec.opticsTopHat.headB) : null;
     
     const maskReadings = pRec?.workingZoneMasks ? pRec.workingZoneMasks.map(m => ({
       maskSize: m.maskSize,
@@ -264,6 +263,9 @@ export function buildMhcReportDocument(
     const headSerial = isHead1 ? (matchedMachine?.laserHeads?.[0]?.serialNumber || laserHoursDetails[0]?.serialNumber) : (matchedMachine?.laserHeads?.[1]?.serialNumber || laserHoursDetails[1]?.serialNumber);
     const resolvedHeadName = defaultHeadName + (headSerial ? ` (${headSerial})` : '');
 
+    const currentMeasurementDate = session.completedDate || session.startDate || coverData.date;
+    const prevMeasurementDate = previousSession?.completedDate || previousSession?.startDate || 'Previous MHC';
+
     return {
       headId,
       headName: resolvedHeadName,
@@ -272,18 +274,18 @@ export function buildMhcReportDocument(
       current: {
         ratedPowerWatts: curr?.ratedPowerWatts || 15.0,
         referenceValueWatts: curr?.referenceValueWatts || 15.0,
-        beforeValueWatts: currBeforeWatts,
-        afterValueWatts: currAfterWatts,
+        measuredWatts: currMeasuredWatts,
         stabilityPercent: curr?.stabilityPercent || 0,
-        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : (currAfterWatts > 0 ? 'PASS' : 'WARNING'),
+        measurementDate: currentMeasurementDate,
+        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : (currMeasuredWatts > 0 ? 'PASS' : 'WARNING'),
         notes: curr?.notes,
         laserSourceWatts,
         opticsTopHatWatts,
         maskReadings
       },
       previous: hasBaseline && prevItem ? {
-        recordedDate: previousSession?.completedDate || previousSession?.startDate || 'Previous MHC',
-        afterValueWatts: prevAfterWatts,
+        recordedDate: prevMeasurementDate,
+        measuredWatts: prevMeasuredWatts,
         stabilityPercent: prevItem.stabilityPercent || 0,
         verdict: prevItem.result,
         laserSourceWatts: prevLaserSourceWatts,
@@ -867,7 +869,7 @@ export function buildMhcReportDocument(
     code: '18',
     title: 'Evidence',
     displayOrder: 18,
-    isVisible: options?.sectionVisibilityOverrides?.['18'] ?? true,
+    isVisible: options?.sectionVisibilityOverrides?.['18'] ?? false,
     status: allEvidenceItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
     data: evidenceData,
     evidenceReferences: allEvidenceItems.map(e => ({
@@ -937,9 +939,13 @@ export function buildMhcReportDocument(
     totalFindingsCount > 0
   );
 
-  const calculatedOverallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'ACTION_REQUIRED' | 'FAIL' = sessionAudit.isReadyForReport
-    ? (hasOutOfSpecOrFindings ? 'CONDITIONAL_PASS' : 'PASS')
-    : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL');
+  const calculatedOverallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'WARNING' | 'ACTION_REQUIRED' | 'FAIL' = 
+    (session as any).overallVerdict ||
+    ((session as any).customerApprovalStatus === 'CONDITIONAL_RELEASE' ? 'CONDITIONAL_PASS' : undefined) ||
+    ((session as any).customerApprovalStatus === 'HALTED' ? 'FAIL' : undefined) ||
+    (sessionAudit.isReadyForReport
+      ? (hasOutOfSpecOrFindings ? 'CONDITIONAL_PASS' : 'PASS')
+      : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'));
 
   const executiveSummaryData: MhcReportExecutiveSummaryData = {
     overallStatus: calculatedOverallStatus,

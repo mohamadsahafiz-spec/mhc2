@@ -127,7 +127,7 @@ export interface MhcReportMachineInfoData {
 
 // 04 Executive Summary
 export interface MhcReportExecutiveSummaryData {
-  overallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'ACTION_REQUIRED' | 'FAIL';
+  overallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'WARNING' | 'ACTION_REQUIRED' | 'FAIL';
   readinessScore: number; // 0 - 100
   summaryText: string;
   keyFindings: string[];
@@ -178,9 +178,9 @@ export interface MhcPowerComparisonItem {
   current: {
     ratedPowerWatts: number;
     referenceValueWatts: number;
-    beforeValueWatts: number;
-    afterValueWatts: number;
+    measuredWatts: number;
     stabilityPercent: number;
+    measurementDate: string;
     verdict: 'PASS' | 'WARNING' | 'FAIL';
     notes?: string;
     // Complete authoritative measurement breakdown
@@ -195,7 +195,7 @@ export interface MhcPowerComparisonItem {
   };
   previous: {
     recordedDate: string;
-    afterValueWatts: number;
+    measuredWatts: number;
     stabilityPercent: number;
     verdict?: string;
     laserSourceWatts?: number | null;

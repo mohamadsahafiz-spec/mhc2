@@ -446,21 +446,23 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               />
             </div>
 
-            {/* Release Status */}
+            {/* Release Status / Engineer Disposition */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-rose-400" />
-                <span>Release Status</span>
+                <span>Overall MHC Result / Disposition</span>
               </label>
               <select
                 value={releaseStatus}
                 onChange={(e) => setReleaseStatus(e.target.value as any)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
               >
-                <option value="PENDING">PENDING (Customer Review)</option>
+                <option value="PASS">PASS (Certified Safe for Production)</option>
+                <option value="CONDITIONAL_PASS">CONDITIONAL PASS (Monitored Release)</option>
+                <option value="WARNING">WARNING (Maintenance Advisory)</option>
+                <option value="FAIL">FAIL (Service Action Required)</option>
                 <option value="APPROVED">APPROVED (Customer Signed)</option>
-                <option value="CONDITIONAL_RELEASE">CONDITIONAL RELEASE</option>
-                <option value="HALTED">HALTED</option>
+                <option value="PENDING">PENDING (Customer Review)</option>
               </select>
             </div>
 
@@ -732,11 +734,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <span className="text-[10px] text-slate-400 font-mono block">SERIAL NUMBER</span>
                       <strong className="text-slate-900 font-bold font-mono text-sm block">{sections['03'].data.serialNumber || '—'}</strong>
                     </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">MACHINE ID</span>
-                      <strong className="text-slate-800 font-mono text-sm block">{sections['03'].data.machineId || '—'}</strong>
-                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-200 grid grid-cols-3 gap-3 font-mono text-[11px]">
@@ -768,7 +765,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-2.5 px-3">SUBSYSTEM / HEAD</th>
                         <th className="py-2.5 px-2 font-mono">SERIAL NO.</th>
                         <th className="py-2.5 px-2">RATED POWER</th>
-                        <th className="py-2.5 px-2">AUTHORITATIVE HOURS</th>
+                        <th className="py-2.5 px-2">OPERATING HOURS</th>
                         <th className="py-2.5 px-3 text-right">SUBSYSTEM STATUS</th>
                       </tr>
                     </thead>
@@ -921,7 +918,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             <strong className="text-cyan-950 text-xs block font-bold">
                               {head.currentLaserHour.toLocaleString()} hrs
                             </strong>
-                            <span className="text-[8px] text-emerald-700 font-sans">Authoritative Telemetry</span>
+                            <span className="text-[8px] text-emerald-700 font-sans">Accumulated Operating Hours</span>
                           </div>
 
                           <div className="p-1.5 rounded-lg bg-white border border-slate-200">
@@ -1044,25 +1041,30 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           {renderStatusBadge(head.current.verdict)}
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2 text-[11px] font-mono pt-1">
+                        <div className="grid grid-cols-3 gap-2 text-[11px] font-mono pt-1">
                           <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 block font-sans">BEFORE MAINT.</span>
-                            <strong>{head.current.beforeValueWatts > 0 ? `${head.current.beforeValueWatts.toFixed(2)} W` : 'Not Recorded'}</strong>
+                            <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans">
+                              <span>PREVIOUS MEASUREMENT</span>
+                              <span className="font-mono text-[8px] text-slate-500">{head.previous?.recordedDate || '—'}</span>
+                            </div>
+                            <strong className="text-slate-800 text-xs block pt-0.5">
+                              {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : 'No Baseline'}
+                            </strong>
                           </div>
 
                           <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 block font-sans">AFTER MAINT.</span>
-                            <strong className="text-cyan-900">{head.current.afterValueWatts > 0 ? `${head.current.afterValueWatts.toFixed(2)} W` : 'Not Recorded'}</strong>
+                            <div className="flex items-center justify-between text-[9px] text-slate-400 font-sans">
+                              <span>CURRENT MEASUREMENT</span>
+                              <span className="font-mono text-[8px] text-slate-500">{head.current.measurementDate || inspectionDate}</span>
+                            </div>
+                            <strong className="text-cyan-900 text-xs block pt-0.5">
+                              {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
+                            </strong>
                           </div>
 
                           <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 block font-sans">PREVIOUS BASELINE</span>
-                            <span>{head.previous && head.previous.afterValueWatts > 0 ? `${head.previous.afterValueWatts.toFixed(2)} W` : 'None'}</span>
-                          </div>
-
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-[9px] text-slate-400 block font-sans">COMPARISON DELTA</span>
-                            <strong className={head.comparison.deltaWatts && head.comparison.deltaWatts < 0 ? 'text-amber-800' : 'text-emerald-800'}>
+                            <span className="text-[9px] text-slate-400 block font-sans">CHANGE (Δ / %)</span>
+                            <strong className={`text-xs block pt-0.5 ${head.comparison.deltaWatts && head.comparison.deltaWatts < 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                               {head.comparison.statusText}
                             </strong>
                           </div>
@@ -1255,7 +1257,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-1 font-sans">STAGE ID</th>
                         <th className="py-1">MAX ABS X (µm)</th>
                         <th className="py-1">MAX ABS Y (µm)</th>
-                        <th className="py-1">OVERALL MAX (µm)</th>
+                        <th className="py-1">SPEC RANGE</th>
                         <th className="py-1 text-right font-sans">VERDICT</th>
                       </tr>
                     </thead>
@@ -1265,7 +1267,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <td className="py-2 font-bold font-sans text-slate-800">{stg.stageName}</td>
                           <td className="py-2">{stg.maxAbsXUm !== undefined ? `${stg.maxAbsXUm.toFixed(2)} µm` : '—'}</td>
                           <td className="py-2">{stg.maxAbsYUm !== undefined ? `${stg.maxAbsYUm.toFixed(2)} µm` : '—'}</td>
-                          <td className="py-2 font-bold text-cyan-800">{stg.overallMaxDevUm !== undefined ? `${stg.overallMaxDevUm.toFixed(2)} µm` : '—'}</td>
+                          <td className="py-2 font-bold text-cyan-800">|Δ| ≤ {sections['10'].data.specToleranceUm?.toFixed(1) || '2.0'} µm</td>
                           <td className="py-2 text-right">{renderStatusBadge(stg.verdict)}</td>
                         </tr>
                       ))}
@@ -1316,7 +1318,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-1">INDICES</th>
                         <th className="py-1">X RANGE (µm)</th>
                         <th className="py-1">Y RANGE (µm)</th>
-                        <th className="py-1">MAX DEV</th>
+                        <th className="py-1">SPEC RANGE</th>
                         <th className="py-1 text-right font-sans">VERDICT</th>
                       </tr>
                     </thead>
@@ -1335,7 +1337,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               ? `[${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)}, ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)}]`
                               : '—'}
                           </td>
-                          <td className="py-2 font-bold text-cyan-800">{agc.overallMaxDevUm !== undefined ? `${agc.overallMaxDevUm.toFixed(2)} µm` : '—'}</td>
+                          <td className="py-2 font-bold text-cyan-800">|Δ| ≤ {sections['11'].data.specToleranceUm?.toFixed(1) || '3.0'} µm</td>
                           <td className="py-2 text-right">{renderStatusBadge(agc.verdict)}</td>
                         </tr>
                       ))}
@@ -1701,90 +1703,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   )}
                 </div>
               </div>
-
-              {/* SECTION 18: EVIDENCE & ATTACHMENTS */}
-              {(sections['18'].data.items.length > 0 || isSectionVisible('18')) && (
-                <div className="space-y-2 pt-1 border-t border-slate-100">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-                    <h2 className="text-sm font-bold text-slate-900 font-mono flex items-center justify-between w-full">
-                      <span>18 EVIDENCE ATTACHMENTS</span>
-                      <span className="text-xs text-slate-500 font-normal">
-                        {sections['18'].data.totalEvidenceItems} ATTACHED ({sections['18'].data.inspectionEvidence?.length || 0} INSPECTION / {sections['18'].data.calibrationEvidence?.length || 0} TELEMETRY)
-                      </span>
-                    </h2>
-                  </div>
-
-                  <div className="space-y-2">
-                    {/* Visual Inspection Evidence */}
-                    {sections['18'].data.inspectionEvidence && sections['18'].data.inspectionEvidence.length > 0 && (
-                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-                        <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">ENGINEER VISUAL INSPECTION PHOTOS</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {sections['18'].data.inspectionEvidence.map(item => (
-                            <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
-                              {item.imageDataUrl ? (
-                                <div className="w-full h-16 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
-                                  <img 
-                                    src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
-                                    alt={item.title} 
-                                    crossOrigin="anonymous"
-                                    className="h-full w-auto max-w-full object-contain" 
-                                    onError={(e) => {
-                                      (e.target as HTMLElement).style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
-                                  [PHOTO]
-                                </div>
-                              )}
-                              <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
-                              <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
-                                {item.sourceSection} • {item.notes || 'Record'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Calibration & Telemetry Artifacts */}
-                    {sections['18'].data.calibrationEvidence && sections['18'].data.calibrationEvidence.length > 0 && (
-                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-                        <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">CALIBRATION &amp; TELEMETRY CAPTURES</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {sections['18'].data.calibrationEvidence.map(item => (
-                            <div key={item.id} className="p-2 rounded bg-white border border-slate-200 space-y-1 overflow-hidden">
-                              {item.imageDataUrl ? (
-                                <div className="w-full h-16 bg-slate-50 rounded border border-slate-100 flex items-center justify-center p-1 overflow-hidden">
-                                  <img 
-                                    src={ImageStore.resolveImage(item.imageDataUrl) || item.imageDataUrl} 
-                                    alt={item.title} 
-                                    crossOrigin="anonymous"
-                                    className="h-full w-auto max-w-full object-contain" 
-                                    onError={(e) => {
-                                      (e.target as HTMLElement).style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-full h-14 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[9px] text-slate-400 font-mono">
-                                  [TELEMETRY]
-                                </div>
-                              )}
-                              <div className="font-bold text-slate-900 text-[10px] truncate" title={item.title}>{item.title}</div>
-                              <div className="text-[9px] text-slate-500 font-mono truncate" title={item.notes || item.sourceSection}>
-                                {item.sourceSection} • {item.notes || 'Record'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* SECTION 19: BUYOFF & SIGN-OFF */}
               <div className="space-y-3 pt-2">
