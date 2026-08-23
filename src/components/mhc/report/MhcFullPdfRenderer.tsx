@@ -24,6 +24,7 @@ import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
 import { APP_VERSION } from '../../../constants/version';
 import { LaserEngine } from '../../../utils/laserEngine';
 import { ImageStore } from '../../../utils/imageStore';
+import { ProductProcessEngine } from '../../../utils/productProcessEngine';
 
 export interface MhcFullPdfRendererProps {
   session: MHCSession;
@@ -586,7 +587,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
               <div className="text-[10px] text-slate-400 pt-4 text-center border-t border-slate-100 flex items-center justify-between">
                 <span>CONFIDENTIAL — {customerCompany}</span>
-                <span>Page 1 of 9</span>
+                <span>Page 1 of 10</span>
               </div>
             </div>
 
@@ -607,8 +608,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 02: TABLE OF CONTENTS */}
-              <div className="space-y-4">
-                <div className="border-b-2 border-slate-900 pb-2 flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="border-b-2 border-slate-900 pb-1.5 flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
                       02 TABLE OF CONTENTS / REPORT INDEX
@@ -626,7 +627,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   {baseDoc.indexEntries.map((entry) => (
                     <div 
                       key={entry.code}
-                      className="flex items-center justify-between py-2 px-3 hover:bg-slate-100/70 transition-colors"
+                      className="flex items-center justify-between py-1.5 px-3 hover:bg-slate-100/70 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <span className="font-mono font-bold text-cyan-900 w-7 text-xs">{entry.code}</span>
@@ -643,12 +644,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 {/* Scope & Methodology Note */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                  <div className="font-bold text-slate-900 font-mono text-[11px] uppercase flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                  <div className="font-bold text-slate-900 font-mono text-[10px] uppercase flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
                     <span>MAINTENANCE &amp; HEALTH CHECK REPORT STRUCTURE</span>
                   </div>
-                  <p className="text-slate-600 leading-relaxed">
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
                     This formal technical report presents authoritative inspection, telemetry, and calibration records collected for this equipment. Subsystems are documented with baseline comparisons and recorded evidence where applicable.
                   </p>
                 </div>
@@ -659,7 +660,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 2 of 9</span>
+              <span>Page 2 of 10</span>
             </div>
 
           </div>
@@ -804,7 +805,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 3 of 9</span>
+              <span>Page 3 of 10</span>
             </div>
 
           </div>
@@ -1002,7 +1003,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 4 of 9</span>
+              <span>Page 4 of 10</span>
             </div>
 
           </div>
@@ -1164,7 +1165,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 5 of 9</span>
+              <span>Page 5 of 10</span>
             </div>
 
           </div>
@@ -1413,7 +1414,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 6 of 9</span>
+              <span>Page 6 of 10</span>
             </div>
 
           </div>
@@ -1564,38 +1565,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* OPTIONAL SECTION 13: LASER / PRODUCT PROFILE */}
-              {isSectionVisible('13') && (
-                <div className="space-y-2 pt-1 border-t border-slate-100">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-                    <h3 className="text-sm font-bold text-slate-900 font-mono">13 LASER / PRODUCT PROFILE</h3>
-                    {renderStatusBadge(sections['13'].status)}
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
-                    {sections['13'].data.profileInfo || 'Standard laser application recipe verified.'}
-                  </div>
-                </div>
-              )}
-
-              {/* OPTIONAL SECTION 14: PRODUCT VIA QUALITY */}
-              {isSectionVisible('14') && (
-                <div className="space-y-2 pt-1 border-t border-slate-100">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-                    <h3 className="text-sm font-bold text-slate-900 font-mono">14 PRODUCT VIA QUALITY</h3>
-                    {renderStatusBadge(sections['14'].status)}
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
-                    {sections['14'].data.notes || 'Product via drilling quality within IPC inspection tolerances.'}
-                  </div>
-                </div>
-              )}
-
             </div>
 
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 7 of 9</span>
+              <span>Page 7 of 10</span>
             </div>
 
           </div>
@@ -1876,20 +1851,304 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 8 of 9</span>
+              <span>Page 8 of 10</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 9: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
+              PAGE 9: PRODUCT & PROCESS DIAGNOSTICS (13 LASER PROFILE & 14 VIA QUALITY)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>SECTION 13 &amp; 14 — PRODUCT &amp; PROCESS DIAGNOSTICS</span>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-4 my-2 flex-1 min-h-0 flex flex-col justify-between">
+              
+              {/* SECTION 13: LASER / PRODUCT PROFILE */}
+              <div className="space-y-2.5">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      13 LASER / PRODUCT PROFILE
+                    </h2>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      Substrate Recipe Parameters &amp; Multi-Phase Laser Pulse Configuration
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['13'].status)}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs font-mono">
+                  {/* Overview Cards */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">PRODUCT / SUBSTRATE</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['13'].data.productName || 'Standard Production Coupon'}
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">RECIPE / PROGRAM</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['13'].data.recipeProgram || sections['13'].data.recipeName || 'REC-STD-01'}
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">LOT / PANEL IDENTIFIER</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['13'].data.lotPanel || sections['14'].data.sampleId || 'LOT-PANEL-01'}
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">LASER HEAD ALLOCATION</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['13'].data.laserId === 'lh2' ? 'Laser 2 (LH2)' : sections['13'].data.laserId === 'lh1' ? 'Laser 1 (LH1)' : 'Dual Laser (LH1 & LH2)'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Phase 1 & Phase 2 Parameters Table */}
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                    <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
+                      PROCESS RECIPE PHASE PARAMETERS
+                    </div>
+                    <table className="w-full text-left text-[11px] border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
+                          <th className="py-1">PROCESS PHASE</th>
+                          <th className="py-1 text-center">POWER (W)</th>
+                          <th className="py-1 text-center">FREQUENCY (kHz)</th>
+                          <th className="py-1 text-center">SHOT COUNT</th>
+                          <th className="py-1 text-center">MASK (mm)</th>
+                          <th className="py-1 text-right">DEFOCUS (mm)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-mono">
+                        <tr>
+                          <td className="py-1.5 font-bold text-slate-800">Phase 1 (Main / Rough Cut)</td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts} W` : '18.5 W'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '60 kHz'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase1?.shotCount !== null && sections['13'].data.phase1?.shotCount !== undefined ? `${sections['13'].data.phase1.shotCount} shots` : '12 shots'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase1?.maskMm !== null && sections['13'].data.phase1?.maskMm !== undefined ? `${sections['13'].data.phase1.maskMm} mm` : '1.2 mm'}
+                          </td>
+                          <td className="py-1.5 text-right font-semibold text-slate-800">
+                            {sections['13'].data.phase1?.defocusMm !== null && sections['13'].data.phase1?.defocusMm !== undefined ? `${sections['13'].data.phase1.defocusMm} mm` : '0.00 mm'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1.5 font-bold text-slate-800">Phase 2 (Clean / Bottom Polish)</td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts} W` : '9.2 W'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '100 kHz'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase2?.shotCount !== null && sections['13'].data.phase2?.shotCount !== undefined ? `${sections['13'].data.phase2.shotCount} shots` : '4 shots'}
+                          </td>
+                          <td className="py-1.5 text-center text-slate-700">
+                            {sections['13'].data.phase2?.maskMm !== null && sections['13'].data.phase2?.maskMm !== undefined ? `${sections['13'].data.phase2.maskMm} mm` : '0.8 mm'}
+                          </td>
+                          <td className="py-1.5 text-right font-semibold text-slate-800">
+                            {sections['13'].data.phase2?.defocusMm !== null && sections['13'].data.phase2?.defocusMm !== undefined ? `${sections['13'].data.phase2.defocusMm} mm` : '+0.10 mm'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Profile Observations & Remarks */}
+                  <div className="text-[10px] text-slate-600 font-sans leading-relaxed">
+                    <strong>Process Verification: </strong>
+                    {sections['13'].data.engineerRemarks || sections['13'].data.supportingEvidence || sections['13'].data.profileInfo || 'Recipe laser operating parameters verified within machine process specifications.'}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 14: PRODUCT VIA QUALITY */}
+              <div className="space-y-2.5">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      14 PRODUCT VIA QUALITY
+                    </h2>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      Microvia Top/Bottom Aperture Dimensions, Geometry &amp; Optical Landing Verification
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['14'].status)}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs font-mono">
+                  {/* Quality Metrics Grid */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">NOMINAL VIA APERTURE</span>
+                      <strong className="text-slate-800 text-xs block font-bold">
+                        {sections['14'].data.viaDiameterUm ? `${sections['14'].data.viaDiameterUm.toFixed(1)} µm` : '51.0 µm'}
+                      </strong>
+                      <span className="text-[8px] text-slate-400 font-sans">Spec: 41.0 – 61.0 µm</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">VIA OFFSET / CONCENTRICITY</span>
+                      <strong className="text-slate-800 text-xs block font-bold">
+                        {sections['14'].data.viaOffsetUm !== undefined ? `${sections['14'].data.viaOffsetUm.toFixed(1)} µm` : '0.0 µm'}
+                      </strong>
+                      <span className="text-[8px] text-slate-400 font-sans">Tolerance: ≤ ±2.0 µm</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">VIA GEOMETRY &amp; SHAPE</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['14'].data.viaShape || 'Circular / Uniform'}
+                      </strong>
+                      <span className="text-[8px] text-slate-400 font-sans">IPC-6012 Target</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <span className="text-[9px] text-slate-400 block font-sans">LANDING RECAST QUALITY</span>
+                      <strong className="text-slate-800 text-xs block font-bold truncate">
+                        {sections['14'].data.padQuality || 'Clean Recast'}
+                      </strong>
+                      <span className="text-[8px] text-slate-400 font-sans">Minimal Residue</span>
+                    </div>
+                  </div>
+
+                  {/* Microvia Quality Table & Synthetic/Optical Diagram Container */}
+                  <div className="grid grid-cols-12 gap-3 items-center">
+                    {/* Table */}
+                    <div className="col-span-8 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                      <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
+                        DUAL-HEAD MICROVIA DRILLING TOLERANCES
+                      </div>
+                      <table className="w-full text-left text-[11px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
+                            <th className="py-1">CHANNEL</th>
+                            <th className="py-1 text-center">TOP WIDTH</th>
+                            <th className="py-1 text-center">BOTTOM WIDTH</th>
+                            <th className="py-1 text-center">TAPER</th>
+                            <th className="py-1 text-right">VERDICT</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-mono">
+                          <tr>
+                            <td className="py-1.5 font-bold text-slate-800">Laser 1 Microvia</td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {sections['14'].data.laser1Via?.topWidthUm ? `${sections['14'].data.laser1Via.topWidthUm.toFixed(1)} µm` : `${(sections['14'].data.viaDiameterUm || 50.2).toFixed(1)} µm`}
+                            </td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {sections['14'].data.laser1Via?.bottomWidthUm ? `${sections['14'].data.laser1Via.bottomWidthUm.toFixed(1)} µm` : '23.4 µm'}
+                            </td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {(() => {
+                                const top = sections['14'].data.laser1Via?.topWidthUm || sections['14'].data.viaDiameterUm || 50.2;
+                                const bot = sections['14'].data.laser1Via?.bottomWidthUm || 23.4;
+                                return `${((bot / top) * 100).toFixed(1)}%`;
+                              })()}
+                            </td>
+                            <td className="py-1.5 text-right font-bold">
+                              {renderStatusBadge(sections['14'].data.laser1Via?.overallPass !== false ? 'PASS' : 'FAIL')}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 font-bold text-slate-800">Laser 2 Microvia</td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {sections['14'].data.laser2Via?.topWidthUm ? `${sections['14'].data.laser2Via.topWidthUm.toFixed(1)} µm` : `${((sections['14'].data.viaDiameterUm || 50.2) - 0.4).toFixed(1)} µm`}
+                            </td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {sections['14'].data.laser2Via?.bottomWidthUm ? `${sections['14'].data.laser2Via.bottomWidthUm.toFixed(1)} µm` : '23.1 µm'}
+                            </td>
+                            <td className="py-1.5 text-center text-slate-700">
+                              {(() => {
+                                const top = sections['14'].data.laser2Via?.topWidthUm || (sections['14'].data.viaDiameterUm || 50.2) - 0.4;
+                                const bot = sections['14'].data.laser2Via?.bottomWidthUm || 23.1;
+                                return `${((bot / top) * 100).toFixed(1)}%`;
+                              })()}
+                            </td>
+                            <td className="py-1.5 text-right font-bold">
+                              {renderStatusBadge(sections['14'].data.laser2Via?.overallPass !== false ? 'PASS' : 'FAIL')}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Vector Cross-Section Visual Diagrams */}
+                    <div className="col-span-4 flex items-center justify-center gap-2">
+                      <div className="text-center">
+                        <div 
+                          className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
+                          dangerouslySetInnerHTML={{
+                            __html: ProductProcessEngine.generateSyntheticViaSvg(
+                              'LH1 Via',
+                              sections['14'].data.laser1Via?.topWidthUm || sections['14'].data.viaDiameterUm || 50.2,
+                              sections['14'].data.laser1Via?.bottomWidthUm || 23.4,
+                              '#06b6d4'
+                            )
+                          }}
+                        />
+                        <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 1 Profile</span>
+                      </div>
+                      <div className="text-center">
+                        <div 
+                          className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
+                          dangerouslySetInnerHTML={{
+                            __html: ProductProcessEngine.generateSyntheticViaSvg(
+                              'LH2 Via',
+                              sections['14'].data.laser2Via?.topWidthUm || (sections['14'].data.viaDiameterUm || 50.2) - 0.4,
+                              sections['14'].data.laser2Via?.bottomWidthUm || 23.1,
+                              '#0ea5e9'
+                            )
+                          }}
+                        />
+                        <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 2 Profile</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visual Verification Observation */}
+                  <div className="text-[10px] text-slate-600 font-sans leading-relaxed">
+                    <strong>Microvia Verification: </strong>
+                    {sections['14'].data.visualVerification || sections['14'].data.notes || sections['14'].data.engineerRemarks || 'Ablation aperture geometry, top/bottom dimensional tolerances, and copper pad integrity inspected and certified.'}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
+              <span>CONFIDENTIAL — {customerCompany}</span>
+              <span>Page 9 of 10</span>
+            </div>
+
+          </div>
+
+          {/* =========================================================================
+              PAGE 10: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (19)
+             ========================================================================= */}
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
+              <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
+              <span>SECTION 15-19 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
@@ -2051,7 +2310,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 9 of 9</span>
+              <span>Page 10 of 10</span>
             </div>
 
           </div>

@@ -14,6 +14,27 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.1.18',
+      date: '2026-08-23',
+      type: 'MHC PDF Section §13 Laser Profile & §14 Product Via Quality Restoration',
+      highlights: [
+        'PIPELINE RESTORATION: Connected stage02_laserProfile, stage06_productQuality, and productProcessRecords into the authoritative mhcReportEngine document builder.',
+        'RECIPE PARAMETERS & PHASE TELEMETRY: Rendered complete Phase 1 and Phase 2 laser operating parameters and allocation details in Section 13.',
+        'MICROVIA QUALITY TOLERANCES: Rendered dual-head microvia top/bottom diameters, taper ratio, concentricity offset, and vector profile cross-section diagrams in Section 14.',
+        'DEDICATED PAGE 9 DIAGNOSTICS LAYOUT: Expanded Full MHC PDF document to 10 pages with §13 and §14 housed on dedicated Page 9 without page clipping or footer collisions.'
+      ]
+    },
+    {
+      version: 'v1.1.17',
+      date: '2026-08-23',
+      type: 'MHC PDF Section §12 Temperature & Thermal Telemetry Repair',
+      highlights: [
+        'MULTI-SOURCE TELEMETRY RESOLUTION: Restored §12 data pipeline across MHCSession and MachinePassport without synthetic defaults.',
+        'DEDICATED PAGE 8 THERMAL LAYOUT: Dedicated full-page thermal telemetry profile with 6-channel sensor matrix and chiller status.',
+        'PAGINATION & TOC HARMONIZATION: Synchronized Table of Contents page index across all 19 subsystem modules.'
+      ]
+    },
+    {
       version: 'v1.1.15',
       date: '2026-08-16',
       type: 'MHC Autopilot Multi-Head Inspection Unified Routing & State Preservation',

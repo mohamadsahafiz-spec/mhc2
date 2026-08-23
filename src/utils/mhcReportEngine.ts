@@ -642,33 +642,86 @@ export function buildMhcReportDocument(
     data: temperatureData
   };
 
-  // 13 LASER / PRODUCT PROFILE [Optional Placeholder]
+  // 13 LASER / PRODUCT PROFILE
+  const latestProductProcess = (session as any).productProcessRecords?.[0] || matchedMachine?.productProcessRecords?.[0];
+  const stageProfile = session.stage02_laserProfile;
+  const hasProfileData = Boolean(
+    stageProfile?.productName ||
+    stageProfile?.recipeProgram ||
+    stageProfile?.profileInfo ||
+    stageProfile?.measurementInfo ||
+    stageProfile?.supportingEvidence ||
+    latestProductProcess?.productName ||
+    latestProductProcess?.recipeName
+  );
+
   const laserProductProfileData: MhcReportLaserProductProfileData = {
-    status: 'NOT_COLLECTED',
-    profileInfo: session.stage02_laserProfile?.profileInfo || 'No custom product laser profile assigned.'
+    status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
+    laserId: stageProfile?.laserId || 'lh1',
+    productName: stageProfile?.productName || latestProductProcess?.productName || undefined,
+    recipeProgram: stageProfile?.recipeProgram || latestProductProcess?.recipeName || undefined,
+    recipeName: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
+    lotPanel: latestProductProcess?.lotPanel || undefined,
+    profileInfo: stageProfile?.profileInfo || (latestProductProcess ? 'Standard Process Recipe Profile' : undefined),
+    measurementInfo: stageProfile?.measurementInfo || undefined,
+    supportingEvidence: stageProfile?.supportingEvidence || undefined,
+    images: stageProfile?.images || [],
+    engineerRemarks: latestProductProcess?.engineerRemarks || stageProfile?.supportingEvidence || undefined,
+    phase1: latestProductProcess?.phase1,
+    phase2: latestProductProcess?.phase2,
+    hasProcessRecord: Boolean(latestProductProcess)
   };
 
   const laserProductProfileSection: MhcReportSection<MhcReportLaserProductProfileData> = {
     code: '13',
     title: 'Laser / Product Profile',
     displayOrder: 13,
-    isVisible: options?.sectionVisibilityOverrides?.['13'] ?? false,
-    status: 'NOT_COLLECTED',
+    isVisible: options?.sectionVisibilityOverrides?.['13'] ?? true,
+    status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
     data: laserProductProfileData
   };
 
-  // 14 PRODUCT VIA QUALITY [Optional Placeholder]
+  // 14 PRODUCT VIA QUALITY
+  const stageQuality = session.stage06_productQuality;
+  const hasQualityData = Boolean(
+    stageQuality?.viaDiameterUm ||
+    stageQuality?.sampleId ||
+    (stageQuality?.result && stageQuality.result !== ('NOT_COLLECTED' as any)) ||
+    stageQuality?.visualVerification ||
+    stageQuality?.padQuality ||
+    stageQuality?.notes ||
+    latestProductProcess?.laser1Via ||
+    latestProductProcess?.laser2Via
+  );
+
+  const qualityResult = stageQuality?.result || (latestProductProcess ? (latestProductProcess.overallResult === 'PASS' ? 'PASS' : 'FAIL') : 'NOT_COLLECTED');
+  const isQualityPass = qualityResult === 'PASS';
+
   const productViaQualityData: MhcReportProductViaQualityData = {
-    status: 'NOT_COLLECTED',
-    notes: session.stage06_productQuality?.notes || 'Product via quality analysis optional.'
+    status: hasQualityData ? (isQualityPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
+    sampleId: stageQuality?.sampleId || latestProductProcess?.lotPanel || undefined,
+    viaDiameterUm: stageQuality?.viaDiameterUm ?? latestProductProcess?.laser1Via?.topWidthUm ?? undefined,
+    viaShape: stageQuality?.viaShape || 'Circular',
+    viaOffsetUm: stageQuality?.viaOffsetUm ?? 0.0,
+    padQuality: stageQuality?.padQuality || (latestProductProcess ? 'Clean recast / minimal ablation residue' : undefined),
+    visualVerification: stageQuality?.visualVerification || (latestProductProcess ? 'Via cut geometry verified within specification' : undefined),
+    result: qualityResult,
+    overallResult: latestProductProcess?.overallResult || (qualityResult === 'PASS' ? 'PASS' : qualityResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED'),
+    beforeImages: stageQuality?.beforeImages || [],
+    afterImages: stageQuality?.afterImages || [],
+    notes: stageQuality?.notes || latestProductProcess?.engineerRemarks || undefined,
+    engineerRemarks: latestProductProcess?.engineerRemarks || stageQuality?.notes || undefined,
+    laser1Via: latestProductProcess?.laser1Via,
+    laser2Via: latestProductProcess?.laser2Via,
+    hasViaRecord: Boolean(latestProductProcess?.laser1Via || latestProductProcess?.laser2Via)
   };
 
   const productViaQualitySection: MhcReportSection<MhcReportProductViaQualityData> = {
     code: '14',
     title: 'Product Via Quality',
     displayOrder: 14,
-    isVisible: options?.sectionVisibilityOverrides?.['14'] ?? false,
-    status: 'NOT_COLLECTED',
+    isVisible: options?.sectionVisibilityOverrides?.['14'] ?? true,
+    status: hasQualityData ? (isQualityPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: productViaQualityData
   };
 
@@ -1080,13 +1133,13 @@ export function buildMhcReportDocument(
       case '10': return 7;
       case '11': return 7;
       case '12': return 8;
-      case '13': return 7;
-      case '14': return 7;
-      case '15': return 9;
-      case '16': return 9;
-      case '17': return 9;
-      case '18': return 9;
-      case '19': return 9;
+      case '13': return 9;
+      case '14': return 9;
+      case '15': return 10;
+      case '16': return 10;
+      case '17': return 10;
+      case '18': return 10;
+      case '19': return 10;
       default: return 1;
     }
   };

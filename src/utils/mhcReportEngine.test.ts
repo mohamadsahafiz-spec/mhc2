@@ -246,11 +246,15 @@ describe('mhcReportEngine', () => {
     expect(hoursSec.laserHours.length).toBe(2);
     expect(hoursSec.laserHours[0].verifiedHour).toBe(12500);
 
-    // Verify restored sections 08 & 09 and optional placeholder sections are represented safely
+    // Verify restored sections 08 & 09, 13 & 14 are populated and evaluated
     expect(doc.sections['08'].status).toBe('COMPLETE');
     expect(doc.sections['09'].status).toBe('COMPLETE');
-    expect(doc.sections['13'].status).toBe('NOT_COLLECTED');
-    expect(doc.sections['14'].status).toBe('NOT_COLLECTED');
+    expect(doc.sections['13'].status).toBe('COMPLETE');
+    expect(doc.sections['13'].data.productName).toBe('Flex Rigid Standard');
+    expect(doc.sections['13'].data.recipeProgram).toBe('REC-01');
+    expect(doc.sections['14'].status).toBe('COMPLETE');
+    expect(doc.sections['14'].data.sampleId).toBe('SMP-100');
+    expect(doc.sections['14'].data.viaDiameterUm).toBe(50);
   });
 
   it('should calculate previous/current comparison correctly when previousSession exists', () => {

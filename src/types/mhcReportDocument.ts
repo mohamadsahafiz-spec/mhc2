@@ -365,21 +365,39 @@ export interface MhcReportTemperatureData {
   notes?: string;
 }
 
-// 13 Laser / Product Profile Data [Optional / Placeholder]
+// 13 Laser / Product Profile Data
 export interface MhcReportLaserProductProfileData {
-  status: 'NOT_COLLECTED' | 'AVAILABLE';
+  status: 'NOT_COLLECTED' | 'AVAILABLE' | 'COMPLETE' | 'NEEDS_REVIEW';
   laserId?: string;
   productName?: string;
   recipeProgram?: string;
+  recipeName?: string;
+  lotPanel?: string;
   profileInfo?: string;
   measurementInfo?: string;
   supportingEvidence?: string;
   images?: string[];
+  engineerRemarks?: string;
+  phase1?: {
+    powerWatts?: number | null;
+    frequencyKhz?: number | null;
+    shotCount?: number | null;
+    maskMm?: number | null;
+    defocusMm?: number | null;
+  };
+  phase2?: {
+    powerWatts?: number | null;
+    frequencyKhz?: number | null;
+    shotCount?: number | null;
+    maskMm?: number | null;
+    defocusMm?: number | null;
+  };
+  hasProcessRecord?: boolean;
 }
 
-// 14 Product Via Quality Data [Optional / Placeholder]
+// 14 Product Via Quality Data
 export interface MhcReportProductViaQualityData {
-  status: 'NOT_COLLECTED' | 'AVAILABLE';
+  status: 'NOT_COLLECTED' | 'AVAILABLE' | 'COMPLETE' | 'NEEDS_REVIEW';
   sampleId?: string;
   viaDiameterUm?: number;
   viaShape?: string;
@@ -387,9 +405,28 @@ export interface MhcReportProductViaQualityData {
   padQuality?: string;
   visualVerification?: string;
   result?: 'PASS' | 'ATTENTION' | 'FAIL' | 'NOT_COLLECTED';
+  overallResult?: 'PASS' | 'FAIL' | 'NOT_COLLECTED';
   beforeImages?: string[];
   afterImages?: string[];
   notes?: string;
+  engineerRemarks?: string;
+  laser1Via?: {
+    topWidthUm?: number | null;
+    bottomWidthUm?: number | null;
+    topPass?: boolean;
+    bottomPass?: boolean;
+    overallPass?: boolean;
+    viaImageDataUrl?: string;
+  };
+  laser2Via?: {
+    topWidthUm?: number | null;
+    bottomWidthUm?: number | null;
+    topPass?: boolean;
+    bottomPass?: boolean;
+    overallPass?: boolean;
+    viaImageDataUrl?: string;
+  };
+  hasViaRecord?: boolean;
 }
 
 // 15 Findings Data

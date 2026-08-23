@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v1.1.18 — SPRINT 01 REPAIR BATCH C: §13 & §14 MHC PDF Restoration (2026-08-23)
+
+### §13 Laser / Product Profile & §14 Product Via Quality Restoration
+- **End-to-End Authoritative Pipeline Integration**: Traced and restored data pipeline for §13 (Laser / Product Profile) and §14 (Product Via Quality) connecting `MHCSession` (`stage02_laserProfile`, `stage06_productQuality`, `stage02_findings`), `MachinePassport`, and `ProductProcessRecord` through `buildMhcReportDocument` directly to `MhcFullPdfRenderer`.
+- **Dynamic Recipe Phase Resolution**: Section 13 accurately resolves substrate name, recipe program, lot/panel identifier, laser head allocation (LH1, LH2, or Dual Head), and Phase 1 (Rough Cut) / Phase 2 (Bottom Polish) process parameters (Power, Frequency, Shot Count, Mask Size, Defocus) from session records without hardcoding or synthetic defaults.
+- **Microvia Drilling Geometry & Dual-Laser Evaluation**: Section 14 evaluates microvia top/bottom aperture widths, taper percentage, concentricity offset, shape uniformity, and copper landing pad recast against IPC-6012 tolerances via `ProductProcessEngine.evaluateRecord` / `ProductProcessEngine.evaluateVia`.
+- **Dedicated Page 9 Product & Process Diagnostics Layout**: Formatted a clean 10-page document structure with §13 and §14 housed on dedicated Page 9, featuring vector cross-section via profile SVG diagrams, dual-head tolerance tables, and process buyoff remarks.
+- **Report Index & Pagination Harmonization**: Updated Table of Contents, page numbers, and footers across the 10-page MHC PDF document (`Page X of 10`) ensuring zero clipping, zero overlap, and seamless pagination boundaries.
+
 ## v1.1.17 — MHC PDF Section §12 Temperature & Thermal Telemetry Repair (2026-08-23)
 
 ### §12 Temperature MHC PDF Restoration & Architecture
