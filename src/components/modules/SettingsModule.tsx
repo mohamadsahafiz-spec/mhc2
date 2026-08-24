@@ -14,6 +14,15 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.2.2',
+      date: '2026-08-23',
+      type: 'Autopilot Exit Button Label Micro-Fix (Sprint 01 Item #1)',
+      highlights: [
+        'SEMANTIC LABEL UPDATE: Updated the Autopilot bottom-left navigation button label from "EXIT" to "EXIT AUTOPILOT" for clarity.',
+        'BEHAVIOR PRESERVED: Exiting Autopilot cleanly returns to the Canvas/Workspace view with zero session resets or data loss.'
+      ]
+    },
+    {
       version: 'v1.2.1',
       date: '2026-08-23',
       type: 'MHC Autopilot Clear Exit Control (Sprint 01 Item #1)',
