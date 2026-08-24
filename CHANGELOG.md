@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v1.2.3 — FSOS SYNC: Safe Local→D1 Reconciliation & Cross-Device Bootstrap (2026-08-24)
+
+### Safe Local→D1 Reconciliation & Cross-Device Sync Bootstrap
+- **Idempotent Local Data Provider**: Integrated `StorageService.getAllLocalData` provider into `SyncEngine`, allowing existing operational data stored in local storage to be discovered and registered without destructive resets or fixture injections.
+- **Pre-Queue Reconciliation Pipeline**: Added `reconcileLocalData()` to discover valid local operational records (customers, machines, MHC sessions, passports, analytics, etc.) that have never entered the queue and enqueue them for upload.
+- **Tracked Synchronized Keys Registry**: Introduced `fsos_synced_keys_v1` persistent key registry (`table:id`) ensuring local records are queued and reconciled once without duplicate queue insertions on successive sync cycles.
+- **Cross-Device Clean Pull**: Enabled new or secondary client devices (e.g. work laptop) to pull all authoritative bootstrapped records from D1 without re-uploading them back to the server.
+- **Full Offline Resilience & Environment Portability**: Guarded all storage operations with safe environment checks, preventing any runtime crashes during Node.js/Vitest test runs or restricted sandbox contexts.
+
 ## v1.2.2 — SPRINT 01 ITEM #1 MICRO-FIX: Autopilot Exit Button Label (2026-08-23)
 
 ### Autopilot Exit Button Label Micro-Fix

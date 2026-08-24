@@ -268,20 +268,20 @@ describe('mhcReportEngine', () => {
     // Add previous working zone masks to verify mask comparison columns
     previousSession.stage03_laserPower[0].powerRecord = {
       ...currentSession.stage03_laserPower[0].powerRecord!,
-      laserSource: { headA: 18.2, headB: 18.0 },
-      opticsTopHat: { headA: 15.4, headB: 15.2 },
+      laserSource: { specText: '≥18.0W', minWatts: 18.0, maxWatts: 22.0, headA: 18.2, headB: 18.0, passA: true, passB: true },
+      opticsTopHat: { specText: '≥15.0W', minWatts: 15.0, maxWatts: 18.0, headA: 15.4, headB: 15.2, passA: true, passB: true },
       workingZoneMasks: [
-        { maskSize: '50 µm', minWatts: 13.0, headA: 14.2, headB: 14.0, passA: true, passB: true },
-        { maskSize: '100 µm', minWatts: 14.0, headA: 15.0, headB: 14.8, passA: true, passB: true }
+        { maskSize: '2.2mm', specText: '≥3.1W', minWatts: 3.1, headA: 3.5, headB: 3.4, passA: true, passB: true },
+        { maskSize: '2.0mm', specText: '≥2.5W', minWatts: 2.5, headA: 2.8, headB: 2.7, passA: true, passB: true }
       ]
     };
     currentSession.stage03_laserPower[0].powerRecord = {
       ...currentSession.stage03_laserPower[0].powerRecord!,
-      laserSource: { headA: 18.5, headB: 18.1 },
-      opticsTopHat: { headA: 15.1, headB: 14.9 },
+      laserSource: { specText: '≥18.0W', minWatts: 18.0, maxWatts: 22.0, headA: 18.5, headB: 18.1, passA: true, passB: true },
+      opticsTopHat: { specText: '≥15.0W', minWatts: 15.0, maxWatts: 18.0, headA: 15.1, headB: 14.9, passA: true, passB: true },
       workingZoneMasks: [
-        { maskSize: '50 µm', minWatts: 13.0, headA: 13.9, headB: 13.7, passA: true, passB: true },
-        { maskSize: '100 µm', minWatts: 14.0, headA: 14.7, headB: 14.5, passA: true, passB: true }
+        { maskSize: '2.2mm', specText: '≥3.1W', minWatts: 3.1, headA: 3.4, headB: 3.3, passA: true, passB: true },
+        { maskSize: '2.0mm', specText: '≥2.5W', minWatts: 2.5, headA: 2.7, headB: 2.6, passA: true, passB: true }
       ]
     };
 
@@ -297,10 +297,10 @@ describe('mhcReportEngine', () => {
 
     // Check mask readings comparison
     expect(powerHead1.current.maskReadings).toBeDefined();
-    const mask50 = powerHead1.current.maskReadings?.find(m => m.maskSize === '50 µm');
-    expect(mask50?.prevMeasuredWatts).toBe(14.2);
-    expect(mask50?.measuredWatts).toBe(13.9);
-    expect(mask50?.deltaWatts).toBeCloseTo(-0.3, 2);
+    const mask50 = powerHead1.current.maskReadings?.find(m => m.maskSize === '2.2mm');
+    expect(mask50?.prevMeasuredWatts).toBe(3.5);
+    expect(mask50?.measuredWatts).toBe(3.4);
+    expect(mask50?.deltaWatts).toBeCloseTo(-0.1, 2);
     expect(mask50?.pass).toBe(true);
 
     // Check beam comparison

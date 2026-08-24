@@ -580,20 +580,25 @@ export const StorageService = {
 
   getAllLocalData: (): Record<string, any[]> => {
     return {
-      machines: StorageService.getMachines(),
-      mhc_sessions: StorageService.getMhcSessions(),
-      reports: StorageService.getReports(),
-      customers: StorageService.getCustomers(),
-      plants: StorageService.getPlants(),
-      lines: StorageService.getLines(),
-      contracts: StorageService.getContracts(),
-      tasks: StorageService.getTasks(),
-      baselines: StorageService.getBaselines(),
-      investigations: StorageService.getInvestigations(),
-      mhc_report_drafts: StorageService.getMhcReportDrafts(),
-      mhc_workspace_templates: StorageService.getMhcWorkspaceTemplates(),
-      mhc_workspace_drafts: StorageService.getMhcWorkspaceDrafts(),
-      recommended_parts: StorageService.getRecommendedParts()
+      machines: getStorage<Machine[]>(KEYS.MACHINES, []),
+      mhc_sessions: getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []),
+      reports: getStorage<ExecutiveReport[]>(KEYS.REPORTS, []),
+      customers: getStorage<Customer[]>(KEYS.CUSTOMERS, []),
+      plants: getStorage<Plant[]>(KEYS.PLANTS, []),
+      lines: getStorage<ProductionLine[]>(KEYS.LINES, []),
+      contracts: getStorage<Contract[]>(KEYS.CONTRACTS, []),
+      schedule: getStorage<ExecutionScheduleItem[]>(KEYS.SCHEDULE, []),
+      mhc_records: getStorage<MHCRecord[]>(KEYS.MHC_RECORDS, []),
+      tasks: getStorage<FieldEngineerTask[]>(KEYS.TASKS, []),
+      alerts: getStorage<AlertItem[]>(KEYS.ALERTS, []),
+      baselines: getStorage<BaselineCheck[]>(KEYS.BASELINES, []),
+      investigations: getStorage<QualityInvestigation[]>(KEYS.INVESTIGATIONS, []),
+      templates: getStorage<ReportTemplate[]>(KEYS.TEMPLATES, []),
+      drafts: getStorage<ReportDraft[]>(KEYS.DRAFTS, []),
+      mhc_report_drafts: getStorage<MHCReportDraftConfig[]>(KEYS.MHC_REPORT_DRAFTS, []),
+      mhc_workspace_templates: getStorage<MhcWorkspaceTemplate[]>(KEYS.MHC_WORKSPACE_TEMPLATES, []),
+      mhc_workspace_drafts: getStorage<MhcWorkspaceDraft[]>(KEYS.MHC_WORKSPACE_DRAFTS, []),
+      recommended_parts: getStorage<RecommendedPart[]>(KEYS.RECOMMENDED_PARTS, [])
     };
   },
 
@@ -622,7 +627,8 @@ export const StorageService = {
       'fsos_customer_list',
       'fsos_sync_queue',
       'fsos_last_sync_time',
-      'fsos_cloud_migrated_v1'
+      'fsos_cloud_migrated_v1',
+      'fsos_synced_keys_v1'
     ];
     operationalKeys.forEach(k => localStorage.removeItem(k));
     await ImageStore.clearAll().catch(() => {});
@@ -631,6 +637,9 @@ export const StorageService = {
     localStorage.setItem(ZERO_STATE_PURGE_KEY, 'true');
   }
 };
+
+// Register local data provider for automatic, idempotent D1 cloud bootstrap & reconciliation
+SyncEngine.registerLocalDataProvider(() => StorageService.getAllLocalData());
 
 // Register remote update merge handler
 SyncEngine.registerRemoteUpdateCallback((tableName, remoteRecords) => {

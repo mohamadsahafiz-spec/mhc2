@@ -14,6 +14,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.2.3',
+      date: '2026-08-24',
+      type: 'FSOS Sync: Safe Local→D1 Reconciliation & Cross-Device Bootstrap',
+      highlights: [
+        'IDEMPOTENT LOCAL DATA BOOTSTRAP: Enabled existing operational records in local storage to safely reconcile to D1 without data loss or fixture injection.',
+        'TRACKED SYNC REGISTRY: Added fsos_synced_keys_v1 registry to prevent duplicate queue entries on repeated sync iterations.',
+        'SEAMLESS CROSS-DEVICE PULL: Enabled secondary devices (e.g. work laptop) to pull authoritative cloud records smoothly from Cloudflare D1.'
+      ]
+    },
+    {
       version: 'v1.2.2',
       date: '2026-08-23',
       type: 'Autopilot Exit Button Label Micro-Fix (Sprint 01 Item #1)',
