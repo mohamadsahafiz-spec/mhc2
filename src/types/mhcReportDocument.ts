@@ -458,6 +458,8 @@ export interface MhcReportProductViaQualityData {
 // 15 Findings Data
 export interface MhcReportFindingsData {
   totalFindingsCount: number;
+  generalFindingsNote?: string;
+  observedIssues?: string;
   heads: Array<{
     headId: string;
     headName: string;
@@ -522,6 +524,8 @@ export interface MhcReportSparePartsData {
     notes?: string;
   }>;
   recommendations: string[];
+  engineerRecommendationsText?: string;
+  followUpRequired?: boolean;
   generalFindingsNote?: string;
 }
 
@@ -559,6 +563,13 @@ export interface MhcReportBuyoffData {
     title?: string;
     date: string;
     signatureDataUrl?: string;
+    comments?: string;
+  };
+  nextMhcSchedule?: {
+    nextDueDate?: string;
+    intervalMonths?: number;
+    recommendedWindow?: string;
+    targetServiceType?: string;
   };
   founderBranding?: {
     companyName?: string;

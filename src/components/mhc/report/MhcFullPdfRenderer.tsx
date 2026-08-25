@@ -25,6 +25,7 @@ import { APP_VERSION } from '../../../constants/version';
 import { LaserEngine } from '../../../utils/laserEngine';
 import { ImageStore } from '../../../utils/imageStore';
 import { ProductProcessEngine } from '../../../utils/productProcessEngine';
+import { TemperatureGraph } from '../../common/TemperatureGraph';
 
 export interface MhcFullPdfRendererProps {
   session: MHCSession;
@@ -110,7 +111,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 7: return 'Focus & Power Offsets';
       case 8: return 'Stage & Sensor Calibration';
       case 9: return 'Thermal Environment';
-      case 10: return 'Laser Profile & Via Quality';
+      case 10: return 'Product Process & Via Quality';
       case 11: return 'Certification & Sign-Off';
       default: return 'Subsystem Diagnostics';
     }
@@ -2000,7 +2001,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 12: TEMPERATURE MONITORING */}
+              {/* SECTION 12: TEMPERATURE & THERMAL TELEMETRY */}
               <div className="space-y-3">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div>
@@ -2008,7 +2009,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       12 TEMPERATURE &amp; THERMAL TELEMETRY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Chiller Subsystem Telemetry &amp; Continuous Multi-Channel Thermal Profiling
+                      Optics Markbox 6-Channel Air-Cooling &amp; Thermal Telemetry Monitoring
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -2017,35 +2018,66 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 text-xs font-mono">
-                  {/* Chiller Subsystem Overview */}
+                  {/* Optics Markbox Air-Cooling Subsystem Overview */}
                   <div className="space-y-1.5">
-                    <span className="text-[9px] text-slate-500 font-bold uppercase block">
-                      PRIMARY CHILLER / COOLING LOOP SUBSYSTEM
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-slate-500 font-bold uppercase block">
+                        OPTICS MARKBOX AIR-COOLING SUBSYSTEM OVERVIEW
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        TARGET SPEC: 22.0°C ± 1.0°C (21.0°C – 23.0°C)
+                      </span>
+                    </div>
                     <div className="grid grid-cols-3 gap-2.5">
-                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">CHILLER SETPOINT / TEMP</span>
-                        <strong className="text-slate-800 text-sm block font-bold">
-                          {sections['12'].data.chillerTempCelsius !== undefined && sections['12'].data.chillerTempCelsius !== null
-                            ? `${sections['12'].data.chillerTempCelsius.toFixed(1)} °C`
-                            : 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Target: 22.0°C ± 1.0°C</span>
-                      </div>
-                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">COOLING FLOW RATE</span>
-                        <strong className="text-slate-800 text-sm block font-bold">
-                          {sections['12'].data.chillerFlowLpm !== undefined && sections['12'].data.chillerFlowLpm !== null
-                            ? `${sections['12'].data.chillerFlowLpm.toFixed(1)} L/min`
-                            : 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Min Flow: ≥ 4.0 L/min</span>
-                      </div>
-                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
-                        <span className="text-[9px] text-slate-400 block font-sans">COOLING SYSTEM VERDICT</span>
-                        <div>{renderStatusBadge(sections['12'].data.coolingResult || 'NOT_COLLECTED')}</div>
-                        <span className="text-[8px] text-slate-400 font-sans">DI Loop Closed</span>
-                      </div>
+                      {(() => {
+                        const chStats = sections['12'].data.channelStats || {};
+                        const markboxes = [
+                          { id: 1, title: 'MARKBOX 1', channels: [1, 4], desc: 'Optics Markbox 1 (CH1 + CH4)' },
+                          { id: 2, title: 'MARKBOX 2', channels: [2, 5], desc: 'Optics Markbox 2 (CH2 + CH5)' },
+                          { id: 3, title: 'MARKBOX 3', channels: [3, 6], desc: 'Optics Markbox 3 (CH3 + CH6)' }
+                        ];
+
+                        return markboxes.map(mb => {
+                          const available = mb.channels.filter(ch => chStats[ch]);
+                          const hasData = available.length > 0;
+                          const avgVal = hasData
+                            ? available.reduce((acc, ch) => acc + chStats[ch].avg, 0) / available.length
+                            : undefined;
+                          const minVal = hasData
+                            ? Math.min(...available.map(ch => chStats[ch].min))
+                            : undefined;
+                          const maxVal = hasData
+                            ? Math.max(...available.map(ch => chStats[ch].max))
+                            : undefined;
+                          const isPass = avgVal !== undefined ? (avgVal >= 21.0 && avgVal <= 23.0) : true;
+
+                          return (
+                            <div key={mb.id} className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] text-slate-500 font-bold font-mono">{mb.title}</span>
+                                {hasData ? (
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {isPass ? 'PASS' : 'WARN'}
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-100 text-slate-500 font-bold">
+                                    NO DATA
+                                  </span>
+                                )}
+                              </div>
+                              <strong className="text-slate-800 text-sm block font-bold">
+                                {avgVal !== undefined ? `${avgVal.toFixed(2)} °C` : 'Not Linked'}
+                              </strong>
+                              <div className="text-[8px] text-slate-400 font-sans flex justify-between">
+                                <span>{mb.desc}</span>
+                                {hasData && (
+                                  <span>[{minVal?.toFixed(1)} – {maxVal?.toFixed(1)}°C]</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
@@ -2087,14 +2119,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
                         <div className="pt-2 border-t border-slate-200 space-y-1.5">
                           <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
-                            <span>6-CHANNEL SENSOR READINGS MATRIX</span>
+                            <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
                             <span className="text-cyan-800">SPEC: 22.0°C ± 1.0°C (21.0°C – 23.0°C)</span>
                           </div>
                           <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50 font-mono text-[9px]">
                                 <th className="py-1.5 px-2.5">CHANNEL</th>
-                                <th className="py-1.5 px-2.5">LOCATION / SENSOR STATION</th>
+                                <th className="py-1.5 px-2.5">ASSIGNED OPTICS MARKBOX</th>
+                                <th className="py-1.5 px-2.5">SENSOR ROLE / AIR-COOLING</th>
                                 <th className="py-1.5 px-2.5">MIN (°C)</th>
                                 <th className="py-1.5 px-2.5">MAX (°C)</th>
                                 <th className="py-1.5 px-2.5">AVG (°C)</th>
@@ -2103,19 +2136,21 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
-                                const chLabels: Record<string, string> = {
-                                  '1': 'Laser Head 1 Enclosure',
-                                  '2': 'Laser Head 2 Enclosure',
-                                  '3': 'Main Optics Chamber',
-                                  '4': 'Work Area / Stage Base',
-                                  '5': 'Electrical Cabinet',
-                                  '6': 'Ambient Cleanroom'
+                                const chMapping: Record<string, { markbox: string; role: string }> = {
+                                  '1': { markbox: 'Markbox 1', role: 'Air-Cooling Sensor 1 (Primary)' },
+                                  '2': { markbox: 'Markbox 2', role: 'Air-Cooling Sensor 2 (Primary)' },
+                                  '3': { markbox: 'Markbox 3', role: 'Air-Cooling Sensor 3 (Primary)' },
+                                  '4': { markbox: 'Markbox 1', role: 'Air-Cooling Sensor 4 (Secondary)' },
+                                  '5': { markbox: 'Markbox 2', role: 'Air-Cooling Sensor 5 (Secondary)' },
+                                  '6': { markbox: 'Markbox 3', role: 'Air-Cooling Sensor 6 (Secondary)' }
                                 };
+                                const info = chMapping[chNum] || { markbox: `Markbox ${chNum}`, role: `Air-Cooling Channel ${chNum}` };
                                 const isPass = cStat.avg >= 21.0 && cStat.avg <= 23.0;
                                 return (
                                   <tr key={chNum}>
                                     <td className="py-1.5 px-2.5 font-bold text-slate-800 font-mono">CH{chNum}</td>
-                                    <td className="py-1.5 px-2.5 text-slate-700 font-sans">{chLabels[chNum] || `Sensor Station ${chNum}`}</td>
+                                    <td className="py-1.5 px-2.5 font-bold text-slate-800 font-sans">{info.markbox}</td>
+                                    <td className="py-1.5 px-2.5 text-slate-600 font-sans">{info.role}</td>
                                     <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.min.toFixed(2)}</td>
                                     <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.max.toFixed(2)}</td>
                                     <td className="py-1.5 px-2.5 font-bold text-cyan-900 font-mono">{cStat.avg.toFixed(2)}</td>
@@ -2132,109 +2167,25 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
                       )}
 
-                      {/* Vector Temperature Time-Series Chart */}
-                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                          <span className="font-bold text-slate-700 uppercase">VECTOR MULTI-CHANNEL THERMAL PROFILE</span>
-                          <span>SPEC TOLERANCE BAND: 21.0°C – 23.0°C</span>
+                      {/* Authoritative Multi-Channel Thermal Profile Graph */}
+                      {sections['12'].data.channelData && Object.keys(sections['12'].data.channelData).length > 0 && (
+                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                            <span className="font-bold text-slate-700 uppercase">AUTHORITATIVE MULTI-CHANNEL THERMAL PROFILE</span>
+                            <span>SPEC TOLERANCE BAND: 21.0°C – 23.0°C</span>
+                          </div>
+                          <div className="w-full bg-white rounded-lg p-2.5 border border-slate-200">
+                            <TemperatureGraph
+                              channelData={sections['12'].data.channelData as any}
+                              stats={sections['12'].data.stats}
+                              preset="report"
+                              height={180}
+                              showLegend={true}
+                              showGrid={true}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full h-36 bg-slate-900 rounded-xl p-2.5 relative overflow-hidden border border-slate-800">
-                          {(() => {
-                            const stats = sections['12'].data.stats;
-                            const chStats = sections['12'].data.channelStats || {};
-                            const chEntries = Object.entries(chStats);
-                            const minVal = (stats as any)?.minTempCelsius ?? stats?.min ?? 20;
-                            const maxVal = (stats as any)?.maxTempCelsius ?? stats?.max ?? 24;
-                            const avgVal = (stats as any)?.avgTempCelsius ?? stats?.avg ?? 22;
-
-                            const plotMin = Math.floor(Math.min(minVal, 20.0));
-                            const plotMax = Math.ceil(Math.max(maxVal, 24.0));
-                            const plotSpan = Math.max(1, plotMax - plotMin);
-                            const getY = (val: number) => {
-                              const clamped = Math.max(plotMin, Math.min(plotMax, val));
-                              return 100 - ((clamped - plotMin) / plotSpan) * 82;
-                            };
-
-                            const avgY = getY(avgVal);
-                            const minY = getY(minVal);
-                            const maxY = getY(maxVal);
-
-                            const channelPoints = chEntries.map(([ch, cStat], idx) => {
-                              const spacing = chEntries.length > 1 ? 380 / (chEntries.length - 1) : 190;
-                              const x = chEntries.length > 1 ? 60 + idx * spacing : 250;
-                              const yAvg = getY(cStat.avg);
-                              const yMin = getY(cStat.min);
-                              const yMax = getY(cStat.max);
-                              return { ch, cStat, x, yAvg, yMin, yMax };
-                            });
-
-                            const polylinePoints = channelPoints.map(p => `${p.x},${p.yAvg}`).join(' ');
-
-                            return (
-                              <svg viewBox="0 0 500 120" className="w-full h-full text-slate-400 font-mono text-[8px]" preserveAspectRatio="none">
-                                {/* Spec tolerance band (21.0 - 23.0 °C) */}
-                                <rect 
-                                  x="40" 
-                                  y={getY(23.0)} 
-                                  width="450" 
-                                  height={Math.max(3, getY(21.0) - getY(23.0))} 
-                                  fill="#06b6d4" 
-                                  fillOpacity="0.15" 
-                                />
-                                <line x1="40" y1={getY(22.0)} x2="490" y2={getY(22.0)} stroke="#06b6d4" strokeWidth="0.75" strokeDasharray="3,3" />
-                                <text x="440" y={getY(22.0) - 3} fill="#06b6d4" fontSize="7">TARGET 22°C</text>
-
-                                {/* Temperature Grid Lines & Labels */}
-                                <line x1="40" y1={getY(plotMax)} x2="490" y2={getY(plotMax)} stroke="#334155" strokeWidth="0.5" />
-                                <text x="2" y={getY(plotMax) + 3} fill="#64748b">{plotMax.toFixed(0)}°C</text>
-
-                                <line x1="40" y1={avgY} x2="490" y2={avgY} stroke="#10b981" strokeWidth="1" strokeDasharray="4,2" />
-                                <text x="2" y={avgY + 3} fill="#10b981">AVG</text>
-
-                                <line x1="40" y1={getY(plotMin)} x2="490" y2={getY(plotMin)} stroke="#334155" strokeWidth="0.5" />
-                                <text x="2" y={getY(plotMin) + 3} fill="#64748b">{plotMin.toFixed(0)}°C</text>
-
-                                {/* Polyline connecting stations */}
-                                {channelPoints.length > 1 && (
-                                  <polyline
-                                    points={polylinePoints}
-                                    fill="none"
-                                    stroke="#38bdf8"
-                                    strokeWidth="1.5"
-                                  />
-                                )}
-
-                                {/* Channel stations with real calculated error bars */}
-                                {channelPoints.map((p, idx) => {
-                                  const color = idx % 4 === 0 ? '#38bdf8' : idx % 4 === 1 ? '#34d399' : idx % 4 === 2 ? '#fbbf24' : '#a78bfa';
-                                  return (
-                                    <g key={p.ch}>
-                                      <line x1={p.x} y1={p.yMax} x2={p.x} y2={p.yMin} stroke={color} strokeWidth="2.5" strokeOpacity="0.7" />
-                                      <line x1={p.x - 4} y1={p.yMax} x2={p.x + 4} y2={p.yMax} stroke={color} strokeWidth="1.5" />
-                                      <line x1={p.x - 4} y1={p.yMin} x2={p.x + 4} y2={p.yMin} stroke={color} strokeWidth="1.5" />
-                                      <circle cx={p.x} cy={p.yAvg} r="4" fill={color} stroke="#0f172a" strokeWidth="1.5" />
-                                      <text x={p.x} y={p.yMax - 4} textAnchor="middle" fill={color} fontWeight="bold" fontSize="8.5">
-                                        {`CH${p.ch}: ${p.cStat.avg.toFixed(1)}°`}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-
-                                {channelPoints.length === 0 && (
-                                  <g>
-                                    <line x1="40" y1={maxY} x2="490" y2={maxY} stroke="#fbbf24" strokeWidth="0.75" strokeDasharray="2,2" />
-                                    <line x1="40" y1={minY} x2="490" y2={minY} stroke="#38bdf8" strokeWidth="0.75" strokeDasharray="2,2" />
-                                    <circle cx="250" cy={avgY} r="4" fill="#10b981" stroke="#0f172a" strokeWidth="1" />
-                                    <text x={260} y={avgY + 3} fill="#10b981" fontWeight="bold">
-                                      AVERAGE {avgVal.toFixed(2)}°C (MIN {minVal.toFixed(1)}°C / MAX {maxVal.toFixed(1)}°C)
-                                    </text>
-                                  </g>
-                                )}
-                              </svg>
-                            );
-                          })()}
-                        </div>
-                      </div>
+                      )}
                     </>
                   ) : (
                     /* Clean Fallback when no temperature log is linked */
@@ -2243,7 +2194,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         NO CONTINUOUS MULTI-CHANNEL THERMAL LOG LINKED TO THIS SESSION
                       </div>
                       <p className="text-slate-500 font-sans text-xs max-w-md mx-auto">
-                        Thermal inspection status was determined from manual chiller telemetry checks. To populate detailed 6-channel sensor matrices and profile curves, link a temperature log record to this machine passport.
+                        To populate detailed 6-channel optics markbox sensor matrices and profile curves, link a temperature log record to this machine.
                       </p>
                     </div>
                   )}
@@ -2268,68 +2219,79 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 10: PRODUCT & PROCESS DIAGNOSTICS (13 LASER PROFILE & 14 VIA QUALITY)
+              PAGE 10: PRODUCT PROCESS & VIA QUALITY (13)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 13 &amp; 14 — PRODUCT &amp; PROCESS DIAGNOSTICS</span>
+              <span>SECTION 13 — PRODUCT PROCESS &amp; VIA QUALITY</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-4 my-2 flex-1 min-h-0 flex flex-col justify-between">
+            <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
-              {/* SECTION 13: LASER / PRODUCT PROFILE */}
-              <div className="space-y-2.5">
+              {/* SECTION 13: PRODUCT PROCESS & VIA QUALITY */}
+              <div className="space-y-3">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      13 LASER / PRODUCT PROFILE
+                      13 PRODUCT PROCESS &amp; VIA QUALITY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Substrate Recipe Parameters &amp; Multi-Phase Laser Pulse Configuration
+                      Substrate Recipe Parameters, Process Phase Setup &amp; Microvia Quality Tolerances
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['13'].status)}
+                    {renderStatusBadge(
+                      sections['13']?.status === 'COMPLETE' && (sections['14']?.status === 'COMPLETE' || !sections['14'] || sections['14'].status === 'NOT_COLLECTED')
+                        ? 'COMPLETE'
+                        : sections['13']?.status === 'NEEDS_REVIEW' || sections['14']?.status === 'NEEDS_REVIEW'
+                        ? 'NEEDS_REVIEW'
+                        : sections['13']?.status !== 'NOT_COLLECTED'
+                        ? sections['13'].status
+                        : (sections['14']?.status || 'NOT_COLLECTED')
+                    )}
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs font-mono">
-                  {/* Overview Cards */}
+                {/* Main Content Container */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs font-mono">
+                  
+                  {/* 1. Substrate & Recipe Identity Grid */}
                   <div className="grid grid-cols-4 gap-2">
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">PRODUCT / SUBSTRATE</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.productName || 'Standard Production Coupon'}
+                        {sections['13'].data.productName || (sections['14']?.data as any)?.productName || 'Not Recorded'}
                       </strong>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">RECIPE / PROGRAM</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.recipeProgram || sections['13'].data.recipeName || 'REC-STD-01'}
+                        {sections['13'].data.recipeProgram || sections['13'].data.recipeName || 'Not Recorded'}
                       </strong>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">LOT / PANEL IDENTIFIER</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.lotPanel || sections['14'].data.sampleId || 'LOT-PANEL-01'}
+                        {sections['13'].data.lotPanel || sections['14']?.data?.sampleId || 'Not Recorded'}
                       </strong>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">LASER HEAD ALLOCATION</span>
+                      <span className="text-[9px] text-slate-400 block font-sans">LASER ALLOCATION</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.laserId === 'lh2' ? 'Laser 2 (LH2)' : sections['13'].data.laserId === 'lh1' ? 'Laser 1 (LH1)' : 'Dual Laser (LH1 & LH2)'}
+                        {sections['13'].data.laserId === 'lh2' ? 'Laser 2 (LH2)' : sections['13'].data.laserId === 'lh1' ? 'Laser 1 (LH1)' : sections['13'].data.laserId ? sections['13'].data.laserId : 'Dual Laser (LH1 & LH2)'}
                       </strong>
                     </div>
                   </div>
 
-                  {/* Phase 1 & Phase 2 Parameters Table */}
+                  {/* 2. Process Recipe Parameters Table */}
                   <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
-                    <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
-                      PROCESS RECIPE PHASE PARAMETERS
+                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase font-mono">
+                      <span>PROCESS RECIPE PHASE PARAMETERS</span>
+                      <span className="text-slate-400">PULSE POWER &amp; TIMING CONFIGURATION</span>
                     </div>
                     <table className="w-full text-left text-[11px] border-collapse">
                       <thead>
@@ -2346,197 +2308,199 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <tr>
                           <td className="py-1.5 font-bold text-slate-800">Phase 1 (Main / Rough Cut)</td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts} W` : '18.5 W'}
+                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts} W` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '60 kHz'}
+                            {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase1?.shotCount !== null && sections['13'].data.phase1?.shotCount !== undefined ? `${sections['13'].data.phase1.shotCount} shots` : '12 shots'}
+                            {sections['13'].data.phase1?.shotCount !== null && sections['13'].data.phase1?.shotCount !== undefined ? `${sections['13'].data.phase1.shotCount} shots` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase1?.maskMm !== null && sections['13'].data.phase1?.maskMm !== undefined ? `${sections['13'].data.phase1.maskMm} mm` : '1.2 mm'}
+                            {sections['13'].data.phase1?.maskMm !== null && sections['13'].data.phase1?.maskMm !== undefined ? `${sections['13'].data.phase1.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
-                            {sections['13'].data.phase1?.defocusMm !== null && sections['13'].data.phase1?.defocusMm !== undefined ? `${sections['13'].data.phase1.defocusMm} mm` : '0.00 mm'}
+                            {sections['13'].data.phase1?.defocusMm !== null && sections['13'].data.phase1?.defocusMm !== undefined ? `${sections['13'].data.phase1.defocusMm > 0 ? `+${sections['13'].data.phase1.defocusMm.toFixed(2)}` : sections['13'].data.phase1.defocusMm.toFixed(2)} mm` : '-'}
                           </td>
                         </tr>
                         <tr>
                           <td className="py-1.5 font-bold text-slate-800">Phase 2 (Clean / Bottom Polish)</td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts} W` : '9.2 W'}
+                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts} W` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '100 kHz'}
+                            {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase2?.shotCount !== null && sections['13'].data.phase2?.shotCount !== undefined ? `${sections['13'].data.phase2.shotCount} shots` : '4 shots'}
+                            {sections['13'].data.phase2?.shotCount !== null && sections['13'].data.phase2?.shotCount !== undefined ? `${sections['13'].data.phase2.shotCount} shots` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase2?.maskMm !== null && sections['13'].data.phase2?.maskMm !== undefined ? `${sections['13'].data.phase2.maskMm} mm` : '0.8 mm'}
+                            {sections['13'].data.phase2?.maskMm !== null && sections['13'].data.phase2?.maskMm !== undefined ? `${sections['13'].data.phase2.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
-                            {sections['13'].data.phase2?.defocusMm !== null && sections['13'].data.phase2?.defocusMm !== undefined ? `${sections['13'].data.phase2.defocusMm} mm` : '+0.10 mm'}
+                            {sections['13'].data.phase2?.defocusMm !== null && sections['13'].data.phase2?.defocusMm !== undefined ? `${sections['13'].data.phase2.defocusMm > 0 ? `+${sections['13'].data.phase2.defocusMm.toFixed(2)}` : sections['13'].data.phase2.defocusMm.toFixed(2)} mm` : '-'}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Profile Observations & Remarks */}
-                  <div className="text-[10px] text-slate-600 font-sans leading-relaxed">
-                    <strong>Process Verification: </strong>
-                    {sections['13'].data.engineerRemarks || sections['13'].data.supportingEvidence || sections['13'].data.profileInfo || 'Recipe laser operating parameters verified within machine process specifications.'}
-                  </div>
-                </div>
-              </div>
+                  {/* 3. Microvia Quality Metrics Grid */}
+                  <div className="space-y-2 pt-1 border-t border-slate-200">
+                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase font-mono">
+                      <span>MICROVIA QUALITY &amp; DRILLING TOLERANCES</span>
+                      <span className="text-cyan-900 font-bold">IPC-6012 INSPECTION CRITERIA</span>
+                    </div>
 
-              {/* SECTION 14: PRODUCT VIA QUALITY */}
-              <div className="space-y-2.5">
-                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      14 PRODUCT VIA QUALITY
-                    </h2>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Microvia Top/Bottom Aperture Dimensions, Geometry &amp; Optical Landing Verification
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['14'].status)}
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs font-mono">
-                  {/* Quality Metrics Grid */}
-                  <div className="grid grid-cols-4 gap-2">
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">NOMINAL VIA APERTURE</span>
-                      <strong className="text-slate-800 text-xs block font-bold">
-                        {sections['14'].data.viaDiameterUm ? `${sections['14'].data.viaDiameterUm.toFixed(1)} µm` : '51.0 µm'}
-                      </strong>
-                      <span className="text-[8px] text-slate-400 font-sans">Spec: 41.0 – 61.0 µm</span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">VIA OFFSET / CONCENTRICITY</span>
-                      <strong className="text-slate-800 text-xs block font-bold">
-                        {sections['14'].data.viaOffsetUm !== undefined ? `${sections['14'].data.viaOffsetUm.toFixed(1)} µm` : '0.0 µm'}
-                      </strong>
-                      <span className="text-[8px] text-slate-400 font-sans">Tolerance: ≤ ±2.0 µm</span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">VIA GEOMETRY &amp; SHAPE</span>
-                      <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['14'].data.viaShape || 'Circular / Uniform'}
-                      </strong>
-                      <span className="text-[8px] text-slate-400 font-sans">IPC-6012 Target</span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">LANDING RECAST QUALITY</span>
-                      <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['14'].data.padQuality || 'Clean Recast'}
-                      </strong>
-                      <span className="text-[8px] text-slate-400 font-sans">Minimal Residue</span>
-                    </div>
-                  </div>
-
-                  {/* Microvia Quality Table & Synthetic/Optical Diagram Container */}
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    {/* Table */}
-                    <div className="col-span-8 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
-                      <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
-                        DUAL-HEAD MICROVIA DRILLING TOLERANCES
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">NOMINAL VIA APERTURE</span>
+                        <strong className="text-slate-800 text-xs block font-bold">
+                          {sections['14']?.data?.viaDiameterUm !== undefined && sections['14'].data.viaDiameterUm !== null ? `${sections['14'].data.viaDiameterUm.toFixed(1)} µm` : 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Spec: 41.0 – 61.0 µm</span>
                       </div>
-                      <table className="w-full text-left text-[11px] border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
-                            <th className="py-1">CHANNEL</th>
-                            <th className="py-1 text-center">TOP WIDTH</th>
-                            <th className="py-1 text-center">BOTTOM WIDTH</th>
-                            <th className="py-1 text-center">TAPER</th>
-                            <th className="py-1 text-right">VERDICT</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 font-mono">
-                          <tr>
-                            <td className="py-1.5 font-bold text-slate-800">Laser 1 Microvia</td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {sections['14'].data.laser1Via?.topWidthUm ? `${sections['14'].data.laser1Via.topWidthUm.toFixed(1)} µm` : `${(sections['14'].data.viaDiameterUm || 50.2).toFixed(1)} µm`}
-                            </td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {sections['14'].data.laser1Via?.bottomWidthUm ? `${sections['14'].data.laser1Via.bottomWidthUm.toFixed(1)} µm` : '23.4 µm'}
-                            </td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {(() => {
-                                const top = sections['14'].data.laser1Via?.topWidthUm || sections['14'].data.viaDiameterUm || 50.2;
-                                const bot = sections['14'].data.laser1Via?.bottomWidthUm || 23.4;
-                                return `${((bot / top) * 100).toFixed(1)}%`;
-                              })()}
-                            </td>
-                            <td className="py-1.5 text-right font-bold">
-                              {renderStatusBadge(sections['14'].data.laser1Via?.overallPass !== false ? 'PASS' : 'FAIL')}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="py-1.5 font-bold text-slate-800">Laser 2 Microvia</td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {sections['14'].data.laser2Via?.topWidthUm ? `${sections['14'].data.laser2Via.topWidthUm.toFixed(1)} µm` : `${((sections['14'].data.viaDiameterUm || 50.2) - 0.4).toFixed(1)} µm`}
-                            </td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {sections['14'].data.laser2Via?.bottomWidthUm ? `${sections['14'].data.laser2Via.bottomWidthUm.toFixed(1)} µm` : '23.1 µm'}
-                            </td>
-                            <td className="py-1.5 text-center text-slate-700">
-                              {(() => {
-                                const top = sections['14'].data.laser2Via?.topWidthUm || (sections['14'].data.viaDiameterUm || 50.2) - 0.4;
-                                const bot = sections['14'].data.laser2Via?.bottomWidthUm || 23.1;
-                                return `${((bot / top) * 100).toFixed(1)}%`;
-                              })()}
-                            </td>
-                            <td className="py-1.5 text-right font-bold">
-                              {renderStatusBadge(sections['14'].data.laser2Via?.overallPass !== false ? 'PASS' : 'FAIL')}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Vector Cross-Section Visual Diagrams */}
-                    <div className="col-span-4 flex items-center justify-center gap-2">
-                      <div className="text-center">
-                        <div 
-                          className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
-                          dangerouslySetInnerHTML={{
-                            __html: ProductProcessEngine.generateSyntheticViaSvg(
-                              'LH1 Via',
-                              sections['14'].data.laser1Via?.topWidthUm || sections['14'].data.viaDiameterUm || 50.2,
-                              sections['14'].data.laser1Via?.bottomWidthUm || 23.4,
-                              '#06b6d4'
-                            )
-                          }}
-                        />
-                        <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 1 Profile</span>
+                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">VIA OFFSET / CONCENTRICITY</span>
+                        <strong className="text-slate-800 text-xs block font-bold">
+                          {sections['14']?.data?.viaOffsetUm !== undefined && sections['14'].data.viaOffsetUm !== null ? `${sections['14'].data.viaOffsetUm.toFixed(1)} µm` : 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Tolerance: ≤ ±2.0 µm</span>
                       </div>
-                      <div className="text-center">
-                        <div 
-                          className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
-                          dangerouslySetInnerHTML={{
-                            __html: ProductProcessEngine.generateSyntheticViaSvg(
-                              'LH2 Via',
-                              sections['14'].data.laser2Via?.topWidthUm || (sections['14'].data.viaDiameterUm || 50.2) - 0.4,
-                              sections['14'].data.laser2Via?.bottomWidthUm || 23.1,
-                              '#0ea5e9'
-                            )
-                          }}
-                        />
-                        <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 2 Profile</span>
+                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">VIA GEOMETRY &amp; SHAPE</span>
+                        <strong className="text-slate-800 text-xs block font-bold truncate">
+                          {sections['14']?.data?.viaShape || 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Aperture Uniformity</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[9px] text-slate-400 block font-sans">LANDING RECAST QUALITY</span>
+                        <strong className="text-slate-800 text-xs block font-bold truncate">
+                          {sections['14']?.data?.padQuality || 'Not Recorded'}
+                        </strong>
+                        <span className="text-[8px] text-slate-400 font-sans">Copper Base Cleanliness</span>
                       </div>
                     </div>
+
+                    {/* Dual-Head Microvia Table & Cross-Section SVGs */}
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <div className="col-span-8 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                        <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
+                          DUAL-HEAD MICROVIA DRILLING TOLERANCES
+                        </div>
+                        <table className="w-full text-left text-[11px] border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
+                              <th className="py-1">CHANNEL</th>
+                              <th className="py-1 text-center">TOP WIDTH</th>
+                              <th className="py-1 text-center">BOTTOM WIDTH</th>
+                              <th className="py-1 text-center">TAPER</th>
+                              <th className="py-1 text-right">VERDICT</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-mono">
+                            {(() => {
+                              const qData = sections['14']?.data;
+                              const lh1Top = qData?.laser1Via?.topWidthUm ?? (qData?.viaDiameterUm !== undefined ? qData.viaDiameterUm : null);
+                              const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? null;
+                              const lh1Taper = lh1Top !== null && lh1Bot !== null ? `${((lh1Bot / lh1Top) * 100).toFixed(1)}%` : '-';
+                              const lh1Pass = qData?.laser1Via?.overallPass !== undefined ? (qData.laser1Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
+
+                              const lh2Top = qData?.laser2Via?.topWidthUm ?? null;
+                              const lh2Bot = qData?.laser2Via?.bottomWidthUm ?? null;
+                              const lh2Taper = lh2Top !== null && lh2Bot !== null ? `${((lh2Bot / lh2Top) * 100).toFixed(1)}%` : '-';
+                              const lh2Pass = qData?.laser2Via?.overallPass !== undefined ? (qData.laser2Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
+
+                              return (
+                                <>
+                                  <tr>
+                                    <td className="py-1.5 font-bold text-slate-800">Laser 1 Microvia</td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh1Top !== null ? `${lh1Top.toFixed(1)} µm` : '-'}
+                                    </td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh1Bot !== null ? `${lh1Bot.toFixed(1)} µm` : '-'}
+                                    </td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh1Taper}
+                                    </td>
+                                    <td className="py-1.5 text-right font-bold">
+                                      {renderStatusBadge(lh1Pass)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td className="py-1.5 font-bold text-slate-800">Laser 2 Microvia</td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh2Top !== null ? `${lh2Top.toFixed(1)} µm` : '-'}
+                                    </td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh2Bot !== null ? `${lh2Bot.toFixed(1)} µm` : '-'}
+                                    </td>
+                                    <td className="py-1.5 text-center text-slate-700">
+                                      {lh2Taper}
+                                    </td>
+                                    <td className="py-1.5 text-right font-bold">
+                                      {renderStatusBadge(lh2Pass)}
+                                    </td>
+                                  </tr>
+                                </>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Vector Cross-Section Visual Diagrams */}
+                      <div className="col-span-4 flex items-center justify-center gap-2">
+                        {(() => {
+                          const qData = sections['14']?.data;
+                          const lh1Top = qData?.laser1Via?.topWidthUm ?? qData?.viaDiameterUm ?? null;
+                          const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? (lh1Top ? lh1Top * 0.45 : null);
+                          const lh2Top = qData?.laser2Via?.topWidthUm ?? (qData?.viaDiameterUm ? qData.viaDiameterUm - 0.4 : null);
+                          const lh2Bot = qData?.laser2Via?.bottomWidthUm ?? (lh2Top ? lh2Top * 0.45 : null);
+
+                          return (
+                            <>
+                              <div className="text-center">
+                                <div 
+                                  className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
+                                  dangerouslySetInnerHTML={{
+                                    __html: ProductProcessEngine.generateSyntheticViaSvg(
+                                      'LH1 Via',
+                                      lh1Top || 51.0,
+                                      lh1Bot || 23.0,
+                                      '#06b6d4'
+                                    )
+                                  }}
+                                />
+                                <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 1 Profile</span>
+                              </div>
+                              <div className="text-center">
+                                <div 
+                                  className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
+                                  dangerouslySetInnerHTML={{
+                                    __html: ProductProcessEngine.generateSyntheticViaSvg(
+                                      'LH2 Via',
+                                      lh2Top || 51.0,
+                                      lh2Bot || 23.0,
+                                      '#0ea5e9'
+                                    )
+                                  }}
+                                />
+                                <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 2 Profile</span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Visual Verification Observation */}
-                  <div className="text-[10px] text-slate-600 font-sans leading-relaxed">
-                    <strong>Microvia Verification: </strong>
-                    {sections['14'].data.visualVerification || sections['14'].data.notes || sections['14'].data.engineerRemarks || 'Ablation aperture geometry, top/bottom dimensional tolerances, and copper pad integrity inspected and certified.'}
+                  {/* 4. Unified Verification Remarks */}
+                  <div className="text-[10px] text-slate-600 font-sans leading-relaxed pt-2 border-t border-slate-200">
+                    <strong>Process &amp; Quality Verification: </strong>
+                    {sections['13'].data.engineerRemarks || sections['14']?.data?.visualVerification || sections['14']?.data?.notes || sections['14']?.data?.engineerRemarks || sections['13'].data.supportingEvidence || sections['13'].data.profileInfo || 'Recipe laser operating parameters and microvia dimensional tolerances verified within machine process specifications.'}
                   </div>
                 </div>
               </div>
@@ -2552,7 +2516,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 11: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (18)
+              PAGE 11: FINDINGS (15), ACTIONS (16), PARTS & RECOMMENDATIONS (17), BUYOFF (18)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -2563,155 +2527,355 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             </div>
 
             {/* Content Body */}
-            <div className="space-y-4 my-2 flex-1 min-h-0">
+            <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
-              {/* SECTION 15 & 16: FINDINGS & CORRECTIVE ACTIONS */}
-              <div className="space-y-3">
-                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <span>15 &amp; 16 FINDINGS &amp; CORRECTIVE ACTIONS</span>
-                  <span className="text-xs font-mono font-bold text-cyan-800">TOTAL FINDINGS: {sections['15'].data.totalFindingsCount}</span>
-                </h2>
+              {/* SECTION 15: FINDINGS & OBSERVATIONS */}
+              <div className="space-y-1.5">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                      15 FINDINGS &amp; OBSERVATIONS
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                      TOTAL RECORDED: {sections['15']?.data?.totalFindingsCount ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['15']?.status || 'NOT_COLLECTED')}
+                  </div>
+                </div>
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                  {sections['16'].data.actionsList.length > 0 ? (
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400">
-                          <th className="py-1">SOURCE</th>
-                          <th className="py-1">COMPONENT</th>
-                          <th className="py-1">CORRECTIVE ACTION</th>
-                          <th className="py-1 text-right">STATUS</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-sans">
-                        {sections['16'].data.actionsList.map(act => (
-                          <tr key={act.id}>
-                            <td className="py-1.5 font-bold text-slate-800">{act.source}</td>
-                            <td className="py-1.5 font-mono text-[11px] text-slate-600">{act.findingComponent || 'System'}</td>
-                            <td className="py-1.5 text-slate-700">{act.actionText}</td>
-                            <td className="py-1.5 text-right font-mono text-[10px] font-bold text-cyan-800">{act.status}</td>
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                  {(() => {
+                    const allFindings: Array<{
+                      source: string;
+                      component: string;
+                      conditions: string[];
+                      engineerNote?: string;
+                      actionRecommendation?: string;
+                    }> = [];
+
+                    (sections['15']?.data?.heads || []).forEach(h => {
+                      (h.findingsList || []).forEach(f => {
+                        allFindings.push({
+                          source: h.headName,
+                          component: f.component,
+                          conditions: f.conditions,
+                          engineerNote: f.engineerNote || f.aiGeneratedWording,
+                          actionRecommendation: f.actionRecommendation
+                        });
+                      });
+                    });
+
+                    if (allFindings.length > 0) {
+                      return (
+                        <div className="space-y-1.5">
+                          <table className="w-full text-left text-[11px] border-collapse bg-white rounded border border-slate-200">
+                            <thead>
+                              <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400 bg-slate-50/70">
+                                <th className="py-1 px-2">SOURCE / MODULE</th>
+                                <th className="py-1 px-2">COMPONENT</th>
+                                <th className="py-1 px-2">OBSERVED CONDITION</th>
+                                <th className="py-1 px-2">ENGINEER OBSERVATION / NOTE</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-sans">
+                              {allFindings.map((f, idx) => (
+                                <tr key={idx}>
+                                  <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{f.source}</td>
+                                  <td className="py-1 px-2 font-mono text-[10.5px] text-slate-700">{f.component}</td>
+                                  <td className="py-1 px-2 text-slate-600 text-[10.5px]">
+                                    {f.conditions && f.conditions.length > 0 ? f.conditions.join(', ') : 'Visual inspection finding'}
+                                  </td>
+                                  <td className="py-1 px-2 text-slate-700 text-[10.5px]">{f.engineerNote || f.actionRecommendation || 'Observed during routine inspection'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+
+                          {sections['15']?.data?.generalFindingsNote && (
+                            <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
+                              <strong>General Observations: </strong>{sections['15'].data.generalFindingsNote}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-center justify-between text-slate-500 py-0.5">
+                        <span className="italic text-[11px]">
+                          {sections['15']?.data?.generalFindingsNote 
+                            ? `General Observations: ${sections['15'].data.generalFindingsNote}`
+                            : 'No component anomalies or optical defects observed during visual inspection.'}
+                        </span>
+                        <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          ALL SUBSYSTEMS NOMINAL
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* SECTION 16: CORRECTIVE ACTIONS */}
+              <div className="space-y-1.5">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                    16 CORRECTIVE ACTIONS
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['16']?.status || 'NOT_COLLECTED')}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                  {sections['16']?.data?.actionsList && sections['16'].data.actionsList.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <table className="w-full text-left text-[11px] border-collapse bg-white rounded border border-slate-200">
+                        <thead>
+                          <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400 bg-slate-50/70">
+                            <th className="py-1 px-2">SOURCE / MODULE</th>
+                            <th className="py-1 px-2">TARGET COMPONENT</th>
+                            <th className="py-1 px-2">ACTION / PROCEDURE PERFORMED</th>
+                            <th className="py-1 px-2 text-right">ACTION STATUS</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-sans">
+                          {sections['16'].data.actionsList.map(act => (
+                            <tr key={act.id}>
+                              <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{act.source}</td>
+                              <td className="py-1 px-2 font-mono text-[10.5px] text-slate-600">{act.findingComponent || 'System'}</td>
+                              <td className="py-1 px-2 text-slate-700 text-[10.5px]">{act.actionText}</td>
+                              <td className="py-1 px-2 text-right font-mono text-[10px] font-bold text-cyan-800">{act.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {sections['16'].data.generalCorrectiveActionsText && (
+                        <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
+                          <strong>Maintenance Execution: </strong>{sections['16'].data.generalCorrectiveActionsText}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <p className="text-slate-600 italic text-xs">
-                      No findings recorded.
-                    </p>
+                    <div className="flex items-center justify-between text-slate-500 py-0.5">
+                      <span className="italic text-[11px]">
+                        {sections['16']?.data?.generalCorrectiveActionsText
+                          ? `Maintenance Execution: ${sections['16'].data.generalCorrectiveActionsText}`
+                          : 'All subsystem diagnostics verified within operational specifications; no corrective adjustments required during this maintenance window.'}
+                      </span>
+                      <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        NO CORRECTIVE ACTION REQUIRED
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* SECTION 17: SPARE PARTS & RECOMMENDATIONS */}
-              <div className="space-y-3">
-                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <span>17 SPARE PARTS &amp; RECOMMENDATIONS</span>
-                  <span className="text-xs font-mono font-bold text-slate-500">CONSUMED VS RECOMMENDED</span>
-                </h2>
-
-                <div className="space-y-3">
-                  {/* Consumed / Replaced Parts */}
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                    <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
-                      CONSUMED &amp; REPLACED PARTS (MAINTENANCE ACTIONS)
-                    </span>
-                    {sections['17'].data.consumedParts && sections['17'].data.consumedParts.length > 0 ? (
-                      <table className="w-full text-left text-xs border-collapse font-sans">
-                        <thead>
-                          <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400">
-                            <th className="py-1">PART NAME</th>
-                            <th className="py-1 font-mono">PART NUMBER</th>
-                            <th className="py-1">QTY</th>
-                            <th className="py-1">ACTION</th>
-                            <th className="py-1 text-right">COSTING</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {sections['17'].data.consumedParts.map(sp => (
-                            <tr key={sp.id}>
-                              <td className="py-1.5 font-bold text-slate-800">{sp.partName}</td>
-                              <td className="py-1.5 font-mono text-[11px] text-slate-600">{sp.partNumber}</td>
-                              <td className="py-1.5 font-mono">{sp.quantity}</td>
-                              <td className="py-1.5 font-bold text-cyan-900">{sp.action}</td>
-                              <td className="py-1.5 text-right font-mono text-[10px] text-slate-500">{sp.costIndicator}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <p className="text-slate-500 italic text-xs">No consumed/replaced parts required during this service execution.</p>
+              <div className="space-y-1.5">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                      17 SPARE PARTS &amp; RECOMMENDATIONS
+                    </h2>
+                    {sections['17']?.data?.followUpRequired !== undefined && (
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        sections['17'].data.followUpRequired 
+                          ? 'text-amber-800 bg-amber-50 border-amber-200' 
+                          : 'text-slate-600 bg-slate-100 border-slate-200'
+                      }`}>
+                        FOLLOW-UP: {sections['17'].data.followUpRequired ? 'REQUIRED' : 'NONE'}
+                      </span>
                     )}
                   </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['17']?.status || 'NOT_COLLECTED')}
+                  </div>
+                </div>
 
-                  {/* Recommended Spare Parts for Future Service */}
-                  {sections['17'].data.recommendedParts && sections['17'].data.recommendedParts.length > 0 && (
-                    <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/80 text-xs space-y-1.5">
-                      <span className="font-mono text-amber-800 font-bold uppercase text-[9px] block">
-                        RECOMMENDED SPARE PARTS (PROACTIVE REPLACEMENT / PROCUREMENT)
-                      </span>
-                      <table className="w-full text-left text-xs border-collapse font-sans">
-                        <thead>
-                          <tr className="border-b border-amber-200 font-mono text-[10px] text-amber-700/70">
-                            <th className="py-1">RECOMMENDED ITEM</th>
-                            <th className="py-1">SOURCE / FINDING</th>
-                            <th className="py-1 text-right">ENGINEER RECOMMENDATION</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-amber-100">
-                          {sections['17'].data.recommendedParts.map(rec => (
-                            <tr key={rec.id}>
-                              <td className="py-1.5 font-bold text-amber-950">{rec.partName}</td>
-                              <td className="py-1.5 font-mono text-[11px] text-amber-800">{rec.sourceFinding ? `Finding #${rec.sourceFinding}` : 'System Inspection'}</td>
-                              <td className="py-1.5 text-right text-slate-700 font-sans text-xs">{rec.reason}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                <div className="space-y-2">
+                  {/* Engineering Recommendations */}
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                    <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
+                      ENGINEERING RECOMMENDATIONS &amp; FUTURE ACTION PLAN
+                    </span>
+                    <div className="bg-white p-2 rounded border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
+                      {sections['17']?.data?.engineerRecommendationsText || 
+                       (sections['17']?.data?.recommendations && sections['17'].data.recommendations.length > 0 ? sections['17'].data.recommendations.join(' • ') : null) || 
+                       'System operating within validated tolerances; maintain standard preventative maintenance cycle.'}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Consumed & Recommended Spare Parts */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Consumed / Replaced Parts */}
+                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                      <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
+                        CONSUMED PARTS (SERVICE EXECUTION)
+                      </span>
+                      {sections['17']?.data?.consumedParts && sections['17'].data.consumedParts.length > 0 ? (
+                        <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
+                          <thead>
+                            <tr className="border-b border-slate-200 font-mono text-[8.5px] text-slate-400 bg-slate-50/70">
+                              <th className="py-0.5 px-1.5">PART NAME</th>
+                              <th className="py-0.5 px-1.5">QTY</th>
+                              <th className="py-0.5 px-1.5">ACTION</th>
+                              <th className="py-0.5 px-1.5 text-right">COSTING</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {sections['17'].data.consumedParts.map(sp => (
+                              <tr key={sp.id}>
+                                <td className="py-1 px-1.5 font-bold text-slate-800 text-[10px]">{sp.partName}</td>
+                                <td className="py-1 px-1.5 font-mono text-[10px]">{sp.quantity}</td>
+                                <td className="py-1 px-1.5 font-bold text-cyan-900 text-[10px]">{sp.action}</td>
+                                <td className="py-1 px-1.5 text-right font-mono text-[9px] text-slate-500">{sp.costIndicator}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">No parts consumed/replaced during service.</p>
+                      )}
+                    </div>
+
+                    {/* Recommended Spare Parts */}
+                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                      <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
+                        RECOMMENDED SPARE PARTS (PROCUREMENT / STOCK)
+                      </span>
+                      {sections['17']?.data?.recommendedParts && sections['17'].data.recommendedParts.length > 0 ? (
+                        <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
+                          <thead>
+                            <tr className="border-b border-slate-200 font-mono text-[8.5px] text-slate-400 bg-slate-50/70">
+                              <th className="py-0.5 px-1.5">RECOMMENDED ITEM</th>
+                              <th className="py-0.5 px-1.5">QTY</th>
+                              <th className="py-0.5 px-1.5 text-right">TRIGGER / REASON</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {sections['17'].data.recommendedParts.map(rec => (
+                              <tr key={rec.id}>
+                                <td className="py-1 px-1.5 font-bold text-slate-800 text-[10px]">{rec.partName}</td>
+                                <td className="py-1 px-1.5 font-mono text-[10px]">{rec.quantity || 1}</td>
+                                <td className="py-1 px-1.5 text-right text-slate-600 text-[9.5px] truncate max-w-[130px]">{rec.reason}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">No spare parts procurement required.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* SECTION 18: BUYOFF & SIGN-OFF */}
-              <div className="space-y-3 pt-2">
-                <h2 className="text-lg font-extrabold tracking-tight text-slate-900 border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <span>18 BUYOFF &amp; OFFICIAL APPROVALS</span>
+              {/* SECTION 18: BUYOFF & OFFICIAL APPROVALS */}
+              <div className="space-y-1.5 pt-1">
+                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                      18 BUYOFF &amp; OFFICIAL APPROVALS
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      PRODUCTION RELEASE: {releaseStatus}
+                    </span>
+                  </div>
                   {renderStatusBadge(releaseStatus)}
-                </h2>
+                </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4 text-xs font-sans">
-                  <div className="grid grid-cols-2 gap-6 pt-2">
-                    
-                    {/* Engineer Signature Block */}
-                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-3">
-                      <div className="text-[10px] font-mono text-slate-400 font-bold uppercase border-b border-slate-100 pb-1">
-                        FIELD SERVICE ENGINEER
+                <div className="space-y-2">
+                  {/* Next MHC Scheduling Box */}
+                  <div className="p-2 rounded-lg bg-slate-900 text-white flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-bold text-[9px] uppercase px-2 py-0.5 rounded">
+                        NEXT SCHEDULED MHC
                       </div>
-                      <div className="space-y-1">
-                        <strong className="text-slate-900 text-sm block">{engineerName}</strong>
-                        <div className="text-[11px] text-slate-500">Senior Field Service Engineer</div>
-                        <div className="text-[10px] font-mono text-slate-400">Date: {inspectionDate}</div>
-                      </div>
-                      <div className="pt-4 border-t border-dashed border-slate-200 text-center font-mono text-[10px] text-slate-400">
-                        [ COMPLETED BY ENGINEER ]
+                      <div className="text-[11px]">
+                        <span className="text-slate-400">Target Due Date: </span>
+                        <strong className="text-cyan-300 font-mono text-xs">
+                          {sections['18']?.data?.nextMhcSchedule?.nextDueDate || 'Quarterly Cycle (90 Days)'}
+                        </strong>
                       </div>
                     </div>
+                    <div className="text-[10px] font-mono text-slate-400">
+                      Cycle: <span className="text-slate-200 font-bold">90-Day Standard Interval</span>
+                    </div>
+                  </div>
 
-                    {/* Customer Signoff Block */}
-                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-3">
-                      <div className="text-[10px] font-mono text-slate-400 font-bold uppercase border-b border-slate-100 pb-1">
-                        CUSTOMER ACCEPTANCE REPRESENTATIVE
+                  {/* Dual Sign-off Blocks */}
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-sans">
+                    <div className="grid grid-cols-2 gap-3">
+                      
+                      {/* Engineer Signature Block */}
+                      <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="text-[9px] font-mono text-slate-400 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
+                            <span>FIELD SERVICE ENGINEER</span>
+                            <span className="text-emerald-700 font-mono text-[8px] bg-emerald-50 px-1 rounded border border-emerald-200">VERIFIED</span>
+                          </div>
+                          <div className="space-y-0.5 pt-1">
+                            <strong className="text-slate-900 text-xs block">{engineerName}</strong>
+                            <div className="text-[10px] text-slate-500">{sections['18']?.data?.engineerSignoff?.title || 'Senior Field Service Engineer'}</div>
+                            <div className="text-[9px] font-mono text-slate-500">Date: {sections['18']?.data?.engineerSignoff?.date || inspectionDate}</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
+                          {sections['18']?.data?.engineerSignoff?.signatureDataUrl ? (
+                            <img src={sections['18'].data.engineerSignoff.signatureDataUrl} alt="Engineer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span>[ COMPLETED &amp; SIGNED BY ENGINEER ]</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <strong className="text-slate-900 text-sm block">{(sections['18'] || sections['19'])?.data?.customerSignoff?.name || 'Customer Representative'}</strong>
-                        <div className="text-[11px] text-slate-500">{customerCompany}</div>
-                        <div className="text-[10px] font-mono text-slate-400">Date: —</div>
+
+                      {/* Customer Signoff Block */}
+                      <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="text-[9px] font-mono text-slate-400 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
+                            <span>CUSTOMER ACCEPTANCE REPRESENTATIVE</span>
+                            <span className={`font-mono text-[8px] px-1 rounded border ${
+                              releaseStatus === 'APPROVED' 
+                                ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                                : 'text-amber-700 bg-amber-50 border-amber-200'
+                            }`}>
+                              {releaseStatus === 'APPROVED' ? 'ACCEPTED' : 'PENDING'}
+                            </span>
+                          </div>
+                          <div className="space-y-0.5 pt-1">
+                            <strong className="text-slate-900 text-xs block">
+                              {sections['18']?.data?.customerSignoff?.name && sections['18'].data.customerSignoff.name !== 'Customer Representative' 
+                                ? sections['18'].data.customerSignoff.name 
+                                : (releaseStatus === 'APPROVED' ? 'Customer Representative' : 'Pending Customer Sign-off')}
+                            </strong>
+                            <div className="text-[10px] text-slate-500">
+                              {sections['18']?.data?.customerSignoff?.title || customerCompany}
+                            </div>
+                            <div className="text-[9px] font-mono text-slate-500">
+                              Date: {sections['18']?.data?.customerSignoff?.date || '—'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
+                          {sections['18']?.data?.customerSignoff?.signatureDataUrl ? (
+                            <img src={sections['18'].data.customerSignoff.signatureDataUrl} alt="Customer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span>{releaseStatus === 'APPROVED' ? '[ CUSTOMER APPROVED ]' : '[ PENDING CUSTOMER REVIEW & SIGN-OFF ]'}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="pt-4 border-t border-dashed border-slate-200 text-center font-mono text-[10px] text-slate-400">
-                        [ PENDING CUSTOMER REVIEW &amp; SIGN-OFF ]
-                      </div>
+
                     </div>
 
+                    {sections['18']?.data?.customerSignoff?.comments && (
+                      <div className="mt-2 p-1.5 rounded bg-white border border-slate-200 text-[10px] text-slate-600">
+                        <strong>Customer Remarks: </strong>{sections['18'].data.customerSignoff.comments}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

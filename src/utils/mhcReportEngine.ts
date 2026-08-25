@@ -880,6 +880,8 @@ export function buildMhcReportDocument(
 
   const findingsData: MhcReportFindingsData = {
     totalFindingsCount,
+    generalFindingsNote: session.stage08_engineerRemarks?.generalFindings || undefined,
+    observedIssues: session.stage08_engineerRemarks?.observedIssues || undefined,
     heads: formattedHeadsFindings
   };
 
@@ -888,7 +890,7 @@ export function buildMhcReportDocument(
     title: 'Findings',
     displayOrder: 15,
     isVisible: options?.sectionVisibilityOverrides?.['15'] ?? true,
-    status: Object.keys(inspFindingsMap).length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (Object.keys(inspFindingsMap).length > 0 || totalFindingsCount > 0 || session.stage08_engineerRemarks?.generalFindings || session.stage08_engineerRemarks?.observedIssues) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: findingsData
   };
 
@@ -909,7 +911,7 @@ export function buildMhcReportDocument(
 
   const correctiveActionsData: MhcReportCorrectiveActionsData = {
     actionsList: derivedActions,
-    generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || 'Standard preventive maintenance procedures performed.'
+    generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || undefined
   };
 
   const correctiveActionsSection: MhcReportSection<MhcReportCorrectiveActionsData> = {
@@ -917,7 +919,7 @@ export function buildMhcReportDocument(
     title: 'Corrective Actions',
     displayOrder: 16,
     isVisible: options?.sectionVisibilityOverrides?.['16'] ?? true,
-    status: derivedActions.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (derivedActions.length > 0 || Boolean(session.stage08_engineerRemarks?.correctiveActions)) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: correctiveActionsData
   };
 
@@ -961,7 +963,7 @@ export function buildMhcReportDocument(
         f.actionRecommendation.toLowerCase().includes('filter')
       )) {
         // Only add if not already in list
-        const alreadyExists = derivedRecommendedParts.some(p => p.sourceFinding === f.id || p.reason.includes(f.component));
+        const alreadyExists = derivedRecommendedParts.some(p => p.sourceFinding === f.id || (p.reason && p.reason.includes(f.component)));
         if (!alreadyExists) {
           derivedRecommendedParts.push({
             id: `REC-PART-${f.id}`,
@@ -979,8 +981,10 @@ export function buildMhcReportDocument(
     spareParts: rawSparePartsList,
     consumedParts,
     recommendedParts: derivedRecommendedParts,
-    recommendations: derivedActions.map(a => a.actionText),
-    generalFindingsNote: session.stage08_engineerRemarks?.generalFindings
+    recommendations: session.stage08_engineerRemarks?.recommendations ? [session.stage08_engineerRemarks.recommendations] : derivedActions.filter(a => a.status === 'RECOMMENDED').map(a => a.actionText),
+    engineerRecommendationsText: session.stage08_engineerRemarks?.recommendations || undefined,
+    followUpRequired: session.stage08_engineerRemarks?.followUpRequired ?? (derivedRecommendedParts.length > 0),
+    generalFindingsNote: session.stage08_engineerRemarks?.generalFindings || undefined
   };
 
   const sparePartsSection: MhcReportSection<MhcReportSparePartsData> = {
@@ -988,7 +992,7 @@ export function buildMhcReportDocument(
     title: 'Spare Parts / Recommendations',
     displayOrder: 17,
     isVisible: options?.sectionVisibilityOverrides?.['17'] ?? true,
-    status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || derivedRecommendedParts.length > 0 || rawSparePartsList.length > 0) ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || derivedRecommendedParts.length > 0 || rawSparePartsList.length > 0 || Boolean(session.stage08_engineerRemarks?.recommendations)) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: sparePartsData
   };
 
@@ -1115,23 +1119,38 @@ export function buildMhcReportDocument(
   const hasCustomerApproval = Boolean(
     (session as any).customerApproved || 
     (session as any).customerApprovalStatus === 'APPROVED' ||
-    Boolean((session as any).customerSignatureDataUrl)
+    Boolean((session as any).customerSignatureDataUrl) ||
+    Boolean((session as any).customerSignatureName)
+  );
+
+  const rawNextMhcDate = (session as any).nextMhcDate || (session as any).nextDueDate || matchedMachine?.nextMhcDate || (
+    coverData.date && !isNaN(Date.parse(coverData.date))
+      ? new Date(new Date(coverData.date).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      : undefined
   );
 
   const buyoffData: MhcReportBuyoffData = {
     productionReleaseVerdict: hasCustomerApproval 
       ? 'APPROVED' 
-      : ((session as any).customerApprovalStatus || 'PENDING'),
+      : ((session as any).customerApprovalStatus || ((session as any).customerApproved === false ? 'HALTED' : 'PENDING')),
     engineerSignoff: {
-      name: coverData.engineerName,
-      title: coverData.engineerTitle,
-      date: coverData.date
+      name: coverData.engineerName || session.engineerName || '',
+      title: coverData.engineerTitle || 'Field Service Engineer',
+      date: coverData.date || session.completedDate || session.startDate || '',
+      signatureDataUrl: (session as any).engineerSignatureDataUrl
     },
     customerSignoff: {
-      name: (session as any).customerSignoffName || (session as any).customerContactName || 'Customer Representative',
-      title: (session as any).customerSignoffTitle || (session as any).customerContactTitle || 'Plant Manager / Engineer',
-      date: (session as any).customerSignoffDate || (hasCustomerApproval ? coverData.date : '—'),
-      signatureDataUrl: (session as any).customerSignatureDataUrl
+      name: (session as any).customerSignoffName || (session as any).customerSignatureName || (session as any).customerContactName || 'Customer Representative',
+      title: (session as any).customerSignoffTitle || (session as any).customerContactTitle || undefined,
+      date: (session as any).customerSignoffDate || (session as any).customerSignatureDate || (hasCustomerApproval ? coverData.date : '—'),
+      signatureDataUrl: (session as any).customerSignatureDataUrl,
+      comments: (session as any).customerComments || (session as any).customerFeedback || undefined
+    },
+    nextMhcSchedule: {
+      nextDueDate: rawNextMhcDate,
+      intervalMonths: (session as any).serviceIntervalMonths || 3,
+      recommendedWindow: (session as any).recommendedServiceWindow || (rawNextMhcDate ? `Scheduled for: ${rawNextMhcDate}` : 'Quarterly (90-Day Standard Interval)'),
+      targetServiceType: 'Quarterly Maintenance & Health Check (MHC)'
     },
     founderBranding: coverData.founderBranding
   };

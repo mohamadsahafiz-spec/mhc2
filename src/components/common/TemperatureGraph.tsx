@@ -267,17 +267,24 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
               <Tooltip
                 contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', fontSize: '11px', color: '#0f172a' }}
               />
-              {activeChannels.map((ch) => (
-                <Line
-                  key={ch}
-                  type="monotone"
-                  dataKey={`CH${ch}`}
-                  stroke={CHANNEL_COLORS[ch] || '#3b82f6'}
-                  strokeWidth={1.5}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              ))}
+              {showLegend && (
+                <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'monospace', paddingTop: '4px' }} />
+              )}
+              {activeChannels.map((ch) => {
+                const markboxName = ch === 1 || ch === 4 ? 'Markbox 1' : ch === 2 || ch === 5 ? 'Markbox 2' : 'Markbox 3';
+                return (
+                  <Line
+                    key={ch}
+                    type="monotone"
+                    dataKey={`CH${ch}`}
+                    name={`CH${ch} (${markboxName})`}
+                    stroke={CHANNEL_COLORS[ch] || '#3b82f6'}
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
