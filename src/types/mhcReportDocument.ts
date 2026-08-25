@@ -74,10 +74,14 @@ export interface MhcReportCoverData {
   plantName: string;
   productionLine?: string;
   lineName?: string;
+  department?: string;
+  zone?: string;
   machineModel: string;
   machineSerialNumber: string;
   machineName: string;
   machineNumber?: string;
+  baselineDate?: string;
+  lastMhcDate?: string;
   engineerName: string;
   engineerTitle: string;
   founderBranding?: {

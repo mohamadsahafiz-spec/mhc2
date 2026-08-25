@@ -73,6 +73,9 @@ export function buildMhcReportDocument(
   const productionLine = (session as any).productionLine || (session as any).productionLineName || (session as any).lineName || matchedMachine?.productionLineName || (matchedMachine as any)?.lineName || 'Davinci';
   const zone = (session as any).zone || (matchedMachine as any)?.zone || (session as any).facilityZone || 'B | Front of Line';
 
+  const baselineDate = previousSession?.completedDate || previousSession?.startDate || matchedMachine?.baselineDate || undefined;
+  const lastMhcDate = session.completedDate || session.startDate || matchedMachine?.lastMhcDate || undefined;
+
   // 01 COVER
   const coverData: MhcReportCoverData = {
     title: options?.title || 'Maintenance & Health Check (MHC) Report',
@@ -83,6 +86,10 @@ export function buildMhcReportDocument(
     plantName: session.plantName || matchedMachine?.plantName || '',
     productionLine: productionLine,
     lineName: productionLine,
+    department: department,
+    zone: zone,
+    baselineDate: baselineDate,
+    lastMhcDate: lastMhcDate,
     machineModel: session.machineModel || matchedMachine?.model || '',
     machineSerialNumber: session.machineSerialNumber || matchedMachine?.serialNumber || '',
     machineName: session.machineName || matchedMachine?.machineName || session.machineModel || '',

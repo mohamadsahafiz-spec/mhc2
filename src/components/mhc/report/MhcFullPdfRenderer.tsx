@@ -618,28 +618,38 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">ZONE</span>
+                  <strong className="text-slate-900 font-bold text-sm">{sections['01']?.data?.zone || sections['03']?.data?.zone || 'B | Front of Line'}</strong>
+                </div>
+
+                <div>
                   <span className="text-[10px] text-slate-500 font-mono block">MACHINE MODEL</span>
-                  <strong className="text-slate-900 font-bold text-sm">{sections['01'].data.machineModel}</strong>
+                  <strong className="text-slate-900 font-bold text-sm">{sections['01'].data.machineModel || '—'}</strong>
                 </div>
 
                 <div>
                   <span className="text-[10px] text-slate-500 font-mono block">MACHINE NUMBER / SOURCE</span>
-                  <strong className="text-cyan-900 font-bold font-mono text-sm">{machineNumber}</strong>
+                  <strong className="text-cyan-900 font-bold font-mono text-sm">{machineNumber || '—'}</strong>
                 </div>
 
                 <div>
                   <span className="text-[10px] text-slate-500 font-mono block">SERIAL NUMBER</span>
-                  <strong className="text-slate-800 font-bold font-mono text-sm">{sections['01'].data.machineSerialNumber}</strong>
+                  <strong className="text-slate-800 font-bold font-mono text-sm">{sections['01'].data.machineSerialNumber || '—'}</strong>
                 </div>
 
-                <div className="col-span-2 pt-2 border-t border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">ASSESSMENT CLASSIFICATION</span>
+                  <strong className="text-slate-700 font-mono text-xs">Laser Processing System (MHC Full)</strong>
+                </div>
+
+                <div className="col-span-2 pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-4 font-mono text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-500 font-mono block">LINE IDENTIFIER</span>
-                    <strong className="text-slate-800 font-mono text-xs">Line Name: {lineName}</strong>
+                    <span className="text-[10px] text-slate-400 block">BASELINE DATE</span>
+                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.baselineDate || sections['03']?.data?.baselineDate || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-mono block text-right">ASSESSMENT CLASSIFICATION</span>
-                    <strong className="text-slate-700 font-mono text-xs">Laser Processing System (MHC Full)</strong>
+                    <span className="text-[10px] text-slate-400 block">LAST MHC DATE</span>
+                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.lastMhcDate || sections['03']?.data?.lastMhcDate || inspectionDate}</strong>
                   </div>
                 </div>
               </div>
@@ -810,98 +820,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
               <span>Page 2 of 11</span>
-            </div>
-
-          </div>
-
-          {/* =========================================================================
-              PAGE 3: MACHINE INFORMATION & CONFIGURATION (03) - DEDICATED NEW PAGE
-             ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
-              <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 03 — MACHINE CONFIGURATION</span>
-            </div>
-
-            {/* Content Body */}
-            <div className="space-y-4 my-2 flex-1 min-h-0">
-              
-              {/* SECTION 03: MACHINE INFORMATION */}
-              <div className="space-y-4">
-                <div className="border-b-2 border-slate-900 pb-2 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
-                      03 MACHINE INFORMATION &amp; CONFIGURATION
-                    </h2>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Authoritative Machine Baseline &amp; Hardware Subsystem Passport
-                    </p>
-                  </div>
-                  {renderStatusBadge(sections['03'].status)}
-                </div>
-
-                {/* Primary Machine Identity Grid */}
-                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-5 text-xs font-sans">
-                  <div className="font-mono text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between">
-                    <span>EQUIPMENT IDENTIFICATION &amp; FACILITY ZONE</span>
-                    <span className="text-cyan-800 font-semibold">AUTHORITATIVE HARDWARE BASELINE</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">MACHINE MODEL</span>
-                      <strong className="text-slate-900 font-bold text-base block">{sections['03'].data.machineModel || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">MACHINE NUMBER / SOURCE</span>
-                      <strong className="text-cyan-900 font-bold font-mono text-base block">{machineNumber || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">SERIAL NUMBER</span>
-                      <strong className="text-slate-900 font-bold font-mono text-base block">{sections['03'].data.serialNumber || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">ZONE</span>
-                      <strong className="text-slate-900 font-bold text-base block">{sections['03'].data.zone || 'B | Front of Line'}</strong>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-200 grid grid-cols-2 gap-5 font-mono text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">BASELINE DATE</span>
-                      <strong className="text-slate-800 text-sm">{sections['03'].data.baselineDate || '2026-05-15'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">LAST MHC DATE</span>
-                      <strong className="text-slate-800 text-sm">{sections['03'].data.lastMhcDate || inspectionDate}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Equipment Baseline Reference Note */}
-                <div className="p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 space-y-2 text-xs">
-                  <div className="font-bold text-slate-900 font-mono text-[10px] uppercase flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
-                    <span>EQUIPMENT BASELINE REFERENCE</span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed text-xs">
-                    This section establishes the authoritative machine identity, cleanroom zone assignment, and lifecycle reference dates. Historical comparisons and subsystem tolerances throughout this report are benchmarked against this machine baseline.
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
-              <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 3 of 11</span>
             </div>
 
           </div>
