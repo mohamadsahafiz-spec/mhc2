@@ -72,6 +72,8 @@ export interface MhcReportCoverData {
   date: string;
   customerName: string;
   plantName: string;
+  productionLine?: string;
+  lineName?: string;
   machineModel: string;
   machineSerialNumber: string;
   machineName: string;
@@ -111,6 +113,7 @@ export interface MhcReportMachineInfoData {
   plantName: string;
   department?: string;
   productionLine?: string;
+  zone?: string;
   installationDate?: string;
   baselineDate?: string;
   lastMhcDate?: string;
@@ -162,11 +165,13 @@ export interface MhcReportLaserHourHeadDetail {
   readingDate: string;
   isVerified: boolean;
   notes?: string;
+  aiRecommendation?: string;
 }
 
 export interface MhcReportLaserHoursData {
   laserHours: MhcReportLaserHourHeadDetail[];
   summaryText: string;
+  aiAdvisoryNotes?: string[];
 }
 
 // Comparison Structure for Power
@@ -269,12 +274,19 @@ export interface MhcReportBeamProfileData {
 // 08 Focus Optimization
 export interface MhcReportFocusOptimizationData {
   status: MhcReportSectionStatus;
-  head1FocusOffsetMm?: number | null;
-  head2FocusOffsetMm?: number | null;
-  optimalFocusPointMm?: number | null;
+  focusOffsetMm?: number | null;
+  beamWaistMm?: number | null;
+  m2Value?: number | null;
+  cleanlinessScore?: number | null;
+  beforeCondition?: string;
+  afterCondition?: string;
   rayleighRangeToleranceMm?: number;
   verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
   notes?: string;
+  evidenceImages?: string[];
+  head1FocusOffsetMm?: number | null;
+  head2FocusOffsetMm?: number | null;
+  optimalFocusPointMm?: number | null;
 }
 
 // 09 Power Offset
@@ -284,6 +296,13 @@ export interface MhcReportPowerOffsetData {
   head2PowerOffsetWatts?: number | null;
   head1OffsetPercent?: number | null;
   head2OffsetPercent?: number | null;
+  head1NominalWatts?: number | null;
+  head1MeasuredWatts?: number | null;
+  head2NominalWatts?: number | null;
+  head2MeasuredWatts?: number | null;
+  head1TransmissionPercent?: number | null;
+  head2TransmissionPercent?: number | null;
+  stabilityPercent?: number | null;
   offsetCorrectionApplied?: boolean;
   linearityTolerancePercent?: number;
   verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
@@ -295,6 +314,7 @@ export interface MhcReportStageCalibrationData {
   specToleranceUm: number; // 2.0
   overallVerdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' | 'NOT_COLLECTED';
   overallDisposition?: string;
+  notes?: string;
   stages: Array<{
     stageId: string;
     stageName: string;
@@ -305,6 +325,7 @@ export interface MhcReportStageCalibrationData {
     maxAbsXUm?: number;
     maxAbsYUm?: number;
     overallMaxDevUm?: number;
+    specToleranceUm?: number;
     systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     engineerDisposition?: string;
     verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';

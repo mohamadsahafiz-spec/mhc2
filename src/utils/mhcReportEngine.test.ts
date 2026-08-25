@@ -528,6 +528,40 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['18'].code).toBe('18');
     expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
     expect(doc.sections['18'].data.engineerSignoff.name).toBe('Jane Doe');
+
+    // §08 Focus Optimization & Optical Waist data grounding
+    expect(doc.sections['08'].code).toBe('08');
+    expect(doc.sections['08'].data.focusOffsetMm).toBe(0);
+    expect(doc.sections['08'].data.beamWaistMm).toBe(2.0);
+    expect(doc.sections['08'].data.m2Value).toBe(1.1);
+    expect(doc.sections['08'].data.cleanlinessScore).toBe(95);
+    expect(doc.sections['08'].data.verdict).toBe('PASS');
+
+    // §09 Power Offset & Calibration data grounding
+    expect(doc.sections['09'].code).toBe('09');
+    expect(doc.sections['09'].data.head1NominalWatts).toBe(15.0);
+    expect(doc.sections['09'].data.head1MeasuredWatts).toBe(15.1);
+    expect(doc.sections['09'].data.head1PowerOffsetWatts).toBe(0.1);
+    expect(doc.sections['09'].data.head1OffsetPercent).toBe(0.7);
+    expect(doc.sections['09'].data.head2NominalWatts).toBe(15.0);
+    expect(doc.sections['09'].data.head2MeasuredWatts).toBe(14.9);
+    expect(doc.sections['09'].data.head2PowerOffsetWatts).toBe(-0.1);
+    expect(doc.sections['09'].data.head2OffsetPercent).toBe(-0.7);
+
+    // §10 Stage Calibration data grounding
+    expect(doc.sections['10'].code).toBe('10');
+    expect(doc.sections['10'].data.specToleranceUm).toBe(2.0);
+    expect(doc.sections['10'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['10'].data.stages.length).toBe(2);
+    expect(doc.sections['10'].data.stages[0].stageName).toBe('Stage 1');
+    expect(doc.sections['10'].data.stages[0].xMinUm).toBe(-0.8);
+    expect(doc.sections['10'].data.stages[0].xMaxUm).toBe(0.9);
+    expect(doc.sections['10'].data.stages[0].yMinUm).toBe(-1.0);
+    expect(doc.sections['10'].data.stages[0].yMaxUm).toBe(1.1);
+    expect(doc.sections['10'].data.stages[0].maxAbsXUm).toBe(0.9);
+    expect(doc.sections['10'].data.stages[0].maxAbsYUm).toBe(1.1);
+    expect(doc.sections['10'].data.stages[0].overallMaxDevUm).toBe(1.1);
+    expect(doc.sections['10'].data.stages[0].verdict).toBe('PASS');
   });
 
   it('should enforce continuous §01 through §18 numbering with §18 as Buyoff & Sign-off without gaps', () => {
@@ -557,9 +591,9 @@ describe('mhcReportEngine', () => {
     const entry17 = doc.indexEntries.find(e => e.code === '17');
     const entry18 = doc.indexEntries.find(e => e.code === '18');
     expect(entry17?.title).toBe('Spare Parts / Recommendations');
-    expect(entry17?.pageNumber).toBe(10);
+    expect(entry17?.pageNumber).toBe(11);
     expect(entry18?.title).toBe('Buyoff & Approvals');
-    expect(entry18?.pageNumber).toBe(10);
+    expect(entry18?.pageNumber).toBe(11);
     expect(entry18?.category).toBe('Signoff');
 
     // Position of 17 immediately followed by 18 in indexEntries

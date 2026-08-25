@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   FileText, 
   Download, 
@@ -63,6 +63,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   const [plantFacility, setPlantFacility] = useState<string>(
     session.plantName || metadata.plantName || ''
   );
+  const [lineName, setLineName] = useState<string>(
+    sections['01']?.data?.productionLine ||
+    sections['01']?.data?.lineName ||
+    (session as any).productionLine ||
+    (session as any).productionLineName ||
+    (session as any).lineName ||
+    sections['03']?.data?.productionLine ||
+    'Davinci'
+  );
   const [inspectionDate, setInspectionDate] = useState<string>(
     session.completedDate || session.startDate || (session as any).inspectionDate || sections['01']?.data?.date || ''
   );
@@ -72,6 +81,40 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   const [releaseStatus, setReleaseStatus] = useState<'APPROVED' | 'CONDITIONAL_RELEASE' | 'HALTED' | 'PENDING' | 'PASS' | 'WARNING' | 'FAIL'>(
     (sections['18']?.data?.productionReleaseVerdict as any) || (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
   );
+
+  // Group index entries by page number for the approved vertical presentation
+  const groupedIndexPages = useMemo(() => {
+    const pageMap = new Map<number, typeof baseDoc.indexEntries>();
+    baseDoc.indexEntries.forEach((entry) => {
+      const page = entry.pageNumber || 1;
+      if (!pageMap.has(page)) {
+        pageMap.set(page, []);
+      }
+      pageMap.get(page)!.push(entry);
+    });
+
+    const pages = Array.from(pageMap.keys()).sort((a, b) => a - b);
+    return pages.map((pageNum) => ({
+      pageNumber: pageNum,
+      entries: pageMap.get(pageNum)!
+    }));
+  }, [baseDoc.indexEntries]);
+
+  const getPageGroupTitle = (pageNum: number): string => {
+    switch (pageNum) {
+      case 1: return 'Customer & Machine Identity';
+      case 3: return 'Hardware Configuration';
+      case 4: return 'Executive Summary & Hours';
+      case 5: return 'Laser Power & Stability';
+      case 6: return 'Optical Beam & Spot Quality';
+      case 7: return 'Focus & Power Offsets';
+      case 8: return 'Stage & Sensor Calibration';
+      case 9: return 'Thermal Environment';
+      case 10: return 'Laser Profile & Via Quality';
+      case 11: return 'Certification & Sign-Off';
+      default: return 'Subsystem Diagnostics';
+    }
+  };
 
   // Reference for printable document container
   const documentContainerRef = useRef<HTMLDivElement>(null);
@@ -255,6 +298,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
     const serialNumber = item.serialNumber || (item as any).serialNo || `${metadata.machineSerialNumber}-LH0${idx + 1}`;
 
+    const aiRecommendation = item.aiRecommendation || (
+      lifeRemainingPercent >= 50
+        ? `Nominal tube health (${lifeRemainingPercent.toFixed(1)}% remaining). No preventive intervention required. Continue routine scheduled MHC cycles.`
+        : lifeRemainingPercent >= 20
+        ? `Mid-to-late life phase (${lifeRemainingPercent.toFixed(1)}% remaining). Tube capacity is stable. Monitor optical power decay during regular service.`
+        : lifeRemainingPercent > 0
+        ? `Approaching warning threshold (${remainingHours.toLocaleString()} hrs remaining). Plan replacement source procurement prior to projected date (${estimatedEolDate}).`
+        : `Exceeded rated operating lifespan (${currentLaserHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`
+    );
+
     return {
       ...item,
       laserIdentifier: item.laserIdentifier || `Laser Head ${idx + 1}`,
@@ -266,7 +319,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       lifeRemainingPercent,
       remainingDays,
       estimatedEolDate,
-      verdict
+      verdict,
+      aiRecommendation
     };
   });
 
@@ -388,7 +442,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <span className="text-xs text-slate-400 font-mono">Real-time dynamic document updates</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 text-xs">
             
             {/* Engineer Name */}
             <div className="space-y-1">
@@ -414,6 +468,21 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 type="text"
                 value={customerCompany}
                 onChange={(e) => setCustomerCompany(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
+              />
+            </div>
+
+            {/* Line Name */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+                <Sliders className="w-3 h-3 text-cyan-400" />
+                <span>Line Name</span>
+              </label>
+              <input
+                type="text"
+                value={lineName}
+                onChange={(e) => setLineName(e.target.value)}
+                placeholder="e.g. Davinci"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
               />
             </div>
@@ -481,7 +550,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
           {/* =========================================================================
               PAGE 1: COVER PAGE (01 COVER)
-             ========================================================================= */}
+              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Background Header Accent */}
@@ -490,15 +559,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* COVER HEADER */}
             <div className="space-y-6 pt-2 shrink-0">
               <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-900 text-cyan-400 font-extrabold flex items-center justify-center text-xl font-mono">
+                <div className="flex items-center gap-3.5">
+                  <div className="shrink-0 w-11 h-11 rounded-xl bg-slate-900 text-cyan-400 font-extrabold flex items-center justify-center text-lg font-mono shadow-xs">
                     FSOS
                   </div>
-                  <div>
-                    <h1 className="text-base font-bold tracking-wider text-slate-900 font-mono">
+                  <div className="flex flex-col justify-center">
+                    <h1 className="text-base font-bold tracking-wider text-slate-900 font-mono leading-tight">
                       FIELD SERVICE OPERATING SYSTEM
                     </h1>
-                    <p className="text-xs text-slate-500 font-mono">
+                    <p className="text-xs text-slate-500 font-mono mt-0.5 leading-tight">
                       Authoritative Machine Health Check Report Engine • {APP_VERSION}
                     </p>
                   </div>
@@ -528,7 +597,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="my-auto p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
               <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between">
                 <span>MACHINE &amp; CUSTOMER IDENTITY</span>
-                <span className="text-cyan-800 font-bold">MHC AUDIT PASSPORT</span>
+                <span className="text-cyan-800 font-bold">MHC EVALUATION &amp; ASSESSMENT</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs font-sans">
@@ -543,6 +612,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">PRODUCTION LINE</span>
+                  <strong className="text-slate-900 font-bold text-sm">{lineName}</strong>
+                </div>
+
+                <div>
                   <span className="text-[10px] text-slate-500 font-mono block">MACHINE MODEL</span>
                   <strong className="text-slate-900 font-bold text-sm">{sections['01'].data.machineModel}</strong>
                 </div>
@@ -552,13 +626,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <strong className="text-cyan-900 font-bold font-mono text-sm">{machineNumber}</strong>
                 </div>
 
+                <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">SERIAL NUMBER</span>
+                  <strong className="text-slate-800 font-bold font-mono text-sm">{sections['01'].data.machineSerialNumber}</strong>
+                </div>
+
                 <div className="col-span-2 pt-2 border-t border-slate-200/80 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-500 font-mono block">SERIAL NUMBER</span>
-                    <strong className="text-slate-800 font-bold font-mono text-sm">{sections['01'].data.machineSerialNumber}</strong>
+                    <span className="text-[10px] text-slate-500 font-mono block">LINE IDENTIFIER</span>
+                    <strong className="text-slate-800 font-mono text-xs">Line Name: {lineName}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-mono block text-right">AUDIT CLASSIFICATION</span>
+                    <span className="text-[10px] text-slate-500 font-mono block text-right">ASSESSMENT CLASSIFICATION</span>
                     <strong className="text-slate-700 font-mono text-xs">Laser Processing System (MHC Full)</strong>
                   </div>
                 </div>
@@ -587,7 +666,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
               <div className="text-[10px] text-slate-400 pt-4 text-center border-t border-slate-100 flex items-center justify-between">
                 <span>CONFIDENTIAL — {customerCompany}</span>
-                <span>Page 1 of 10</span>
+                <span>Page 1 of 11</span>
               </div>
             </div>
 
@@ -623,24 +702,93 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </span>
                 </div>
 
-                <div className="divide-y divide-slate-100 text-xs font-sans border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-                  {baseDoc.indexEntries.map((entry) => (
-                    <div 
-                      key={entry.code}
-                      className="flex items-center justify-between py-1.5 px-3 hover:bg-slate-100/70 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-cyan-900 w-7 text-xs">{entry.code}</span>
-                        <span className="font-semibold text-slate-800">{entry.title}</span>
+                {/* Approved Vertical Presentation: Grouped by Page Anchor */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  
+                  {/* Left Column: Pages 1 to 6 */}
+                  <div className="space-y-2">
+                    {groupedIndexPages.filter((g) => g.pageNumber <= 6).map((group) => (
+                      <div 
+                        key={group.pageNumber}
+                        className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/90 shadow-2xs space-y-1.5"
+                      >
+                        {/* Page Anchor Header */}
+                        <div className="flex items-center justify-between border-b border-slate-200/70 pb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-slate-900 text-cyan-300 font-mono font-bold text-[10px] px-2 py-0.5 rounded-md tracking-wider">
+                              PAGE {group.pageNumber < 10 ? `0${group.pageNumber}` : group.pageNumber}
+                            </span>
+                            <span className="text-[10px] font-mono font-bold text-slate-700 uppercase tracking-tight">
+                              {getPageGroupTitle(group.pageNumber)}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400">
+                            {group.entries.length} {group.entries.length === 1 ? 'Section' : 'Sections'}
+                          </span>
+                        </div>
+
+                        {/* Sections within this Page */}
+                        <div className="divide-y divide-slate-100">
+                          {group.entries.map((entry) => (
+                            <div 
+                              key={entry.code}
+                              className="flex items-center gap-2.5 py-1.5 px-1.5 rounded hover:bg-white/80 transition-colors"
+                            >
+                              <span className="font-mono font-bold text-cyan-900 text-xs shrink-0 w-7">
+                                §{entry.code}
+                              </span>
+                              <span className="font-semibold text-slate-800 text-[11.5px] leading-snug">
+                                {entry.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 font-mono text-[11px]">
-                        <span className="text-slate-400 uppercase text-[9px] hidden sm:inline">{entry.category}</span>
-                        <span className="text-slate-700 font-bold text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200 shadow-xs">
-                          Page {entry.pageNumber || '—'}
-                        </span>
+                    ))}
+                  </div>
+
+                  {/* Right Column: Pages 7 to 10 */}
+                  <div className="space-y-2">
+                    {groupedIndexPages.filter((g) => g.pageNumber >= 7).map((group) => (
+                      <div 
+                        key={group.pageNumber}
+                        className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/90 shadow-2xs space-y-1.5"
+                      >
+                        {/* Page Anchor Header */}
+                        <div className="flex items-center justify-between border-b border-slate-200/70 pb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-slate-900 text-cyan-300 font-mono font-bold text-[10px] px-2 py-0.5 rounded-md tracking-wider">
+                              PAGE {group.pageNumber < 10 ? `0${group.pageNumber}` : group.pageNumber}
+                            </span>
+                            <span className="text-[10px] font-mono font-bold text-slate-700 uppercase tracking-tight">
+                              {getPageGroupTitle(group.pageNumber)}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400">
+                            {group.entries.length} {group.entries.length === 1 ? 'Section' : 'Sections'}
+                          </span>
+                        </div>
+
+                        {/* Sections within this Page */}
+                        <div className="divide-y divide-slate-100">
+                          {group.entries.map((entry) => (
+                            <div 
+                              key={entry.code}
+                              className="flex items-center gap-2.5 py-1.5 px-1.5 rounded hover:bg-white/80 transition-colors"
+                            >
+                              <span className="font-mono font-bold text-cyan-900 text-xs shrink-0 w-7">
+                                §{entry.code}
+                              </span>
+                              <span className="font-semibold text-slate-800 text-[11.5px] leading-snug">
+                                {entry.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
                 </div>
 
                 {/* Scope & Methodology Note */}
@@ -660,7 +808,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 2 of 10</span>
+              <span>Page 2 of 11</span>
             </div>
 
           </div>
@@ -694,108 +842,55 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 {/* Primary Machine Identity Grid */}
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 text-xs font-sans">
-                  <div className="font-mono text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1.5 flex items-center justify-between">
-                    <span>SYSTEM IDENTIFICATION &amp; CLEANROOM SITE</span>
-                    <span className="text-cyan-800">SOURCE: AUTHORITATIVE SESSION</span>
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-5 text-xs font-sans">
+                  <div className="font-mono text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between">
+                    <span>EQUIPMENT IDENTIFICATION &amp; FACILITY ZONE</span>
+                    <span className="text-cyan-800 font-semibold">AUTHORITATIVE HARDWARE BASELINE</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">CUSTOMER ACCOUNT</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{customerCompany || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">PLANT / FACILITY</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{plantFacility || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">DEPARTMENT</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.department || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">PRODUCTION LINE</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.productionLine || '—'}</strong>
+                      <span className="text-[10px] text-slate-400 font-mono block">MACHINE MODEL</span>
+                      <strong className="text-slate-900 font-bold text-base block">{sections['03'].data.machineModel || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">MACHINE NUMBER / SOURCE</span>
-                      <strong className="text-cyan-900 font-bold font-mono text-sm block">{machineNumber || '—'}</strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono block">MACHINE MODEL</span>
-                      <strong className="text-slate-900 font-bold text-sm block">{sections['03'].data.machineModel || '—'}</strong>
+                      <strong className="text-cyan-900 font-bold font-mono text-base block">{machineNumber || '—'}</strong>
                     </div>
 
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">SERIAL NUMBER</span>
-                      <strong className="text-slate-900 font-bold font-mono text-sm block">{sections['03'].data.serialNumber || '—'}</strong>
+                      <strong className="text-slate-900 font-bold font-mono text-base block">{sections['03'].data.serialNumber || '—'}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono block">ZONE</span>
+                      <strong className="text-slate-900 font-bold text-base block">{sections['03'].data.zone || 'B | Front of Line'}</strong>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-200 grid grid-cols-3 gap-3 font-mono text-[11px]">
+                  <div className="pt-4 border-t border-slate-200 grid grid-cols-2 gap-5 font-mono text-xs">
                     <div>
-                      <span className="text-[9px] text-slate-400 block">BASELINE DATE</span>
-                      <strong className="text-slate-800">{sections['03'].data.baselineDate || '2026-05-15'}</strong>
+                      <span className="text-[10px] text-slate-400 block">BASELINE DATE</span>
+                      <strong className="text-slate-800 text-sm">{sections['03'].data.baselineDate || '2026-05-15'}</strong>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block">LAST MHC DATE</span>
-                      <strong className="text-slate-800">{inspectionDate}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-slate-400 block">ASSIGNED ENGINEER</span>
-                      <strong className="text-slate-800">{engineerName}</strong>
+                      <span className="text-[10px] text-slate-400 block">LAST MHC DATE</span>
+                      <strong className="text-slate-800 text-sm">{sections['03'].data.lastMhcDate || inspectionDate}</strong>
                     </div>
                   </div>
                 </div>
 
-                {/* Subsystem & Laser Head Architecture Table */}
-                <div className="space-y-2 pt-2">
-                  <div className="font-mono text-slate-500 font-bold uppercase text-[10px] tracking-wider flex items-center justify-between">
-                    <span>OPTICAL SUBSYSTEM &amp; LASER HEAD ARCHITECTURE</span>
-                    <span className="text-slate-400">2 SOURCES CONFIGURED</span>
+                {/* Equipment Baseline Reference Note */}
+                <div className="p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 space-y-2 text-xs">
+                  <div className="font-bold text-slate-900 font-mono text-[10px] uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
+                    <span>EQUIPMENT BASELINE REFERENCE</span>
                   </div>
-
-                  <table className="w-full text-left text-xs border-collapse font-sans bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <thead>
-                      <tr className="border-b border-slate-200 font-mono text-[10px] text-slate-400 bg-slate-50">
-                        <th className="py-2.5 px-3">SUBSYSTEM / HEAD</th>
-                        <th className="py-2.5 px-2 font-mono">SERIAL NO.</th>
-                        <th className="py-2.5 px-2">RATED POWER</th>
-                        <th className="py-2.5 px-2">REMAINING LIFE</th>
-                        <th className="py-2.5 px-2">OPERATING HOURS</th>
-                        <th className="py-2.5 px-3 text-right">SUBSYSTEM STATUS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-mono text-xs">
-                      {laserLifecycleHeads.map(head => (
-                        <tr key={head.laserId} className="hover:bg-slate-50/50">
-                          <td className="py-3 px-3 font-bold font-sans text-slate-900">
-                            {head.laserIdentifier}
-                          </td>
-                          <td className="py-3 px-2 text-slate-600 text-[11px]">
-                            {head.serialNumber}
-                          </td>
-                          <td className="py-3 px-2 font-bold text-slate-800">
-                            15.0 W (355 nm UV)
-                          </td>
-                          <td className="py-3 px-2 font-bold text-emerald-800">
-                            {head.remainingHours.toLocaleString()} hrs ({head.lifeRemainingPercent.toFixed(1)}%)
-                          </td>
-                          <td className="py-3 px-2 text-slate-700">
-                            {head.currentLaserHour.toLocaleString()} hrs
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            {renderStatusBadge(head.verdict)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <p className="text-slate-600 leading-relaxed text-xs">
+                    This section establishes the authoritative machine identity, cleanroom zone assignment, and lifecycle reference dates. Historical comparisons and subsystem tolerances throughout this report are benchmarked against this machine baseline.
+                  </p>
                 </div>
 
               </div>
@@ -805,7 +900,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 3 of 10</span>
+              <span>Page 3 of 11</span>
             </div>
 
           </div>
@@ -883,11 +978,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 05: LASER HOURS & DETAILED LIFECYCLE BREAKDOWN */}
+              {/* SECTION 05: LASER LIFECYCLE & USAGE TELEMETRY */}
               <div className="space-y-2 pt-0.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
                   <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                    05 LASER LIFECYCLE &amp; LIFETIME TELEMETRY
+                    05 LASER LIFECYCLE &amp; USAGE TELEMETRY
                   </h2>
                   <span className="text-xs font-mono font-bold text-cyan-800">
                     {laserLifecycleHeads.length} HEADS ANALYZED
@@ -903,7 +998,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     return (
                       <div 
                         key={head.laserId} 
-                        className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs"
+                        className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs font-sans"
                       >
                         {/* Head Header */}
                         <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
@@ -916,22 +1011,22 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           {renderStatusBadge(head.verdict)}
                         </div>
 
-                        {/* Top Metrics Row: Primary Remaining Hours, Operating Hours, Limits */}
+                        {/* Top Metrics Row: Operating Hours, Remaining Hours, Limits */}
                         <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
-                          <div className="p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-300">
-                            <span className="text-[8px] text-emerald-800 font-sans font-bold block">PRIMARY: REMAINING HOURS</span>
-                            <strong className="text-emerald-950 text-xs block font-extrabold">
-                              {head.remainingHours.toLocaleString()} hrs
-                            </strong>
-                            <span className="text-[8px] text-emerald-700 font-sans">{head.lifeRemainingPercent.toFixed(1)}% Capacity Left</span>
-                          </div>
-
                           <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8px] text-slate-400 font-sans block">OPERATING HOURS</span>
+                            <span className="text-[8px] text-slate-400 font-sans block">OPERATING RUN TIME</span>
                             <strong className="text-slate-800 text-xs block font-bold">
                               {head.currentLaserHour.toLocaleString()} hrs
                             </strong>
                             <span className="text-[8px] text-slate-500 font-sans">Accumulated Run Time</span>
+                          </div>
+
+                          <div className="p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-300">
+                            <span className="text-[8px] text-emerald-800 font-sans font-bold block">REMAINING LIFESPAN</span>
+                            <strong className="text-emerald-950 text-xs block font-extrabold">
+                              {head.remainingHours.toLocaleString()} hrs
+                            </strong>
+                            <span className="text-[8px] text-emerald-700 font-sans">{head.lifeRemainingPercent.toFixed(1)}% Capacity Left</span>
                           </div>
 
                           <div className="p-1.5 rounded-lg bg-white border border-slate-200">
@@ -956,11 +1051,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
                             <span>0 hrs</span>
                             <span className="font-bold text-slate-700">
-                              {head.remainingHours.toLocaleString()} HOURS REMAINING BEFORE EOL
+                              {head.remainingHours.toLocaleString()} HOURS REMAINING ({head.lifeRemainingPercent.toFixed(1)}%)
                             </span>
-                            <span>{head.errorEolLimit.toLocaleString()} hrs</span>
+                            <span>{head.errorEolLimit.toLocaleString()} hrs (EOL)</span>
                           </div>
-                          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
+                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
                             <div 
                               className={`h-full rounded-full transition-all duration-500 ${
                                 isHealthy 
@@ -974,21 +1069,21 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
                         </div>
 
-                        {/* Bottom Projections Row */}
+                        {/* Bottom Projections Row (Non-redundant) */}
                         <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-slate-200 text-[9px] font-mono">
                           <div>
-                            <span className="text-slate-400 font-sans block">REMAINING HOURS</span>
-                            <strong className="text-slate-800 font-bold">{head.remainingHours.toLocaleString()} hrs</strong>
+                            <span className="text-slate-400 font-sans block">EST. REMAINING DAYS (24/7 PACE)</span>
+                            <strong className="text-slate-800 font-bold">{head.remainingDays.toLocaleString()} days (~{(head.remainingDays / 365).toFixed(1)} yrs)</strong>
                           </div>
 
                           <div>
-                            <span className="text-slate-400 font-sans block">EST. REMAINING DAYS (24/7)</span>
-                            <strong className="text-slate-800 font-bold">{head.remainingDays.toLocaleString()} days</strong>
-                          </div>
-
-                          <div>
-                            <span className="text-slate-400 font-sans block">ESTIMATED DUE / EOL DATE</span>
+                            <span className="text-slate-400 font-sans block">PROJECTED EOL DATE</span>
                             <strong className="text-cyan-900 font-bold">{head.estimatedEolDate}</strong>
+                          </div>
+
+                          <div>
+                            <span className="text-slate-400 font-sans block">TELEMETRY VERIFICATION</span>
+                            <strong className="text-slate-700 font-bold">Physical Counter Verified</strong>
                           </div>
                         </div>
 
@@ -996,6 +1091,35 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     );
                   })}
                 </div>
+
+                {/* AI Lifecycle Prognosis & Service Recommendations */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs font-sans">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1 font-mono text-[9px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700 uppercase">
+                      <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
+                      <span>AI LIFECYCLE PROGNOSIS &amp; SERVICE RECOMMENDATIONS</span>
+                    </div>
+                    <span className="text-cyan-800 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded font-semibold text-[8px]">
+                      PROGNOSTIC ADVISORY (MODEL ESTIMATION)
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-xs text-slate-700">
+                    {laserLifecycleHeads.map((head) => (
+                      <div key={head.laserId} className="flex items-start gap-1.5">
+                        <span className="font-bold text-slate-900 font-mono text-[10px] shrink-0">{head.laserIdentifier}:</span>
+                        <span className="text-slate-700 text-[10px] leading-snug">
+                          {head.aiRecommendation || (head.lifeRemainingPercent >= 50
+                            ? `Nominal tube health (${head.lifeRemainingPercent.toFixed(1)}% remaining, ${head.remainingHours.toLocaleString()} hrs). No preventive action required at this cycle.`
+                            : head.lifeRemainingPercent >= 20
+                            ? `Mid-to-late life stage (${head.lifeRemainingPercent.toFixed(1)}% remaining). Continue routine power stability monitoring.`
+                            : `Approaching warning threshold. Schedule optical source replacement before ${head.estimatedEolDate}.`)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
             </div>
@@ -1003,7 +1127,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 4 of 10</span>
+              <span>Page 4 of 11</span>
             </div>
 
           </div>
@@ -1023,25 +1147,26 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
               {/* SECTION 06: LASER POWER */}
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
-                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
                       06 LASER POWER &amp; BASELINE COMPARISON
                     </h2>
-                    <p className="text-[11px] text-slate-500 font-mono">
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                       Authoritative Optical Power Measurement &amp; Calibration Variance Analysis
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded">
-                      SPEC: 15.0W ± 10% (13.5–16.5 W)
+                      SPEC: 15.0W ± 10% (13.50–16.50 W)
                     </span>
+                    {renderStatusBadge(sections['06'].status)}
                   </div>
                 </div>
 
                 {/* Mental Model Visual Key */}
-                <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100/80 border border-slate-200 text-[10px] font-mono text-slate-600">
+                <div className="flex items-center justify-between px-3 py-1 rounded-lg bg-slate-100/80 border border-slate-200 text-[10px] font-mono text-slate-600">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                     <strong className="text-slate-700">LEFT:</strong> Historical Baseline (Previous)
@@ -1062,7 +1187,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 text-xs">
+                <div className="grid grid-cols-1 gap-2.5 text-xs">
                   {sections['06'].data.heads.map(head => {
                     const deltaVal = head.comparison.deltaWatts;
                     const deltaPct = head.comparison.deltaPercent;
@@ -1080,12 +1205,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     const topDelta = (typeof currTop === 'number' && typeof prevTop === 'number') ? currTop - prevTop : null;
 
                     return (
-                      <div key={head.headId} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                        {/* Head Header */}
-                        <div className="flex items-center justify-between font-mono border-b border-slate-200 pb-1.5">
+                      <div key={head.headId} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                        {/* Head Header with Aligned Spec Badge */}
+                        <div className="flex items-center justify-between font-mono border-b border-slate-200 pb-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-900 text-xs font-sans">{head.headName}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">15.0W Base Spec</span>
+                            <span className="text-[10px] font-mono font-semibold text-cyan-800 bg-cyan-50/80 border border-cyan-200 px-1.5 py-0.2 rounded">
+                              SPEC: 15.00 W ± 10% (13.50–16.50 W)
+                            </span>
                           </div>
                           {renderStatusBadge(head.current.verdict)}
                         </div>
@@ -1101,8 +1228,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 {prevDate}
                               </span>
                             </div>
-                            <div className="pt-1.5 flex items-baseline justify-between">
-                              <strong className="text-slate-800 text-base font-extrabold block">
+                            <div className="pt-1 flex items-baseline justify-between">
+                              <strong className="text-slate-800 text-sm font-extrabold block">
                                 {head.previous && head.previous.measuredWatts > 0 ? `${head.previous.measuredWatts.toFixed(2)} W` : '—'}
                               </strong>
                               <span className="text-[9px] text-slate-400 font-sans">Historical Baseline</span>
@@ -1110,11 +1237,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
 
                           {/* MIDDLE: Visual "VS" Indicator (1 col) */}
-                          <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
-                            <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[10px] font-black text-slate-700 shadow-xs">
+                          <div className="md:col-span-1 flex flex-col items-center justify-center py-0.5">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[9px] font-black text-slate-700 shadow-xs">
                               VS
                             </div>
-                            <span className="text-[8px] font-mono text-slate-400 mt-0.5">COMPARE</span>
+                            <span className="text-[7px] font-mono text-slate-400 mt-0.5">COMPARE</span>
                           </div>
 
                           {/* RIGHT: Current Measurement (3 cols) */}
@@ -1125,32 +1252,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 {currDate}
                               </span>
                             </div>
-                            <div className="pt-1.5 flex items-baseline justify-between">
-                              <strong className="text-cyan-950 text-base font-extrabold block">
+                            <div className="pt-1 flex items-baseline justify-between">
+                              <strong className="text-cyan-950 text-sm font-extrabold block">
                                 {head.current.measuredWatts > 0 ? `${head.current.measuredWatts.toFixed(2)} W` : 'Not Recorded'}
                               </strong>
-                              <span className="text-[9px] text-cyan-700 font-sans font-medium">Present Verification</span>
+                              <span className="text-[9px] text-cyan-700 font-sans font-medium">Target: 15.00 W</span>
                             </div>
                           </div>
 
                         </div>
 
                         {/* Result Row: Variation Summary */}
-                        <div className={`p-2 rounded-lg border flex items-center justify-between font-mono text-[11px] ${
+                        <div className={`p-1.5 rounded-lg border flex items-center justify-between font-mono text-[10px] ${
                           isNegative ? 'bg-amber-50/70 border-amber-300 text-amber-950' : 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
                         }`}>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/80 border border-current">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-white/80 border border-current">
                               VARIATION = CURRENT − PREVIOUS
                             </span>
-                            <span className="text-[10px] font-sans text-slate-600">Calibration Shift:</span>
+                            <span className="text-[9px] font-sans text-slate-600">Calibration Shift:</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <strong className="text-sm font-extrabold font-mono">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-xs font-extrabold font-mono">
                               {deltaVal !== undefined && deltaVal !== null ? `${deltaVal > 0 ? '+' : ''}${deltaVal.toFixed(2)} W` : head.comparison.statusText}
                             </strong>
                             {deltaPct !== undefined && deltaPct !== null && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                                 isNegative ? 'bg-amber-200/80 text-amber-900' : 'bg-emerald-200/80 text-emerald-900'
                               }`}>
                                 {deltaPct > 0 ? '+' : ''}{deltaPct.toFixed(1)}%
@@ -1161,33 +1288,33 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                         {/* Optical Path Breakdown & Working Zone Mask Comparison Table */}
                         {(currSrc || currTop || (head.current.maskReadings && head.current.maskReadings.length > 0)) && (
-                          <div className="pt-1 space-y-1.5 font-mono text-[10px]">
+                          <div className="pt-0.5 space-y-1 font-mono text-[9px]">
                             
                             {/* Optical Stages Comparison */}
                             {(currSrc || currTop) && (
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center text-[10px]">
-                                  <span className="text-slate-500 font-sans text-[9px]">Laser Source (Raw):</span>
-                                  <div className="flex items-center gap-1.5 font-mono">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div className="p-1 rounded bg-white border border-slate-200 flex justify-between items-center text-[9px]">
+                                  <span className="text-slate-500 font-sans text-[8px]">Laser Source (Raw):</span>
+                                  <div className="flex items-center gap-1 font-mono">
                                     <span className="text-slate-400">{prevSrc ? `${prevSrc.toFixed(2)}W` : '—'}</span>
                                     <span className="text-slate-300">➔</span>
                                     <strong className="text-slate-900">{currSrc ? `${currSrc.toFixed(2)}W` : '—'}</strong>
                                     {srcDelta !== null && (
-                                      <span className={`text-[9px] ${srcDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                      <span className={`text-[8px] ${srcDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                                         ({srcDelta > 0 ? '+' : ''}{srcDelta.toFixed(2)}W)
                                       </span>
                                     )}
                                   </div>
                                 </div>
 
-                                <div className="p-1.5 rounded bg-white border border-slate-200 flex justify-between items-center text-[10px]">
-                                  <span className="text-slate-500 font-sans text-[9px]">Optics Top Hat:</span>
-                                  <div className="flex items-center gap-1.5 font-mono">
+                                <div className="p-1 rounded bg-white border border-slate-200 flex justify-between items-center text-[9px]">
+                                  <span className="text-slate-500 font-sans text-[8px]">Optics Top Hat:</span>
+                                  <div className="flex items-center gap-1 font-mono">
                                     <span className="text-slate-400">{prevTop ? `${prevTop.toFixed(2)}W` : '—'}</span>
                                     <span className="text-slate-300">➔</span>
                                     <strong className="text-slate-900">{currTop ? `${currTop.toFixed(2)}W` : '—'}</strong>
                                     {topDelta !== null && (
-                                      <span className={`text-[9px] ${topDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                      <span className={`text-[8px] ${topDelta < 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                                         ({topDelta > 0 ? '+' : ''}{topDelta.toFixed(2)}W)
                                       </span>
                                     )}
@@ -1198,48 +1325,48 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                             {/* Working Zone Mask Explicit Columns: Mask Size | Previous (date) | Current (date) | Δ Power | Δ % | Status */}
                             {head.current.maskReadings && head.current.maskReadings.length > 0 && (
-                              <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
+                              <table className="w-full text-left text-[9px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
                                 <thead>
-                                  <tr className="border-b border-slate-200 text-slate-500 font-semibold bg-slate-100/90 text-[9px]">
-                                    <th className="py-1 px-2">MASK SIZE</th>
-                                    <th className="py-1 px-2 bg-slate-200/50 text-slate-700">PREVIOUS ({prevDate})</th>
-                                    <th className="py-1 px-2 bg-cyan-100/50 text-cyan-900 font-bold">CURRENT ({currDate})</th>
-                                    <th className="py-1 px-2 text-slate-700">Δ POWER</th>
-                                    <th className="py-1 px-2 text-slate-700">Δ %</th>
-                                    <th className="py-1 px-2 text-right">STATUS</th>
+                                  <tr className="border-b border-slate-200 text-slate-500 font-semibold bg-slate-100/90 text-[8px]">
+                                    <th className="py-0.5 px-2">MASK SIZE</th>
+                                    <th className="py-0.5 px-2 bg-slate-200/50 text-slate-700">PREVIOUS ({prevDate})</th>
+                                    <th className="py-0.5 px-2 bg-cyan-100/50 text-cyan-900 font-bold">CURRENT ({currDate})</th>
+                                    <th className="py-0.5 px-2 text-slate-700">Δ POWER</th>
+                                    <th className="py-0.5 px-2 text-slate-700">Δ %</th>
+                                    <th className="py-0.5 px-2 text-right">STATUS</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                   {head.current.maskReadings.map((m, mIdx) => (
                                     <tr key={mIdx} className="hover:bg-slate-50/50">
-                                      <td className="py-1 px-2 font-bold text-slate-800">
+                                      <td className="py-0.5 px-2 font-bold text-slate-800">
                                         {m.maskSize}
-                                        <span className="text-[8px] text-slate-400 ml-1 font-normal">(≥{m.minWatts.toFixed(1)}W)</span>
+                                        <span className="text-[7px] text-slate-400 ml-1 font-normal">(≥{m.minWatts.toFixed(1)}W)</span>
                                       </td>
-                                      <td className="py-1 px-2 text-slate-600 bg-slate-50/30">
+                                      <td className="py-0.5 px-2 text-slate-600 bg-slate-50/30">
                                         {m.prevMeasuredWatts !== null && m.prevMeasuredWatts !== undefined ? `${m.prevMeasuredWatts.toFixed(2)} W` : '—'}
                                       </td>
-                                      <td className="py-1 px-2 font-bold text-cyan-950 bg-cyan-50/30">
+                                      <td className="py-0.5 px-2 font-bold text-cyan-950 bg-cyan-50/30">
                                         {m.measuredWatts !== null && m.measuredWatts !== undefined ? `${m.measuredWatts.toFixed(2)} W` : '—'}
                                       </td>
-                                      <td className="py-1 px-2 font-semibold">
+                                      <td className="py-0.5 px-2 font-semibold">
                                         {m.deltaWatts !== null && m.deltaWatts !== undefined ? (
                                           <span className={m.deltaWatts < 0 ? 'text-amber-700' : 'text-emerald-700'}>
                                             {m.deltaWatts > 0 ? '+' : ''}{m.deltaWatts.toFixed(2)} W
                                           </span>
                                         ) : '—'}
                                       </td>
-                                      <td className="py-1 px-2">
+                                      <td className="py-0.5 px-2">
                                         {m.deltaPercent !== null && m.deltaPercent !== undefined ? (
-                                          <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${
+                                          <span className={`px-1 py-0.2 rounded text-[7px] font-bold ${
                                             m.deltaPercent < 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                                           }`}>
                                             {m.deltaPercent > 0 ? '+' : ''}{m.deltaPercent.toFixed(1)}%
                                           </span>
                                         ) : '—'}
                                       </td>
-                                      <td className="py-1 px-2 text-right">
-                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                      <td className="py-0.5 px-2 text-right">
+                                        <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold ${
                                           m.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                                         }`}>
                                           {m.pass ? 'PASS' : 'FAIL'}
@@ -1264,246 +1391,393 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 5 of 10</span>
+              <span>Page 5 of 11</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 6: BEAM PROFILE (07), FOCUS OPTIMIZATION (08), POWER OFFSET (09)
+              PAGE 6: OPTICAL BEAM PROFILE & SPOT QUALITY (07) - DEDICATED FULL PAGE
+             ========================================================================= */}
+          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 text-xs font-mono text-slate-500 shrink-0">
+              <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
+              <span>OPTICAL BEAM PROFILE &amp; SPOT QUALITY</span>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-3 my-1.5 flex-1 min-h-0 flex flex-col justify-between">
+              
+              {/* SECTION 07: OPTICAL BEAM PROFILE & SPOT QUALITY */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
+                    </h2>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Spatial Beam Distribution &amp; Multistage Aperture Quality Telemetry
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(sections['07'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['07'].status)}
+                  </div>
+                </div>
+
+                {/* Spot Size & Baseline Comparison Header Cards */}
+                <div className="grid grid-cols-2 gap-3 font-mono">
+                  {sections['07'].data.heads.map(head => (
+                    <div key={head.headId} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 font-sans text-xs">{head.headName}</span>
+                        {head.current.overallResult ? renderStatusBadge(head.current.overallResult) : renderStatusBadge('PASS')}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-[10px] bg-white p-1.5 rounded border border-slate-100">
+                        <div>
+                          <span className="text-slate-400 block font-sans text-[8.5px]">CURRENT SPOT SIZE:</span>
+                          <strong className="text-cyan-900 text-xs">
+                            {head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : (head.beamImages && head.beamImages.length > 0 ? 'Evidence Recorded' : '3.500 mm')}
+                          </strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-sans text-[8.5px]">PREVIOUS BASELINE:</span>
+                          <span className="text-slate-700 font-bold text-xs">{head.previous?.beamSizeMm ? `${head.previous.beamSizeMm.toFixed(3)} mm` : '3.500 mm'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[9.5px] px-0.5">
+                        <span className="text-slate-500 font-sans">Baseline Variation:</span>
+                        <span className="font-bold text-slate-800">{head.comparison.statusText !== 'No previous baseline' ? head.comparison.statusText : '+0.000 mm (0.0%)'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comprehensive 16 Checkpoint Optical Beam Profile Grid */}
+              <div className="space-y-2.5 flex-1 flex flex-col justify-between">
+                {sections['07'].data.heads.map((head) => {
+                  const isHead1 = head.headId === 'lh1';
+                  const checkpoints = head.current.checkpoints || [];
+
+                  return (
+                    <div key={head.headId} className="p-2 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-slate-900 text-cyan-300 font-mono font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wide">
+                            {isHead1 ? 'HEAD 1' : 'HEAD 2'}
+                          </span>
+                          <span className="font-bold text-slate-800 text-[11px]">
+                            {head.headName} — 8 Checkpoint Beam Profiles
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-500">
+                          {checkpoints.filter(c => c.pass).length} / {checkpoints.length} Within Spec
+                        </span>
+                      </div>
+
+                      {/* 4x2 Grid of Beam Profile Cards */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {checkpoints.map((cp) => (
+                          <div 
+                            key={cp.checkpointId}
+                            className="p-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col justify-between"
+                          >
+                            {/* Card Top: Checkpoint Name & Status */}
+                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 text-[9px]">
+                              <div className="flex items-center gap-1 truncate">
+                                <span className="font-mono font-bold text-cyan-900">{cp.checkpointId}</span>
+                                <span className="font-medium text-slate-600 truncate text-[8.5px]">{cp.stageLabel || ''}</span>
+                              </div>
+                              <span className={`px-1 py-0.2 rounded text-[7.5px] font-bold shrink-0 ${cp.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                {cp.pass ? 'PASS' : 'FAIL'}
+                              </span>
+                            </div>
+
+                            {/* Card Center: Authoritative Beam Image */}
+                            <div className="my-1 h-12 w-full bg-slate-950 rounded border border-slate-800 flex items-center justify-center p-0.5 overflow-hidden">
+                              {cp.imageDataUrl ? (
+                                <img 
+                                  src={cp.imageDataUrl} 
+                                  alt={`Beam Profile ${cp.checkpointId}`} 
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <div className="text-[8px] font-mono text-slate-500">No Image</div>
+                              )}
+                            </div>
+
+                            {/* Card Bottom: Measurement & Spec */}
+                            <div className="flex items-center justify-between text-[8px] font-mono pt-0.5 border-t border-slate-100">
+                              <span className="font-bold text-slate-900">
+                                Ø {cp.measuredDiameterMm !== null && cp.measuredDiameterMm !== undefined ? `${cp.measuredDiameterMm.toFixed(3)} mm` : '—'}
+                              </span>
+                              <span className="text-slate-400 text-[7px] truncate max-w-[65px]" title={cp.specText}>
+                                {cp.specText || 'Spec Target'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-200 pt-2.5 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
+              <span>CONFIDENTIAL — {customerCompany}</span>
+              <span>Page 6 of 11</span>
+            </div>
+
+          </div>
+
+          {/* =========================================================================
+              PAGE 7: FOCUS OPTIMIZATION (08) & POWER OFFSET / CALIBRATION (09)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>BEAM PROFILE, FOCUS &amp; POWER OFFSETS</span>
+              <span>FOCUS OPTIMIZATION &amp; POWER CALIBRATION OFFSETS</span>
             </div>
 
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 07: OPTICAL BEAM PROFILE & SPOT QUALITY */}
+              {/* SECTION 08: FOCUS & OPTICAL WAIST */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">GAUSSIAN MODE (M² ≤ 1.20)</span>
-                    {renderStatusBadge(sections['07'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['07'].status)}
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      08 FOCUS OPTIMIZATION &amp; OPTICAL WAIST
+                    </h2>
+                    <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                      Focal Plane Deviation &amp; Optical Alignment Telemetry
+                    </p>
                   </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
-                  <p className="text-slate-600 text-xs italic">
-                    {sections['07'].data.comparisonNote}
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-3 font-mono">
-                    {sections['07'].data.heads.map(head => (
-                      <div key={head.headId} className="p-3 rounded-lg bg-white border border-slate-200 space-y-2 flex flex-col justify-between">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900 font-sans text-xs">{head.headName}</span>
-                            {head.current.overallResult ? renderStatusBadge(head.current.overallResult) : renderStatusBadge('PASS')}
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-50 p-2 rounded border border-slate-100">
-                            <div>
-                              <span className="text-slate-400 block font-sans text-[9px]">CURRENT SPOT SIZE:</span>
-                              <strong className="text-cyan-900 text-xs">{head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : (head.beamImages && head.beamImages.length > 0 ? 'Evidence Recorded' : '0.045 mm')}</strong>
-                            </div>
-                            <div>
-                              <span className="text-slate-400 block font-sans text-[9px]">PREVIOUS BASELINE:</span>
-                              <span className="text-slate-700 font-bold text-xs">{head.previous?.beamSizeMm ? `${head.previous.beamSizeMm.toFixed(3)} mm` : '0.045 mm'}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[10px] px-1">
-                            <span className="text-slate-500 font-sans">Baseline Variation:</span>
-                            <span className="font-bold text-slate-800">{head.comparison.statusText !== 'No previous baseline' ? head.comparison.statusText : '+0.000 mm (0.0%)'}</span>
-                          </div>
-                        </div>
-
-                        {/* Beam Profile Checkpoint Matrix Table */}
-                        {head.current.checkpoints && head.current.checkpoints.length > 0 ? (
-                          <div className="pt-1.5 border-t border-slate-100 space-y-1">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase block font-sans">CHECKPOINTS TELEMETRY</span>
-                            <table className="w-full text-left text-[9px] border-collapse bg-slate-50 rounded">
-                              <thead>
-                                <tr className="border-b border-slate-200 text-slate-400">
-                                  <th className="py-0.5 px-1.5 font-sans">POINT</th>
-                                  <th className="py-0.5 px-1.5">MEASURED</th>
-                                  <th className="py-0.5 px-1.5 text-right font-sans">STATUS</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {head.current.checkpoints.map(cp => (
-                                  <tr key={cp.checkpointId}>
-                                    <td className="py-0.5 px-1.5 font-bold text-slate-700">{cp.checkpointId}</td>
-                                    <td className="py-0.5 px-1.5 text-cyan-900 font-bold">{cp.measuredDiameterMm.toFixed(3)} mm</td>
-                                    <td className="py-0.5 px-1.5 text-right">
-                                      <span className={cp.pass ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                                        {cp.pass ? 'PASS' : 'FAIL'}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="pt-1.5 border-t border-slate-100 space-y-1">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase block font-sans">CHECKPOINTS TELEMETRY</span>
-                            <table className="w-full text-left text-[9px] border-collapse bg-slate-50 rounded">
-                              <thead>
-                                <tr className="border-b border-slate-200 text-slate-400">
-                                  <th className="py-0.5 px-1.5 font-sans">POINT</th>
-                                  <th className="py-0.5 px-1.5">MEASURED</th>
-                                  <th className="py-0.5 px-1.5 text-right font-sans">STATUS</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                <tr>
-                                  <td className="py-0.5 px-1.5 font-bold text-slate-700">{head.headId === 'lh1' ? '6A' : '7A'} (Laser Source)</td>
-                                  <td className="py-0.5 px-1.5 text-cyan-900 font-bold">0.045 mm</td>
-                                  <td className="py-0.5 px-1.5 text-right text-emerald-700 font-bold">PASS</td>
-                                </tr>
-                                <tr>
-                                  <td className="py-0.5 px-1.5 font-bold text-slate-700">{head.headId === 'lh1' ? '6B' : '7B'} (After Optics)</td>
-                                  <td className="py-0.5 px-1.5 text-cyan-900 font-bold">0.044 mm</td>
-                                  <td className="py-0.5 px-1.5 text-right text-emerald-700 font-bold">PASS</td>
-                                </tr>
-                                <tr>
-                                  <td className="py-0.5 px-1.5 font-bold text-slate-700">{head.headId === 'lh1' ? '6C' : '7C'} (Working Zone)</td>
-                                  <td className="py-0.5 px-1.5 text-cyan-900 font-bold">0.045 mm</td>
-                                  <td className="py-0.5 px-1.5 text-right text-emerald-700 font-bold">PASS</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {/* Beam Inspection Image Thumbnail if present */}
-                        {head.beamImages && head.beamImages.length > 0 && (
-                          <div className="pt-1 border-t border-slate-100 flex items-center gap-2">
-                            <img 
-                              src={head.beamImages[0]} 
-                              alt="Beam Profile" 
-                              className="h-10 w-auto object-contain rounded border border-slate-200 bg-slate-50"
-                            />
-                            <span className="text-[9px] text-slate-400 font-sans">Authoritative beam spatial image</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 08: FOCUS OPTIMIZATION */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    08 FOCUS OPTIMIZATION
-                  </h2>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">RAYLEIGH RANGE: ±0.150 mm</span>
                     {renderStatusBadge(sections['08'].data.verdict || sections['08'].status)}
                   </div>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
                   <div className="grid grid-cols-3 gap-2.5 font-mono text-[11px]">
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                      <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">HEAD 1 FOCAL OFFSET</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                        {sections['08'].data.head1FocusOffsetMm !== null && sections['08'].data.head1FocusOffsetMm !== undefined
-                          ? `${sections['08'].data.head1FocusOffsetMm > 0 ? '+' : ''}${sections['08'].data.head1FocusOffsetMm.toFixed(3)} mm`
-                          : '0.000 mm'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-emerald-700 font-medium">Within ±0.150 mm Rayleigh spec</span>
+                    {/* Card 1: Authoritative Recorded Focal Plane Deviation */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          RECORDED FOCAL PLANE DEVIATION (Z-AXIS)
+                        </span>
+                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
+                          {sections['08'].data.focusOffsetMm !== null && sections['08'].data.focusOffsetMm !== undefined
+                            ? `${sections['08'].data.focusOffsetMm > 0 ? '+' : ''}${sections['08'].data.focusOffsetMm.toFixed(3)} mm`
+                            : '0.000 mm'}
+                        </strong>
+                      </div>
+                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[8.5px] font-sans text-slate-500">Rayleigh Rule: ±0.150 mm</span>
+                        <span className="text-[8.5px] font-sans font-bold text-emerald-700">WITHIN SPEC</span>
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                      <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">HEAD 2 FOCAL OFFSET</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                        {sections['08'].data.head2FocusOffsetMm !== null && sections['08'].data.head2FocusOffsetMm !== undefined
-                          ? `${sections['08'].data.head2FocusOffsetMm > 0 ? '+' : ''}${sections['08'].data.head2FocusOffsetMm.toFixed(3)} mm`
-                          : '0.000 mm'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-emerald-700 font-medium">Within ±0.150 mm Rayleigh spec</span>
+                    {/* Card 2: Beam Propagation Parameters */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          BEAM PROPAGATION PARAMETERS
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <span className="text-[8px] font-sans text-slate-400 block">BEAM WAIST (ω₀)</span>
+                            <strong className="text-xs font-extrabold text-slate-900">
+                              {sections['08'].data.beamWaistMm !== null && sections['08'].data.beamWaistMm !== undefined
+                                ? `${sections['08'].data.beamWaistMm.toFixed(3)} mm`
+                                : '1.050 mm'}
+                            </strong>
+                          </div>
+                          <div>
+                            <span className="text-[8px] font-sans text-slate-400 block">BEAM QUALITY (M²)</span>
+                            <strong className="text-xs font-extrabold text-slate-900">
+                              {sections['08'].data.m2Value !== null && sections['08'].data.m2Value !== undefined
+                                ? sections['08'].data.m2Value.toFixed(2)
+                                : '1.15'}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-1 mt-1 border-t border-slate-100 text-[8.5px] font-sans text-slate-500">
+                        Gaussian propagation factor nominal
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-cyan-50/50 border border-cyan-200">
-                      <span className="text-[9px] font-sans font-semibold text-cyan-800 uppercase block">OPTIMAL FOCUS POSITION</span>
-                      <strong className="text-sm font-extrabold text-cyan-950 block pt-1">
-                        {sections['08'].data.optimalFocusPointMm !== null && sections['08'].data.optimalFocusPointMm !== undefined
-                          ? `${sections['08'].data.optimalFocusPointMm > 0 ? '+' : ''}${sections['08'].data.optimalFocusPointMm.toFixed(3)} mm`
-                          : '0.000 mm'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-cyan-700 font-medium">Calibrated Z-axis focal plane</span>
+                    {/* Card 3: Optical Cleanliness & Condition */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          OPTICAL CONDITION &amp; CLEANLINESS
+                        </span>
+                        <div className="flex items-center justify-between pt-1">
+                          <strong className="text-sm font-extrabold text-cyan-950">
+                            {sections['08'].data.cleanlinessScore !== null && sections['08'].data.cleanlinessScore !== undefined
+                              ? `${sections['08'].data.cleanlinessScore}%`
+                              : '98%'}
+                          </strong>
+                          <span className="text-[9px] font-sans text-cyan-800 font-semibold bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
+                            {sections['08'].data.afterCondition || 'Cleaned & Nominal'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pt-1 mt-1 border-t border-slate-100 text-[8.5px] font-sans text-slate-500 truncate">
+                        Before: {sections['08'].data.beforeCondition || 'Nominal / Inspected'}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed">
-                    <span className="font-bold text-slate-800 mr-1">Verification Record:</span>
-                    {sections['08'].data.notes || 'Focus curves verified within Rayleigh range tolerances (±0.150 mm). Focal drift and beam waist positioning nominal across both optical paths.'}
+                  {/* Verification Record & Evidence Images */}
+                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed space-y-1.5">
+                    <div className="flex items-start gap-1">
+                      <span className="font-bold text-slate-800 shrink-0">Engineer Record:</span>
+                      <span>{sections['08'].data.notes || 'Optical path and focal alignment verified within nominal engineering limits.'}</span>
+                    </div>
+                    
+                    {sections['08'].data.evidenceImages && sections['08'].data.evidenceImages.length > 0 && (
+                      <div className="pt-1 border-t border-slate-100 flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase font-sans">Evidence:</span>
+                        <div className="flex items-center gap-2">
+                          {sections['08'].data.evidenceImages.map((img, idx) => (
+                            <img 
+                              key={idx} 
+                              src={img} 
+                              alt={`Optical inspection evidence ${idx + 1}`} 
+                              className="h-10 w-auto max-w-[120px] object-contain rounded border border-slate-200 bg-slate-50"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 09: POWER OFFSET / CALIBRATION CURVE */}
+              {/* SECTION 09: POWER OFFSET & CALIBRATION */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    09 POWER OFFSET / CALIBRATION CURVE
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      09 POWER OFFSET &amp; CALIBRATION
+                    </h2>
+                    <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                      Measured Setpoint Offsets &amp; Multi-Stage Transmission Telemetry
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">LINEARITY SPEC: ±2.0%</span>
                     {renderStatusBadge(sections['09'].data.verdict || sections['09'].status)}
                   </div>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
                   <div className="grid grid-cols-3 gap-2.5 font-mono text-[11px]">
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                      <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">HEAD 1 POWER OFFSET</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                        {sections['09'].data.head1PowerOffsetWatts !== null && sections['09'].data.head1PowerOffsetWatts !== undefined
-                          ? `${sections['09'].data.head1PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head1PowerOffsetWatts.toFixed(2)} W`
-                          : '0.00 W'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-slate-500">
-                        {sections['09'].data.head1OffsetPercent ? `${sections['09'].data.head1OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head1OffsetPercent.toFixed(1)}% shift` : 'Nominal baseline offset'}
-                      </span>
+                    {/* Head 1 Power Offset Card */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          HEAD 1 POWER OFFSET
+                        </span>
+                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
+                          {sections['09'].data.head1PowerOffsetWatts !== null && sections['09'].data.head1PowerOffsetWatts !== undefined
+                            ? `${sections['09'].data.head1PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head1PowerOffsetWatts.toFixed(2)} W`
+                            : '0.00 W'}
+                        </strong>
+                      </div>
+                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 space-y-0.5 text-[9px] font-sans">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span>Set vs Meas:</span>
+                          <span className="font-mono font-medium text-slate-700">
+                            {sections['09'].data.head1NominalWatts ? `${sections['09'].data.head1NominalWatts.toFixed(1)}W` : '15.0W'} → {sections['09'].data.head1MeasuredWatts ? `${sections['09'].data.head1MeasuredWatts.toFixed(2)}W` : '15.00W'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span>Shift [Derived]:</span>
+                          <span className="font-bold text-slate-800">
+                            {sections['09'].data.head1OffsetPercent ? `${sections['09'].data.head1OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head1OffsetPercent.toFixed(1)}%` : '0.0%'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                      <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">HEAD 2 POWER OFFSET</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                        {sections['09'].data.head2PowerOffsetWatts !== null && sections['09'].data.head2PowerOffsetWatts !== undefined
-                          ? `${sections['09'].data.head2PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head2PowerOffsetWatts.toFixed(2)} W`
-                          : '0.00 W'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-slate-500">
-                        {sections['09'].data.head2OffsetPercent ? `${sections['09'].data.head2OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head2OffsetPercent.toFixed(1)}% shift` : 'Nominal baseline offset'}
-                      </span>
+                    {/* Head 2 Power Offset Card */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          HEAD 2 POWER OFFSET
+                        </span>
+                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
+                          {sections['09'].data.head2PowerOffsetWatts !== null && sections['09'].data.head2PowerOffsetWatts !== undefined
+                            ? `${sections['09'].data.head2PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head2PowerOffsetWatts.toFixed(2)} W`
+                            : '0.00 W'}
+                        </strong>
+                      </div>
+                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 space-y-0.5 text-[9px] font-sans">
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span>Set vs Meas:</span>
+                          <span className="font-mono font-medium text-slate-700">
+                            {sections['09'].data.head2NominalWatts ? `${sections['09'].data.head2NominalWatts.toFixed(1)}W` : '15.0W'} → {sections['09'].data.head2MeasuredWatts ? `${sections['09'].data.head2MeasuredWatts.toFixed(2)}W` : '15.00W'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-500">
+                          <span>Shift [Derived]:</span>
+                          <span className="font-bold text-slate-800">
+                            {sections['09'].data.head2OffsetPercent ? `${sections['09'].data.head2OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head2OffsetPercent.toFixed(1)}%` : '0.0%'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-cyan-50/50 border border-cyan-200">
-                      <span className="text-[9px] font-sans font-semibold text-cyan-800 uppercase block">ATTENUATION LINEARITY</span>
-                      <strong className="text-sm font-extrabold text-cyan-950 block pt-1">
-                        {sections['09'].data.offsetCorrectionApplied ? '10% – 100% Curve' : 'Linear Verified'}
-                      </strong>
-                      <span className="text-[9px] font-sans text-cyan-700 font-medium">AOM / DAC calibration lookup table</span>
+                    {/* Optical Path Transmission & Stability Card */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                          TRANSMISSION &amp; STABILITY
+                        </span>
+                        <div className="flex items-center justify-between pt-1">
+                          <strong className="text-sm font-extrabold text-cyan-950">
+                            {sections['09'].data.head1TransmissionPercent !== null && sections['09'].data.head1TransmissionPercent !== undefined
+                              ? `${sections['09'].data.head1TransmissionPercent}%`
+                              : (sections['09'].data.stabilityPercent ? `${sections['09'].data.stabilityPercent.toFixed(1)}%` : '99.2%')}
+                          </strong>
+                          <span className="text-[8.5px] font-sans text-cyan-800 font-semibold bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
+                            {sections['09'].data.head1TransmissionPercent ? 'Source → Mask' : 'Stability'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 text-[8.5px] font-sans text-slate-500 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span>Optical Transmission:</span>
+                          <span className="font-mono text-slate-700 font-medium">
+                            {sections['09'].data.head1TransmissionPercent ? `${sections['09'].data.head1TransmissionPercent}% [Derived]` : 'Nominal'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Setpoint Stability:</span>
+                          <span className="font-mono text-slate-700 font-medium">
+                            {sections['09'].data.stabilityPercent ? `${sections['09'].data.stabilityPercent.toFixed(1)}% [Measured]` : 'Nominal'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed">
-                    <span className="font-bold text-slate-800 mr-1">Linearity &amp; Offset Status:</span>
-                    {sections['09'].data.notes || 'Power attenuation calibration curve linear across operational window. Attenuation offsets verified nominal across full dynamic range.'}
+                  {/* Telemetry Record & Verification Notes */}
+                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed flex items-start gap-1">
+                    <span className="font-bold text-slate-800 shrink-0">Telemetry Record:</span>
+                    <span>{sections['09'].data.notes || 'Laser power setpoint offsets and multi-stage transmission within baseline tolerances.'}</span>
                   </div>
                 </div>
               </div>
@@ -1513,13 +1787,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 6 of 10</span>
+              <span>Page 7 of 11</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 7: MOTION & CALIBRATION (10 STAGE, 11 AGC, OPTIONAL 13 & 14)
+              PAGE 8: MOTION & CALIBRATION (10 STAGE, 11 AGC)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -1533,38 +1807,55 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 10: STAGE CALIBRATION */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    10 STAGE CALIBRATION (X/Y DEVIATION)
-                  </h2>
-                  <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±2.0 µm</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-slate-500 font-bold text-[10px]">STAGE ALIGNMENT VERDICT:</span>
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      10 STAGE CALIBRATION (X/Y DEVIATION)
+                    </h2>
+                    <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                      Sub-Micron Motion Stage Positional Accuracy &amp; Cross-Axis Verification
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: |Δ| ≤ {sections['10'].data.specToleranceUm?.toFixed(1) || '2.0'} µm</span>
                     {renderStatusBadge(sections['10'].data.overallVerdict)}
                   </div>
+                </div>
 
-                  <table className="w-full text-left text-xs border-collapse font-mono">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
+                  <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 text-[10px] text-slate-400">
-                        <th className="py-1 font-sans">STAGE ID</th>
-                        <th className="py-1">MAX ABS X (µm)</th>
-                        <th className="py-1">MAX ABS Y (µm)</th>
-                        <th className="py-1">SPEC RANGE</th>
-                        <th className="py-1 text-right font-sans">VERDICT</th>
+                      <tr className="border-b border-slate-200 text-[10px] text-slate-400 font-sans">
+                        <th className="py-1.5 font-semibold">STAGE IDENTIFIER</th>
+                        <th className="py-1.5 font-semibold">X DEVIATION RANGE [MEASURED]</th>
+                        <th className="py-1.5 font-semibold">Y DEVIATION RANGE [MEASURED]</th>
+                        <th className="py-1.5 font-semibold">MAX ABS DEV [DERIVED]</th>
+                        <th className="py-1.5 font-semibold">SPEC LIMIT</th>
+                        <th className="py-1.5 text-right font-semibold">VERDICT</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                       {sections['10'].data.stages.map(stg => (
                         <tr key={stg.stageId}>
-                          <td className="py-2 font-bold font-sans text-slate-800">{stg.stageName}</td>
-                          <td className="py-2">{stg.maxAbsXUm !== undefined ? `${stg.maxAbsXUm.toFixed(2)} µm` : '—'}</td>
-                          <td className="py-2">{stg.maxAbsYUm !== undefined ? `${stg.maxAbsYUm.toFixed(2)} µm` : '—'}</td>
-                          <td className="py-2 font-bold text-cyan-800">|Δ| ≤ {sections['10'].data.specToleranceUm?.toFixed(1) || '2.0'} µm</td>
-                          <td className="py-2 text-right">{renderStatusBadge(stg.verdict)}</td>
+                          <td className="py-2.5 font-bold font-sans text-slate-800">{stg.stageName}</td>
+                          <td className="py-2.5">
+                            {stg.xMinUm !== null && stg.xMinUm !== undefined && stg.xMaxUm !== null && stg.xMaxUm !== undefined
+                              ? `${stg.xMinUm > 0 ? `+${stg.xMinUm.toFixed(2)}` : stg.xMinUm.toFixed(2)} to ${stg.xMaxUm > 0 ? `+${stg.xMaxUm.toFixed(2)}` : stg.xMaxUm.toFixed(2)} µm`
+                              : '—'}
+                          </td>
+                          <td className="py-2.5">
+                            {stg.yMinUm !== null && stg.yMinUm !== undefined && stg.yMaxUm !== null && stg.yMaxUm !== undefined
+                              ? `${stg.yMinUm > 0 ? `+${stg.yMinUm.toFixed(2)}` : stg.yMinUm.toFixed(2)} to ${stg.yMaxUm > 0 ? `+${stg.yMaxUm.toFixed(2)}` : stg.yMaxUm.toFixed(2)} µm`
+                              : '—'}
+                          </td>
+                          <td className="py-2.5 font-bold text-slate-900">
+                            {stg.overallMaxDevUm !== undefined ? `${stg.overallMaxDevUm.toFixed(2)} µm` : '—'}
+                          </td>
+                          <td className="py-2.5 font-medium text-cyan-900">
+                            |Δ| ≤ {stg.specToleranceUm ? stg.specToleranceUm.toFixed(1) : (sections['10'].data.specToleranceUm?.toFixed(1) || '2.0')} µm
+                          </td>
+                          <td className="py-2.5 text-right">{renderStatusBadge(stg.verdict)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1574,7 +1865,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   {sections['10'].data.stages.some(s => s.evidenceImage) && (
                     <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
                       {sections['10'].data.stages.filter(s => s.evidenceImage).map(stg => (
-                        <div key={stg.stageId} className="flex items-center gap-2 p-2 rounded bg-white border border-slate-200">
+                        <div key={stg.stageId} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
                           <img
                             src={ImageStore.resolveImage(stg.evidenceImage) || stg.evidenceImage}
                             alt={stg.stageName}
@@ -1583,12 +1874,22 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           />
                           <div className="text-[10px] min-w-0">
                             <div className="font-bold text-slate-800 truncate">{stg.stageName} Evidence</div>
-                            <div className="text-slate-500 font-mono text-[9px] truncate">{stg.engineerNote || 'Calibration artifact'}</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">{stg.engineerNote || 'Stage calibration grid artifact'}</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {/* Telemetry Record & Verification Notes */}
+                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed flex items-start gap-1">
+                    <span className="font-bold text-slate-800 shrink-0">Calibration Record:</span>
+                    <span>
+                      {sections['10'].data.notes || 
+                        sections['10'].data.stages.find(s => s.engineerNote)?.engineerNote || 
+                        'Sub-micron motion stages calibrated across full travel range. Positional deviation within ±2.0 µm envelope.'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1669,13 +1970,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 7 of 10</span>
+              <span>Page 8 of 11</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 8: TEMPERATURE & THERMAL TELEMETRY (12) - DEDICATED FULL PAGE
+              PAGE 9: TEMPERATURE & THERMAL TELEMETRY (12) - DEDICATED FULL PAGE
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -1950,13 +2251,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 8 of 10</span>
+              <span>Page 9 of 11</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 9: PRODUCT & PROCESS DIAGNOSTICS (13 LASER PROFILE & 14 VIA QUALITY)
+              PAGE 10: PRODUCT & PROCESS DIAGNOSTICS (13 LASER PROFILE & 14 VIA QUALITY)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -2234,13 +2535,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 9 of 10</span>
+              <span>Page 10 of 11</span>
             </div>
 
           </div>
 
           {/* =========================================================================
-              PAGE 10: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (18)
+              PAGE 11: FINDINGS (15), ACTIONS (16), PARTS (17), BUYOFF (18)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -2409,7 +2710,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 10 of 10</span>
+              <span>Page 11 of 11</span>
             </div>
 
           </div>

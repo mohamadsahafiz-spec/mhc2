@@ -14,6 +14,7 @@ interface MachineHealthCheckProps {
   initialMachineId?: string;
   activeSubTab?: NavigationTab;
   onSaveMhcRecord?: (record: MHCRecord) => void;
+  onNavigate?: (tab: NavigationTab) => void;
   onUpdateMachine?: (machine: Machine) => void;
 }
 
@@ -21,6 +22,7 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
   machines = [],
   initialMachineId,
   activeSubTab = 'mhc_autopilot',
+  onNavigate,
   onUpdateMachine
 }) => {
   // 1. Selected Machine
@@ -119,6 +121,14 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
             onUpdateSession={handleUpdateSession}
             onSaveNewSession={handleUpdateSession}
             onSwitchToCanvas={() => setViewMode('smart_workspace')}
+            onExitAutopilot={() => {
+              if (onNavigate) {
+                onNavigate('start_page');
+              } else {
+                setViewMode('smart_workspace');
+              }
+            }}
+            onNavigate={onNavigate}
             onUpdateMachine={onUpdateMachine}
           />
         </div>

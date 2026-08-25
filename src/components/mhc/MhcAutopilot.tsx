@@ -24,7 +24,7 @@ import {
   Award,
   LogOut
 } from 'lucide-react';
-import { Customer, Machine, MHCSession } from '../../types';
+import { Customer, Machine, MHCSession, NavigationTab } from '../../types';
 import { StorageService } from '../../utils/persistence';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -56,6 +56,8 @@ export interface MhcAutopilotProps {
   onUpdateSession: (session: MHCSession) => void;
   onSaveNewSession: (session: MHCSession) => void;
   onSwitchToCanvas: () => void;
+  onExitAutopilot?: () => void;
+  onNavigate?: (tab: NavigationTab) => void;
   onUpdateMachine?: (machine: Machine) => void;
 }
 
@@ -161,6 +163,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   onUpdateSession,
   onSaveNewSession,
   onSwitchToCanvas,
+  onExitAutopilot,
+  onNavigate,
   onUpdateMachine
 }) => {
   const { theme } = useTheme();
@@ -767,8 +771,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
           <div className="pt-4 border-t border-slate-800/80">
             <button
               id="mhc-autopilot-exit-btn"
-              onClick={onSwitchToCanvas}
-              title="Exit Autopilot and return to MHC Workspace"
+              onClick={() => {
+                if (onExitAutopilot) {
+                  onExitAutopilot();
+                } else if (onNavigate) {
+                  onNavigate('start_page');
+                } else {
+                  onSwitchToCanvas();
+                }
+              }}
+              title="Exit Autopilot and return to Daily Work"
               className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
                 isDark 
                   ? 'bg-slate-900 hover:bg-rose-950/40 border-slate-700/80 hover:border-rose-700/80 text-slate-300 hover:text-rose-200' 

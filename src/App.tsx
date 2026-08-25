@@ -531,6 +531,7 @@ function AppLayout() {
               initialMachineId={selectedMachineId}
               activeSubTab={activeTab}
               onSaveMhcRecord={handleSaveMhcRecord}
+              onNavigate={setActiveTab}
               onUpdateMachine={handleEditMachine}
             />
           )}
