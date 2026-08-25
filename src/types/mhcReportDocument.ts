@@ -339,6 +339,7 @@ export interface MhcReportAgcData {
   specToleranceUm: number; // 3.0
   overallVerdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' | 'NOT_COLLECTED';
   overallDisposition?: string;
+  notes?: string;
   scannerAttentionRequired: boolean;
   agcs: Array<{
     agcId: string;
@@ -356,6 +357,7 @@ export interface MhcReportAgcData {
     maxAbsXUm?: number;
     maxAbsYUm?: number;
     overallMaxDevUm?: number;
+    specToleranceUm?: number;
     systemVerdict?: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     engineerDisposition?: string;
     verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';

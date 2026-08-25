@@ -654,9 +654,9 @@ export function buildMhcReportDocument(
   const agc2Data = agcDataMap['agc2'];
 
   const agcsList = [
-    { id: 'agc1', name: 'AGC 1', data: agc1Data },
-    { id: 'agc2', name: 'AGC 2', data: agc2Data }
-  ].map(({ id, name, data }) => {
+    { id: 'agc1', defaultName: 'AGC 1', data: agc1Data },
+    { id: 'agc2', defaultName: 'AGC 2', data: agc2Data }
+  ].map(({ id, defaultName, data }) => {
     const indices = (data?.indices || []).map(idx => ({
       indexNum: idx.indexNum,
       xUm: idx.xUm,
@@ -664,17 +664,31 @@ export function buildMhcReportDocument(
       verdict: idx.verdict === 'PASS' ? ('PASS' as const) : idx.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const)
     }));
 
+    const validXs = indices.filter(i => i.xUm !== null && i.xUm !== undefined).map(i => i.xUm!);
+    const validYs = indices.filter(i => i.yUm !== null && i.yUm !== undefined).map(i => i.yUm!);
+
+    const xMin = data?.xMinUm ?? (validXs.length > 0 ? Math.min(...validXs) : undefined);
+    const xMax = data?.xMaxUm ?? (validXs.length > 0 ? Math.max(...validXs) : undefined);
+    const yMin = data?.yMinUm ?? (validYs.length > 0 ? Math.min(...validYs) : undefined);
+    const yMax = data?.yMaxUm ?? (validYs.length > 0 ? Math.max(...validYs) : undefined);
+    const maxAbsX = data?.maxAbsXUm ?? (validXs.length > 0 ? Math.max(...validXs.map(Math.abs)) : undefined);
+    const maxAbsY = data?.maxAbsYUm ?? (validYs.length > 0 ? Math.max(...validYs.map(Math.abs)) : undefined);
+    const overallMaxDev = data?.overallMaxDevUm ?? (maxAbsX !== undefined && maxAbsY !== undefined ? Math.max(maxAbsX, maxAbsY) : undefined);
+
     return {
       agcId: id,
-      agcName: name,
+      agcName: data?.agcName || defaultName,
       indices,
-      xMinUm: data?.xMinUm,
-      xMaxUm: data?.xMaxUm,
-      yMinUm: data?.yMinUm,
-      yMaxUm: data?.yMaxUm,
-      maxAbsXUm: data?.maxAbsXUm,
-      maxAbsYUm: data?.maxAbsYUm,
-      overallMaxDevUm: data?.overallMaxDevUm,
+      xMinUm: xMin,
+      xMaxUm: xMax,
+      yMinUm: yMin,
+      yMaxUm: yMax,
+      maxAbsXUm: maxAbsX,
+      maxAbsYUm: maxAbsY,
+      overallMaxDevUm: overallMaxDev,
+      specToleranceUm: data?.specToleranceUm ?? 3.0,
+      systemVerdict: data?.systemVerdict,
+      engineerDisposition: data?.engineerDisposition,
       verdict: data?.verdict === 'PASS' ? ('PASS' as const) : data?.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const),
       scannerConditionFlag: data?.scannerConditionFlag || false,
       evidenceImage: ImageStore.resolveImage(data?.evidenceImage) || data?.evidenceImage,
@@ -694,6 +708,8 @@ export function buildMhcReportDocument(
   const agcData: MhcReportAgcData = {
     specToleranceUm: 3.0,
     overallVerdict: agcOverallVerdict,
+    overallDisposition: agc1Data?.engineerDisposition || agc2Data?.engineerDisposition,
+    notes: agc1Data?.engineerNote || agc2Data?.engineerNote || undefined,
     scannerAttentionRequired: agcScannerAttention,
     agcs: agcsList
   };

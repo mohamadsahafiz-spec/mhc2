@@ -184,6 +184,12 @@ describe('mhcReportEngine', () => {
         agcId: 'agc1',
         agcName: 'AGC 1',
         indices: [],
+        xMinUm: -1.0,
+        xMaxUm: 1.1,
+        yMinUm: -0.9,
+        yMaxUm: 1.2,
+        maxAbsXUm: 1.1,
+        maxAbsYUm: 1.2,
         overallMaxDevUm: 1.2,
         specToleranceUm: 3.0,
         verdict: 'PASS',
@@ -193,6 +199,12 @@ describe('mhcReportEngine', () => {
         agcId: 'agc2',
         agcName: 'AGC 2',
         indices: [],
+        xMinUm: -1.2,
+        xMaxUm: 1.3,
+        yMinUm: -1.4,
+        yMaxUm: 1.1,
+        maxAbsXUm: 1.3,
+        maxAbsYUm: 1.4,
         overallMaxDevUm: 1.4,
         specToleranceUm: 3.0,
         verdict: 'PASS',
@@ -562,6 +574,24 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['10'].data.stages[0].maxAbsYUm).toBe(1.1);
     expect(doc.sections['10'].data.stages[0].overallMaxDevUm).toBe(1.1);
     expect(doc.sections['10'].data.stages[0].verdict).toBe('PASS');
+
+    // §11 AGC / Scanner Calibration data grounding
+    expect(doc.sections['11'].code).toBe('11');
+    expect(doc.sections['11'].data.specToleranceUm).toBe(3.0);
+    expect(doc.sections['11'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['11'].data.agcs.length).toBe(2);
+    expect(doc.sections['11'].data.agcs[0].agcName).toBe('AGC 1');
+    expect(doc.sections['11'].data.agcs[0].xMinUm).toBe(-1.0);
+    expect(doc.sections['11'].data.agcs[0].xMaxUm).toBe(1.1);
+    expect(doc.sections['11'].data.agcs[0].yMinUm).toBe(-0.9);
+    expect(doc.sections['11'].data.agcs[0].yMaxUm).toBe(1.2);
+    expect(doc.sections['11'].data.agcs[0].maxAbsXUm).toBe(1.1);
+    expect(doc.sections['11'].data.agcs[0].maxAbsYUm).toBe(1.2);
+    expect(doc.sections['11'].data.agcs[0].overallMaxDevUm).toBe(1.2);
+    expect(doc.sections['11'].data.agcs[0].verdict).toBe('PASS');
+    expect(doc.sections['11'].data.agcs[1].agcName).toBe('AGC 2');
+    expect(doc.sections['11'].data.agcs[1].overallMaxDevUm).toBe(1.4);
+    expect(doc.sections['11'].data.agcs[1].verdict).toBe('PASS');
   });
 
   it('should enforce continuous §01 through §18 numbering with §18 as Buyoff & Sign-off without gaps', () => {
