@@ -1901,7 +1901,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       11 AGC / SCANNER CALIBRATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                      Galvo Scanner &amp; Multi-Index Automatic Grid Calibration Verification
+                      Galvo Scanner &amp; Automatic Grid Calibration Positional Verification
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1917,8 +1917,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-1.5 font-semibold">AGC IDENTIFIER</th>
                         <th className="py-1.5 font-semibold">X DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 font-semibold">Y DEVIATION RANGE [MEASURED]</th>
-                        <th className="py-1.5 font-semibold">MAX ABS DEV [DERIVED]</th>
-                        <th className="py-1.5 font-semibold">SPEC LIMIT</th>
+                        <th className="py-1.5 font-semibold">SPECIFICATION LIMIT</th>
                         <th className="py-1.5 text-right font-semibold">VERDICT</th>
                       </tr>
                     </thead>
@@ -1936,9 +1935,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               ? `${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)} to ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)} µm`
                               : '—'}
                           </td>
-                          <td className="py-2.5 font-bold text-slate-900">
-                            {agc.overallMaxDevUm !== undefined ? `${agc.overallMaxDevUm.toFixed(2)} µm` : (agc.maxAbsXUm !== undefined && agc.maxAbsYUm !== undefined ? `${Math.max(agc.maxAbsXUm, agc.maxAbsYUm).toFixed(2)} µm` : '—')}
-                          </td>
                           <td className="py-2.5 font-medium text-cyan-900">
                             |Δ| ≤ {agc.specToleranceUm ? agc.specToleranceUm.toFixed(1) : (sections['11'].data.specToleranceUm?.toFixed(1) || '3.0')} µm
                           </td>
@@ -1948,39 +1944,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </tbody>
                   </table>
 
-                  {/* Multi-Index Checkpoint Summary if available */}
-                  {sections['11'].data.agcs.some(a => a.indices && a.indices.some(i => i.xUm !== null && i.xUm !== undefined)) && (
-                    <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                      <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider font-sans">
-                        Multi-Index Grid Checkpoints (ΔX, ΔY µm)
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {sections['11'].data.agcs.map(agc => {
-                          const validIndices = agc.indices?.filter(i => i.xUm !== null && i.xUm !== undefined && i.yUm !== null && i.yUm !== undefined) || [];
-                          if (validIndices.length === 0) return null;
-                          return (
-                            <div key={`indices-${agc.agcId}`} className="p-2 rounded-lg bg-white border border-slate-200 space-y-1">
-                              <div className="flex items-center justify-between text-[10px] font-sans">
-                                <span className="font-bold text-slate-800">{agc.agcName} Grid Readings</span>
-                                <span className="font-mono text-[9px] text-slate-400">{validIndices.length} points</span>
-                              </div>
-                              <div className="grid grid-cols-6 gap-1 text-center font-mono text-[8.5px]">
-                                {validIndices.map(idx => (
-                                  <div key={idx.indexNum} className="p-1 rounded bg-slate-50 border border-slate-100">
-                                    <div className="font-bold text-slate-500 text-[8px]">#{idx.indexNum}</div>
-                                    <div className="text-slate-800">{idx.xUm !== null && idx.xUm !== undefined ? (idx.xUm > 0 ? `+${idx.xUm.toFixed(1)}` : idx.xUm.toFixed(1)) : '—'}</div>
-                                    <div className="text-slate-600">{idx.yUm !== null && idx.yUm !== undefined ? (idx.yUm > 0 ? `+${idx.yUm.toFixed(1)}` : idx.yUm.toFixed(1)) : '—'}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* AGC Inline Calibration Evidence */}
+                  {/* AGC Inline Calibration Records */}
                   {sections['11'].data.agcs.some(a => a.evidenceImage) && (
                     <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
                       {sections['11'].data.agcs.filter(a => a.evidenceImage).map(agc => (
@@ -1992,8 +1956,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
                           />
                           <div className="text-[10px] min-w-0">
-                            <div className="font-bold text-slate-800 truncate">{agc.agcName} Evidence</div>
-                            <div className="text-slate-500 font-mono text-[9px] truncate">{agc.engineerNote || 'AGC calibration burn artifact'}</div>
+                            <div className="font-bold text-slate-800 truncate">{agc.agcName} Record</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">{agc.engineerNote || 'Calibration record artifact'}</div>
                           </div>
                         </div>
                       ))}
