@@ -148,4 +148,33 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
     expect(finalized.stage01_laserHours).toEqual(session.stage01_laserHours);
     expect(finalized.machineId).toBe(sampleMachine.id);
   });
+
+  it('supports Welcome quick-access completion, immediately excluding session from resume detection while keeping data safe', () => {
+    const session = createTestSession();
+    // Before quick completion: session is detected on Welcome screen as resumable
+    const beforeResumable = findLatestResumableMhcSession([session], [sampleMachine]);
+    expect(beforeResumable).not.toBeNull();
+    expect(beforeResumable?.session.id).toBe(session.id);
+
+    // User executes quick-access completion from Welcome banner
+    const quickCompleted = advanceAutopilotActivity(
+      session,
+      '09',
+      'COMPLETED',
+      'Completed via Welcome Quick-Access'
+    );
+
+    expect(quickCompleted.completionStatus).toBe('COMPLETED');
+    expect(quickCompleted.autopilotProgress?.activityStatuses['09']).toBe('COMPLETED');
+    expect(quickCompleted.autopilotProgress?.activityNotes?.['09']).toBe('Completed via Welcome Quick-Access');
+
+    // Resumable detection immediately returns null (session removed from continue last activity)
+    const afterResumable = findLatestResumableMhcSession([quickCompleted], [sampleMachine]);
+    expect(afterResumable).toBeNull();
+
+    // Data safety: stage records, machine info, and customer info remain identical
+    expect(quickCompleted.machineId).toBe(sampleMachine.id);
+    expect(quickCompleted.customerId).toBe(sampleMachine.customerId);
+    expect(quickCompleted.stage01_laserHours).toEqual(session.stage01_laserHours);
+  });
 });

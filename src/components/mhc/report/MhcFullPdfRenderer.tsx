@@ -263,12 +263,23 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       try {
         const pdfBlob = pdf.output('blob');
         blobUrl = URL.createObjectURL(pdfBlob);
+        
+        // 1. Open exactly ONE new tab for report review
         window.open(blobUrl, '_blank');
-      } catch (openErr) {
-        console.warn('[PDF Export] Could not auto-open in new window:', openErr);
+
+        // 2. Trigger programmatic file download without opening a second window/tab
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.href = blobUrl;
+        downloadAnchor.download = fileName;
+        downloadAnchor.style.display = 'none';
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+      } catch (exportErr) {
+        console.warn('[PDF Export] Issue during blob/download dispatch, falling back to pdf.save:', exportErr);
+        pdf.save(fileName);
       }
 
-      pdf.save(fileName);
       setDownloadProgress('');
 
       if (onPdfGenerated) {

@@ -206,6 +206,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   const [generatedPdfBlobUrl, setGeneratedPdfBlobUrl] = useState<string | null>(null);
   const [isConfirmingCompletion, setIsConfirmingCompletion] = useState<boolean>(false);
 
+  // Welcome banner quick-access completion state
+  const [confirmingWelcomeComplete, setConfirmingWelcomeComplete] = useState<boolean>(false);
+
+  // Scroll locking for Review / Completion Modal
+  useEffect(() => {
+    if (showReviewCompletionModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showReviewCompletionModal]);
+
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
@@ -245,6 +259,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     setShowReviewCompletionModal(false);
     setIsConfirmingCompletion(false);
     showNotification("MHC Session successfully completed & signed off ✓");
+  };
+
+  // Handler: Welcome Quick-Access Complete MHC
+  const handleConfirmWelcomeComplete = () => {
+    if (!latestResumableSession) return;
+    const finalizedSession = advanceAutopilotActivity(
+      latestResumableSession,
+      '09',
+      'COMPLETED',
+      'Completed via Welcome Quick-Access'
+    );
+    onUpdateSession(finalizedSession);
+    setConfirmingWelcomeComplete(false);
+    showNotification("MHC Session successfully completed & archived ✓");
   };
 
   // Sync state if selectedMachine changes externally
@@ -674,7 +702,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   }, [progress.currentActivityCode]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md flex items-start justify-center">
+    <div className={`fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md flex items-start justify-center ${
+      showReviewCompletionModal ? 'overflow-hidden' : 'overflow-y-auto'
+    }`}>
       
       {/* Toast Notification */}
       {notification && (
@@ -992,15 +1022,59 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         </div>
                       </div>
 
-                      <button
-                        id="mhc-autopilot-continue-last-btn"
-                        onClick={handleContinueLatestActivity}
-                        className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer shrink-0"
-                      >
-                        <Play className="w-4 h-4 fill-slate-950" />
-                        <span>Continue Last Activity</span>
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <button
+                          id="mhc-autopilot-continue-last-btn"
+                          onClick={handleContinueLatestActivity}
+                          className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+                        >
+                          <Play className="w-4 h-4 fill-slate-950" />
+                          <span>Continue Last Activity</span>
+                        </button>
+
+                        <button
+                          id="mhc-autopilot-welcome-complete-btn"
+                          onClick={() => setConfirmingWelcomeComplete(true)}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>COMPLETE MHC</span>
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Inline Explicit Confirmation for Welcome Complete */}
+                    {confirmingWelcomeComplete && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2.5"
+                      >
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                          <ShieldCheck className="w-4 h-4 shrink-0" />
+                          <span>Confirm Completion for Session {latestResumableSession.id}?</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          This will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive it from active resume detection. All inspection records, logs, and historical data remain safely preserved.
+                        </p>
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <button
+                            id="btn-welcome-confirm-complete-yes"
+                            onClick={handleConfirmWelcomeComplete}
+                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-950/50 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Yes, Complete MHC</span>
+                          </button>
+                          <button
+                            onClick={() => setConfirmingWelcomeComplete(false)}
+                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 )}
 
@@ -1974,7 +2048,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         {showReviewCompletionModal && (
           <div
             id="modal-mhc-review-completion-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto"
           >
             <motion.div
               id="modal-mhc-review-completion-dialog"

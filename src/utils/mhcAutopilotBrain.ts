@@ -958,10 +958,14 @@ export function advanceAutopilotActivity(
     return false;
   });
 
-  const isAllComplete = isAllResolved &&
+  const isDirectFinalization = targetCode === '09' && newStatus === 'COMPLETED';
+
+  const isAllComplete = isDirectFinalization || (
+    isAllResolved &&
     activityStatuses['07'] === 'COMPLETED' &&
     activityStatuses['08'] === 'COMPLETED' &&
-    activityStatuses['09'] === 'COMPLETED';
+    activityStatuses['09'] === 'COMPLETED'
+  );
 
   return {
     ...cleanSession,
