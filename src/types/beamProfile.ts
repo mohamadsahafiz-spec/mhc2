@@ -32,7 +32,7 @@ export interface BeamCheckpointSpec {
 export const CHECKPOINT_SPECS: BeamCheckpointSpec[] = [
   // Laser 1
   { id: '6A', laser: 'Laser 1', code: '6A', stageLabel: '6A — Laser Source', specText: '3.5mm ±10% (3.15–3.85mm)', minMm: 3.15, maxMm: 3.85 },
-  { id: '6B', laser: 'Laser 1', code: '6B', stageLabel: '6B — After Top Hat', specText: '4.2mm ±5% (3.99–4.41mm)', minMm: 3.99, maxMm: 4.41 },
+  { id: '6B', laser: 'Laser 1', code: '6B', stageLabel: '6B — Flat Top', specText: '4.2mm ±5% (3.99–4.41mm)', minMm: 3.99, maxMm: 4.41 },
   { id: '6C-2.2mm', laser: 'Laser 1', code: '6C', stageLabel: '6C — Mask 2.2mm', maskSize: '2.2mm', specText: '≥2.2mm', minMm: 2.2 },
   { id: '6C-2.0mm', laser: 'Laser 1', code: '6C', stageLabel: '6C — Mask 2.0mm', maskSize: '2.0mm', specText: '≥2.0mm', minMm: 2.0 },
   { id: '6C-1.8mm', laser: 'Laser 1', code: '6C', stageLabel: '6C — Mask 1.8mm', maskSize: '1.8mm', specText: '≥1.8mm', minMm: 1.8 },
@@ -42,7 +42,7 @@ export const CHECKPOINT_SPECS: BeamCheckpointSpec[] = [
 
   // Laser 2
   { id: '7A', laser: 'Laser 2', code: '7A', stageLabel: '7A — Laser Source', specText: '3.5mm ±10% (3.15–3.85mm)', minMm: 3.15, maxMm: 3.85 },
-  { id: '7B', laser: 'Laser 2', code: '7B', stageLabel: '7B — After Top Hat', specText: '4.2mm ±5% (3.99–4.41mm)', minMm: 3.99, maxMm: 4.41 },
+  { id: '7B', laser: 'Laser 2', code: '7B', stageLabel: '7B — Flat Top', specText: '4.2mm ±5% (3.99–4.41mm)', minMm: 3.99, maxMm: 4.41 },
   { id: '7C-2.2mm', laser: 'Laser 2', code: '7C', stageLabel: '7C — Mask 2.2mm', maskSize: '2.2mm', specText: '≥2.2mm', minMm: 2.2 },
   { id: '7C-2.0mm', laser: 'Laser 2', code: '7C', stageLabel: '7C — Mask 2.0mm', maskSize: '2.0mm', specText: '≥2.0mm', minMm: 2.0 },
   { id: '7C-1.8mm', laser: 'Laser 2', code: '7C', stageLabel: '7C — Mask 1.8mm', maskSize: '1.8mm', specText: '≥1.8mm', minMm: 1.8 },

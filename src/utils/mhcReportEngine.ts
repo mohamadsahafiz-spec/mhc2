@@ -48,6 +48,45 @@ import { BeamProfileEngine } from './beamProfileEngine';
  * 4. Comparison is supported for Laser Power and Beam Profile using previousSession if available.
  * 5. Future renderers (PDF, Compact PDF, PPTX) can consume this single model independently.
  */
+function resolveLaserHeadIdentifier(
+  rawIdentifier: string | undefined,
+  idx: number,
+  machineInfo?: { machineNumber?: string; machineModel?: string; machineSerialNumber?: string }
+): string {
+  const defaultLabel = `Laser Head ${idx + 1}`;
+  if (!rawIdentifier || typeof rawIdentifier !== 'string' || !rawIdentifier.trim()) {
+    return defaultLabel;
+  }
+
+  const trimmed = rawIdentifier.trim();
+
+  // If rawIdentifier is identical to machine identity (e.g. machineNumber like "WLVIA#3", machineModel, serialNumber)
+  if (machineInfo) {
+    if (machineInfo.machineNumber && trimmed.toLowerCase() === machineInfo.machineNumber.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+    if (machineInfo.machineModel && trimmed.toLowerCase() === machineInfo.machineModel.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+    if (machineInfo.machineSerialNumber && trimmed.toLowerCase() === machineInfo.machineSerialNumber.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+  }
+
+  // Normalize forms like "Laser Head #1", "Laser 1", "Head 1", "LH 1", "LH-1" to "Laser Head 1"
+  const headNumMatch = trimmed.match(/^(?:laser\s*head|laser|head|lh)\s*#?[-_\s]*(\d+)$/i);
+  if (headNumMatch) {
+    return `Laser Head ${headNumMatch[1]}`;
+  }
+
+  // If it doesn't contain any head/laser designation and is just a model/machine tag or generic string
+  if (!/(?:head|laser|lh|\bL\d\b)/i.test(trimmed)) {
+    return defaultLabel;
+  }
+
+  return trimmed;
+}
+
 export function buildMhcReportDocument(
   rawSession: MHCSession,
   previousSessionRaw?: MHCSession,
@@ -145,9 +184,19 @@ export function buildMhcReportDocument(
       aiRecommendation = `Exceeded rated operating lifespan (${currentLaserHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`;
     }
 
+    const laserIdentifier = resolveLaserHeadIdentifier(
+      item.laserIdentifier || (item as any).name || (item as any).model,
+      idx,
+      {
+        machineNumber: session.machineName || coverData.machineNumber,
+        machineModel: session.machineModel || coverData.machineModel,
+        machineSerialNumber: session.machineSerialNumber || coverData.machineSerialNumber
+      }
+    );
+
     return {
       laserId: item.laserId,
-      laserIdentifier: item.laserIdentifier || `Laser Head ${idx + 1}`,
+      laserIdentifier,
       serialNumber,
       recordedLaserHour: item.recordedLaserHour,
       verifiedHour: item.verifiedHour,
@@ -415,7 +464,7 @@ export function buildMhcReportDocument(
       if (spec.id === '6A' || spec.id === '7A') {
         friendlyStageLabel = 'Laser Source';
       } else if (spec.id === '6B' || spec.id === '7B') {
-        friendlyStageLabel = 'After Top Hat';
+        friendlyStageLabel = 'Flat Top';
       } else if (spec.maskSize) {
         friendlyStageLabel = `Mask ${spec.maskSize}`;
       }

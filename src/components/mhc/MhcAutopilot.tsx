@@ -285,11 +285,14 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   // Handler: Review Report action from modal
   const handleModalReviewReport = () => {
     if (generatedPdfBlobUrl) {
-      try {
-        window.open(generatedPdfBlobUrl, '_blank');
-      } catch (err) {
-        console.warn('Could not re-open PDF blob URL:', err);
-      }
+      const urlToOpen = generatedPdfBlobUrl;
+      setTimeout(() => {
+        try {
+          window.open(urlToOpen, '_blank');
+        } catch (err) {
+          console.warn('Could not re-open PDF blob URL:', err);
+        }
+      }, 20);
     }
     // Dismiss the modal so user can review the on-screen report or new tab without completing
     setShowReviewCompletionModal(false);

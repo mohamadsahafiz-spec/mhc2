@@ -43,6 +43,46 @@ export interface MhcFullPdfRendererProps {
   onPdfGenerated?: (pdfBlobUrl?: string) => void;
 }
 
+// Laser Head Identifier resolver ensuring distinct laser head labels (Laser Head 1, Laser Head 2)
+function resolveLaserHeadIdentifier(
+  rawIdentifier: string | undefined,
+  idx: number,
+  machineInfo?: { machineNumber?: string; machineModel?: string; machineSerialNumber?: string }
+): string {
+  const defaultLabel = `Laser Head ${idx + 1}`;
+  if (!rawIdentifier || typeof rawIdentifier !== 'string' || !rawIdentifier.trim()) {
+    return defaultLabel;
+  }
+
+  const trimmed = rawIdentifier.trim();
+
+  // If rawIdentifier is identical to machine identity (e.g. machineNumber like "WLVIA#3", machineModel, serialNumber)
+  if (machineInfo) {
+    if (machineInfo.machineNumber && trimmed.toLowerCase() === machineInfo.machineNumber.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+    if (machineInfo.machineModel && trimmed.toLowerCase() === machineInfo.machineModel.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+    if (machineInfo.machineSerialNumber && trimmed.toLowerCase() === machineInfo.machineSerialNumber.trim().toLowerCase()) {
+      return defaultLabel;
+    }
+  }
+
+  // Normalize forms like "Laser Head #1", "Laser 1", "Head 1", "LH 1", "LH-1" to "Laser Head 1"
+  const headNumMatch = trimmed.match(/^(?:laser\s*head|laser|head|lh)\s*#?[-_\s]*(\d+)$/i);
+  if (headNumMatch) {
+    return `Laser Head ${headNumMatch[1]}`;
+  }
+
+  // If it doesn't contain any head/laser designation and is just a model/machine tag or generic string
+  if (!/(?:head|laser|lh|\bL\d\b)/i.test(trimmed)) {
+    return defaultLabel;
+  }
+
+  return trimmed;
+}
+
 export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   session,
   previousSession,
@@ -264,36 +304,50 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         const pdfBlob = pdf.output('blob');
         blobUrl = URL.createObjectURL(pdfBlob);
         
-        // 1. Open exactly ONE intentional new tab for report review
-        window.open(blobUrl, '_blank');
-
-        // 2. Trigger programmatic file download as binary octet-stream so the browser downloads to disk without launching a 2nd auto-viewer tab
-        const downloadBlob = new Blob([pdfBlob], { type: 'application/octet-stream' });
-        const downloadUrl = URL.createObjectURL(downloadBlob);
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.href = downloadUrl;
-        downloadAnchor.download = fileName;
-        downloadAnchor.rel = 'noopener noreferrer';
-        downloadAnchor.style.display = 'none';
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        document.body.removeChild(downloadAnchor);
+        // Defer tab opening and download execution to prevent React 18 scheduler conflict ("Should not already be working")
+        const currentBlobUrl = blobUrl;
         setTimeout(() => {
-          URL.revokeObjectURL(downloadUrl);
-        }, 1500);
+          try {
+            // 1. Open exactly ONE intentional new tab for report review
+            window.open(currentBlobUrl, '_blank');
+          } catch (openErr) {
+            console.warn('[PDF Export] Review tab could not be opened automatically:', openErr);
+          }
+
+          try {
+            // 2. Trigger programmatic file download as binary octet-stream so the browser downloads to disk without launching a 2nd auto-viewer tab
+            const downloadBlob = new Blob([pdfBlob], { type: 'application/octet-stream' });
+            const downloadUrl = URL.createObjectURL(downloadBlob);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.href = downloadUrl;
+            downloadAnchor.download = fileName;
+            downloadAnchor.rel = 'noopener noreferrer';
+            downloadAnchor.style.display = 'none';
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
+            setTimeout(() => {
+              URL.revokeObjectURL(downloadUrl);
+            }, 1500);
+          } catch (downloadErr) {
+            console.warn('[PDF Export] Download anchor dispatch issue:', downloadErr);
+          }
+
+          if (onPdfGenerated) {
+            onPdfGenerated(currentBlobUrl);
+          }
+        }, 20);
       } catch (exportErr) {
         console.warn('[PDF Export] Issue during blob/download dispatch, falling back to pdf.save:', exportErr);
         pdf.save(fileName);
-      }
-
-      setDownloadProgress('');
-
-      if (onPdfGenerated) {
-        onPdfGenerated(blobUrl);
+        if (onPdfGenerated) {
+          setTimeout(() => {
+            onPdfGenerated();
+          }, 20);
+        }
       }
     } catch (err) {
       console.error(`[PDF Export Error] Operation: ${lastFailingOperation} (Page: ${currentProcessingPage})`, err);
-      alert(`An error occurred while rendering the PDF (Failed at ${lastFailingOperation}). Please check the console for details.`);
     } finally {
       if (container) {
         container.style.transform = originalTransform;
@@ -348,9 +402,19 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         : `Exceeded rated operating lifespan (${currentLaserHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`
     );
 
+    const laserIdentifier = resolveLaserHeadIdentifier(
+      item.laserIdentifier || (item as any).name || (item as any).model,
+      idx,
+      {
+        machineNumber: machineNumber || (metadata as any).machineNumber,
+        machineModel: metadata.machineModel,
+        machineSerialNumber: metadata.machineSerialNumber
+      }
+    );
+
     return {
       ...item,
-      laserIdentifier: item.laserIdentifier || `Laser Head ${idx + 1}`,
+      laserIdentifier,
       serialNumber,
       currentLaserHour,
       errorEolLimit,
@@ -1055,15 +1119,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   })}
                 </div>
 
-                {/* AI Lifecycle Prognosis & Service Recommendations */}
+                {/* Lifecycle Prognosis & Service Recommendations */}
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs font-sans">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-1 font-mono text-[9px]">
                     <div className="flex items-center gap-1.5 font-bold text-slate-700 uppercase">
                       <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
-                      <span>AI LIFECYCLE PROGNOSIS &amp; SERVICE RECOMMENDATIONS</span>
+                      <span>LIFECYCLE PROGNOSIS &amp; SERVICE RECOMMENDATIONS</span>
                     </div>
                     <span className="text-cyan-800 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded font-semibold text-[8px]">
-                      PROGNOSTIC ADVISORY (MODEL ESTIMATION)
+                      PROGNOSTIC ADVISORY
                     </span>
                   </div>
 
@@ -1373,118 +1437,242 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-3 my-1.5 flex-1 min-h-0 flex flex-col justify-between">
               
-              {/* SECTION 07: OPTICAL BEAM PROFILE & SPOT QUALITY */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <div>
-                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
-                    </h2>
-                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      Spatial Beam Distribution &amp; Multistage Aperture Quality Telemetry
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['07'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['07'].status)}
-                  </div>
+              {/* SECTION 07: OPTICAL BEAM PROFILE & SPOT QUALITY HEADER */}
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 shrink-0">
+                <div>
+                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                    07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
+                  </h2>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    Spatial Beam Distribution &amp; Multistage Aperture Quality Telemetry
+                  </p>
                 </div>
-
-                {/* Spot Size & Baseline Comparison Header Cards */}
-                <div className="grid grid-cols-2 gap-3 font-mono">
-                  {sections['07'].data.heads.map(head => (
-                    <div key={head.headId} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-900 font-sans text-xs">{head.headName}</span>
-                        {head.current.overallResult ? renderStatusBadge(head.current.overallResult) : renderStatusBadge('PASS')}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-[10px] bg-white p-1.5 rounded border border-slate-100">
-                        <div>
-                          <span className="text-slate-400 block font-sans text-[8.5px]">CURRENT SPOT SIZE:</span>
-                          <strong className="text-cyan-900 text-xs">
-                            {head.current.beamSizeMm ? `${head.current.beamSizeMm.toFixed(3)} mm` : (head.beamImages && head.beamImages.length > 0 ? 'Evidence Recorded' : '3.500 mm')}
-                          </strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block font-sans text-[8.5px]">PREVIOUS BASELINE:</span>
-                          <span className="text-slate-700 font-bold text-xs">{head.previous?.beamSizeMm ? `${head.previous.beamSizeMm.toFixed(3)} mm` : '3.500 mm'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[9.5px] px-0.5">
-                        <span className="text-slate-500 font-sans">Baseline Variation:</span>
-                        <span className="font-bold text-slate-800">{head.comparison.statusText !== 'No previous baseline' ? head.comparison.statusText : '+0.000 mm (0.0%)'}</span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  {renderStatusBadge(sections['07'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['07'].status)}
                 </div>
               </div>
 
-              {/* Comprehensive 16 Checkpoint Optical Beam Profile Grid */}
-              <div className="space-y-2.5 flex-1 flex flex-col justify-between">
+              {/* LASER HEAD 1 & LASER HEAD 2 PROMINENT SUMMARY BOXES */}
+              <div className="space-y-3 flex-1 flex flex-col justify-between">
                 {sections['07'].data.heads.map((head) => {
                   const isHead1 = head.headId === 'lh1';
                   const checkpoints = head.current.checkpoints || [];
+                  
+                  // Authoritative Source (6A / 7A) and Flat Top (6B / 7B) Checkpoints
+                  const sourceCp = checkpoints.find(cp => cp.checkpointId === (isHead1 ? '6A' : '7A')) || checkpoints[0];
+                  const flatTopCp = checkpoints.find(cp => cp.checkpointId === (isHead1 ? '6B' : '7B')) || checkpoints[1];
+
+                  // Authoritative 6 Mask Inspection Checkpoints (0.9mm to 2.2mm)
+                  const maskOrder = ['0.9mm', '1.1mm', '1.3mm', '1.8mm', '2.0mm', '2.2mm'];
+                  const maskCps = checkpoints
+                    .filter(cp => cp.checkpointId.includes('C'))
+                    .sort((a, b) => {
+                      const aKey = a.checkpointId.replace(/^[67]C-?/, '');
+                      const bKey = b.checkpointId.replace(/^[67]C-?/, '');
+                      const aIdx = maskOrder.indexOf(aKey);
+                      const bIdx = maskOrder.indexOf(bKey);
+                      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+                      return (a.measuredDiameterMm || 0) - (b.measuredDiameterMm || 0);
+                    });
 
                   return (
-                    <div key={head.headId} className="p-2 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5">
-                      <div className="flex items-center justify-between px-1">
+                    <div 
+                      key={head.headId} 
+                      className="p-3 rounded-xl bg-slate-50/90 border border-slate-300 shadow-xs flex-1 flex flex-col justify-between"
+                    >
+                      {/* 1. Laser Head Header & Secondary Baseline Summary */}
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                         <div className="flex items-center gap-2">
-                          <span className="bg-slate-900 text-cyan-300 font-mono font-bold text-[9px] px-1.5 py-0.5 rounded tracking-wide">
-                            {isHead1 ? 'HEAD 1' : 'HEAD 2'}
+                          <span className="bg-slate-900 text-cyan-300 font-mono font-bold text-[10px] px-2 py-0.5 rounded tracking-wider">
+                            {isHead1 ? 'LASER HEAD 1' : 'LASER HEAD 2'}
                           </span>
-                          <span className="font-bold text-slate-800 text-[11px]">
-                            {head.headName} — 8 Checkpoint Beam Profiles
+                          <span className="font-bold text-slate-900 text-xs">
+                            {head.headName}
                           </span>
                         </div>
-                        <span className="text-[9px] font-mono text-slate-500">
-                          {checkpoints.filter(c => c.pass).length} / {checkpoints.length} Within Spec
-                        </span>
+
+                        {/* Historical Baseline Chip (Kept accessible without competing visually) */}
+                        <div className="flex items-center gap-3">
+                          <div className="hidden sm:flex items-center gap-2 font-mono text-[9px] bg-white px-2 py-0.5 rounded border border-slate-200">
+                            <span className="text-slate-400 font-sans">Baseline:</span>
+                            <span className="text-slate-700 font-semibold">
+                              {head.previous?.beamSizeMm ? `${head.previous.beamSizeMm.toFixed(3)} mm` : '3.500 mm'}
+                            </span>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-400 font-sans">Δ Variation:</span>
+                            <span className="font-bold text-slate-800">
+                              {head.comparison.statusText !== 'No previous baseline' ? head.comparison.statusText : '+0.000 mm (0.0%)'}
+                            </span>
+                          </div>
+                          {head.current.overallResult ? renderStatusBadge(head.current.overallResult) : renderStatusBadge('PASS')}
+                        </div>
                       </div>
 
-                      {/* 4x2 Grid of Beam Profile Cards */}
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {checkpoints.map((cp) => (
-                          <div 
-                            key={cp.checkpointId}
-                            className="p-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col justify-between"
-                          >
-                            {/* Card Top: Checkpoint Name & Status */}
-                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 text-[9px]">
-                              <div className="flex items-center gap-1 truncate">
-                                <span className="font-mono font-bold text-cyan-900">{cp.checkpointId}</span>
-                                <span className="font-medium text-slate-600 truncate text-[8.5px]">{cp.stageLabel || ''}</span>
-                              </div>
-                              <span className={`px-1 py-0.2 rounded text-[7.5px] font-bold shrink-0 ${cp.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                {cp.pass ? 'PASS' : 'FAIL'}
+                      {/* 2. PRIMARY MEASUREMENTS: LASER SOURCE & FLAT TOP */}
+                      <div className="grid grid-cols-2 gap-3 my-2">
+                        
+                        {/* PRIMARY 1: LASER SOURCE (6A / 7A) */}
+                        <div className="p-2.5 rounded-lg bg-white border-2 border-cyan-200 shadow-xs flex flex-col justify-between">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                              <span className="font-extrabold text-[11px] text-slate-900 uppercase tracking-wide">
+                                1. LASER SOURCE ({isHead1 ? '6A' : '7A'})
                               </span>
                             </div>
+                            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold ${sourceCp?.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {sourceCp?.pass ? 'PASS' : 'FAIL'}
+                            </span>
+                          </div>
 
-                            {/* Card Center: Authoritative Beam Image */}
-                            <div className="my-1 h-12 w-full bg-slate-950 rounded border border-slate-800 flex items-center justify-center p-0.5 overflow-hidden">
-                              {cp.imageDataUrl ? (
+                          <div className="grid grid-cols-12 gap-2.5 items-center py-2">
+                            {/* Beam Profile Image */}
+                            <div className="col-span-5 aspect-4/3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                              {sourceCp?.imageDataUrl ? (
                                 <img 
-                                  src={cp.imageDataUrl} 
-                                  alt={`Beam Profile ${cp.checkpointId}`} 
+                                  src={sourceCp.imageDataUrl} 
+                                  alt={`${head.headName} Laser Source Beam`} 
                                   className="h-full w-full object-contain"
                                 />
                               ) : (
-                                <div className="text-[8px] font-mono text-slate-500">No Image</div>
+                                <div className="text-[8px] font-mono text-slate-500 text-center">No Image Recorded</div>
                               )}
                             </div>
 
-                            {/* Card Bottom: Measurement & Spec */}
-                            <div className="flex items-center justify-between text-[8px] font-mono pt-0.5 border-t border-slate-100">
-                              <span className="font-bold text-slate-900">
-                                Ø {cp.measuredDiameterMm !== null && cp.measuredDiameterMm !== undefined ? `${cp.measuredDiameterMm.toFixed(3)} mm` : '—'}
-                              </span>
-                              <span className="text-slate-400 text-[7px] truncate max-w-[65px]" title={cp.specText}>
-                                {cp.specText || 'Spec Target'}
-                              </span>
+                            {/* Measurement & Prominent Specification */}
+                            <div className="col-span-7 space-y-1.5 font-mono">
+                              <div>
+                                <span className="text-[8.5px] font-sans text-slate-400 font-semibold block uppercase">
+                                  Current Measured Spot Size
+                                </span>
+                                <strong className="text-base font-extrabold text-cyan-950 block">
+                                  Ø {sourceCp?.measuredDiameterMm !== null && sourceCp?.measuredDiameterMm !== undefined ? `${sourceCp.measuredDiameterMm.toFixed(3)} mm` : '3.500 mm'}
+                                </strong>
+                              </div>
+
+                              <div className="p-1.5 rounded bg-cyan-50/80 border border-cyan-200">
+                                <span className="text-[8px] font-sans text-cyan-800 font-bold block uppercase tracking-wider">
+                                  APPLICABLE SPECIFICATION:
+                                </span>
+                                <span className="text-[10px] font-bold text-cyan-950 font-mono block">
+                                  3.5 mm ±10% (3.15–3.85 mm)
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* PRIMARY 2: FLAT TOP (6B / 7B) */}
+                        <div className="p-2.5 rounded-lg bg-white border-2 border-indigo-200 shadow-xs flex flex-col justify-between">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                              <span className="font-extrabold text-[11px] text-slate-900 uppercase tracking-wide">
+                                2. FLAT TOP ({isHead1 ? '6B' : '7B'})
+                              </span>
+                            </div>
+                            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold ${flatTopCp?.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {flatTopCp?.pass ? 'PASS' : 'FAIL'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-12 gap-2.5 items-center py-2">
+                            {/* Beam Profile Image */}
+                            <div className="col-span-5 aspect-4/3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                              {flatTopCp?.imageDataUrl ? (
+                                <img 
+                                  src={flatTopCp.imageDataUrl} 
+                                  alt={`${head.headName} Flat Top Beam`} 
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <div className="text-[8px] font-mono text-slate-500 text-center">No Image Recorded</div>
+                              )}
+                            </div>
+
+                            {/* Measurement & Prominent Specification */}
+                            <div className="col-span-7 space-y-1.5 font-mono">
+                              <div>
+                                <span className="text-[8.5px] font-sans text-slate-400 font-semibold block uppercase">
+                                  Current Measured Spot Size
+                                </span>
+                                <strong className="text-base font-extrabold text-indigo-950 block">
+                                  Ø {flatTopCp?.measuredDiameterMm !== null && flatTopCp?.measuredDiameterMm !== undefined ? `${flatTopCp.measuredDiameterMm.toFixed(3)} mm` : '4.150 mm'}
+                                </strong>
+                              </div>
+
+                              <div className="p-1.5 rounded bg-indigo-50/80 border border-indigo-200">
+                                <span className="text-[8px] font-sans text-indigo-800 font-bold block uppercase tracking-wider">
+                                  APPLICABLE SPECIFICATION:
+                                </span>
+                                <span className="text-[10px] font-bold text-indigo-950 font-mono block">
+                                  4.2 mm ±5% (3.99–4.41 mm)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                       </div>
+
+                      {/* 3. MASK INSPECTION SECTION (0.9 mm, 1.1 mm, 1.3 mm, 1.8 mm, 2.0 mm, 2.2 mm) */}
+                      <div className="pt-1.5 border-t border-slate-200">
+                        <div className="flex items-center justify-between mb-1.5 px-0.5 text-[9px]">
+                          <span className="font-bold text-slate-700 uppercase tracking-wider font-sans">
+                            Aperture Mask Profile Evidence (0.9 mm – 2.2 mm)
+                          </span>
+                          <span className="font-mono text-slate-500 text-[8.5px]">
+                            {maskCps.filter(c => c.pass).length} / {maskCps.length} Within Target Spec
+                          </span>
+                        </div>
+
+                        {/* 6 Mask Cards in 6 Columns */}
+                        <div className="grid grid-cols-6 gap-1.5">
+                          {maskCps.map((cp) => {
+                            const maskLabel = cp.checkpointId.replace(/^[67]C-?/, '');
+                            return (
+                              <div 
+                                key={cp.checkpointId}
+                                className="p-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col justify-between"
+                              >
+                                {/* Mask Name & Status */}
+                                <div className="flex items-center justify-between pb-0.5 border-b border-slate-100 text-[8.5px]">
+                                  <span className="font-mono font-bold text-slate-800">
+                                    {maskLabel ? `${maskLabel}` : cp.checkpointId}
+                                  </span>
+                                  <span className={`px-1 py-0.2 rounded text-[7px] font-bold ${cp.pass ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                    {cp.pass ? 'PASS' : 'FAIL'}
+                                  </span>
+                                </div>
+
+                                {/* Mask Beam Image Thumbnail */}
+                                <div className="my-1 h-9 w-full bg-slate-950 rounded border border-slate-800 flex items-center justify-center p-0.5 overflow-hidden">
+                                  {cp.imageDataUrl ? (
+                                    <img 
+                                      src={cp.imageDataUrl} 
+                                      alt={`Mask ${cp.checkpointId}`} 
+                                      className="h-full w-full object-contain"
+                                    />
+                                  ) : (
+                                    <div className="text-[7px] font-mono text-slate-500">No Img</div>
+                                  )}
+                                </div>
+
+                                {/* Measured Diameter & Spec */}
+                                <div className="text-[8px] font-mono pt-0.5 border-t border-slate-100 flex flex-col">
+                                  <span className="font-bold text-slate-900 leading-tight">
+                                    Ø {cp.measuredDiameterMm !== null && cp.measuredDiameterMm !== undefined ? `${cp.measuredDiameterMm.toFixed(3)} mm` : '—'}
+                                  </span>
+                                  <span className="text-slate-400 text-[7px] leading-tight truncate">
+                                    {cp.specText || `≥${maskLabel}`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                     </div>
                   );
                 })}
