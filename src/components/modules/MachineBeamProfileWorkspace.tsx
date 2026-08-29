@@ -44,17 +44,6 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  if (!machine) {
-    return (
-      <div className={`p-8 rounded-2xl border text-center ${
-        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-      }`}>
-        <Eye className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
-        <p className="text-sm font-semibold">No machine selected for laser beam profile inspection.</p>
-      </div>
-    );
-  }
-
   const records = machine?.beamProfileRecords || [];
   const latestRecord = records[0] || null;
 
@@ -113,7 +102,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
       const pass = BeamProfileEngine.evalSpec(parsedNum, s.minMm, s.maxMm);
       draftReadings[s.id] = {
         checkpointId: s.id,
-        measuredDiameterMm: isNaN(parsedNum as number) ? null : parsedNum,
+        measuredDiameterMm: parsedNum !== null && !isNaN(parsedNum) ? parsedNum : null,
         imageDataUrl: entry?.imageDataUrl,
         pass
       };
@@ -124,7 +113,18 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
       engineerRemarks: formRemarks,
       readings: draftReadings as Record<CheckpointId, BeamCheckpointReading>
     });
-  }, [formDate, formRemarks, formReadings]);
+  }, [formReadings, formDate, formRemarks]);
+
+  if (!machine) {
+    return (
+      <div className={`p-8 rounded-2xl border text-center ${
+        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+      }`}>
+        <Eye className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
+        <p className="text-sm font-semibold">No machine selected for laser beam profile inspection.</p>
+      </div>
+    );
+  }
 
   // Save New Record
   const handleSaveRecord = () => {

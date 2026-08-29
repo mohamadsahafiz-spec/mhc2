@@ -67,11 +67,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   const [lineName, setLineName] = useState<string>(
     sections['01']?.data?.productionLine ||
     sections['01']?.data?.lineName ||
-    (session as any).productionLine ||
-    (session as any).productionLineName ||
-    (session as any).lineName ||
+    session.productionLineName ||
     sections['03']?.data?.productionLine ||
-    'Davinci'
+    '—'
   );
   const [inspectionDate, setInspectionDate] = useState<string>(
     session.completedDate || session.startDate || (session as any).inspectionDate || sections['01']?.data?.date || ''
@@ -483,7 +481,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 type="text"
                 value={lineName}
                 onChange={(e) => setLineName(e.target.value)}
-                placeholder="e.g. Davinci"
+                placeholder="e.g. Line 1"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
               />
             </div>
@@ -619,7 +617,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                 <div>
                   <span className="text-[10px] text-slate-500 font-mono block">ZONE</span>
-                  <strong className="text-slate-900 font-bold text-sm">{sections['01']?.data?.zone || sections['03']?.data?.zone || 'B | Front of Line'}</strong>
+                  <strong className="text-slate-900 font-bold text-sm">{sections['01']?.data?.zone || sections['03']?.data?.zone || session.zone || '—'}</strong>
                 </div>
 
                 <div>
@@ -635,11 +633,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 <div>
                   <span className="text-[10px] text-slate-500 font-mono block">SERIAL NUMBER</span>
                   <strong className="text-slate-800 font-bold font-mono text-sm">{sections['01'].data.machineSerialNumber || '—'}</strong>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-slate-500 font-mono block">ASSESSMENT CLASSIFICATION</span>
-                  <strong className="text-slate-700 font-mono text-xs">Laser Processing System (MHC Full)</strong>
                 </div>
 
                 <div className="col-span-2 pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-4 font-mono text-xs">

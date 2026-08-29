@@ -631,4 +631,47 @@ describe('mhcReportEngine', () => {
     const idx18 = indexCodes.indexOf('18');
     expect(idx18).toBe(idx17 + 1);
   });
+
+  it('should authoritative carry typed session.productionLineName into §01 Cover and §03 Machine Info', () => {
+    const session = createDummySession('SESS-PROD-LINE-01');
+    session.productionLineName = 'Cleanroom Line A';
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['01'].data.productionLine).toBe('Cleanroom Line A');
+    expect(doc.sections['01'].data.lineName).toBe('Cleanroom Line A');
+    expect(doc.sections['03'].data.productionLine).toBe('Cleanroom Line A');
+  });
+
+  it('should render neutral "—" when Production Line is unassigned without inventing "Davinci"', () => {
+    const session = createDummySession('SESS-UNASSIGNED-LINE');
+    session.productionLineName = '';
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['01'].data.productionLine).toBe('—');
+    expect(doc.sections['03'].data.productionLine).toBe('—');
+    expect(doc.sections['01'].data.productionLine).not.toBe('Davinci');
+  });
+
+  it('should authoritative carry typed session.zone into §01 Cover and §03 Machine Info', () => {
+    const session = createDummySession('SESS-ZONE-01');
+    session.zone = 'Zone C | Backend Processing';
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['01'].data.zone).toBe('Zone C | Backend Processing');
+    expect(doc.sections['03'].data.zone).toBe('Zone C | Backend Processing');
+  });
+
+  it('should render neutral "—" when Zone is unassigned without hardcoded "B | Front of Line"', () => {
+    const session = createDummySession('SESS-UNASSIGNED-ZONE');
+    session.zone = '';
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['01'].data.zone).toBe('—');
+    expect(doc.sections['03'].data.zone).toBe('—');
+    expect(doc.sections['01'].data.zone).not.toBe('B | Front of Line');
+  });
 });

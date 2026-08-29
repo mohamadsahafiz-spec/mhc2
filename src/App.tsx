@@ -49,74 +49,66 @@ function AppLayout() {
   const isDark = effectiveTheme === 'dark';
 
   // Auth & Workspace Mode State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('MHC_MODE');
-
-  // Operational State
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [lines, setLines] = useState<ProductionLine[]>([]);
-  const [machines, setMachines] = useState<Machine[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [schedule, setSchedule] = useState<ExecutionScheduleItem[]>([]);
-  const [mhcRecords, setMhcRecords] = useState<MHCRecord[]>([]);
-  const [tasks, setTasks] = useState<FieldEngineerTask[]>([]);
-  const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [investigations, setInvestigations] = useState<QualityInvestigation[]>([]);
-  const [baselines, setBaselines] = useState<BaselineCheck[]>([]);
-  const [profile, setProfile] = useState<EngineerProfile>(StorageService.getProfile());
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [users, setUsers] = useState<SystemUser[]>([]);
-  const [selectedMachineId, setSelectedMachineId] = useState<string>('');
-  const [activeUser, setActiveUser] = useState<SystemUser>({
-    id: 'usr-8801',
-    employeeId: 'EMP-EO-8801',
-    fullName: 'Sahafiz',
-    email: 'sahafiz@eotechnics.com',
-    phone: '+60 12-882 1042',
-    company: 'EO Technics',
-    department: 'Service Operations',
-    role: 'Field Service Engineer',
-    status: 'Online',
-    lastLogin: 'Active now',
-    timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
-    language: 'English (US)',
-    accountStatus: 'Active',
-    bio: 'Field Service Engineer certified for precision laser systems and cleanroom diagnostics.'
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const authSession = StorageService.getAuth();
+    return Boolean(authSession && authSession.isAuthenticated);
+  });
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(() => {
+    const authSession = StorageService.getAuth();
+    return authSession?.workspaceMode || StorageService.getWorkspaceMode() || 'MHC_MODE';
   });
 
-  // Load state from StorageService on mount
-  useEffect(() => {
-    // Check Auth Session
-    const authSession = StorageService.getAuth();
-
-    if (authSession && authSession.isAuthenticated) {
-      setIsAuthenticated(true);
-      const storedMode = authSession.workspaceMode || StorageService.getWorkspaceMode() || 'MHC_MODE';
-      setWorkspaceMode(storedMode);
-    } else {
-      setIsAuthenticated(false);
-    }
-
+  // Operational State initialized synchronously from StorageService
+  const [customers, setCustomers] = useState<Customer[]>(() => {
     const initialCusts = StorageService.getCustomers();
     const initialMachines = StorageService.getMachines();
-    const reconciled = StorageService.reconcileCustomerIdentities(initialMachines, initialCusts);
+    return StorageService.reconcileCustomerIdentities(initialMachines, initialCusts).customers;
+  });
+  const [plants, setPlants] = useState<Plant[]>(() => StorageService.getPlants());
+  const [lines, setLines] = useState<ProductionLine[]>(() => StorageService.getLines());
+  const [machines, setMachines] = useState<Machine[]>(() => {
+    const initialCusts = StorageService.getCustomers();
+    const initialMachines = StorageService.getMachines();
+    return StorageService.reconcileCustomerIdentities(initialMachines, initialCusts).machines;
+  });
+  const [contracts, setContracts] = useState<Contract[]>(() => StorageService.getContracts());
+  const [schedule, setSchedule] = useState<ExecutionScheduleItem[]>(() => StorageService.getSchedule());
+  const [mhcRecords, setMhcRecords] = useState<MHCRecord[]>(() => StorageService.getMhcRecords());
+  const [tasks, setTasks] = useState<FieldEngineerTask[]>(() => StorageService.getTasks());
+  const [alerts, setAlerts] = useState<AlertItem[]>(() => StorageService.getAlerts());
+  const [investigations, setInvestigations] = useState<QualityInvestigation[]>(() => StorageService.getInvestigations());
+  const [baselines, setBaselines] = useState<BaselineCheck[]>(() => StorageService.getBaselines());
+  const [profile, setProfile] = useState<EngineerProfile>(() => StorageService.getProfile());
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => StorageService.getNotifications());
+  const [users, setUsers] = useState<SystemUser[]>(() => StorageService.getUsers());
+  const [selectedMachineId, setSelectedMachineId] = useState<string>(() => {
+    const initMachines = StorageService.getMachines();
+    return initMachines.length > 0 ? initMachines[0].id : '';
+  });
+  const [activeUser, setActiveUser] = useState<SystemUser>(() => {
+    const loadedUsers = StorageService.getUsers();
+    if (loadedUsers.length > 0) return loadedUsers[0];
+    return {
+      id: 'usr-8801',
+      employeeId: 'EMP-EO-8801',
+      fullName: 'Sahafiz',
+      email: 'sahafiz@eotechnics.com',
+      phone: '+60 12-882 1042',
+      company: 'EO Technics',
+      department: 'Service Operations',
+      role: 'Field Service Engineer',
+      status: 'Online',
+      lastLogin: 'Active now',
+      timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
+      language: 'English (US)',
+      accountStatus: 'Active',
+      bio: 'Field Service Engineer certified for precision laser systems and cleanroom diagnostics.'
+    };
+  });
 
-    setCustomers(reconciled.customers);
-    if (reconciled.customers.length !== initialCusts.length) {
-      StorageService.saveCustomers(reconciled.customers);
-    }
-
-    setMachines(reconciled.machines);
-    if (JSON.stringify(reconciled.machines) !== JSON.stringify(initialMachines)) {
-      StorageService.saveMachines(reconciled.machines);
-    }
-
-    if (reconciled.machines.length > 0 && !reconciled.machines.some(m => m.id === selectedMachineId)) {
-      setSelectedMachineId(reconciled.machines[0].id);
-    }
-
-    // Preload IDB images and initialize app state
+  // Load state from StorageService & IDB on mount
+  useEffect(() => {
+    // Preload IDB images and refresh synced machine/customer state
     ImageStore.preloadAllImagesFromIDB().then(() => {
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();
@@ -124,25 +116,9 @@ function AppLayout() {
       setMachines(rec.machines);
       setCustomers(rec.customers);
       SyncEngine.notifyListeners();
+    }).catch(err => {
+      console.warn('[App] Error preloading images from IDB:', err);
     });
-
-    setPlants(StorageService.getPlants());
-    setLines(StorageService.getLines());
-    setContracts(StorageService.getContracts());
-    setSchedule(StorageService.getSchedule());
-    setMhcRecords(StorageService.getMhcRecords());
-    setTasks(StorageService.getTasks());
-    setAlerts(StorageService.getAlerts());
-    setInvestigations(StorageService.getInvestigations());
-    setBaselines(StorageService.getBaselines());
-    setProfile(StorageService.getProfile());
-    setNotifications(StorageService.getNotifications());
-
-    const loadedUsers = StorageService.getUsers();
-    setUsers(loadedUsers);
-    if (loadedUsers.length > 0) {
-      setActiveUser(loadedUsers[0]);
-    }
 
     // Subscribe to SyncEngine remote updates to synchronize React UI
     const unsubscribeSync = SyncEngine.subscribe(() => {

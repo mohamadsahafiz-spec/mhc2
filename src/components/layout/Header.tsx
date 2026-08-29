@@ -97,8 +97,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Close overlays when navigating to another module
   useEffect(() => {
-    setShowUserMenu(false);
-    setShowNotificationPanel(false);
+    setShowUserMenu(prev => (prev ? false : prev));
+    setShowNotificationPanel(prev => (prev ? false : prev));
   }, [activeTab]);
 
   const getInitials = (name: string) => {

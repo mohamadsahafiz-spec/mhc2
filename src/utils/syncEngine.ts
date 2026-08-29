@@ -191,7 +191,6 @@ class SyncEngineManager {
 
   public subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    listener(this.getState());
     return () => {
       this.listeners.delete(listener);
     };

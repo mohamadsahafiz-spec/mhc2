@@ -63,17 +63,6 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  if (!machine) {
-    return (
-      <div className={`p-8 rounded-2xl border text-center ${
-        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-      }`}>
-        <Thermometer className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
-        <p className="text-sm font-semibold">No machine selected for temperature telemetry.</p>
-      </div>
-    );
-  }
-
   const cachedDraft = machine?.id ? tempDraftCache[machine.id] : undefined;
 
   // State for raw log processing
@@ -106,6 +95,17 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
   const [manualNote, setManualNote] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  if (!machine) {
+    return (
+      <div className={`p-8 rounded-2xl border text-center ${
+        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+      }`}>
+        <Thermometer className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
+        <p className="text-sm font-semibold">No machine selected for temperature telemetry.</p>
+      </div>
+    );
+  }
 
   // File Upload Handlers
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {

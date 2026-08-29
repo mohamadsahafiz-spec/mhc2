@@ -37,30 +37,33 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
   showNotification
 }) => {
   // Extract laser heads from Machine Passport
-  const laserHeads = (machine?.laserHeads && machine.laserHeads.length > 0)
-    ? machine.laserHeads
-    : ((machine?.lasers && machine.lasers.length > 0) ? machine.lasers : (machine ? [
-        { 
-          id: `${machine.id}-lh1`, 
-          name: 'Laser Head 1', 
-          model: machine.model, 
-          serialNo: `${machine.serialNumber}-L1`, 
-          baseLaserHour: 12450, 
-          runningHours: 12450, 
-          ratedLife: 25000, 
-          warningLife: 20000 
-        },
-        { 
-          id: `${machine.id}-lh2`, 
-          name: 'Laser Head 2', 
-          model: machine.model, 
-          serialNo: `${machine.serialNumber}-L2`, 
-          baseLaserHour: 11800, 
-          runningHours: 11800, 
-          ratedLife: 25000, 
-          warningLife: 20000 
-        }
-      ] : []));
+  const laserHeads = React.useMemo(() => {
+    if (machine?.laserHeads && machine.laserHeads.length > 0) return machine.laserHeads;
+    if (machine?.lasers && machine.lasers.length > 0) return machine.lasers;
+    if (!machine) return [];
+    return [
+      { 
+        id: `${machine.id}-lh1`, 
+        name: 'Laser Head 1', 
+        model: machine.model, 
+        serialNo: `${machine.serialNumber}-L1`, 
+        baseLaserHour: 12450, 
+        runningHours: 12450, 
+        ratedLife: 25000, 
+        warningLife: 20000 
+      },
+      { 
+        id: `${machine.id}-lh2`, 
+        name: 'Laser Head 2', 
+        model: machine.model, 
+        serialNo: `${machine.serialNumber}-L2`, 
+        baseLaserHour: 11800, 
+        runningHours: 11800, 
+        ratedLife: 25000, 
+        warningLife: 20000 
+      }
+    ];
+  }, [machine?.laserHeads, machine?.lasers, machine?.id, machine?.model, machine?.serialNumber]);
 
   // Sync session.stage01_laserHours with current laser heads if missing
   const activeItems: MHCLaserHourItem[] = React.useMemo(() => {
@@ -84,7 +87,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
       const timeStr = new Date().toTimeString().split(' ')[0].substring(0, 5);
 
       return {
-        laserId: lh.id || `${machine.id}-lh${idx + 1}`,
+        laserId: lh.id || `${machine?.id || 'm'}-lh${idx + 1}`,
         laserIdentifier: lh.name || `Laser Head ${idx + 1}`,
         recordedLaserHour: lh.baseLaserHour ?? lh.runningHours ?? 12450,
         readingDate: dateStr,
@@ -99,13 +102,26 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
         verificationNotes: ''
       };
     });
-  }, [session.stage01_laserHours, laserHeads, machine]);
+  }, [session.stage01_laserHours, laserHeads, machine?.id]);
 
   // Local state for editable verification values per head
-  const [localHours, setLocalHours] = useState<Record<string, number>>({});
-  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
+  const [localHours, setLocalHours] = useState<Record<string, number>>(() => {
+    const hoursMap: Record<string, number> = {};
+    activeItems.forEach(item => {
+      hoursMap[item.laserId] = item.verifiedHour ?? item.calculatedCurrentHour;
+    });
+    return hoursMap;
+  });
 
-  // Populate local input state from activeItems
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>(() => {
+    const notesMap: Record<string, string> = {};
+    activeItems.forEach(item => {
+      notesMap[item.laserId] = item.verificationNotes || '';
+    });
+    return notesMap;
+  });
+
+  // Populate local input state from activeItems when session/active items change
   useEffect(() => {
     const hoursMap: Record<string, number> = {};
     const notesMap: Record<string, string> = {};
@@ -117,7 +133,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
 
     setLocalHours(hoursMap);
     setLocalNotes(notesMap);
-  }, [activeItems]);
+  }, [session.stage01_laserHours]);
 
   // Verify single laser head
   const handleVerifyHead = (item: MHCLaserHourItem) => {

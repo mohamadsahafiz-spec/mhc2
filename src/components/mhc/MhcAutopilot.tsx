@@ -77,6 +77,8 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
     customerId: machine.customerId || 'CUST-01',
     customerName: customerName || machine.customerName || 'Customer',
     plantName: machine.plantName || 'Main Plant',
+    productionLineName: machine.productionLineName || '',
+    zone: machine.zone || '',
     engineerName: engineerName || 'Field Service Engineer',
     startDate: dateStr,
     startTime: timeStr,

@@ -12,46 +12,49 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('fso_theme_mode');
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('fso_theme_mode') : null;
     if (saved === 'dark' || saved === 'light' || saved === 'system') {
       return saved;
     }
     return 'dark';
   });
 
-  const [effectiveTheme, setEffectiveTheme] = useState<'dark' | 'light'>('dark');
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return true;
+  });
+
+  const effectiveTheme: 'dark' | 'light' = theme === 'system' 
+    ? (systemIsDark ? 'dark' : 'light') 
+    : theme;
 
   useEffect(() => {
-    localStorage.setItem('fso_theme_mode', theme);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('fso_theme_mode', theme);
+    }
 
-    const updateEffectiveTheme = () => {
-      let resolved: 'dark' | 'light' = 'dark';
-      if (theme === 'system') {
-        resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } else {
-        resolved = theme;
-      }
-      setEffectiveTheme(resolved);
+    if (theme === 'system' && typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (e: MediaQueryListEvent) => setSystemIsDark(e.matches);
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    }
+  }, [theme]);
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      if (resolved === 'dark') {
+      if (effectiveTheme === 'dark') {
         root.classList.add('dark');
         root.classList.remove('light');
       } else {
         root.classList.add('light');
         root.classList.remove('dark');
       }
-    };
-
-    updateEffectiveTheme();
-
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = () => updateEffectiveTheme();
-      mediaQuery.addEventListener('change', listener);
-      return () => mediaQuery.removeEventListener('change', listener);
     }
-  }, [theme]);
+  }, [effectiveTheme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme: setThemeState, effectiveTheme }}>

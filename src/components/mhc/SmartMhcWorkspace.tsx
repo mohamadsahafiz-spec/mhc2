@@ -689,6 +689,8 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       customerId: machine.customerId,
       customerName: machine.customerName,
       plantName: machine.plantName || '—',
+      productionLineName: machine.productionLineName || '',
+      zone: machine.zone || '',
       engineerName: 'Sahafiz',
       startDate: new Date().toISOString().split('T')[0],
       startTime: '09:00',

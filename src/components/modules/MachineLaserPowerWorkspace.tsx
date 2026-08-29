@@ -41,17 +41,6 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  if (!machine) {
-    return (
-      <div className={`p-8 rounded-2xl border text-center ${
-        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-      }`}>
-        <Zap className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
-        <p className="text-sm font-semibold">No machine selected for laser power inspection.</p>
-      </div>
-    );
-  }
-
   const records = machine?.laserPowerRecords || [];
   const latestRecord = records[0] || null;
 
@@ -132,6 +121,17 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
 
     return LaserPowerEngine.evaluateRecord(draft);
   }, [formDate, formFreq, formRemarks, lsHeadA, lsHeadB, optHeadA, optHeadB, maskInputs]);
+
+  if (!machine) {
+    return (
+      <div className={`p-8 rounded-2xl border text-center ${
+        isDark ? 'bg-[#14171A] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+      }`}>
+        <Zap className="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-50" />
+        <p className="text-sm font-semibold">No machine selected for laser power inspection.</p>
+      </div>
+    );
+  }
 
   // Save Record
   const handleSaveRecord = () => {

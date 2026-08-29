@@ -164,6 +164,7 @@ export interface Machine {
   plantName: string;
   productionLineId: string;
   productionLineName: string;
+  zone?: string;
   model: string;
   machineNumber: string;
   serialNumber: string;
@@ -776,6 +777,8 @@ export interface MHCSession {
   customerId: string;
   customerName: string;
   plantName: string;
+  productionLineName?: string;
+  zone?: string;
   engineerName: string;
   startDate: string;
   startTime: string;

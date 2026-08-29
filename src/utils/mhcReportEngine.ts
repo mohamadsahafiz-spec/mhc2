@@ -70,8 +70,8 @@ export function buildMhcReportDocument(
 
   const machineNumber = (session as any).machineNumber || matchedMachine?.machineNumber || matchedMachine?.machineNo || (session.machineName?.includes('#') ? session.machineName : undefined) || '';
   const department = (session as any).department || matchedMachine?.department || undefined;
-  const productionLine = (session as any).productionLine || (session as any).productionLineName || (session as any).lineName || matchedMachine?.productionLineName || (matchedMachine as any)?.lineName || 'Davinci';
-  const zone = (session as any).zone || (matchedMachine as any)?.zone || (session as any).facilityZone || 'B | Front of Line';
+  const productionLine = session.productionLineName || matchedMachine?.productionLineName || (session as any).productionLine || (session as any).lineName || '—';
+  const zone = session.zone || matchedMachine?.zone || (session as any).facilityZone || (session as any).zone || '—';
 
   const baselineDate = previousSession?.completedDate || previousSession?.startDate || matchedMachine?.baselineDate || undefined;
   const lastMhcDate = session.completedDate || session.startDate || matchedMachine?.lastMhcDate || undefined;

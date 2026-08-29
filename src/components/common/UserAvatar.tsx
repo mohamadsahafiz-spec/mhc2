@@ -51,15 +51,17 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   status: statusProp,
   className = ''
 }) => {
-  const [imgError, setImgError] = useState(false);
-
   const userName = nameProp || (user as SystemUser)?.fullName || (user as EngineerProfile)?.name || 'Engineer';
   const avatarUrl = avatarUrlProp || user?.avatarUrl;
   const userStatus = statusProp || (user as SystemUser)?.status || 'Online';
 
-  useEffect(() => {
+  const [prevUrl, setPrevUrl] = useState(avatarUrl);
+  const [imgError, setImgError] = useState(false);
+
+  if (prevUrl !== avatarUrl) {
+    setPrevUrl(avatarUrl);
     setImgError(false);
-  }, [avatarUrl]);
+  }
 
   const initials = getInitials(userName);
   const colorClass = getColorForName(userName);

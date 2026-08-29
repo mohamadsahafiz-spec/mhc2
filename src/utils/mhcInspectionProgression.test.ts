@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { advanceAutopilotActivity, auditMhcSession } from './mhcAutopilotBrain';
 import { safeJsonStringify } from './persistence';
-import { MHCSession } from '../types';
+import { Machine, MHCSession } from '../types';
+import { createNewMhcSession } from '../components/mhc/MhcAutopilot';
 
 describe('MHC Inspection & Findings Progression & Persistence', () => {
   const createMockSession = (): MHCSession => (({
@@ -318,5 +319,41 @@ describe('MHC Inspection & Findings Progression & Persistence', () => {
       expect(json).toContain('"id":"test"');
       expect(json).toContain('"label":"circular"');
     }).not.toThrow();
+  });
+
+  it('createNewMhcSession accurately copies machine.productionLineName into the new MHCSession', () => {
+    const mockMachine: Partial<Machine> = {
+      id: 'MCH-PROD-99',
+      model: 'ESI 5330',
+      serialNumber: 'SN-PROD-99',
+      machineNumber: 'MCH-99',
+      customerId: 'CUST-01',
+      customerName: 'Acme Semi',
+      plantName: 'Penang Plant',
+      productionLineName: 'Cleanroom Production Line Beta'
+    };
+
+    const session = createNewMhcSession(mockMachine as Machine, 'Acme Semi', 'Engineer Dave');
+    expect(session.productionLineName).toBe('Cleanroom Production Line Beta');
+    expect(session.machineId).toBe('MCH-PROD-99');
+    expect(session.machineSerialNumber).toBe('SN-PROD-99');
+  });
+
+  it('createNewMhcSession accurately copies machine.zone into the new MHCSession', () => {
+    const mockMachine: Partial<Machine> = {
+      id: 'MCH-ZONE-88',
+      model: 'ESI 5330',
+      serialNumber: 'SN-ZONE-88',
+      machineNumber: 'MCH-88',
+      customerId: 'CUST-01',
+      customerName: 'Acme Semi',
+      plantName: 'Penang Plant',
+      productionLineName: 'Cleanroom Production Line Beta',
+      zone: 'Zone 4 - Front End Optical'
+    };
+
+    const session = createNewMhcSession(mockMachine as Machine, 'Acme Semi', 'Engineer Dave');
+    expect(session.zone).toBe('Zone 4 - Front End Optical');
+    expect(session.productionLineName).toBe('Cleanroom Production Line Beta');
   });
 });

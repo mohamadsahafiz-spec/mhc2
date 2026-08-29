@@ -698,6 +698,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     customerName: '',
     plantName: '',
     productionLineName: '',
+    zone: '',
     status: 'OPERATIONAL' as Machine['status'],
     healthScore: 98,
     installationDate: new Date().toISOString().split('T')[0],
@@ -712,6 +713,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     customerName: '',
     plantName: '',
     productionLineName: '',
+    zone: '',
     status: 'OPERATIONAL' as Machine['status'],
     healthScore: 100,
     installationDate: '',
@@ -779,6 +781,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       customerName: activeCust?.name || selectedMachine?.customerName || '',
       plantName: activeCust?.site || selectedMachine?.plantName || '',
       productionLineName: selectedMachine?.productionLineName || '',
+      zone: selectedMachine?.zone || '',
       status: 'OPERATIONAL',
       healthScore: 98,
       installationDate: new Date().toISOString().split('T')[0],
@@ -802,6 +805,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       plantName: addForm.plantName || activeCust?.site || 'Primary Cleanroom Plant',
       productionLineId: 'line-1',
       productionLineName: addForm.productionLineName || 'Main Production Line',
+      zone: addForm.zone || '',
       model: addForm.model || 'Laser System',
       machineNumber: addForm.machineNumber || `MCH-${Math.floor(100 + Math.random() * 900)}`,
       serialNumber: addForm.serialNumber || `SN-${Date.now().toString().slice(-8)}`,
@@ -871,6 +875,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       customerName: selectedMachine.customerName || '',
       plantName: selectedMachine.plantName || '',
       productionLineName: selectedMachine.productionLineName || '',
+      zone: selectedMachine.zone || '',
       status: selectedMachine.status || 'OPERATIONAL',
       healthScore: selectedMachine.healthScore || 100,
       installationDate: selectedMachine.installationDate || '',
@@ -890,6 +895,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       customerName: editForm.customerName,
       plantName: editForm.plantName,
       productionLineName: editForm.productionLineName,
+      zone: editForm.zone,
       status: editForm.status,
       healthScore: Number(editForm.healthScore),
       installationDate: editForm.installationDate,
@@ -1565,7 +1571,13 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       {selectedMachine.plantName}
                     </span>
                     <span className="opacity-40">•</span>
-                    <span className="font-mono text-[11px] opacity-90">{selectedMachine.productionLineName}</span>
+                    <span className="font-mono text-[11px] opacity-90">{selectedMachine.productionLineName || '—'}</span>
+                    {selectedMachine.zone ? (
+                      <>
+                        <span className="opacity-40">•</span>
+                        <span className="font-mono text-[11px] opacity-90">Zone: {selectedMachine.zone}</span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1771,12 +1783,16 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
           {passportSubTab === 'lifecycle' ? (
             <div className="space-y-6">
           {/* Hardware & Installation Telemetry */}
-          <div className={`grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl border ${
+          <div className={`grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 rounded-xl border ${
             isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
           }`}>
             <div>
               <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Production Line</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.productionLineName}</p>
+              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.productionLineName || '—'}</p>
+            </div>
+            <div>
+              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Zone</span>
+              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.zone || '—'}</p>
             </div>
             <div>
               <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Installation Date</span>
@@ -2136,6 +2152,21 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 
             <div>
               <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Zone / Area
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Zone A, Cleanroom North"
+                value={addForm.zone}
+                onChange={(e) => setAddForm({ ...addForm, zone: e.target.value })}
+                className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                  isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                }`}
+              />
+            </div>
+
+            <div>
+              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 Initial Status
               </label>
               <select
@@ -2295,6 +2326,21 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 type="text"
                 value={editForm.productionLineName}
                 onChange={(e) => setEditForm({ ...editForm, productionLineName: e.target.value })}
+                className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                  isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                }`}
+              />
+            </div>
+
+            <div>
+              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Zone / Area
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Zone A, Cleanroom North"
+                value={editForm.zone}
+                onChange={(e) => setEditForm({ ...editForm, zone: e.target.value })}
                 className={`w-full px-3 py-2 rounded-xl text-xs border ${
                   isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
                 }`}
