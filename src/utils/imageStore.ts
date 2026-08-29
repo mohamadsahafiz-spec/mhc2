@@ -7,6 +7,17 @@ const STORE_NAME = 'evidence_images';
 let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
+const MAX_MEMORY_CACHE_ITEMS = 64;
+
+function setMemoryCache(key: string, val: string) {
+  if (imageMemoryCache.has(key)) {
+    imageMemoryCache.delete(key);
+  } else if (imageMemoryCache.size >= MAX_MEMORY_CACHE_ITEMS) {
+    const firstKey = imageMemoryCache.keys().next().value;
+    if (firstKey) imageMemoryCache.delete(firstKey);
+  }
+  imageMemoryCache.set(key, val);
+}
 
 // Batched asynchronous IndexedDB write queue
 const pendingIdbWrites = new Map<string, string>();
@@ -104,7 +115,7 @@ export const ImageStore = {
       return; // Identical image payload already persisted in IDB
     }
 
-    imageMemoryCache.set(id, dataUrl);
+    setMemoryCache(id, dataUrl);
     if (existing !== dataUrl) {
       persistedInIdbKeys.delete(id);
     }
@@ -127,7 +138,7 @@ export const ImageStore = {
         req.onsuccess = () => {
           const val = req.result || null;
           if (val) {
-            imageMemoryCache.set(id, val);
+            setMemoryCache(id, val);
             persistedInIdbKeys.add(id);
           }
           resolve(val);
@@ -377,12 +388,14 @@ export const ImageStore = {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const req = store.openCursor();
+        let count = 0;
         req.onsuccess = (event) => {
           const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-          if (cursor) {
+          if (cursor && count < 32) {
             const keyStr = cursor.key as string;
-            imageMemoryCache.set(keyStr, cursor.value as string);
+            setMemoryCache(keyStr, cursor.value as string);
             persistedInIdbKeys.add(keyStr);
+            count++;
             cursor.continue();
           } else {
             resolve();

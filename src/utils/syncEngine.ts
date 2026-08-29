@@ -20,10 +20,14 @@ function getCircularReplacer() {
 
 function safeJsonStringify(value: any, space?: number): string {
   try {
-    return JSON.stringify(value, getCircularReplacer(), space);
+    return JSON.stringify(value, null, space);
   } catch (err) {
-    console.warn('[SyncEngine] safeJsonStringify error:', err);
-    return '{}';
+    try {
+      return JSON.stringify(value, getCircularReplacer(), space);
+    } catch (innerErr) {
+      console.warn('[SyncEngine] safeJsonStringify error:', innerErr);
+      return '{}';
+    }
   }
 }
 

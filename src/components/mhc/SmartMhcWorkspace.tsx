@@ -698,6 +698,7 @@ export const SmartMhcWorkspace: React.FC<SmartMhcWorkspaceProps> = ({
       completionStatus: 'IN_PROGRESS',
       currentSection: 1,
       sectionStatuses: {},
+      mhcSpecs: machine.mhcSpecs,
       stage01_laserHours: (machine.laserHeads || []).map((lh, i) => ({
         laserId: lh.id || `lh-${i}`,
         laserIdentifier: lh.model || `Laser Head #${i + 1}`,

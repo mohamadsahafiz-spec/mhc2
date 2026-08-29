@@ -110,6 +110,7 @@ export interface MachineDomain {
   baseTimestamp?: string | null;
   lastRecalibrationDate?: string | null;
   calibrationHistory?: CalibrationHistoryRecord[];
+  mhcSpecs?: import('../types').MachineMhcSpecs;
 }
 
 export type LaserStatus = 'SAFE' | 'WARNING' | 'ALARM' | 'BASELINE_REQUIRED';
@@ -1405,6 +1406,7 @@ export const LaserEngine = {
           customerId: norm.customerId,
           status: norm.status,
           healthScore: norm.healthScore,
+          mhcSpecs: (m as any).mhcSpecs || norm.mhcSpecs,
           lasers: (norm.lasers || []).map((l: any) => ({
             id: l.id,
             name: l.name,

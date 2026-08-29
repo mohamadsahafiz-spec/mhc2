@@ -32,9 +32,12 @@ import {
   Camera,
   Thermometer,
   Aperture,
-  Package
+  Package,
+  Share2,
+  Search
 } from 'lucide-react';
-import { Machine, MHCRecord, Customer } from '../../types';
+import { Machine, MHCRecord, Customer, MachineMhcSpecs } from '../../types';
+import { StorageService } from '../../utils/persistence';
 import { MachineTemperatureWorkspace } from './MachineTemperatureWorkspace';
 import { MachineLaserPowerWorkspace } from './MachineLaserPowerWorkspace';
 import { MachineBeamProfileWorkspace } from './MachineBeamProfileWorkspace';
@@ -689,6 +692,153 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isFanOutModalOpen, setIsFanOutModalOpen] = useState(false);
+
+  // Helper for MHC / Calibration Specifications
+  const hasConfiguredMhcSpecs = (m?: Machine): boolean => {
+    if (!m || !m.mhcSpecs) return false;
+    return (
+      (m.mhcSpecs.laserPower?.targetPowerWatts !== undefined && m.mhcSpecs.laserPower.targetPowerWatts !== null) ||
+      (m.mhcSpecs.laserPower?.powerTolerancePercent !== undefined && m.mhcSpecs.laserPower.powerTolerancePercent !== null) ||
+      Boolean(m.mhcSpecs.beamProfile?.profileMode) ||
+      (m.mhcSpecs.stageCalibration?.toleranceUm !== undefined && m.mhcSpecs.stageCalibration.toleranceUm !== null) ||
+      (m.mhcSpecs.agcCalibration?.toleranceUm !== undefined && m.mhcSpecs.agcCalibration.toleranceUm !== null) ||
+      (m.mhcSpecs.temperatureCooling?.targetTempCelsius !== undefined && m.mhcSpecs.temperatureCooling.targetTempCelsius !== null) ||
+      (m.mhcSpecs.temperatureCooling?.tempToleranceCelsius !== undefined && m.mhcSpecs.temperatureCooling.tempToleranceCelsius !== null)
+    );
+  };
+
+  const copyMhcSpecsFromMachine = (sourceMch: Machine, targetForm: 'add' | 'edit') => {
+    if (!sourceMch.mhcSpecs) return;
+    const specs = sourceMch.mhcSpecs;
+    const specFields = {
+      mhcLaserTargetPower: specs.laserPower?.targetPowerWatts !== undefined && specs.laserPower.targetPowerWatts !== null ? String(specs.laserPower.targetPowerWatts) : '',
+      mhcLaserPowerTolerance: specs.laserPower?.powerTolerancePercent !== undefined && specs.laserPower.powerTolerancePercent !== null ? String(specs.laserPower.powerTolerancePercent) : '',
+      mhcBeamProfileMode: specs.beamProfile?.profileMode || '',
+      mhcStageTolerance: specs.stageCalibration?.toleranceUm !== undefined && specs.stageCalibration.toleranceUm !== null ? String(specs.stageCalibration.toleranceUm) : '',
+      mhcAgcTolerance: specs.agcCalibration?.toleranceUm !== undefined && specs.agcCalibration.toleranceUm !== null ? String(specs.agcCalibration.toleranceUm) : '',
+      mhcTargetTemp: specs.temperatureCooling?.targetTempCelsius !== undefined && specs.temperatureCooling.targetTempCelsius !== null ? String(specs.temperatureCooling.targetTempCelsius) : '',
+      mhcTempTolerance: specs.temperatureCooling?.tempToleranceCelsius !== undefined && specs.temperatureCooling.tempToleranceCelsius !== null ? String(specs.temperatureCooling.tempToleranceCelsius) : ''
+    };
+
+    if (targetForm === 'add') {
+      setAddForm(prev => ({ ...prev, ...specFields }));
+    } else {
+      setEditForm(prev => ({ ...prev, ...specFields }));
+    }
+
+    showAlert(`Copied baseline specifications from ${sourceMch.machineNumber || sourceMch.model}.`);
+  };
+
+  // Fan-Out Modal State & Handlers
+  const [fanOutTargetIds, setFanOutTargetIds] = useState<string[]>([]);
+  const [fanOutFilter, setFanOutFilter] = useState('');
+  const [fanOutConfirmOverwrite, setFanOutConfirmOverwrite] = useState(false);
+
+  const handleOpenFanOut = () => {
+    if (!selectedMachine) return;
+    setFanOutTargetIds([]);
+    setFanOutFilter('');
+    setFanOutConfirmOverwrite(false);
+    setIsFanOutModalOpen(true);
+  };
+
+  const handleToggleFanOutTarget = (id: string) => {
+    setFanOutTargetIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleApplyFanOut = () => {
+    if (!selectedMachine || fanOutTargetIds.length === 0) return;
+    const overwritingCount = machines.filter(
+      m => m.id !== selectedMachine.id && fanOutTargetIds.includes(m.id) && hasConfiguredMhcSpecs(m)
+    ).length;
+
+    if (overwritingCount > 0 && !fanOutConfirmOverwrite) {
+      showAlert(`Please confirm overwriting specifications for ${overwritingCount} machine(s).`);
+      return;
+    }
+
+    const sourceSpecs = selectedMachine.mhcSpecs ? JSON.parse(JSON.stringify(selectedMachine.mhcSpecs)) : undefined;
+
+    const updatedMachines = machines.map(m => {
+      if (fanOutTargetIds.includes(m.id)) {
+        return {
+          ...m,
+          mhcSpecs: sourceSpecs ? JSON.parse(JSON.stringify(sourceSpecs)) : undefined
+        };
+      }
+      return m;
+    });
+
+    if (onBatchImportMachines) {
+      onBatchImportMachines(updatedMachines);
+    } else {
+      StorageService.saveMachines(updatedMachines);
+    }
+
+    setIsFanOutModalOpen(false);
+    showAlert(`MHC specifications successfully copied to ${fanOutTargetIds.length} machine(s).`);
+  };
+
+  const buildMhcSpecsFromForm = (form: {
+    mhcLaserTargetPower?: string;
+    mhcLaserPowerTolerance?: string;
+    mhcBeamProfileMode?: string;
+    mhcStageTolerance?: string;
+    mhcAgcTolerance?: string;
+    mhcTargetTemp?: string;
+    mhcTempTolerance?: string;
+  }): MachineMhcSpecs | undefined => {
+    const hasLaserTarget = (form.mhcLaserTargetPower || '').trim() !== '';
+    const hasLaserTol = (form.mhcLaserPowerTolerance || '').trim() !== '';
+    const hasBeamMode = (form.mhcBeamProfileMode || '').trim() !== '';
+    const hasStageTol = (form.mhcStageTolerance || '').trim() !== '';
+    const hasAgcTol = (form.mhcAgcTolerance || '').trim() !== '';
+    const hasTempTarget = (form.mhcTargetTemp || '').trim() !== '';
+    const hasTempTol = (form.mhcTempTolerance || '').trim() !== '';
+
+    if (!hasLaserTarget && !hasLaserTol && !hasBeamMode && !hasStageTol && !hasAgcTol && !hasTempTarget && !hasTempTol) {
+      return undefined;
+    }
+
+    const specs: MachineMhcSpecs = {};
+
+    if (hasLaserTarget || hasLaserTol) {
+      specs.laserPower = {
+        targetPowerWatts: hasLaserTarget ? parseFloat(form.mhcLaserTargetPower!) : undefined,
+        powerTolerancePercent: hasLaserTol ? parseFloat(form.mhcLaserPowerTolerance!) : undefined
+      };
+    }
+
+    if (hasBeamMode) {
+      specs.beamProfile = {
+        profileMode: form.mhcBeamProfileMode!.trim()
+      };
+    }
+
+    if (hasStageTol) {
+      specs.stageCalibration = {
+        toleranceUm: parseFloat(form.mhcStageTolerance!)
+      };
+    }
+
+    if (hasAgcTol) {
+      specs.agcCalibration = {
+        toleranceUm: parseFloat(form.mhcAgcTolerance!)
+      };
+    }
+
+    if (hasTempTarget || hasTempTol) {
+      specs.temperatureCooling = {
+        targetTempCelsius: hasTempTarget ? parseFloat(form.mhcTargetTemp!) : undefined,
+        tempToleranceCelsius: hasTempTol ? parseFloat(form.mhcTempTolerance!) : undefined
+      };
+    }
+
+    return specs;
+  };
 
   // Form States
   const [addForm, setAddForm] = useState({
@@ -703,7 +853,14 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     healthScore: 98,
     installationDate: new Date().toISOString().split('T')[0],
     baselineDate: new Date().toISOString().split('T')[0],
-    laserHeadModel: 'TruPulse 2000 Main Oscillator'
+    laserHeadModel: 'TruPulse 2000 Main Oscillator',
+    mhcLaserTargetPower: '',
+    mhcLaserPowerTolerance: '',
+    mhcBeamProfileMode: '',
+    mhcStageTolerance: '',
+    mhcAgcTolerance: '',
+    mhcTargetTemp: '',
+    mhcTempTolerance: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -717,7 +874,14 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     status: 'OPERATIONAL' as Machine['status'],
     healthScore: 100,
     installationDate: '',
-    baselineDate: ''
+    baselineDate: '',
+    mhcLaserTargetPower: '',
+    mhcLaserPowerTolerance: '',
+    mhcBeamProfileMode: '',
+    mhcStageTolerance: '',
+    mhcAgcTolerance: '',
+    mhcTargetTemp: '',
+    mhcTempTolerance: ''
   });
 
   const [renameForm, setRenameForm] = useState({
@@ -786,7 +950,14 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       healthScore: 98,
       installationDate: new Date().toISOString().split('T')[0],
       baselineDate: new Date().toISOString().split('T')[0],
-      laserHeadModel: 'TruPulse 2000 Main Oscillator'
+      laserHeadModel: 'TruPulse 2000 Main Oscillator',
+      mhcLaserTargetPower: '',
+      mhcLaserPowerTolerance: '',
+      mhcBeamProfileMode: '',
+      mhcStageTolerance: '',
+      mhcAgcTolerance: '',
+      mhcTargetTemp: '',
+      mhcTempTolerance: ''
     });
     setIsAddModalOpen(true);
   };
@@ -813,6 +984,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       baselineDate: addForm.baselineDate,
       healthScore: Number(addForm.healthScore) || 98,
       status: addForm.status,
+      mhcSpecs: buildMhcSpecsFromForm(addForm),
       photos: [
         'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80'
@@ -879,7 +1051,14 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       status: selectedMachine.status || 'OPERATIONAL',
       healthScore: selectedMachine.healthScore || 100,
       installationDate: selectedMachine.installationDate || '',
-      baselineDate: selectedMachine.baselineDate || ''
+      baselineDate: selectedMachine.baselineDate || '',
+      mhcLaserTargetPower: selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== undefined && selectedMachine.mhcSpecs.laserPower.targetPowerWatts !== null ? String(selectedMachine.mhcSpecs.laserPower.targetPowerWatts) : '',
+      mhcLaserPowerTolerance: selectedMachine.mhcSpecs?.laserPower?.powerTolerancePercent !== undefined && selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== null ? String(selectedMachine.mhcSpecs.laserPower.powerTolerancePercent) : '',
+      mhcBeamProfileMode: selectedMachine.mhcSpecs?.beamProfile?.profileMode || '',
+      mhcStageTolerance: selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs.stageCalibration.toleranceUm !== null ? String(selectedMachine.mhcSpecs.stageCalibration.toleranceUm) : '',
+      mhcAgcTolerance: selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs.agcCalibration.toleranceUm !== null ? String(selectedMachine.mhcSpecs.agcCalibration.toleranceUm) : '',
+      mhcTargetTemp: selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined && selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius !== null ? String(selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius) : '',
+      mhcTempTolerance: selectedMachine.mhcSpecs?.temperatureCooling?.tempToleranceCelsius !== undefined && selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== null ? String(selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius) : ''
     });
     setIsEditModalOpen(true);
   };
@@ -899,7 +1078,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       status: editForm.status,
       healthScore: Number(editForm.healthScore),
       installationDate: editForm.installationDate,
-      baselineDate: editForm.baselineDate
+      baselineDate: editForm.baselineDate,
+      mhcSpecs: buildMhcSpecsFromForm(editForm)
     };
 
     if (onEditMachine) {
@@ -1808,6 +1988,102 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             </div>
           </div>
 
+          {/* MHC / CALIBRATION SPECIFICATIONS */}
+          <div className={`p-5 rounded-2xl border space-y-4 ${
+            isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    MHC / CALIBRATION SPECIFICATIONS
+                  </h3>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Authoritative baseline engineering tolerances & calibration target specs for MHC reports
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Share2 className="w-3.5 h-3.5 text-indigo-500" />}
+                  onClick={handleOpenFanOut}
+                  className="text-xs"
+                >
+                  Fan-Out to Fleet
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Edit3 className="w-3.5 h-3.5" />}
+                  onClick={handleOpenEdit}
+                  className="text-xs"
+                >
+                  Configure Specs
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              {/* Laser Power */}
+              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Laser Power</span>
+                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== undefined && selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== null
+                    ? `${selectedMachine.mhcSpecs.laserPower.targetPowerWatts} W${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== undefined && selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== null ? ` ±${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent}%` : ''}`
+                    : '— (Unrecorded)'}
+                </p>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target Power & Tol</span>
+              </div>
+
+              {/* Beam Profile / Mode */}
+              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Beam Profile / Mode</span>
+                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedMachine.mhcSpecs?.beamProfile?.profileMode || '— (Unrecorded)'}
+                </p>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Profile geometry / mode</span>
+              </div>
+
+              {/* Stage Calibration */}
+              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Stage Calibration</span>
+                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== null
+                    ? `±${selectedMachine.mhcSpecs.stageCalibration.toleranceUm} µm`
+                    : '— (Unrecorded)'}
+                </p>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Stage tolerance spec</span>
+              </div>
+
+              {/* AGC / Scanner Calibration */}
+              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>AGC / Scanner</span>
+                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== null
+                    ? `±${selectedMachine.mhcSpecs.agcCalibration.toleranceUm} µm`
+                    : '— (Unrecorded)'}
+                </p>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Galvo scanner tolerance</span>
+              </div>
+
+              {/* Temperature / Cooling */}
+              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Temperature / Cooling</span>
+                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined && selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== null
+                    ? `${selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius}°C${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== undefined && selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== null ? ` ±${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius}°C` : ''}`
+                    : '— (Unrecorded)'}
+                </p>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target temp & tolerance</span>
+              </div>
+            </div>
+          </div>
+
           {/* Laser Heads Runtime Telemetry & Lifecycle Module */}
           <div className={`p-5 rounded-2xl border space-y-4 ${
             isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
@@ -2212,6 +2488,159 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 }`}
               />
             </div>
+
+            {/* MHC / Calibration Specifications Inputs */}
+            <div className="md:col-span-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  MHC / Calibration Specifications (Machine Baseline)
+                </h4>
+              </div>
+              <p className={`text-[11px] mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Authoritative machine baseline tolerances used for MHC calculations and executive summary reports. Leave blank if not yet configured.
+              </p>
+
+              {/* Reuse Baseline Control */}
+              <div className={`flex items-center justify-between flex-wrap gap-2 mb-3 p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                  <Copy className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="font-medium">Reuse baseline specs from existing machine:</span>
+                </div>
+                <select
+                  className={`px-2.5 py-1 text-xs rounded-lg border font-medium ${
+                    isDark ? 'bg-[#111315] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                  }`}
+                  defaultValue=""
+                  onChange={(e) => {
+                    const sourceMch = machines.find((m) => m.id === e.target.value);
+                    if (sourceMch) {
+                      copyMhcSpecsFromMachine(sourceMch, 'add');
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="" disabled>Select source machine...</option>
+                  {machines.map((m) => {
+                    const hasSpecs = hasConfiguredMhcSpecs(m);
+                    return (
+                      <option key={m.id} value={m.id} disabled={!hasSpecs}>
+                        {m.machineNumber || m.model} — {m.customerName || 'General'} {hasSpecs ? '(Configured)' : '(No specs)'}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Target Laser Power (W)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 15.0"
+                    value={addForm.mhcLaserTargetPower}
+                    onChange={(e) => setAddForm({ ...addForm, mhcLaserTargetPower: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Power Tolerance (±%)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 10"
+                    value={addForm.mhcLaserPowerTolerance}
+                    onChange={(e) => setAddForm({ ...addForm, mhcLaserPowerTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Beam Profile / Mode
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Gaussian Mode"
+                    value={addForm.mhcBeamProfileMode}
+                    onChange={(e) => setAddForm({ ...addForm, mhcBeamProfileMode: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Stage Calibration Tolerance (±µm)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 2.0"
+                    value={addForm.mhcStageTolerance}
+                    onChange={(e) => setAddForm({ ...addForm, mhcStageTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    AGC / Scanner Tolerance (±µm)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 3.0"
+                    value={addForm.mhcAgcTolerance}
+                    onChange={(e) => setAddForm({ ...addForm, mhcAgcTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Target Temperature (°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 22.0"
+                    value={addForm.mhcTargetTemp}
+                    onChange={(e) => setAddForm({ ...addForm, mhcTargetTemp: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Temperature Tolerance (±°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 1.0"
+                    value={addForm.mhcTempTolerance}
+                    onChange={(e) => setAddForm({ ...addForm, mhcTempTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -2363,6 +2792,161 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 <option value="MAINTENANCE_DUE">MAINTENANCE_DUE</option>
                 <option value="OUT_OF_SERVICE">OUT_OF_SERVICE</option>
               </select>
+            </div>
+
+            {/* MHC / Calibration Specifications Inputs */}
+            <div className="md:col-span-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  MHC / Calibration Specifications (Machine Baseline)
+                </h4>
+              </div>
+              <p className={`text-[11px] mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Authoritative machine baseline tolerances used for MHC calculations and executive summary reports. Leave blank if not yet configured.
+              </p>
+
+              {/* Reuse Baseline Control */}
+              <div className={`flex items-center justify-between flex-wrap gap-2 mb-3 p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                  <Copy className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="font-medium">Reuse baseline specs from existing machine:</span>
+                </div>
+                <select
+                  className={`px-2.5 py-1 text-xs rounded-lg border font-medium ${
+                    isDark ? 'bg-[#111315] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                  }`}
+                  defaultValue=""
+                  onChange={(e) => {
+                    const sourceMch = machines.find((m) => m.id === e.target.value);
+                    if (sourceMch) {
+                      copyMhcSpecsFromMachine(sourceMch, 'edit');
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="" disabled>Select source machine...</option>
+                  {machines
+                    .filter((m) => selectedMachine ? m.id !== selectedMachine.id : true)
+                    .map((m) => {
+                      const hasSpecs = hasConfiguredMhcSpecs(m);
+                      return (
+                        <option key={m.id} value={m.id} disabled={!hasSpecs}>
+                          {m.machineNumber || m.model} — {m.customerName || 'General'} {hasSpecs ? '(Configured)' : '(No specs)'}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Target Laser Power (W)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 15.0"
+                    value={editForm.mhcLaserTargetPower}
+                    onChange={(e) => setEditForm({ ...editForm, mhcLaserTargetPower: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Power Tolerance (±%)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 10"
+                    value={editForm.mhcLaserPowerTolerance}
+                    onChange={(e) => setEditForm({ ...editForm, mhcLaserPowerTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Beam Profile / Mode
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Gaussian Mode"
+                    value={editForm.mhcBeamProfileMode}
+                    onChange={(e) => setEditForm({ ...editForm, mhcBeamProfileMode: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Stage Calibration Tolerance (±µm)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 2.0"
+                    value={editForm.mhcStageTolerance}
+                    onChange={(e) => setEditForm({ ...editForm, mhcStageTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    AGC / Scanner Tolerance (±µm)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 3.0"
+                    value={editForm.mhcAgcTolerance}
+                    onChange={(e) => setEditForm({ ...editForm, mhcAgcTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Target Temperature (°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 22.0"
+                    value={editForm.mhcTargetTemp}
+                    onChange={(e) => setEditForm({ ...editForm, mhcTargetTemp: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-[11px] font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Temperature Tolerance (±°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 1.0"
+                    value={editForm.mhcTempTolerance}
+                    onChange={(e) => setEditForm({ ...editForm, mhcTempTolerance: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
             </div>
 
 
@@ -3363,6 +3947,244 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               >
                 Done
               </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Fan-Out MHC Specifications Modal */}
+      {isFanOutModalOpen && selectedMachine && (
+        <Modal
+          isOpen={isFanOutModalOpen}
+          onClose={() => setIsFanOutModalOpen(false)}
+          title={`Fan-Out Baseline Specs: ${selectedMachine.machineNumber || selectedMachine.model}`}
+          subtitle="Apply this machine's MHC / calibration specifications to multiple target machines"
+          maxWidth="2xl"
+        >
+          <div className="space-y-4 p-4">
+            {/* Source Specs Summary */}
+            <div className={`p-3.5 rounded-xl border ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4" />
+                  Source Specification Set
+                </span>
+                <span className={`text-xs font-mono font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  {selectedMachine.machineNumber || selectedMachine.model} ({selectedMachine.customerName || 'General'})
+                </span>
+              </div>
+
+              {hasConfiguredMhcSpecs(selectedMachine) ? (
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                  <div className={`p-2 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <span className="text-[9px] uppercase text-slate-500 font-bold block">Laser Power</span>
+                    <span className="font-semibold">{selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== undefined ? `${selectedMachine.mhcSpecs.laserPower.targetPowerWatts}W ±${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent || 0}%` : '—'}</span>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <span className="text-[9px] uppercase text-slate-500 font-bold block">Beam Mode</span>
+                    <span className="font-semibold truncate block">{selectedMachine.mhcSpecs?.beamProfile?.profileMode || '—'}</span>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <span className="text-[9px] uppercase text-slate-500 font-bold block">Stage Cal</span>
+                    <span className="font-semibold">{selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== undefined ? `±${selectedMachine.mhcSpecs.stageCalibration.toleranceUm}µm` : '—'}</span>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <span className="text-[9px] uppercase text-slate-500 font-bold block">AGC Scanner</span>
+                    <span className="font-semibold">{selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== undefined ? `±${selectedMachine.mhcSpecs.agcCalibration.toleranceUm}µm` : '—'}</span>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <span className="text-[9px] uppercase text-slate-500 font-bold block">Cooling Temp</span>
+                    <span className="font-semibold">{selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined ? `${selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius}°C ±${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius || 0}°C` : '—'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-amber-500 p-2 bg-amber-500/10 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>The source machine currently has no MHC specifications recorded. Please configure its specs before fan-out.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Target Filter & Batch Selector */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Filter target machines by name, customer, line..."
+                    value={fanOutFilter}
+                    onChange={(e) => setFanOutFilter(e.target.value)}
+                    className={`w-full pl-8 pr-3 py-1.5 rounded-xl text-xs border ${
+                      isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allCandidateIds = machines
+                        .filter(m => m.id !== selectedMachine.id)
+                        .filter(m => {
+                          if (!fanOutFilter.trim()) return true;
+                          const q = fanOutFilter.toLowerCase();
+                          return (
+                            (m.machineNumber && m.machineNumber.toLowerCase().includes(q)) ||
+                            (m.model && m.model.toLowerCase().includes(q)) ||
+                            (m.customerName && m.customerName.toLowerCase().includes(q)) ||
+                            (m.productionLineName && m.productionLineName.toLowerCase().includes(q))
+                          );
+                        })
+                        .map(m => m.id);
+                      setFanOutTargetIds(allCandidateIds);
+                    }}
+                    className="text-xs py-1 h-auto"
+                  >
+                    Select All Filtered
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFanOutTargetIds([])}
+                    className="text-xs py-1 h-auto"
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
+
+              {/* Target List */}
+              <div className={`max-h-56 overflow-y-auto rounded-xl border divide-y ${
+                isDark ? 'bg-[#111315] border-[#2B323A] divide-[#2B323A]' : 'bg-white border-slate-200 divide-slate-100'
+              }`}>
+                {machines
+                  .filter(m => m.id !== selectedMachine.id)
+                  .filter(m => {
+                    if (!fanOutFilter.trim()) return true;
+                    const q = fanOutFilter.toLowerCase();
+                    return (
+                      (m.machineNumber && m.machineNumber.toLowerCase().includes(q)) ||
+                      (m.model && m.model.toLowerCase().includes(q)) ||
+                      (m.customerName && m.customerName.toLowerCase().includes(q)) ||
+                      (m.productionLineName && m.productionLineName.toLowerCase().includes(q))
+                    );
+                  })
+                  .map(m => {
+                    const isSelected = fanOutTargetIds.includes(m.id);
+                    const hasSpecs = hasConfiguredMhcSpecs(m);
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => handleToggleFanOutTarget(m.id)}
+                        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors text-xs ${
+                          isSelected
+                            ? isDark ? 'bg-indigo-500/10' : 'bg-indigo-50/70'
+                            : isDark ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // Handled by parent div
+                            className="rounded text-indigo-600 focus:ring-indigo-500 pointer-events-none"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                {m.machineNumber || m.model}
+                              </span>
+                              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                {m.model}
+                              </span>
+                            </div>
+                            <div className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} truncate`}>
+                              {m.customerName || 'General'} • {m.plantName || 'Plant'} • {m.productionLineName || 'Line'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          {hasSpecs ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/30">
+                              Has Existing Specs
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                              No Specs
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Overwrite Warning & Explicit Confirmation */}
+            {(() => {
+              const overwritingCount = machines.filter(
+                m => m.id !== selectedMachine.id && fanOutTargetIds.includes(m.id) && hasConfiguredMhcSpecs(m)
+              ).length;
+
+              if (overwritingCount === 0) return null;
+
+              return (
+                <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-xs">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>Overwrite Notice: {overwritingCount} selected machine{overwritingCount > 1 ? 's' : ''} already have configured MHC specifications.</span>
+                  </div>
+                  <label className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={fanOutConfirmOverwrite}
+                      onChange={(e) => setFanOutConfirmOverwrite(e.target.checked)}
+                      className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="font-medium text-[11px]">
+                      I explicitly confirm overwriting existing specifications on {overwritingCount} machine{overwritingCount > 1 ? 's' : ''} with this source machine's baseline.
+                    </span>
+                  </label>
+                </div>
+              );
+            })()}
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+              <span className="text-xs text-slate-500 font-medium">
+                {fanOutTargetIds.length} target machine{fanOutTargetIds.length === 1 ? '' : 's'} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFanOutModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  icon={<Share2 className="w-4 h-4" />}
+                  disabled={
+                    fanOutTargetIds.length === 0 ||
+                    !hasConfiguredMhcSpecs(selectedMachine) ||
+                    (machines.filter(m => m.id !== selectedMachine.id && fanOutTargetIds.includes(m.id) && hasConfiguredMhcSpecs(m)).length > 0 && !fanOutConfirmOverwrite)
+                  }
+                  onClick={handleApplyFanOut}
+                >
+                  Apply to {fanOutTargetIds.length} Machine{fanOutTargetIds.length === 1 ? '' : 's'}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

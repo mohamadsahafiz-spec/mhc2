@@ -6,16 +6,22 @@ import {
   Eye, 
   EyeOff, 
   ZoomIn, 
-  ZoomOut,
-  Edit3,
-  Check,
-  RotateCcw,
-  Sliders,
-  Calendar,
-  User,
-  Building,
-  Hash,
-  ShieldCheck
+  ZoomOut, 
+  Edit3, 
+  Check, 
+  RotateCcw, 
+  Sliders, 
+  Calendar, 
+  User, 
+  Building, 
+  Hash, 
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  XCircle,
+  Minus,
+  AlertCircle
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
@@ -126,18 +132,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'COMPLETE':
       case 'NORMAL':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <span>✓</span>
-            <span>{label || status}</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 leading-none">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span className="leading-none">{label || status}</span>
           </span>
         );
       case 'PENDING':
       case 'PENDING_APPROVAL':
       case 'PENDING_REVIEW':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-300">
-            <span>⏳</span>
-            <span>{label || 'PENDING REVIEW'}</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-300 leading-none">
+            <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+            <span className="leading-none">{label || 'PENDING REVIEW'}</span>
           </span>
         );
       case 'WARNING':
@@ -145,9 +151,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'CONDITIONAL_RELEASE':
       case 'NEEDS_REVIEW':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-800 border border-amber-300">
-            <span>⚠</span>
-            <span>{label || status}</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-800 border border-amber-300 leading-none">
+            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+            <span className="leading-none">{label || status}</span>
           </span>
         );
       case 'FAIL':
@@ -156,9 +162,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'HALTED':
       case 'CRITICAL':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300">
-            <span>✕</span>
-            <span>{label || status}</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300 leading-none">
+            <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
+            <span className="leading-none">{label || status}</span>
           </span>
         );
       case 'NOT_COLLECTED':
@@ -166,9 +172,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'NOT_APPLICABLE':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-300">
-            <span>—</span>
-            <span>{label || status.replace('_', ' ')}</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-300 leading-none">
+            <Minus className="w-3 h-3 text-slate-500 shrink-0" />
+            <span className="leading-none">{label || status.replace('_', ' ')}</span>
           </span>
         );
     }
@@ -697,7 +703,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
                       02 TABLE OF CONTENTS / REPORT INDEX
                     </h2>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                    <p className="text-xs text-slate-500 font-sans mt-0.5">
                       18 Standard Subsystem Diagnostics &amp; Certification Modules (§01–§18)
                     </p>
                   </div>
@@ -738,7 +744,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               key={entry.code}
                               className="flex items-center gap-2.5 py-1.5 px-1.5 rounded hover:bg-white/80 transition-colors"
                             >
-                              <span className="font-mono font-bold text-cyan-900 text-xs shrink-0 w-7">
+                              <span className="font-sans font-semibold text-cyan-900 text-xs shrink-0 w-8 tracking-tight">
                                 §{entry.code}
                               </span>
                               <span className="font-semibold text-slate-800 text-[11.5px] leading-snug">
@@ -780,7 +786,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               key={entry.code}
                               className="flex items-center gap-2.5 py-1.5 px-1.5 rounded hover:bg-white/80 transition-colors"
                             >
-                              <span className="font-mono font-bold text-cyan-900 text-xs shrink-0 w-7">
+                              <span className="font-sans font-semibold text-cyan-900 text-xs shrink-0 w-8 tracking-tight">
                                 §{entry.code}
                               </span>
                               <span className="font-semibold text-slate-800 text-[11.5px] leading-snug">
@@ -838,7 +844,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     04 EXECUTIVE SUMMARY
                   </h2>
                   <span className="text-xs font-mono font-bold text-slate-400">
-                    SYSTEM AUDIT
+                    MHC EVALUATION
                   </span>
                 </div>
 
@@ -867,7 +873,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                   {/* Major Pass/Fail Table */}
                   <div className="pt-1.5 border-t border-slate-200 space-y-1">
-                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">CORE AUDIT RESULTS</span>
+                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase block">MHC INSPECTION RESULTS</span>
                     <table className="w-full text-left text-xs border-collapse font-sans">
                       <thead>
                         <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">

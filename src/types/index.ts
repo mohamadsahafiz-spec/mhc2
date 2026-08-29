@@ -195,6 +195,27 @@ export interface Machine {
   laserPowerRecords?: import('./laserPower').LaserPowerCheckRecord[];
   beamProfileRecords?: import('./beamProfile').BeamProfileCheckRecord[];
   productProcessRecords?: import('./productProcess').ProductProcessRecord[];
+  mhcSpecs?: MachineMhcSpecs;
+}
+
+export interface MachineMhcSpecs {
+  laserPower?: {
+    targetPowerWatts?: number | null;
+    powerTolerancePercent?: number | null;
+  };
+  beamProfile?: {
+    profileMode?: string;
+  };
+  stageCalibration?: {
+    toleranceUm?: number | null;
+  };
+  agcCalibration?: {
+    toleranceUm?: number | null;
+  };
+  temperatureCooling?: {
+    targetTempCelsius?: number | null;
+    tempToleranceCelsius?: number | null;
+  };
 }
 
 export interface SubsystemHealth {
@@ -802,6 +823,7 @@ export interface MHCSession {
   temperatureEvidenceData?: MHCTemperatureEvidenceData;
   fieldLabelOverrides?: Record<string, string>;
   deletedFieldKeys?: string[];
+  mhcSpecs?: MachineMhcSpecs;
 }
 
 export interface MHCReportDraftConfig {

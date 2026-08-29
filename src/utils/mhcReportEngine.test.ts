@@ -674,4 +674,31 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['03'].data.zone).toBe('—');
     expect(doc.sections['01'].data.zone).not.toBe('B | Front of Line');
   });
+
+  it('should format §04 Executive Summary narrative sentence using Zone when available', () => {
+    const session = createDummySession('SESS-EXEC-ZONE');
+    session.customerName = 'STMicroelectronics';
+    session.plantName = 'P3';
+    session.zone = 'Zone 4 - Photolithography Bay';
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['04'].data.summaryText).toContain('at STMicroelectronics - Zone 4 - Photolithography Bay.');
+    expect(doc.sections['04'].data.summaryText).not.toContain('at STMicroelectronics - P3.');
+  });
+
+  it('should not fabricate missing specifications in §04 and use neutral fallback', () => {
+    const session = createDummySession('SESS-EXEC-SPECS');
+    const doc = buildMhcReportDocument(session);
+
+    const majorResults = doc.sections['04'].data.majorPassFailResults;
+    expect(majorResults.length).toBe(5);
+
+    // Verify stage tolerance derives properly and doesn't use hardcoded text
+    const stageRes = majorResults.find(r => r.component === 'Stage Calibration');
+    expect(stageRes?.note).toMatch(/^±\d+\.\d+ µm$/);
+
+    const agcRes = majorResults.find(r => r.component === 'AGC / Scanner Calibration');
+    expect(agcRes?.note).toMatch(/^±\d+\.\d+ µm$/);
+  });
 });

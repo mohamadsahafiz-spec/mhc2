@@ -85,6 +85,7 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
     lastUpdated: now.toISOString(),
     completionStatus: 'IN_PROGRESS',
     currentSection: 1,
+    mhcSpecs: machine.mhcSpecs,
     sectionStatuses: {
       '01': 'IN_PROGRESS',
       '02': 'NOT_STARTED',

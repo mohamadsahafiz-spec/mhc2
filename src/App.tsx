@@ -115,24 +115,29 @@ function AppLayout() {
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
       setMachines(rec.machines);
       setCustomers(rec.customers);
-      SyncEngine.notifyListeners();
     }).catch(err => {
       console.warn('[App] Error preloading images from IDB:', err);
     });
 
     // Subscribe to SyncEngine remote updates to synchronize React UI
-    const unsubscribeSync = SyncEngine.subscribe(() => {
-      const curCusts = StorageService.getCustomers();
-      const curMachines = StorageService.getMachines();
-      const rec = StorageService.reconcileCustomerIdentities(curMachines, curCusts);
-      setMachines(rec.machines);
-      setCustomers(rec.customers);
-      setMhcRecords(StorageService.getMhcRecords());
-      setPlants(StorageService.getPlants());
-      setLines(StorageService.getLines());
-      setContracts(StorageService.getContracts());
-      setTasks(StorageService.getTasks());
-      setAlerts(StorageService.getAlerts());
+    const unsubscribeSync = SyncEngine.subscribe((state) => {
+      if (state.status === 'synced') {
+        try {
+          const curCusts = StorageService.getCustomers();
+          const curMachines = StorageService.getMachines();
+          const rec = StorageService.reconcileCustomerIdentities(curMachines, curCusts);
+          setMachines(rec.machines);
+          setCustomers(rec.customers);
+          setMhcRecords(StorageService.getMhcRecords());
+          setPlants(StorageService.getPlants());
+          setLines(StorageService.getLines());
+          setContracts(StorageService.getContracts());
+          setTasks(StorageService.getTasks());
+          setAlerts(StorageService.getAlerts());
+        } catch (err) {
+          console.warn('[App] Sync update error:', err);
+        }
+      }
     });
 
     return () => {

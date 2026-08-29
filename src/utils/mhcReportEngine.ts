@@ -1202,21 +1202,75 @@ export function buildMhcReportDocument(
       ? (hasOutOfSpecOrFindings ? 'CONDITIONAL_PASS' : 'PASS')
       : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'));
 
-  const executiveSummaryData: MhcReportExecutiveSummaryData = {
-    overallStatus: calculatedOverallStatus,
-    readinessScore: sessionAudit.readinessScore,
-    summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${coverData.plantName}.`,
-    keyFindings: keyFindingsList,
-    majorPassFailResults: [
-      { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: '15.0W ±10%' },
-      { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: 'Gaussian Mode' },
-      { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±2.0 µm Tolerance' },
-      { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: '±3.0 µm Tolerance' },
-      { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: 'Thermal stability telemetry' }
-    ],
-    replacementRecommendations: rawSparePartsList.map(s => `${s.partName} (${s.partNumber}) - ${s.action}`),
-    importantObservations: sessionAudit.blockers.map(b => b.reason)
-  };
+    const effectiveMhcSpecs = session.mhcSpecs || matchedMachine?.mhcSpecs;
+
+    // 1. Laser Power
+    let powerSpec = '—';
+    if (effectiveMhcSpecs?.laserPower?.targetPowerWatts !== undefined && effectiveMhcSpecs.laserPower.targetPowerWatts !== null) {
+      if (effectiveMhcSpecs.laserPower.powerTolerancePercent !== undefined && effectiveMhcSpecs.laserPower.powerTolerancePercent !== null) {
+        powerSpec = `${effectiveMhcSpecs.laserPower.targetPowerWatts.toFixed(1)}W ±${effectiveMhcSpecs.laserPower.powerTolerancePercent}%`;
+      } else {
+        powerSpec = `${effectiveMhcSpecs.laserPower.targetPowerWatts.toFixed(1)}W`;
+      }
+    } else {
+      powerSpec = laserPowerData.heads.find(h => h.specification)?.specification
+        || (matchedMachine?.laserHeads?.[0]?.ratedPowerWatts ? `${matchedMachine.laserHeads[0].ratedPowerWatts.toFixed(1)}W` : undefined)
+        || '—';
+    }
+
+    // 2. Beam Profile / Mode
+    let beamSpec = '—';
+    if (effectiveMhcSpecs?.beamProfile?.profileMode) {
+      beamSpec = effectiveMhcSpecs.beamProfile.profileMode;
+    } else if (matchedMachine?.laserHeads?.[0]?.beamQualityM2 !== undefined && matchedMachine.laserHeads[0].beamQualityM2 !== null) {
+      beamSpec = `M² ≤ ${matchedMachine.laserHeads[0].beamQualityM2}`;
+    }
+
+    // 3. Stage Calibration
+    let stageSpec = '—';
+    if (effectiveMhcSpecs?.stageCalibration?.toleranceUm !== undefined && effectiveMhcSpecs.stageCalibration.toleranceUm !== null) {
+      stageSpec = `±${effectiveMhcSpecs.stageCalibration.toleranceUm.toFixed(1)} µm`;
+    } else if (stage1Data?.specToleranceUm !== undefined || stage2Data?.specToleranceUm !== undefined) {
+      const tol = stage1Data?.specToleranceUm ?? stage2Data?.specToleranceUm;
+      stageSpec = tol !== undefined && tol !== null ? `±${tol.toFixed(1)} µm` : '—';
+    }
+
+    // 4. AGC / Scanner Calibration
+    let agcSpec = '—';
+    if (effectiveMhcSpecs?.agcCalibration?.toleranceUm !== undefined && effectiveMhcSpecs.agcCalibration.toleranceUm !== null) {
+      agcSpec = `±${effectiveMhcSpecs.agcCalibration.toleranceUm.toFixed(1)} µm`;
+    } else if (agc1Data?.specToleranceUm !== undefined || agc2Data?.specToleranceUm !== undefined) {
+      const tol = agc1Data?.specToleranceUm ?? agc2Data?.specToleranceUm;
+      agcSpec = tol !== undefined && tol !== null ? `±${tol.toFixed(1)} µm` : '—';
+    }
+
+    // 5. Temperature / Cooling
+    let tempSpec = '—';
+    if (effectiveMhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined && effectiveMhcSpecs.temperatureCooling.targetTempCelsius !== null) {
+      if (effectiveMhcSpecs.temperatureCooling.tempToleranceCelsius !== undefined && effectiveMhcSpecs.temperatureCooling.tempToleranceCelsius !== null) {
+        tempSpec = `${effectiveMhcSpecs.temperatureCooling.targetTempCelsius.toFixed(1)}°C ±${effectiveMhcSpecs.temperatureCooling.tempToleranceCelsius.toFixed(1)}°C`;
+      } else {
+        tempSpec = `${effectiveMhcSpecs.temperatureCooling.targetTempCelsius.toFixed(1)}°C`;
+      }
+    }
+
+    const summaryLocation = zone && zone !== '—' ? zone : (coverData.plantName || '—');
+
+    const executiveSummaryData: MhcReportExecutiveSummaryData = {
+      overallStatus: calculatedOverallStatus,
+      readinessScore: sessionAudit.readinessScore,
+      summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${summaryLocation}.`,
+      keyFindings: keyFindingsList,
+      majorPassFailResults: [
+        { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: powerSpec },
+        { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: beamSpec },
+        { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: stageSpec },
+        { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: agcSpec },
+        { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: tempSpec }
+      ],
+      replacementRecommendations: rawSparePartsList.map(s => `${s.partName} (${s.partNumber}) - ${s.action}`),
+      importantObservations: sessionAudit.blockers.map(b => b.reason)
+    };
 
   const executiveSummarySection: MhcReportSection<MhcReportExecutiveSummaryData> = {
     code: '04',

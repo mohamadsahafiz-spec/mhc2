@@ -69,12 +69,19 @@ const KEYS = {
 
 function getStorage<T>(key: string, defaultValue: T): T {
   try {
+    if (typeof localStorage === 'undefined') return defaultValue;
     const saved = localStorage.getItem(key);
     if (saved) {
       return JSON.parse(saved);
     }
-  } catch (e) {
-    console.error(`Error reading ${key} from localStorage`, e);
+  } catch (e: any) {
+    console.error(`Error reading ${key} from localStorage:`, e?.message || e);
+    // If heap is exhausted, clear transient queues to relieve pressure
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('fsos_sync_queue');
+      } catch (_) {}
+    }
   }
   return defaultValue;
 }
@@ -86,7 +93,6 @@ function getCircularReplacer() {
     if (typeof value !== 'object' || value === null) {
       return value;
     }
-    // `this` refers to the parent object containing this `value`
     while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
       ancestors.pop();
     }
@@ -100,18 +106,33 @@ function getCircularReplacer() {
 
 export function safeJsonStringify(value: any, space?: number): string {
   try {
-    return JSON.stringify(value, getCircularReplacer(), space);
-  } catch (err) {
-    console.warn('[Persistence] safeJsonStringify error:', err);
-    return '{}';
+    // Fast path: native JSON.stringify with zero overhead and minimal memory allocation
+    return JSON.stringify(value, null, space);
+  } catch (err: any) {
+    // Fallback if circular structure detected
+    try {
+      return JSON.stringify(value, getCircularReplacer(), space);
+    } catch (innerErr) {
+      console.warn('[Persistence] safeJsonStringify error:', innerErr);
+      return '{}';
+    }
   }
 }
 
 function setStorage<T>(key: string, value: T): void {
   try {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem(key, safeJsonStringify(value));
   } catch (e: any) {
     console.error(`[StorageService] Error writing ${key} to localStorage:`, e);
+    // If quota exceeded or out of memory, try clearing non-essential queue
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('fsos_sync_queue');
+        localStorage.setItem(key, safeJsonStringify(value));
+        return;
+      } catch (_) {}
+    }
     throw new Error(`Failed to persist data to local storage (${e?.message || 'Storage Quota Exceeded'}).`);
   }
 }
@@ -403,8 +424,7 @@ export const StorageService = {
       return [];
     }
     const sanitized = raw.map(sanitizeMachine);
-    const normalized = LaserEngine.normalizeMachines(sanitized) as unknown as Machine[];
-    return ImageStore.hydrateImagesSync(normalized);
+    return LaserEngine.normalizeMachines(sanitized) as unknown as Machine[];
   },
   saveMachines: (data: Machine[]) => {
     const processedMachines = data.map(m => {
@@ -501,7 +521,7 @@ export const StorageService = {
     const validSessions = Array.isArray(raw)
       ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
       : [];
-    return ImageStore.hydrateImagesSync(validSessions);
+    return validSessions;
   },
   saveMhcSessions: (data: MHCSession[]) => {
     const validSessions = Array.isArray(data)
