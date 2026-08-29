@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Machine, MHCRecord, MHCSession, NavigationTab } from '../../types';
 import { StorageService } from '../../utils/persistence';
+import { ImageStore } from '../../utils/imageStore';
 import { Card } from '../common/Card';
 import { Cpu, Activity } from 'lucide-react';
 
@@ -77,6 +78,21 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     StorageService.saveMhcSessions(updatedList);
   };
 
+  // Safe Discard / Delete Draft Session helper
+  const handleDeleteSession = (sessionId: string) => {
+    const targetSession = mhcSessions.find(s => s.id === sessionId);
+    // Explicit protection: Completed sessions are historical and MUST NOT be deleted as drafts
+    if (!targetSession || targetSession.completionStatus === 'COMPLETED') {
+      return;
+    }
+    const updatedList = mhcSessions.filter((s) => s.id !== sessionId);
+    setMhcSessions(updatedList);
+    StorageService.saveMhcSessions(updatedList);
+    ImageStore.deleteImagesForRecord(sessionId).catch(err => {
+      console.warn('[MachineHealthCheckModule] Error cleaning up session images:', err);
+    });
+  };
+
   // If no machines are registered/available in the system and not in history view, render an empty state
   if ((!machines || machines.length === 0 || !selectedMachine) && viewMode !== 'mhc_history') {
     return (
@@ -120,6 +136,7 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
             onSelectMachine={(m) => setSelectedMachineId(m.id)}
             onUpdateSession={handleUpdateSession}
             onSaveNewSession={handleUpdateSession}
+            onDeleteSession={handleDeleteSession}
             onSwitchToCanvas={() => setViewMode('smart_workspace')}
             onExitAutopilot={() => {
               if (onNavigate) {

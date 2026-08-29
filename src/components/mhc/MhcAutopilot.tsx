@@ -22,10 +22,12 @@ import {
   Calendar,
   Layers,
   Award,
-  LogOut
+  LogOut,
+  Trash2
 } from 'lucide-react';
 import { Customer, Machine, MHCSession, NavigationTab } from '../../types';
 import { StorageService } from '../../utils/persistence';
+import { ImageStore } from '../../utils/imageStore';
 import { useTheme } from '../../context/ThemeContext';
 import {
   MHC_WORKFLOW_SCHEDULE,
@@ -56,6 +58,7 @@ export interface MhcAutopilotProps {
   onSelectMachine: (machine: Machine) => void;
   onUpdateSession: (session: MHCSession) => void;
   onSaveNewSession: (session: MHCSession) => void;
+  onDeleteSession?: (sessionId: string) => void;
   onSwitchToCanvas: () => void;
   onExitAutopilot?: () => void;
   onNavigate?: (tab: NavigationTab) => void;
@@ -68,9 +71,10 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+  const rand = Math.random().toString(36).substring(2, 7);
 
   return {
-    id: `MHC-SESS-${Date.now()}`,
+    id: `MHC-SESS-${Date.now()}-${rand}`,
     machineId: machine.id,
     machineModel: machine.model,
     machineSerialNumber: machine.serialNumber,
@@ -166,6 +170,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   onSelectMachine,
   onUpdateSession,
   onSaveNewSession,
+  onDeleteSession,
   onSwitchToCanvas,
   onExitAutopilot,
   onNavigate,
@@ -209,20 +214,63 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   // Welcome banner quick-access completion state
   const [confirmingWelcomeComplete, setConfirmingWelcomeComplete] = useState<boolean>(false);
 
-  // Scroll locking for Review / Completion Modal
+  // Draft session discard state
+  const [sessionToDiscard, setSessionToDiscard] = useState<MHCSession | null>(null);
+  const [isDiscarding, setIsDiscarding] = useState<boolean>(false);
+
+  // Scroll locking for Review / Completion Modal or Discard Modal
   useEffect(() => {
-    if (showReviewCompletionModal) {
+    if (showReviewCompletionModal || Boolean(sessionToDiscard)) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [showReviewCompletionModal]);
+  }, [showReviewCompletionModal, sessionToDiscard]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Handler: Confirm Discard Draft Session
+  const handleConfirmDiscardSession = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (!sessionToDiscard || isDiscarding) return;
+    if (sessionToDiscard.completionStatus === 'COMPLETED') {
+      showNotification("Completed sessions are historical records and cannot be discarded.");
+      setSessionToDiscard(null);
+      return;
+    }
+
+    setIsDiscarding(true);
+    const targetId = sessionToDiscard.id;
+
+    try {
+      if (onDeleteSession) {
+        onDeleteSession(targetId);
+      } else {
+        const updatedList = mhcSessions.filter(s => s.id !== targetId);
+        StorageService.saveMhcSessions(updatedList);
+        await ImageStore.deleteImagesForRecord(targetId);
+      }
+
+      showNotification(`MHC draft session ${targetId} discarded.`);
+      setSessionToDiscard(null);
+
+      // If we were actively viewing or checking this discarded session, reset to welcome
+      if (effectiveSession?.id === targetId || currentStep === 'session_active' || currentStep === 'session_check') {
+        setCurrentStep('welcome');
+      }
+    } catch (err) {
+      console.error('Error discarding draft session:', err);
+      showNotification("Failed to discard session. Please try again.");
+    } finally {
+      setIsDiscarding(false);
+    }
   };
 
   // Triggered when PDF is generated and downloaded
@@ -933,6 +981,21 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               <LogOut className="w-3.5 h-3.5 text-rose-400" />
               <span>EXIT AUTOPILOT</span>
             </button>
+
+            {currentStep === 'session_active' && effectiveSession && effectiveSession.completionStatus !== 'COMPLETED' && (
+              <button
+                id="mhc-autopilot-rail-discard-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSessionToDiscard(effectiveSession);
+                }}
+                title="Discard this unwanted draft session"
+                className="w-full mt-2 py-2 px-3 rounded-xl border border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>Discard Draft Session</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1039,6 +1102,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           <span>COMPLETE MHC</span>
+                        </button>
+
+                        <button
+                          id="mhc-autopilot-welcome-discard-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSessionToDiscard(latestResumableSession);
+                          }}
+                          className="px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Discard this unwanted draft session"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Discard Draft</span>
                         </button>
                       </div>
                     </div>
@@ -1442,6 +1518,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       </button>
 
                       <button
+                        id="mhc-session-check-discard-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSessionToDiscard(existingIncompleteSession);
+                        }}
+                        className="px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Discard this draft session"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Discard Draft</span>
+                      </button>
+
+                      <button
                         onClick={handleReviewProgress}
                         className="px-3 py-2 text-xs text-cyan-300 hover:text-cyan-200 font-semibold transition-colors ml-auto flex items-center gap-1.5"
                       >
@@ -1561,6 +1650,21 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         </>
                       )}
                     </button>
+
+                    {effectiveSession && effectiveSession.completionStatus !== 'COMPLETED' && (
+                      <button
+                        id="mhc-autopilot-discard-draft-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSessionToDiscard(effectiveSession);
+                        }}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-rose-500/30 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 transition-all cursor-pointer"
+                        title="Discard this unwanted draft session"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Discard Draft</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2153,6 +2257,121 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   </button>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DISCARD DRAFT SESSION CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {sessionToDiscard && (
+          <div
+            id="modal-mhc-discard-session-backdrop"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isDiscarding) {
+                setSessionToDiscard(null);
+              }
+            }}
+          >
+            <motion.div
+              id="modal-mhc-discard-session-dialog"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className={`w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
+                isDark
+                  ? 'bg-[#0f1319] border-rose-900/60 text-slate-100 shadow-rose-950/40'
+                  : 'bg-white border-rose-200 text-slate-900 shadow-slate-900/20'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shrink-0">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                    DRAFT SESSION REMOVAL
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-100 dark:text-slate-100">
+                    Discard this MHC draft session?
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    The session progress will be removed and cannot be resumed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Information / Progress Box */}
+              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">SESSION ID:</span>
+                  <span className="font-bold text-slate-200">{sessionToDiscard.id}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">MACHINE / MODEL:</span>
+                  <span className="text-slate-200 font-semibold">{sessionToDiscard.machineModel} ({sessionToDiscard.machineSerialNumber})</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">CUSTOMER / PLANT:</span>
+                  <span className="text-slate-200 font-semibold">{sessionToDiscard.customerName} • {sessionToDiscard.plantName}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">STARTED AT:</span>
+                  <span className="text-slate-300">{sessionToDiscard.startDate} {sessionToDiscard.startTime}</span>
+                </div>
+
+                {(() => {
+                  const audit = auditMhcSession(sessionToDiscard);
+                  const readinessScore = computeAutopilotReadiness(sessionToDiscard.autopilotProgress).readinessScore;
+                  const hasData = readinessScore > 0 || (sessionToDiscard.stage01_laserHours && sessionToDiscard.stage01_laserHours.length > 0) || (sessionToDiscard.stage03_laserPower && sessionToDiscard.stage03_laserPower.length > 0);
+                  return hasData ? (
+                    <div className="pt-2 border-t border-rose-500/20 text-rose-300 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                      <span className="text-[11px] leading-relaxed">
+                        <strong>Warning:</strong> This session contains recorded inspection data ({readinessScore}% readiness, {audit.completedRequiredCount} of {audit.totalRequiredCount} required activities completed). Discarding will permanently remove this draft and its attachments.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+                      Empty session with no recorded inspection data. Machine Passport and historical records remain untouched.
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  id="btn-cancel-discard-session"
+                  type="button"
+                  disabled={isDiscarding}
+                  onClick={() => setSessionToDiscard(null)}
+                  className={`px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                    isDark
+                      ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                      : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  id="btn-confirm-discard-session"
+                  type="button"
+                  disabled={isDiscarding}
+                  onClick={handleConfirmDiscardSession}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-rose-950/50 flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isDiscarding ? 'Discarding...' : 'Discard Session'}</span>
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

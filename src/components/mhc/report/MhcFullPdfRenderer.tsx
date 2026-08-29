@@ -264,17 +264,23 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         const pdfBlob = pdf.output('blob');
         blobUrl = URL.createObjectURL(pdfBlob);
         
-        // 1. Open exactly ONE new tab for report review
+        // 1. Open exactly ONE intentional new tab for report review
         window.open(blobUrl, '_blank');
 
-        // 2. Trigger programmatic file download without opening a second window/tab
+        // 2. Trigger programmatic file download as binary octet-stream so the browser downloads to disk without launching a 2nd auto-viewer tab
+        const downloadBlob = new Blob([pdfBlob], { type: 'application/octet-stream' });
+        const downloadUrl = URL.createObjectURL(downloadBlob);
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.href = blobUrl;
+        downloadAnchor.href = downloadUrl;
         downloadAnchor.download = fileName;
+        downloadAnchor.rel = 'noopener noreferrer';
         downloadAnchor.style.display = 'none';
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         document.body.removeChild(downloadAnchor);
+        setTimeout(() => {
+          URL.revokeObjectURL(downloadUrl);
+        }, 1500);
       } catch (exportErr) {
         console.warn('[PDF Export] Issue during blob/download dispatch, falling back to pdf.save:', exportErr);
         pdf.save(fileName);
