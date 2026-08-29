@@ -2,7 +2,8 @@ import {
   MHCSession, 
   MHCAutopilotSessionProgress, 
   MHCActivityStatus,
-  MHCActivityDisposition
+  MHCActivityDisposition,
+  Machine
 } from '../types';
 
 export interface WorkflowActivity {
@@ -946,7 +947,21 @@ export function advanceAutopilotActivity(
   const readiness = computeAutopilotReadiness(updatedProgress);
   updatedProgress.readinessScore = readiness.readinessScore;
 
-  const isAllComplete = readiness.completedCount === readiness.totalCount;
+  const isAllResolved = ACTIONABLE_ACTIVITIES.every(a => {
+    const st = activityStatuses[a.code];
+    if (st === 'COMPLETED') return true;
+    if (st === 'NEEDS_REVIEW') {
+      const disp = updatedProgress.dispositions?.[a.code];
+      if (typeof disp === 'boolean') return disp;
+      return Boolean(disp?.acknowledged);
+    }
+    return false;
+  });
+
+  const isAllComplete = isAllResolved &&
+    activityStatuses['07'] === 'COMPLETED' &&
+    activityStatuses['08'] === 'COMPLETED' &&
+    activityStatuses['09'] === 'COMPLETED';
 
   return {
     ...cleanSession,
@@ -998,5 +1013,76 @@ export function flagDownstreamNeedsReview(
     ...cleanSession,
     lastUpdated: new Date().toISOString(),
     autopilotProgress: updatedProgress
+  };
+}
+
+/**
+ * Safely extracts the most recent numerical timestamp for an MHC session.
+ */
+export function getMhcSessionTimestamp(session?: MHCSession | null): number {
+  if (!session || typeof session !== 'object') return 0;
+  if (session.autopilotProgress?.lastActiveTimestamp) {
+    const t = new Date(session.autopilotProgress.lastActiveTimestamp).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  if (session.lastUpdated) {
+    const t = new Date(session.lastUpdated).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  if (session.startDate) {
+    const dateTimeStr = session.startTime ? `${session.startDate}T${session.startTime}` : session.startDate;
+    const t = new Date(dateTimeStr).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  if (typeof session.id === 'string') {
+    const match = session.id.match(/(\d{10,})/);
+    if (match) {
+      const t = parseInt(match[1], 10);
+      if (!isNaN(t) && t > 0) return t;
+    }
+  }
+  return 0;
+}
+
+export interface ResumableMhcSessionResult {
+  session: MHCSession;
+  machine: Machine;
+}
+
+/**
+ * Finds the latest valid, incomplete, and resumable MHC session across all recorded sessions.
+ * Strictly verifies that the session corresponds to an existing registered machine.
+ */
+export function findLatestResumableMhcSession(
+  sessions: MHCSession[],
+  machines: Machine[]
+): ResumableMhcSessionResult | null {
+  if (!Array.isArray(sessions) || !Array.isArray(machines) || sessions.length === 0 || machines.length === 0) {
+    return null;
+  }
+
+  const validResumables: { session: MHCSession; machine: Machine; timestamp: number }[] = [];
+
+  for (const s of sessions) {
+    if (!s || typeof s !== 'object' || !s.id || typeof s.id !== 'string') continue;
+    // Exclude completed sessions
+    if (s.completionStatus === 'COMPLETED') continue;
+
+    // Must match an existing machine in the fleet
+    const matchedMachine = machines.find(
+      m => m && (m.id === s.machineId || (Boolean(s.machineSerialNumber) && m.serialNumber === s.machineSerialNumber))
+    );
+    if (!matchedMachine) continue;
+
+    const timestamp = getMhcSessionTimestamp(s);
+    validResumables.push({ session: s, machine: matchedMachine, timestamp });
+  }
+
+  if (validResumables.length === 0) return null;
+
+  validResumables.sort((a, b) => b.timestamp - a.timestamp);
+  return {
+    session: validResumables[0].session,
+    machine: validResumables[0].machine
   };
 }

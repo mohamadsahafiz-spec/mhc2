@@ -35,7 +35,8 @@ import {
   computeAutopilotReadiness,
   auditMhcSession,
   advanceAutopilotActivity,
-  flagDownstreamNeedsReview
+  flagDownstreamNeedsReview,
+  findLatestResumableMhcSession
 } from '../../utils/mhcAutopilotBrain';
 import { MhcLaserHoursActivity } from './autopilot/MhcLaserHoursActivity';
 import { MhcLaserPowerActivity } from './autopilot/MhcLaserPowerActivity';
@@ -200,9 +201,50 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   // Toast / Status Message
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Post-PDF Download Review & Explicit Completion Modal State
+  const [showReviewCompletionModal, setShowReviewCompletionModal] = useState<boolean>(false);
+  const [generatedPdfBlobUrl, setGeneratedPdfBlobUrl] = useState<string | null>(null);
+  const [isConfirmingCompletion, setIsConfirmingCompletion] = useState<boolean>(false);
+
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Triggered when PDF is generated and downloaded
+  const handlePdfGenerated = (pdfBlobUrl?: string) => {
+    if (pdfBlobUrl) {
+      setGeneratedPdfBlobUrl(pdfBlobUrl);
+    }
+    setShowReviewCompletionModal(true);
+    showNotification("MHC Official Report PDF generated. Please review and explicitly confirm completion.");
+  };
+
+  // Handler: Review Report action from modal
+  const handleModalReviewReport = () => {
+    if (generatedPdfBlobUrl) {
+      try {
+        window.open(generatedPdfBlobUrl, '_blank');
+      } catch (err) {
+        console.warn('Could not re-open PDF blob URL:', err);
+      }
+    }
+    // Dismiss the modal so user can review the on-screen report or new tab without completing
+    setShowReviewCompletionModal(false);
+    setIsConfirmingCompletion(false);
+  };
+
+  // Handler: Explicitly Complete MHC from modal
+  const handleModalConfirmCompleteMhc = () => {
+    if (!effectiveSession) return;
+    // Advance 08 to COMPLETED and 09 to COMPLETED
+    const step1 = advanceAutopilotActivity(effectiveSession, '08', 'COMPLETED');
+    const finalizedSession = advanceAutopilotActivity(step1, '09', 'COMPLETED', activeNoteText || 'Report reviewed and finalized after PDF generation');
+
+    onUpdateSession(finalizedSession);
+    setShowReviewCompletionModal(false);
+    setIsConfirmingCompletion(false);
+    showNotification("MHC Session successfully completed & signed off ✓");
   };
 
   // Sync state if selectedMachine changes externally
@@ -242,6 +284,21 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       m.plantName.toLowerCase().includes(term)
     );
   }, [customerMachines, machineSearch]);
+
+  // Latest valid resumable activity across the entire fleet
+  const latestResumableData = useMemo(() => {
+    return findLatestResumableMhcSession(mhcSessions, machines);
+  }, [mhcSessions, machines]);
+
+  const latestResumableSession = latestResumableData?.session || null;
+  const latestResumableMachine = latestResumableData?.machine || null;
+
+  const latestResumableCustomer = useMemo(() => {
+    if (!latestResumableMachine && !latestResumableSession) return null;
+    const custId = latestResumableMachine?.customerId || latestResumableSession?.customerId;
+    const custName = latestResumableMachine?.customerName || latestResumableSession?.customerName;
+    return customers.find(c => (custId && c.id === custId) || (custName && c.name === custName)) || null;
+  }, [latestResumableMachine, latestResumableSession, customers]);
 
   // Existing session for selected machine
   const existingIncompleteSession = useMemo(() => {
@@ -294,6 +351,34 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     const savedNote = progress.activityNotes?.[currentCode] || '';
     setActiveNoteText(savedNote);
   }, [progress.currentActivityCode, progress.activityNotes?.[progress.currentActivityCode]]);
+
+  // Handle Continue Latest Activity (One-Click from Welcome Screen)
+  const handleContinueLatestActivity = () => {
+    if (!latestResumableSession || !latestResumableMachine) return;
+
+    // 1. Set machine
+    setLocalSelectedMachine(latestResumableMachine);
+    onSelectMachine(latestResumableMachine);
+
+    // 2. Set customer
+    if (latestResumableCustomer) {
+      setSelectedCustomer(latestResumableCustomer);
+    }
+
+    // 3. Hydrate session
+    const hydratedSession: MHCSession = {
+      ...latestResumableSession,
+      autopilotProgress: latestResumableSession.autopilotProgress || createDefaultAutopilotProgress()
+    };
+    onUpdateSession(hydratedSession);
+
+    // 4. Directly resume at active activity view
+    setIsReadOnlyMode(false);
+    setCurrentStep('session_active');
+
+    const activityCode = hydratedSession.autopilotProgress?.currentActivityCode || '01';
+    showNotification(`Resumed ${latestResumableMachine.model} (${latestResumableSession.id}) at Activity ${activityCode}`);
+  };
 
   // Handle Continue Existing Session
   const handleContinueExisting = () => {
@@ -480,6 +565,31 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
     onUpdateSession(updatedSession);
     showNotification("MHC Session Readiness verified! Activity 08 Report Generation unlocked ✓");
+  };
+
+  // Proceed to Buyoff / Complete from Report Generation (Activity 08 -> 09)
+  const handleProceedToBuyoff = () => {
+    if (!effectiveSession) return;
+    const currProgress = effectiveSession.autopilotProgress || createDefaultAutopilotProgress();
+    const updatedStatuses = {
+      ...currProgress.activityStatuses,
+      '08': 'COMPLETED' as const,
+      '09': 'IN_PROGRESS' as const
+    };
+
+    const updatedSession: MHCSession = {
+      ...effectiveSession,
+      autopilotProgress: {
+        ...currProgress,
+        activityStatuses: updatedStatuses,
+        currentActivityCode: '09',
+        currentDay: 'DAY 4',
+        lastActiveTimestamp: new Date().toISOString()
+      }
+    };
+
+    onUpdateSession(updatedSession);
+    showNotification("Activity 08 Report Generation marked COMPLETED! Proceeding to 09 Buyoff / Complete ✓");
   };
 
   // Handle Activity Navigation Jump
@@ -852,14 +962,62 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   </div>
                 </div>
 
+                {/* ONE-CLICK CONTINUE LAST ACTIVITY BANNER (IF RESUMABLE ACTIVITY EXISTS) */}
+                {latestResumableSession && latestResumableMachine && (
+                  <div className={`p-4 rounded-xl border space-y-3 transition-all ${
+                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/70 border-cyan-300'
+                  }`}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                        <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">
+                          Resumable Activity Detected
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        {latestResumableSession.id}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-slate-100 dark:text-slate-100 flex items-center gap-2">
+                          <span>{latestResumableMachine.model}</span>
+                          <span className="text-xs font-normal text-slate-400">
+                            ({latestResumableMachine.machineNumber || latestResumableMachine.serialNumber})
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 truncate mt-0.5">
+                          {latestResumableCustomer?.name || latestResumableSession.customerName || latestResumableMachine.customerName || 'Customer'} • {latestResumableMachine.plantName} • {latestResumableSession.autopilotProgress?.currentDay || 'DAY 1'} — {latestResumableSession.autopilotProgress?.currentActivityCode || '01'}
+                        </div>
+                      </div>
+
+                      <button
+                        id="mhc-autopilot-continue-last-btn"
+                        onClick={handleContinueLatestActivity}
+                        className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer shrink-0"
+                      >
+                        <Play className="w-4 h-4 fill-slate-950" />
+                        <span>Continue Last Activity</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* PRIMARY ACTION */}
-                <div className="pt-4 flex items-center justify-between">
+                <div className="pt-4 flex items-center justify-between border-t border-slate-800/60">
                   <span className="text-xs text-slate-500 font-mono">Step 1 of 4 • Welcome</span>
                   <button
                     onClick={() => setCurrentStep('customer')}
-                    className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    className={`px-6 py-3 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+                      latestResumableSession
+                        ? isDark
+                          ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                          : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
+                        : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20 hover:scale-[1.02]'
+                    }`}
                   >
-                    <span>Start Autopilot Setup</span>
+                    <span>{latestResumableSession ? 'Start New / Manual Setup' : 'Start Autopilot Setup'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1502,8 +1660,185 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     session={effectiveSession!}
                     previousSession={previousSession}
                     isDark={isDark}
+                    onProceedToBuyoff={handleProceedToBuyoff}
+                    onPdfGenerated={handlePdfGenerated}
                     onBackToAutopilot={() => handleJumpToActivityCode('07')}
                   />
+                ) : (progress.currentActivityCode === '09' || progress.currentActivityCode === '09_buyoff') ? (
+                  /* ACTIVITY 09: BUYOFF / COMPLETE FINALIZATION VIEW */
+                  <div className={`p-5 rounded-2xl border space-y-5 ${
+                    effectiveSession?.completionStatus === 'COMPLETED'
+                      ? isDark ? 'bg-emerald-950/20 border-emerald-500/40' : 'bg-emerald-50/70 border-emerald-300'
+                      : isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
+                  }`}>
+                    {/* Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
+                          effectiveSession?.completionStatus === 'COMPLETED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                        }`}>
+                          DAY 4 • 09
+                        </span>
+                        <h3 className="font-bold text-base text-slate-100">
+                          Buyoff &amp; Final MHC Session Acceptance
+                        </h3>
+                      </div>
+
+                      {/* Status Pill */}
+                      <span className={`text-[10px] font-mono px-2.5 py-1 rounded-full font-bold border ${
+                        effectiveSession?.completionStatus === 'COMPLETED'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                      }`}>
+                        {effectiveSession?.completionStatus === 'COMPLETED' ? '✓ SESSION COMPLETED' : '◉ IN PROGRESS'}
+                      </span>
+                    </div>
+
+                    {/* Summary / Confirmation Box */}
+                    {effectiveSession?.completionStatus === 'COMPLETED' ? (
+                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+                        <div className="flex items-center gap-2.5 text-emerald-400 font-bold text-sm">
+                          <CheckCircle2 className="w-5 h-5 shrink-0" />
+                          <span>MHC Inspection Successfully Finalized &amp; Signed Off</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          All 4 days of engineering inspection activities, optical measurements, calibration data, and Section 18 customer buyoff acceptance have been authoritatively completed.
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
+                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div className="text-[10px] text-slate-400 font-mono">STATUS</div>
+                            <div className="font-bold text-emerald-400">COMPLETED</div>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div className="text-[10px] text-slate-400 font-mono">READINESS SCORE</div>
+                            <div className="font-bold text-cyan-400">100% Passed</div>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div className="text-[10px] text-slate-400 font-mono">ENGINEER</div>
+                            <div className="font-bold text-slate-200 truncate">{effectiveSession.engineerName || 'Field Engineer'}</div>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div className="text-[10px] text-slate-400 font-mono">COMPLETED AT</div>
+                            <div className="font-bold text-slate-200 text-[11px] truncate">
+                              {effectiveSession.lastUpdated ? new Date(effectiveSession.lastUpdated).toLocaleDateString() : 'Today'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                          <div className="text-xs font-bold text-slate-200">Final Verification Checklist:</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div className="flex items-center gap-2 text-emerald-400">
+                              <CheckCircle2 className="w-4 h-4 shrink-0" />
+                              <span>07 Readiness Review (Passed)</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-emerald-400">
+                              <CheckCircle2 className="w-4 h-4 shrink-0" />
+                              <span>08 PDF Report Generated</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-cyan-400">
+                              <Award className="w-4 h-4 shrink-0" />
+                              <span>09 Buyoff Ready for Sign-Off</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Observation / Buyoff Note Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-slate-400 font-bold flex items-center justify-between">
+                        <span>FINAL BUYOFF &amp; HANDOVER REMARKS</span>
+                        <span className="text-[10px] text-slate-500">Persisted in Session Brain</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled={isReadOnlyMode}
+                        value={activeNoteText}
+                        onChange={(e) => {
+                          setActiveNoteText(e.target.value);
+                          if (!isReadOnlyMode && effectiveSession) {
+                            const updated = { ...effectiveSession };
+                            const currP = updated.autopilotProgress || createDefaultAutopilotProgress();
+                            updated.autopilotProgress = {
+                              ...currP,
+                              activityNotes: {
+                                ...(currP.activityNotes || {}),
+                                ['09']: e.target.value
+                              }
+                            };
+                            onUpdateSession(updated);
+                          }
+                        }}
+                        placeholder={isReadOnlyMode ? "Read-only mode active..." : "Enter final customer acceptance remarks or handover notes..."}
+                        className={`w-full px-3 py-2 rounded-xl border text-xs outline-none transition-all ${
+                          isDark
+                            ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
+                            : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                        }`}
+                      />
+                    </div>
+
+                    {/* ACTION CONTROLS */}
+                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                      {effectiveSession?.completionStatus !== 'COMPLETED' ? (
+                        !isReadOnlyMode ? (
+                          <>
+                            <button
+                              id="btn-mhc-finalize-session"
+                              onClick={() => handleCompleteCurrentActivity()}
+                              className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ring-2 ring-emerald-400/50"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Complete MHC Session &amp; Finalize Buyoff ✓</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleJumpToActivityCode('08')}
+                              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
+                            >
+                              <span>← Review Report (08)</span>
+                            </button>
+                          </>
+                        ) : (
+                          <div className="text-xs text-amber-300 font-mono flex items-center gap-2">
+                            <Lock className="w-4 h-4 text-amber-400" />
+                            <span>Action controls locked in Read-Only mode. Toggle "Enable Editing" above to modify.</span>
+                          </div>
+                        )
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleJumpToActivityCode('08')}
+                            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                          >
+                            <FileText className="w-4 h-4" />
+                            <span>View Full MHC Report (08)</span>
+                          </button>
+
+                          <button
+                            onClick={() => setCurrentStep('welcome')}
+                            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
+                          >
+                            <span>Return to Autopilot Setup</span>
+                          </button>
+
+                          {!isReadOnlyMode && (
+                            <button
+                              onClick={() => handleReopenActivity('09')}
+                              className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-mono font-semibold border border-slate-800 ml-auto"
+                            >
+                              Re-open Buyoff Activity
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div className={`p-5 rounded-2xl border space-y-4 ${
                     isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
@@ -1633,6 +1968,121 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         </div>
 
       </div>
+
+      {/* POST-PDF DOWNLOAD REVIEW & EXPLICIT COMPLETION MODAL */}
+      <AnimatePresence>
+        {showReviewCompletionModal && (
+          <div
+            id="modal-mhc-review-completion-backdrop"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md"
+          >
+            <motion.div
+              id="modal-mhc-review-completion-dialog"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className={`w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
+                isDark
+                  ? 'bg-slate-900/95 border-slate-700 text-slate-100 shadow-cyan-950/40'
+                  : 'bg-white/95 border-slate-300 text-slate-900 shadow-slate-900/20'
+              }`}
+            >
+              {/* Modal Header */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shrink-0">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    PDF EXPORT GENERATED
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-100">
+                    MHC Report Ready for Review
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    The official MHC Report PDF has been compiled and downloaded. Please review the generated document before finalizing and closing out this MHC session.
+                  </p>
+                </div>
+              </div>
+
+              {/* Information / Status Box */}
+              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">CURRENT SESSION STATUS:</span>
+                  <span className="font-bold text-amber-400">IN_PROGRESS (Pending User Sign-Off)</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">EQUIPMENT / SERIAL:</span>
+                  <span className="text-slate-200 font-semibold">{effectiveSession?.machineModel} • {effectiveSession?.machineSerialNumber}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">CUSTOMER FACILITY:</span>
+                  <span className="text-slate-200 font-semibold">{effectiveSession?.customerName} ({effectiveSession?.plantName})</span>
+                </div>
+              </div>
+
+              {/* Explicit Confirmation Step if User clicks Complete MHC */}
+              {isConfirmingCompletion ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-3"
+                >
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    <span>Confirm Authoritative Session Completion</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Completing this MHC will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive the active session. All inspection records, logs, and historical passport data will remain permanently safely stored.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      id="btn-modal-confirm-complete-yes"
+                      onClick={handleModalConfirmCompleteMhc}
+                      className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-950/50 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Yes, Finalize &amp; Complete MHC</span>
+                    </button>
+                    <button
+                      onClick={() => setIsConfirmingCompletion(false)}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              ) : null}
+
+              {/* Primary Modal Action Buttons */}
+              {!isConfirmingCompletion && (
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                  <button
+                    id="btn-modal-review-report"
+                    onClick={handleModalReviewReport}
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4 text-cyan-400" />
+                    <span>REVIEW REPORT</span>
+                  </button>
+
+                  <button
+                    id="btn-modal-complete-mhc"
+                    onClick={() => setIsConfirmingCompletion(true)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ring-2 ring-emerald-400/50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>COMPLETE MHC</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

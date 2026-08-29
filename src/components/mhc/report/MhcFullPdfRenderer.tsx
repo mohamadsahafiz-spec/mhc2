@@ -39,6 +39,8 @@ export interface MhcFullPdfRendererProps {
   reportDocument?: MhcReportDocument;
   isDark?: boolean;
   onBackToAutopilot?: () => void;
+  onProceedToBuyoff?: () => void;
+  onPdfGenerated?: (pdfBlobUrl?: string) => void;
 }
 
 export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
@@ -46,7 +48,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   previousSession,
   reportDocument,
   isDark = true,
-  onBackToAutopilot
+  onBackToAutopilot,
+  onProceedToBuyoff,
+  onPdfGenerated
 }) => {
   // Construct or use passed document
   const baseDoc: MhcReportDocument = reportDocument || buildMhcReportDocument(session, previousSession);
@@ -254,8 +258,22 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       lastFailingOperation = 'JSPDF_SAVE';
       setDownloadProgress('Finalizing PDF package...');
       const fileName = `${metadata.reportNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}_Full_MHC_Report.pdf`;
+      
+      let blobUrl: string | undefined;
+      try {
+        const pdfBlob = pdf.output('blob');
+        blobUrl = URL.createObjectURL(pdfBlob);
+        window.open(blobUrl, '_blank');
+      } catch (openErr) {
+        console.warn('[PDF Export] Could not auto-open in new window:', openErr);
+      }
+
       pdf.save(fileName);
       setDownloadProgress('');
+
+      if (onPdfGenerated) {
+        onPdfGenerated(blobUrl);
+      }
     } catch (err) {
       console.error(`[PDF Export Error] Operation: ${lastFailingOperation} (Page: ${currentProcessingPage})`, err);
       alert(`An error occurred while rendering the PDF (Failed at ${lastFailingOperation}). Please check the console for details.`);
@@ -423,6 +441,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <Download className="w-4 h-4" />
             <span>{isGeneratingPdf ? downloadProgress || 'Generating PDF...' : 'Download Official MHC PDF'}</span>
           </button>
+
+          {onProceedToBuyoff && (
+            <button
+              id="btn-mhc-proceed-to-buyoff"
+              onClick={onProceedToBuyoff}
+              className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-950/50 flex items-center gap-2 transition-all cursor-pointer ring-2 ring-cyan-400/50"
+            >
+              <span>Proceed to Buyoff / Complete (09) →</span>
+            </button>
+          )}
 
           {onBackToAutopilot && (
             <button
