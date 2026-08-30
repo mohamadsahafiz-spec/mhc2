@@ -180,20 +180,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Step state in the Autopilot setup flow - restore directly to active session if present
-  const [currentStep, setCurrentStep] = useState<SetupStep>(() => {
-    if (activeSession?.autopilotProgress) {
-      return 'session_active';
-    }
-    const defaultMachine = selectedMachine || machines[0];
-    if (defaultMachine) {
-      const existing = mhcSessions.find(s => s.machineId === defaultMachine.id && s.completionStatus !== 'COMPLETED');
-      if (existing?.autopilotProgress) {
-        return 'session_active';
-      }
-    }
-    return 'welcome';
-  });
+  // Step state in the Autopilot setup flow - always starts at welcome screen
+  const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
 
   // Read-only review mode state
   const [isReadOnlyMode, setIsReadOnlyMode] = useState<boolean>(false);
@@ -241,13 +229,6 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       };
     }
   }, [showReviewCompletionModal, sessionToDiscard]);
-
-  // Keep currentStep aligned with active session upon returning from navigation or PDF review
-  useEffect(() => {
-    if (activeSession?.autopilotProgress && currentStep !== 'session_active') {
-      setCurrentStep('session_active');
-    }
-  }, [activeSession?.id, activeSession?.autopilotProgress?.currentActivityCode]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
