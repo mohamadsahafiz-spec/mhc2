@@ -1730,7 +1730,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </strong>
                       </div>
                       <div>
-                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Baseline</span>
+                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">BASELINE</span>
                         <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold font-mono text-[10.5px] inline-block mt-0.5">
                           {sections['08'].data.heads?.[0]?.baseline || '-0.300 mm'}
                         </strong>
@@ -1756,7 +1756,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 font-mono text-[10px]">
-                          <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Baseline:</span>
+                          <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">BASELINE:</span>
                           <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">
                             {head.baseline}
                           </strong>
@@ -1789,7 +1789,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 )}
                                 {pos.isBaseline && (
                                   <span className="absolute bottom-0.5 right-0.5 bg-indigo-600 text-white text-[7px] font-mono font-bold px-1 rounded">
-                                    Baseline
+                                    BASELINE
                                   </span>
                                 )}
                               </div>
@@ -1801,10 +1801,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 }`}>
                                   {pos.positionMm}
                                 </span>
-                                <span className={`block text-[7.5px] font-sans ${
+                                <span className={`block text-[7.5px] font-sans uppercase tracking-tight ${
                                   pos.isBaseline ? 'font-semibold text-indigo-700' : 'text-slate-400'
                                 }`}>
-                                  {pos.isBaseline ? '(Baseline)' : 'Focus Position'}
+                                  FOCUS POSITION
                                 </span>
                               </div>
                             </div>
