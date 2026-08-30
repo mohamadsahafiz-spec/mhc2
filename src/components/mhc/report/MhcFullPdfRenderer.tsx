@@ -1702,118 +1702,186 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 08: FOCUS & OPTICAL WAIST */}
+              {/* SECTION 08: FOCUS OPTIMIZATION */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      08 FOCUS OPTIMIZATION &amp; OPTICAL WAIST
+                      08 FOCUS OPTIMIZATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                      Focal Plane Deviation &amp; Optical Alignment Telemetry
+                      Laser Alignment &amp; Machining Focus Calibration
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['08'].data.verdict || sections['08'].status)}
+                    {sections['08'].data.performedDuringMhc ? (
+                      renderStatusBadge(sections['08'].data.verdict || sections['08'].status)
+                    ) : (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-300">
+                        ROUTINE MHC: SKIPPED
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
-                  <div className="grid grid-cols-3 gap-2.5 font-mono text-[11px]">
-                    {/* Card 1: Authoritative Recorded Focal Plane Deviation */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          RECORDED FOCAL PLANE DEVIATION (Z-AXIS)
-                        </span>
-                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                          {sections['08'].data.focusOffsetMm !== null && sections['08'].data.focusOffsetMm !== undefined
-                            ? `${sections['08'].data.focusOffsetMm > 0 ? '+' : ''}${sections['08'].data.focusOffsetMm.toFixed(3)} mm`
-                            : '0.000 mm'}
-                        </strong>
-                      </div>
-                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[8.5px] font-sans text-slate-500">Rayleigh Rule: ±0.150 mm</span>
-                        <span className="text-[8.5px] font-sans font-bold text-emerald-700">WITHIN SPEC</span>
-                      </div>
-                    </div>
-
-                    {/* Card 2: Beam Propagation Parameters */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          BEAM PROPAGATION PARAMETERS
-                        </span>
-                        <div className="grid grid-cols-2 gap-2 pt-1">
+                  {sections['08'].data.performedDuringMhc ? (
+                    <>
+                      <div className="grid grid-cols-3 gap-2.5 font-mono text-[11px]">
+                        {/* Card 1: Recorded Focal Plane Deviation */}
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
                           <div>
-                            <span className="text-[8px] font-sans text-slate-400 block">BEAM WAIST (ω₀)</span>
-                            <strong className="text-xs font-extrabold text-slate-900">
-                              {sections['08'].data.beamWaistMm !== null && sections['08'].data.beamWaistMm !== undefined
-                                ? `${sections['08'].data.beamWaistMm.toFixed(3)} mm`
-                                : '1.050 mm'}
+                            <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                              RECORDED FOCAL PLANE DEVIATION (Z-AXIS)
+                            </span>
+                            <strong className="text-sm font-extrabold text-slate-900 block pt-1">
+                              {sections['08'].data.focusOffsetMm !== null && sections['08'].data.focusOffsetMm !== undefined
+                                ? `${sections['08'].data.focusOffsetMm > 0 ? '+' : ''}${sections['08'].data.focusOffsetMm.toFixed(3)} mm`
+                                : '—'}
                             </strong>
                           </div>
+                          <div className="pt-1.5 mt-1.5 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[8.5px] font-sans text-slate-500">Rayleigh Rule: ±0.150 mm</span>
+                            <span className="text-[8.5px] font-sans font-bold text-emerald-700">WITHIN SPEC</span>
+                          </div>
+                        </div>
+
+                        {/* Card 2: Beam Propagation Parameters */}
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
                           <div>
-                            <span className="text-[8px] font-sans text-slate-400 block">BEAM QUALITY (M²)</span>
-                            <strong className="text-xs font-extrabold text-slate-900">
-                              {sections['08'].data.m2Value !== null && sections['08'].data.m2Value !== undefined
-                                ? sections['08'].data.m2Value.toFixed(2)
-                                : '1.15'}
-                            </strong>
+                            <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                              BEAM PROPAGATION PARAMETERS
+                            </span>
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <div>
+                                <span className="text-[8px] font-sans text-slate-400 block">BEAM WAIST (ω₀)</span>
+                                <strong className="text-xs font-extrabold text-slate-900">
+                                  {sections['08'].data.beamWaistMm !== null && sections['08'].data.beamWaistMm !== undefined
+                                    ? `${sections['08'].data.beamWaistMm.toFixed(3)} mm`
+                                    : '—'}
+                                </strong>
+                              </div>
+                              <div>
+                                <span className="text-[8px] font-sans text-slate-400 block">BEAM QUALITY (M²)</span>
+                                <strong className="text-xs font-extrabold text-slate-900">
+                                  {sections['08'].data.m2Value !== null && sections['08'].data.m2Value !== undefined
+                                    ? sections['08'].data.m2Value.toFixed(2)
+                                    : '—'}
+                                </strong>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card 3: Optical Cleanliness & Condition */}
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
+                              OPTICAL CONDITION &amp; CLEANLINESS
+                            </span>
+                            <div className="flex items-center justify-between pt-1">
+                              <strong className="text-sm font-extrabold text-cyan-950">
+                                {sections['08'].data.cleanlinessScore !== null && sections['08'].data.cleanlinessScore !== undefined
+                                  ? `${sections['08'].data.cleanlinessScore}%`
+                                  : '—'}
+                              </strong>
+                              {sections['08'].data.afterCondition && (
+                                <span className="text-[9px] font-sans text-cyan-800 font-semibold bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
+                                  {sections['08'].data.afterCondition}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <div className="pt-1 mt-1 border-t border-slate-100 text-[8.5px] font-sans text-slate-500">
-                        Gaussian propagation factor nominal
-                      </div>
-                    </div>
 
-                    {/* Card 3: Optical Cleanliness & Condition */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          OPTICAL CONDITION &amp; CLEANLINESS
-                        </span>
-                        <div className="flex items-center justify-between pt-1">
-                          <strong className="text-sm font-extrabold text-cyan-950">
-                            {sections['08'].data.cleanlinessScore !== null && sections['08'].data.cleanlinessScore !== undefined
-                              ? `${sections['08'].data.cleanlinessScore}%`
-                              : '98%'}
-                          </strong>
-                          <span className="text-[9px] font-sans text-cyan-800 font-semibold bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
-                            {sections['08'].data.afterCondition || 'Cleaned & Nominal'}
+                      {/* Verification Record & Evidence Images */}
+                      <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed space-y-1.5">
+                        <div className="flex items-start gap-1">
+                          <span className="font-bold text-slate-800 shrink-0">Engineer Record:</span>
+                          <span>{sections['08'].data.notes}</span>
+                        </div>
+                        
+                        {sections['08'].data.evidenceImages && sections['08'].data.evidenceImages.length > 0 && (
+                          <div className="pt-1 border-t border-slate-100 flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase font-sans">Evidence:</span>
+                            <div className="flex items-center gap-2">
+                              {sections['08'].data.evidenceImages.map((img, idx) => (
+                                <img 
+                                  key={idx} 
+                                  src={img} 
+                                  alt={`Optical inspection evidence ${idx + 1}`} 
+                                  className="h-10 w-auto max-w-[120px] object-contain rounded border border-slate-200 bg-slate-50"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* Routine MHC Skipped View with Historical Passport Grounding */
+                    <div className="space-y-2.5">
+                      <div className="p-3 rounded-lg bg-white border border-slate-200">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            <span className="font-bold text-slate-800 text-xs">
+                              MHC Protocol Status: Not Performed During Routine MHC
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            Reason: Standard Preventive Inspection
                           </span>
                         </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Focus Optimization is an engineering procedure required during laser source replacement or major optical path realignment. It is standard protocol to skip physical wafer ablation drilling during routine MHC unless focus drift is detected via Beam Profile (§07).
+                        </p>
                       </div>
-                      <div className="pt-1 mt-1 border-t border-slate-100 text-[8.5px] font-sans text-slate-500 truncate">
-                        Before: {sections['08'].data.beforeCondition || 'Nominal / Inspected'}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Verification Record & Evidence Images */}
-                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed space-y-1.5">
-                    <div className="flex items-start gap-1">
-                      <span className="font-bold text-slate-800 shrink-0">Engineer Record:</span>
-                      <span>{sections['08'].data.notes || 'Optical path and focal alignment verified within nominal engineering limits.'}</span>
-                    </div>
-                    
-                    {sections['08'].data.evidenceImages && sections['08'].data.evidenceImages.length > 0 && (
-                      <div className="pt-1 border-t border-slate-100 flex items-center gap-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase font-sans">Evidence:</span>
-                        <div className="flex items-center gap-2">
-                          {sections['08'].data.evidenceImages.map((img, idx) => (
-                            <img 
-                              key={idx} 
-                              src={img} 
-                              alt={`Optical inspection evidence ${idx + 1}`} 
-                              className="h-10 w-auto max-w-[120px] object-contain rounded border border-slate-200 bg-slate-50"
-                            />
-                          ))}
+                      {/* Historical Baseline Reference */}
+                      {sections['08'].data.historicalRecord ? (
+                        <div className="p-3 rounded-lg bg-indigo-50/50 border border-indigo-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 tracking-wide">
+                              Historical Machine Passport Record (Reference Only)
+                            </span>
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
+                              Verified: {sections['08'].data.historicalRecord.date}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 text-[10.5px]">
+                            <div className="p-2 rounded bg-white border border-indigo-100">
+                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Procedure</span>
+                              <span className="font-semibold text-slate-800">{sections['08'].data.procedure || 'Drill on using wafer (Dummy)'}</span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-indigo-100">
+                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Parameter</span>
+                              <span className="font-semibold text-slate-800">{sections['08'].data.performParam || '2W@50kHz (Working zone) + 2 shots'}</span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-indigo-100">
+                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Specification Standard</span>
+                              <span className="font-semibold text-amber-700">Visual Machining Focus (None)</span>
+                            </div>
+                          </div>
+
+                          <div className="text-[10.5px] text-indigo-950 flex items-center justify-between pt-1 border-t border-indigo-100/80">
+                            <span>
+                              Physical Wafer Verification: <strong>Laser 1 ({sections['08'].data.historicalRecord.laser1ImageCount}/7 positions)</strong> &amp; <strong>Laser 2 ({sections['08'].data.historicalRecord.laser2ImageCount}/7 positions)</strong>
+                            </span>
+                            <span className="font-mono text-[10px] text-indigo-700">
+                              Optimal Focus: {sections['08'].data.historicalRecord.selectedBestFocusPosition || '0'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-500 font-mono">
+                          Specification: None — This item is for checking and setting machining focus. No numerical specification.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

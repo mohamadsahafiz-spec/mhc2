@@ -42,7 +42,8 @@ export type MhcReportSectionStatus =
   | 'NEEDS_REVIEW'
   | 'UNAVAILABLE'
   | 'NOT_COLLECTED'
-  | 'NOT_APPLICABLE';
+  | 'NOT_APPLICABLE'
+  | 'SKIPPED';
 
 export interface MhcReportEvidenceRef {
   id: string;
@@ -278,6 +279,22 @@ export interface MhcReportBeamProfileData {
 // 08 Focus Optimization
 export interface MhcReportFocusOptimizationData {
   status: MhcReportSectionStatus;
+  performedDuringMhc: boolean;
+  reasonNotPerformed?: string;
+  historicalRecord?: {
+    date: string;
+    engineerName?: string;
+    reason?: string;
+    procedure?: string;
+    performParam?: string;
+    specificationText?: string;
+    laser1ImageCount: number;
+    laser2ImageCount: number;
+    selectedBestFocusPosition?: string;
+  } | null;
+  procedure?: string;
+  performParam?: string;
+  specificationText?: string;
   focusOffsetMm?: number | null;
   beamWaistMm?: number | null;
   m2Value?: number | null;

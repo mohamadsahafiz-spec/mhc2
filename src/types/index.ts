@@ -194,6 +194,7 @@ export interface Machine {
   manualTemperatureReadings?: import('./temperature').ManualTemperatureReading[];
   laserPowerRecords?: import('./laserPower').LaserPowerCheckRecord[];
   beamProfileRecords?: import('./beamProfile').BeamProfileCheckRecord[];
+  focusOptimizationRecords?: import('./focusOptimization').FocusOptimizationRecord[];
   productProcessRecords?: import('./productProcess').ProductProcessRecord[];
   mhcSpecs?: MachineMhcSpecs;
 }

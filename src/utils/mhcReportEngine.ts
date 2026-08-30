@@ -537,32 +537,92 @@ export function buildMhcReportDocument(
   // 08 FOCUS OPTIMIZATION & OPTICAL WAIST
   const optics = session.stage04_opticsBeam;
   const rawFocusOffset = optics?.focusOffsetMm;
-  const hasFocusData = rawFocusOffset !== undefined && rawFocusOffset !== null;
-  const focusOffsetVal = hasFocusData ? rawFocusOffset : 0.00;
-  const focusVerdict: 'PASS' | 'WARNING' | 'FAIL' = hasFocusData
-    ? (Math.abs(focusOffsetVal) <= 0.150 ? 'PASS' : 'WARNING')
-    : (optics?.inspectionResult === 'PASS' ? 'PASS' : optics?.inspectionResult === 'FAIL' ? 'FAIL' : 'PASS');
+  const hasDirectMhcMeasurement = rawFocusOffset !== undefined && rawFocusOffset !== null;
+  const latestHistoricalFocusRecord = (session as any).focusOptimizationRecords?.[0]
+    || matchedMachine?.focusOptimizationRecords?.[0]
+    || null;
 
   const resolvedOpticsImages = (optics?.images || [])
     .map(img => ImageStore.resolveImage(img) || img)
     .filter(Boolean);
 
-  const focusOptimizationData: MhcReportFocusOptimizationData = {
-    status: (hasFocusData || optics) ? 'COMPLETE' : 'NOT_COLLECTED',
-    focusOffsetMm: focusOffsetVal,
-    beamWaistMm: optics?.beamWaistMm !== undefined ? optics.beamWaistMm : null,
-    m2Value: optics?.m2Value !== undefined ? optics.m2Value : null,
-    cleanlinessScore: optics?.cleanlinessScore !== undefined ? optics.cleanlinessScore : null,
-    beforeCondition: optics?.beforeCondition,
-    afterCondition: optics?.afterCondition,
-    rayleighRangeToleranceMm: 0.150,
-    verdict: focusVerdict,
-    notes: optics?.notes || 'Focal plane deviation and optical path alignment verified within nominal engineering tolerances.',
-    evidenceImages: resolvedOpticsImages,
-    head1FocusOffsetMm: focusOffsetVal,
-    head2FocusOffsetMm: focusOffsetVal,
-    optimalFocusPointMm: focusOffsetVal
-  };
+  let focusOptimizationData: MhcReportFocusOptimizationData;
+
+  if (hasDirectMhcMeasurement) {
+    const focusOffsetVal = rawFocusOffset!;
+    const focusVerdict: 'PASS' | 'WARNING' | 'FAIL' = Math.abs(focusOffsetVal) <= 0.150 ? 'PASS' : 'WARNING';
+
+    focusOptimizationData = {
+      status: 'COMPLETE',
+      performedDuringMhc: true,
+      procedure: 'Drill on using wafer (Dummy)',
+      performParam: '2W@50kHz (Working zone) + 2 shots',
+      specificationText: 'None — This item is for checking and setting machining focus. No numerical specification.',
+      focusOffsetMm: focusOffsetVal,
+      beamWaistMm: optics?.beamWaistMm ?? null,
+      m2Value: optics?.m2Value ?? null,
+      cleanlinessScore: optics?.cleanlinessScore ?? null,
+      beforeCondition: optics?.beforeCondition,
+      afterCondition: optics?.afterCondition,
+      rayleighRangeToleranceMm: 0.150,
+      verdict: focusVerdict,
+      notes: optics?.notes || 'Focus alignment verified on dummy wafer during current service intervention.',
+      evidenceImages: resolvedOpticsImages,
+      head1FocusOffsetMm: focusOffsetVal,
+      head2FocusOffsetMm: focusOffsetVal,
+      optimalFocusPointMm: focusOffsetVal
+    };
+  } else if (latestHistoricalFocusRecord) {
+    const l1Images = Object.values(latestHistoricalFocusRecord.laser1?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
+    const l2Images = Object.values(latestHistoricalFocusRecord.laser2?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
+
+    focusOptimizationData = {
+      status: 'SKIPPED',
+      performedDuringMhc: false,
+      reasonNotPerformed: 'SKIPPED — Routine MHC standard protocol; laser replacement / realignment not required',
+      historicalRecord: {
+        date: latestHistoricalFocusRecord.date,
+        engineerName: latestHistoricalFocusRecord.engineerName,
+        reason: latestHistoricalFocusRecord.reason,
+        procedure: latestHistoricalFocusRecord.procedure || 'Drill on using wafer (Dummy)',
+        performParam: latestHistoricalFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
+        specificationText: latestHistoricalFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
+        laser1ImageCount: l1Images,
+        laser2ImageCount: l2Images,
+        selectedBestFocusPosition: latestHistoricalFocusRecord.laser1?.selectedBestFocusPosition || '0'
+      },
+      procedure: latestHistoricalFocusRecord.procedure || 'Drill on using wafer (Dummy)',
+      performParam: latestHistoricalFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
+      specificationText: latestHistoricalFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
+      focusOffsetMm: null,
+      beamWaistMm: null,
+      m2Value: null,
+      cleanlinessScore: null,
+      beforeCondition: undefined,
+      afterCondition: undefined,
+      rayleighRangeToleranceMm: 0.150,
+      verdict: 'NOT_COLLECTED',
+      notes: `HISTORICAL RECORD: Verified on ${latestHistoricalFocusRecord.date} by ${latestHistoricalFocusRecord.engineerName || 'EO Technics Field Engineer'} (Reason: ${latestHistoricalFocusRecord.reason || 'LASER_REPLACEMENT'}). Routine MHC verifies optical integrity via Beam Profile (§07).`,
+      evidenceImages: []
+    };
+  } else {
+    focusOptimizationData = {
+      status: 'NOT_COLLECTED',
+      performedDuringMhc: false,
+      reasonNotPerformed: 'SKIPPED — Routine MHC standard protocol; laser replacement / realignment not required',
+      historicalRecord: null,
+      procedure: 'Drill on using wafer (Dummy)',
+      performParam: '2W@50kHz (Working zone) + 2 shots',
+      specificationText: 'None — This item is for checking and setting machining focus. No numerical specification.',
+      focusOffsetMm: null,
+      beamWaistMm: null,
+      m2Value: null,
+      cleanlinessScore: null,
+      verdict: 'NOT_COLLECTED',
+      notes: 'Focus Optimization is an engineering calibration procedure performed during laser source replacement or realignment. Skipped during routine MHC.',
+      evidenceImages: []
+    };
+  }
 
   const focusOptimizationSection: MhcReportSection<MhcReportFocusOptimizationData> = {
     code: '08',
