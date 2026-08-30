@@ -1715,34 +1715,39 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                 <div className="space-y-2 text-xs">
                   {sections['08'].data.heads?.map((head, headIdx) => (
-                    <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                      {/* Laser Head Metadata Bar */}
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                          <span className="font-extrabold text-slate-900 text-xs tracking-tight">
-                            {head.laserLabel}
-                          </span>
+                    <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                      {/* Laser Head Record Header (2-Row Hierarchy: Identity & Result) */}
+                      <div className="border-b border-slate-200 pb-1.5 space-y-1">
+                        {/* Row 1: Record Identity (Who → When/Why) */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                            <span className="font-extrabold text-slate-900 text-xs tracking-tight">
+                              {head.laserLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
+                            <div>
+                              <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Date:</span>
+                              <strong className="text-slate-800">{head.date}</strong>
+                            </div>
+                            <span className="text-slate-300">•</span>
+                            <div>
+                              <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Adjustment Reason:</span>
+                              <strong className="text-slate-800">{head.adjustmentReason}</strong>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
-                          <div>
-                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Date:</span>
-                            <strong className="text-slate-800">{head.date}</strong>
-                          </div>
-                          <span className="text-slate-300">•</span>
-                          <div>
-                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Adjustment Reason:</span>
-                            <strong className="text-slate-800">{head.adjustmentReason}</strong>
-                          </div>
-                          <span className="text-slate-300">•</span>
-                          <div>
-                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Baseline:</span>
+
+                        {/* Row 2: Engineering Result */}
+                        <div className="flex items-center justify-between text-[10px] bg-slate-100/70 px-2 py-0.5 rounded border border-slate-200/70">
+                          <div className="flex items-center gap-1.5 font-mono">
+                            <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Baseline:</span>
                             <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">{head.baseline}</strong>
                           </div>
-                          <span className="text-slate-300">•</span>
-                          <div>
-                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Evaluation:</span>
-                            <strong className="text-slate-800">{head.evaluation}</strong>
+                          <div className="flex items-center gap-1.5 text-slate-700">
+                            <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Evaluation:</span>
+                            <span className="font-medium text-slate-800">{head.evaluation}</span>
                           </div>
                         </div>
                       </div>
@@ -1773,7 +1778,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 )}
                                 {pos.isBaseline && (
                                   <span className="absolute bottom-0.5 right-0.5 bg-indigo-600 text-white text-[7px] font-mono font-bold px-1 rounded">
-                                    BASE
+                                    Baseline
                                   </span>
                                 )}
                               </div>
@@ -1785,15 +1790,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 }`}>
                                   {pos.positionMm}
                                 </span>
-                                {pos.isBaseline ? (
-                                  <span className="block text-[7.5px] font-sans font-semibold text-indigo-700">
-                                    (Baseline)
-                                  </span>
-                                ) : (
-                                  <span className="block text-[7.5px] font-sans text-slate-400">
-                                    {pos.key === '0' ? 'Starting' : 'Offset'}
-                                  </span>
-                                )}
+                                <span className={`block text-[7.5px] font-sans ${
+                                  pos.isBaseline ? 'font-semibold text-indigo-700' : 'text-slate-400'
+                                }`}>
+                                  {pos.isBaseline ? '(Baseline)' : 'Focus Position'}
+                                </span>
                               </div>
                             </div>
                           );
