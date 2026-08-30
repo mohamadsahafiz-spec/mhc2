@@ -7,7 +7,7 @@ const STORE_NAME = 'evidence_images';
 let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
-const MAX_MEMORY_CACHE_ITEMS = 64;
+const MAX_MEMORY_CACHE_ITEMS = 2048;
 
 function setMemoryCache(key: string, val: string) {
   if (imageMemoryCache.has(key)) {
@@ -388,14 +388,12 @@ export const ImageStore = {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const req = store.openCursor();
-        let count = 0;
         req.onsuccess = (event) => {
           const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-          if (cursor && count < 32) {
+          if (cursor) {
             const keyStr = cursor.key as string;
             setMemoryCache(keyStr, cursor.value as string);
             persistedInIdbKeys.add(keyStr);
-            count++;
             cursor.continue();
           } else {
             resolve();

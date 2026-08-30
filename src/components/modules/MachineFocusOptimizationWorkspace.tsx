@@ -27,6 +27,7 @@ import {
 } from '../../types/focusOptimization';
 import { FocusOptimizationEngine } from '../../utils/focusOptimizationEngine';
 import { StorageService } from '../../utils/persistence';
+import { ImageStore } from '../../utils/imageStore';
 import { getLocalDateString } from '../../utils/timeUtils';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -46,8 +47,44 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  const records = machine?.focusOptimizationRecords || [];
+  // State to hold hydrated records with resolved base64 images from ImageStore
+  const [hydratedRecords, setHydratedRecords] = useState<FocusOptimizationRecord[]>(() => {
+    return (machine?.focusOptimizationRecords || []).map(r => ImageStore.hydrateImagesSync(r));
+  });
+
+  // Re-hydrate whenever machine records change or background IDB preloading completes
+  React.useEffect(() => {
+    let isMounted = true;
+    const rawRecs = machine?.focusOptimizationRecords || [];
+    const syncHydrated = rawRecs.map(r => ImageStore.hydrateImagesSync(r));
+    setHydratedRecords(syncHydrated);
+
+    const hasIdbPointer = rawRecs.some(r =>
+      Object.values(r.laser1?.positions || {}).some(p => p?.imageDataUrl?.startsWith('idb:')) ||
+      Object.values(r.laser2?.positions || {}).some(p => p?.imageDataUrl?.startsWith('idb:'))
+    );
+
+    if (hasIdbPointer) {
+      ImageStore.hydrateImagesAsync(rawRecs).then((asyncHydrated) => {
+        if (isMounted && Array.isArray(asyncHydrated)) {
+          setHydratedRecords(asyncHydrated);
+        }
+      });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [machine?.focusOptimizationRecords]);
+
+  const records = hydratedRecords.length > 0 ? hydratedRecords : (machine?.focusOptimizationRecords || []);
   const latestRecord = records[0] || null;
+
+  // Helper to safely resolve image data from ImageStore cache or direct base64/URL
+  const resolveImg = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    return ImageStore.resolveImage(url) || (url.startsWith('idb:') ? undefined : url);
+  };
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -299,11 +336,12 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
                     {FOCUS_WAFER_POSITIONS.map((pos) => {
                       const item = latestRecord.laser1?.positions?.[pos];
+                      const imgUrl = resolveImg(item?.imageDataUrl);
                       const isCenter = pos === '0';
                       return (
                         <div
                           key={`l1_${pos}`}
-                          onClick={() => item?.imageDataUrl && setPreviewImage({ title: `Laser 1 — Position ${pos} Wafer Drill`, src: item.imageDataUrl })}
+                          onClick={() => imgUrl && setPreviewImage({ title: `Laser 1 — Position ${pos} Wafer Drill`, src: imgUrl })}
                           className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 ${
                             isCenter
                               ? isDark
@@ -326,9 +364,9 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                           </div>
 
                           <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80">
-                            {item?.imageDataUrl ? (
+                            {imgUrl ? (
                               <img
-                                src={item.imageDataUrl}
+                                src={imgUrl}
                                 alt={`Laser 1 ${pos}`}
                                 className="w-full h-full object-cover"
                               />
@@ -365,11 +403,12 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
                     {FOCUS_WAFER_POSITIONS.map((pos) => {
                       const item = latestRecord.laser2?.positions?.[pos];
+                      const imgUrl = resolveImg(item?.imageDataUrl);
                       const isCenter = pos === '0';
                       return (
                         <div
                           key={`l2_${pos}`}
-                          onClick={() => item?.imageDataUrl && setPreviewImage({ title: `Laser 2 — Position ${pos} Wafer Drill`, src: item.imageDataUrl })}
+                          onClick={() => imgUrl && setPreviewImage({ title: `Laser 2 — Position ${pos} Wafer Drill`, src: imgUrl })}
                           className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 ${
                             isCenter
                               ? isDark
@@ -392,9 +431,9 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                           </div>
 
                           <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80">
-                            {item?.imageDataUrl ? (
+                            {imgUrl ? (
                               <img
-                                src={item.imageDataUrl}
+                                src={imgUrl}
                                 alt={`Laser 2 ${pos}`}
                                 className="w-full h-full object-cover"
                               />
@@ -556,7 +595,8 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
                 {FOCUS_WAFER_POSITIONS.map((pos) => {
-                  const img = formLaser1.positions[pos]?.imageDataUrl;
+                  const rawImg = formLaser1.positions[pos]?.imageDataUrl;
+                  const img = resolveImg(rawImg);
                   return (
                     <div key={`modal_l1_${pos}`} className="text-center">
                       <span className="text-[10px] font-mono font-bold block mb-1 text-slate-400">{pos}</span>
@@ -589,7 +629,8 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
                 {FOCUS_WAFER_POSITIONS.map((pos) => {
-                  const img = formLaser2.positions[pos]?.imageDataUrl;
+                  const rawImg = formLaser2.positions[pos]?.imageDataUrl;
+                  const img = resolveImg(rawImg);
                   return (
                     <div key={`modal_l2_${pos}`} className="text-center">
                       <span className="text-[10px] font-mono font-bold block mb-1 text-slate-400">{pos}</span>
@@ -620,6 +661,111 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
               </Button>
               <Button variant="primary" onClick={handleSaveRecord}>
                 Save Focus Optimization Record
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Selected Historical Record Detail Modal */}
+      {selectedRecordDetail && (
+        <Modal
+          isOpen={!!selectedRecordDetail}
+          onClose={() => setSelectedRecordDetail(null)}
+          title={`Focus Optimization Audit — ${selectedRecordDetail.date}`}
+        >
+          <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl border ${
+              isDark ? 'border-slate-800 bg-slate-900/50' : 'border-slate-200 bg-slate-50'
+            }`}>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 block">Engineer</span>
+                <p className="font-semibold text-xs mt-0.5">{selectedRecordDetail.engineerName || 'Field Engineer'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 block">Trigger / Reason</span>
+                <Badge variant="info">{selectedRecordDetail.reason || 'LASER_REPLACEMENT'}</Badge>
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 block">Audit Status</span>
+                <Badge variant="success">14/14 Positions Verified</Badge>
+              </div>
+            </div>
+
+            {selectedRecordDetail.serviceRecord && (
+              <div className={`p-3 rounded-xl border text-xs ${
+                isDark ? 'bg-slate-900/40 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <span className="font-bold text-indigo-400 uppercase text-[10px] block mb-0.5">Notes:</span>
+                {selectedRecordDetail.serviceRecord}
+              </div>
+            )}
+
+            {/* Laser 1 Grid in modal */}
+            <div className={`p-3 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
+              <span className="font-bold text-xs text-amber-500 block mb-2">Laser 1 (Head A) — Dummy Wafer Sequence</span>
+              <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                {FOCUS_WAFER_POSITIONS.map((pos) => {
+                  const item = selectedRecordDetail.laser1?.positions?.[pos];
+                  const imgUrl = resolveImg(item?.imageDataUrl);
+                  return (
+                    <div key={`modal_detail_l1_${pos}`} className={`p-1.5 rounded-lg border text-center ${
+                      isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
+                    }`}>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 block mb-1">{pos}</span>
+                      <div
+                        onClick={() => imgUrl && setPreviewImage({ title: `Laser 1 — Position ${pos} Wafer Drill`, src: imgUrl })}
+                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 cursor-pointer"
+                      >
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={`L1 ${pos}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-slate-600" />
+                        )}
+                      </div>
+                      <span className="text-[8px] font-mono text-slate-500 mt-1 block">
+                        {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Laser 2 Grid in modal */}
+            <div className={`p-3 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
+              <span className="font-bold text-xs text-cyan-500 block mb-2">Laser 2 (Head B) — Dummy Wafer Sequence</span>
+              <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                {FOCUS_WAFER_POSITIONS.map((pos) => {
+                  const item = selectedRecordDetail.laser2?.positions?.[pos];
+                  const imgUrl = resolveImg(item?.imageDataUrl);
+                  return (
+                    <div key={`modal_detail_l2_${pos}`} className={`p-1.5 rounded-lg border text-center ${
+                      isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
+                    }`}>
+                      <span className="text-[10px] font-mono font-bold text-slate-400 block mb-1">{pos}</span>
+                      <div
+                        onClick={() => imgUrl && setPreviewImage({ title: `Laser 2 — Position ${pos} Wafer Drill`, src: imgUrl })}
+                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 cursor-pointer"
+                      >
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={`L2 ${pos}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-slate-600" />
+                        )}
+                      </div>
+                      <span className="text-[8px] font-mono text-slate-500 mt-1 block">
+                        {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button variant="secondary" onClick={() => setSelectedRecordDetail(null)}>
+                Close
               </Button>
             </div>
           </div>

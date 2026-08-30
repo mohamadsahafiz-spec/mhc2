@@ -424,7 +424,8 @@ export const StorageService = {
       return [];
     }
     const sanitized = raw.map(sanitizeMachine);
-    return LaserEngine.normalizeMachines(sanitized) as unknown as Machine[];
+    const hydrated = sanitized.map(m => ImageStore.hydrateImagesSync(m));
+    return LaserEngine.normalizeMachines(hydrated) as unknown as Machine[];
   },
   saveMachines: (data: Machine[]) => {
     const processedMachines = data.map(m => {
@@ -521,7 +522,7 @@ export const StorageService = {
     const validSessions = Array.isArray(raw)
       ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
       : [];
-    return validSessions;
+    return validSessions.map(s => ImageStore.hydrateImagesSync(s));
   },
   saveMhcSessions: (data: MHCSession[]) => {
     const validSessions = Array.isArray(data)
