@@ -541,15 +541,17 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
     expect(doc.sections['18'].data.engineerSignoff.name).toBe('Jane Doe');
 
-    // §08 Focus Optimization data grounding (Routine MHC does not perform destructive wafer ablation drilling)
+    // §08 Focus Optimization data grounding
     expect(doc.sections['08'].code).toBe('08');
-    expect(doc.sections['08'].data.performedDuringMhc).toBe(false);
-    expect(doc.sections['08'].data.status).toBe('NOT_COLLECTED');
-    expect(doc.sections['08'].data.focusOffsetMm).toBeNull();
-    expect(doc.sections['08'].data.beamWaistMm).toBeNull();
-    expect(doc.sections['08'].data.m2Value).toBeNull();
-    expect(doc.sections['08'].data.cleanlinessScore).toBeNull();
-    expect(doc.sections['08'].data.verdict).toBe('NOT_COLLECTED');
+    expect(doc.sections['08'].data.heads.length).toBe(2);
+    expect(doc.sections['08'].data.heads[0].laserLabel).toBe('Laser Head 1');
+    expect(doc.sections['08'].data.heads[0].baseline).toBe('-0.300 mm');
+    expect(doc.sections['08'].data.heads[0].positions.length).toBe(7);
+    expect(doc.sections['08'].data.heads[0].positions[0].positionMm).toBe('+0.300 mm');
+    expect(doc.sections['08'].data.heads[0].positions[3].positionMm).toBe('0.000 mm');
+    expect(doc.sections['08'].data.heads[0].positions[6].positionMm).toBe('-0.300 mm');
+    expect(doc.sections['08'].data.heads[0].positions[6].isBaseline).toBe(true);
+    expect(doc.sections['08'].data.topViaImpactNote).toContain('Top via impact: Focus adjustment primarily affects top diameter (~90%)');
 
     // §09 Power Offset & Calibration data grounding
     expect(doc.sections['09'].code).toBe('09');

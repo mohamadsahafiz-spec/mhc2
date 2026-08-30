@@ -18,6 +18,8 @@ import {
   MhcReportBeamProfileData,
   MhcBeamProfileComparisonItem,
   MhcReportFocusOptimizationData,
+  MhcFocusImagePosition,
+  MhcFocusLaserHeadRecord,
   MhcReportPowerOffsetData,
   MhcReportStageCalibrationData,
   MhcReportAgcData,
@@ -37,6 +39,7 @@ import { ImageStore } from './imageStore';
 import { StorageService } from './persistence';
 import { CHECKPOINT_SPECS } from '../types/beamProfile';
 import { BeamProfileEngine } from './beamProfileEngine';
+import { FocusOptimizationEngine } from './focusOptimizationEngine';
 
 /**
  * Builds a normalized, single MhcReportDocument from an authoritative MHCSession.
@@ -535,99 +538,87 @@ export function buildMhcReportDocument(
   };
 
   // 08 FOCUS OPTIMIZATION
-  // Focus Optimization is an engineering calibration procedure (laser replacement / realignment).
-  // Routine MHC does not perform physical wafer focus drilling unless explicit Focus Optimization records exist.
+  // Authoritative Focus Optimization records from Machine Passport or explicit Session
   const explicitSessionFocusRecord = session.focusOptimizationRecord
     || (session as any).focusOptimizationRecords?.[0]
     || null;
-  const latestHistoricalFocusRecord = matchedMachine?.focusOptimizationRecords?.[0] || null;
-  const activeFocusRecord = explicitSessionFocusRecord || latestHistoricalFocusRecord;
+  const passportFocusRecord = matchedMachine?.focusOptimizationRecords?.[0] || null;
+  const activeFocusRecord = explicitSessionFocusRecord || passportFocusRecord;
+
+  const TOP_VIA_IMPACT_NOTE = 'Top via impact: Focus adjustment primarily affects top diameter (~90%), significantly influencing top via.';
+
+  const formatAdjustmentReason = (reason?: string): string => {
+    if (!reason) return 'Laser source replacement / beam re-alignment';
+    if (reason === 'LASER_REPLACEMENT') return 'Laser source replacement';
+    if (reason === 'BEAM_REALIGNMENT') return 'Beam re-alignment';
+    if (reason === 'ROUTINE_ENGINEERING') return 'Engineering focus calibration';
+    return reason;
+  };
+
+  const FOCUS_POS_SEQ: Array<{ key: '+3' | '+2' | '+1' | '0' | '-1' | '-2' | '-3'; positionMm: string; isBaseline: boolean }> = [
+    { key: '+3', positionMm: '+0.300 mm', isBaseline: false },
+    { key: '+2', positionMm: '+0.200 mm', isBaseline: false },
+    { key: '+1', positionMm: '+0.100 mm', isBaseline: false },
+    { key: '0',  positionMm: '0.000 mm',  isBaseline: false },
+    { key: '-1', positionMm: '-0.100 mm', isBaseline: false },
+    { key: '-2', positionMm: '-0.200 mm', isBaseline: false },
+    { key: '-3', positionMm: '-0.300 mm', isBaseline: true }
+  ];
 
   let focusOptimizationData: MhcReportFocusOptimizationData;
 
-  if (explicitSessionFocusRecord) {
-    const l1Images = Object.values(explicitSessionFocusRecord.laser1?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
-    const l2Images = Object.values(explicitSessionFocusRecord.laser2?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
+  // Use active record if present, or create default customer-facing baseline records
+  const sessionDate = session.startDate || (session as any).serviceDate;
+  const sourceRecord = activeFocusRecord || FocusOptimizationEngine.createDefaultRecord(sessionDate, session.engineerName);
+  const hydrated = ImageStore.hydrateImagesSync(sourceRecord);
 
-    focusOptimizationData = {
-      status: 'COMPLETE',
-      performedDuringMhc: true,
-      procedure: explicitSessionFocusRecord.procedure || 'Drill on using wafer (Dummy)',
-      performParam: explicitSessionFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
-      specificationText: explicitSessionFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
-      focusOffsetMm: null,
-      beamWaistMm: null,
-      m2Value: null,
-      cleanlinessScore: null,
-      beforeCondition: undefined,
-      afterCondition: undefined,
-      rayleighRangeToleranceMm: 0.150,
-      verdict: 'PASS',
-      notes: explicitSessionFocusRecord.notes || `Focus optimization verified on wafer during current intervention by ${explicitSessionFocusRecord.engineerName || session.engineerName || 'Field Engineer'}.`,
-      evidenceImages: [],
-      historicalRecord: {
-        date: explicitSessionFocusRecord.date,
-        engineerName: explicitSessionFocusRecord.engineerName,
-        reason: explicitSessionFocusRecord.reason,
-        procedure: explicitSessionFocusRecord.procedure || 'Drill on using wafer (Dummy)',
-        performParam: explicitSessionFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
-        specificationText: explicitSessionFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
-        laser1ImageCount: l1Images,
-        laser2ImageCount: l2Images,
-        selectedBestFocusPosition: explicitSessionFocusRecord.laser1?.selectedBestFocusPosition || '0'
-      }
-    };
-  } else if (latestHistoricalFocusRecord) {
-    const l1Images = Object.values(latestHistoricalFocusRecord.laser1?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
-    const l2Images = Object.values(latestHistoricalFocusRecord.laser2?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
+  const buildHeadRecord = (
+    headId: 'laser1' | 'laser2',
+    defaultLabel: string,
+    headEvidence?: any
+  ): MhcFocusLaserHeadRecord => {
+    const positions: MhcFocusImagePosition[] = FOCUS_POS_SEQ.map(posDef => {
+      const rawPosEvidence = headEvidence?.positions?.[posDef.key];
+      const rawImg = rawPosEvidence?.imageDataUrl;
+      const resolvedImg = rawImg ? (ImageStore.resolveImage(rawImg) || rawImg) : undefined;
+      return {
+        key: posDef.key,
+        positionMm: posDef.positionMm,
+        isBaseline: posDef.isBaseline,
+        imageDataUrl: resolvedImg,
+        drillDiameterUm: rawPosEvidence?.drillDiameterUm ?? null,
+        notes: rawPosEvidence?.notes
+      };
+    });
 
-    focusOptimizationData = {
-      status: 'SKIPPED',
-      performedDuringMhc: false,
-      reasonNotPerformed: 'SKIPPED — Routine MHC standard protocol; laser replacement / realignment not required',
-      historicalRecord: {
-        date: latestHistoricalFocusRecord.date,
-        engineerName: latestHistoricalFocusRecord.engineerName,
-        reason: latestHistoricalFocusRecord.reason,
-        procedure: latestHistoricalFocusRecord.procedure || 'Drill on using wafer (Dummy)',
-        performParam: latestHistoricalFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
-        specificationText: latestHistoricalFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
-        laser1ImageCount: l1Images,
-        laser2ImageCount: l2Images,
-        selectedBestFocusPosition: latestHistoricalFocusRecord.laser1?.selectedBestFocusPosition || '0'
-      },
-      procedure: latestHistoricalFocusRecord.procedure || 'Drill on using wafer (Dummy)',
-      performParam: latestHistoricalFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
-      specificationText: latestHistoricalFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
-      focusOffsetMm: null,
-      beamWaistMm: null,
-      m2Value: null,
-      cleanlinessScore: null,
-      beforeCondition: undefined,
-      afterCondition: undefined,
-      rayleighRangeToleranceMm: 0.150,
-      verdict: 'NOT_COLLECTED',
-      notes: `HISTORICAL RECORD: Verified on ${latestHistoricalFocusRecord.date} by ${latestHistoricalFocusRecord.engineerName || 'EO Technics Field Engineer'} (Reason: ${latestHistoricalFocusRecord.reason || 'LASER_REPLACEMENT'}). Routine MHC verifies optical integrity via Beam Profile (§07).`,
-      evidenceImages: []
+    const adjustmentReasonStr = formatAdjustmentReason(hydrated.reason);
+
+    const headLabel = (headEvidence?.laserLabel === 'Laser 1' ? 'Laser Head 1' : headEvidence?.laserLabel === 'Laser 2' ? 'Laser Head 2' : headEvidence?.laserLabel) || defaultLabel;
+
+    return {
+      laserHeadId: headId,
+      laserLabel: headLabel,
+      date: hydrated.date || sessionDate || '—',
+      adjustmentReason: adjustmentReasonStr,
+      baseline: '-0.300 mm',
+      evaluation: hydrated.serviceRecord || hydrated.overallResult || 'Optical focus verified across designated focal sequence.',
+      reason: adjustmentReasonStr,
+      positions
     };
-  } else {
-    focusOptimizationData = {
-      status: 'NOT_COLLECTED',
-      performedDuringMhc: false,
-      reasonNotPerformed: 'SKIPPED — Routine MHC standard protocol; laser replacement / realignment not required',
-      historicalRecord: null,
-      procedure: 'Drill on using wafer (Dummy)',
-      performParam: '2W@50kHz (Working zone) + 2 shots',
-      specificationText: 'None — This item is for checking and setting machining focus. No numerical specification.',
-      focusOffsetMm: null,
-      beamWaistMm: null,
-      m2Value: null,
-      cleanlinessScore: null,
-      verdict: 'NOT_COLLECTED',
-      notes: 'Focus Optimization is an engineering calibration procedure performed during laser source replacement or realignment. Skipped during routine MHC.',
-      evidenceImages: []
-    };
-  }
+  };
+
+  const heads: MhcFocusLaserHeadRecord[] = [
+    buildHeadRecord('laser1', 'Laser Head 1', hydrated.laser1),
+    buildHeadRecord('laser2', 'Laser Head 2', hydrated.laser2)
+  ];
+
+  focusOptimizationData = {
+    status: activeFocusRecord ? 'COMPLETE' : 'NOT_COLLECTED',
+    hasRecord: !!activeFocusRecord,
+    topViaImpactNote: TOP_VIA_IMPACT_NOTE,
+    heads,
+    notes: hydrated.serviceRecord || `Authoritative focus optimization record dated ${hydrated.date}.`
+  };
 
   const focusOptimizationSection: MhcReportSection<MhcReportFocusOptimizationData> = {
     code: '08',

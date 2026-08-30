@@ -1703,147 +1703,110 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 08: FOCUS OPTIMIZATION */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
-                  <div>
-                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      08 FOCUS OPTIMIZATION
-                    </h2>
-                    <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                      Laser Alignment &amp; Machining Focus Calibration
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {sections['08'].data.performedDuringMhc ? (
-                      renderStatusBadge(sections['08'].data.verdict || sections['08'].status)
-                    ) : (
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-300">
-                        NOT PERFORMED THIS MHC
-                      </span>
-                    )}
-                  </div>
+              <div className="space-y-2">
+                <div className="border-b-2 border-slate-900 pb-1">
+                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                    08 FOCUS OPTIMIZATION
+                  </h2>
+                  <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                    Machining Focus Calibration &amp; Focal Sequence Verification
+                  </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
-                  {sections['08'].data.performedDuringMhc ? (
-                    /* Explicit Current MHC Focus Optimization Intervention */
-                    <div className="space-y-2.5">
-                      <div className="p-3 rounded-lg bg-white border border-slate-200">
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span className="font-bold text-slate-800 text-xs">
-                              MHC Calibration Activity: Focus Optimization Performed
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-500">
-                            Engineering Procedure
+                <div className="space-y-2 text-xs">
+                  {sections['08'].data.heads?.map((head, headIdx) => (
+                    <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                      {/* Laser Head Metadata Bar */}
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="font-extrabold text-slate-900 text-xs tracking-tight">
+                            {head.laserLabel}
                           </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-[10.5px]">
-                          <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                            <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Procedure</span>
-                            <span className="font-semibold text-slate-800">{sections['08'].data.procedure || 'Drill on using wafer (Dummy)'}</span>
+                        <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
+                          <div>
+                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Date:</span>
+                            <strong className="text-slate-800">{head.date}</strong>
                           </div>
-                          <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                            <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Parameter</span>
-                            <span className="font-semibold text-slate-800">{sections['08'].data.performParam || '2W@50kHz (Working zone) + 2 shots'}</span>
+                          <span className="text-slate-300">•</span>
+                          <div>
+                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Adjustment Reason:</span>
+                            <strong className="text-slate-800">{head.adjustmentReason}</strong>
                           </div>
-                          <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                            <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Specification Standard</span>
-                            <span className="font-semibold text-amber-700">Visual Machining Focus (None)</span>
+                          <span className="text-slate-300">•</span>
+                          <div>
+                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Baseline:</span>
+                            <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">{head.baseline}</strong>
+                          </div>
+                          <span className="text-slate-300">•</span>
+                          <div>
+                            <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Evaluation:</span>
+                            <strong className="text-slate-800">{head.evaluation}</strong>
                           </div>
                         </div>
                       </div>
 
-                      {/* Verification Record & Evidence */}
-                      <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed space-y-1.5">
-                        <div className="flex items-start gap-1">
-                          <span className="font-bold text-slate-800 shrink-0">Engineer Record:</span>
-                          <span>{sections['08'].data.notes}</span>
-                        </div>
-                        
-                        {sections['08'].data.evidenceImages && sections['08'].data.evidenceImages.length > 0 && (
-                          <div className="pt-1.5 border-t border-slate-100 flex items-center gap-2">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase font-sans">Evidence:</span>
-                            <div className="flex items-center gap-2">
-                              {sections['08'].data.evidenceImages.map((img, idx) => (
-                                <img 
-                                  key={idx} 
-                                  src={img} 
-                                  alt={`Optical inspection evidence ${idx + 1}`} 
-                                  className="h-10 w-auto max-w-[120px] object-contain rounded border border-slate-200 bg-slate-50"
-                                />
-                              ))}
+                      {/* 7 Focus Positions Grid */}
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {head.positions?.map((pos) => {
+                          const resolvedImg = pos.imageDataUrl ? (ImageStore.resolveImage(pos.imageDataUrl) || pos.imageDataUrl) : undefined;
+                          return (
+                            <div
+                              key={pos.key}
+                              className={`p-1.5 rounded border flex flex-col items-center justify-between text-center ${
+                                pos.isBaseline
+                                  ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-200'
+                                  : 'bg-white border-slate-200'
+                              }`}
+                            >
+                              {/* Microscope Image */}
+                              <div className="w-full aspect-square bg-slate-950 rounded border border-slate-800 overflow-hidden flex items-center justify-center relative mb-1">
+                                {resolvedImg ? (
+                                  <img
+                                    src={resolvedImg}
+                                    alt={`${head.laserLabel} ${pos.positionMm}`}
+                                    className="w-full h-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="text-[7.5px] font-mono text-slate-500">No Image</div>
+                                )}
+                                {pos.isBaseline && (
+                                  <span className="absolute bottom-0.5 right-0.5 bg-indigo-600 text-white text-[7px] font-mono font-bold px-1 rounded">
+                                    BASE
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Value Label */}
+                              <div className="w-full">
+                                <span className={`block font-mono text-[9px] font-bold leading-tight ${
+                                  pos.isBaseline ? 'text-indigo-950 font-extrabold' : 'text-slate-800'
+                                }`}>
+                                  {pos.positionMm}
+                                </span>
+                                {pos.isBaseline ? (
+                                  <span className="block text-[7.5px] font-sans font-semibold text-indigo-700">
+                                    (Baseline)
+                                  </span>
+                                ) : (
+                                  <span className="block text-[7.5px] font-sans text-slate-400">
+                                    {pos.key === '0' ? 'Starting' : 'Offset'}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
                     </div>
-                  ) : (
-                    /* Routine MHC: Focus Optimization Not Performed */
-                    <div className="space-y-2.5">
-                      <div className="p-3 rounded-lg bg-white border border-slate-200">
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            <span className="font-bold text-slate-800 text-xs">
-                              Current MHC Status: Not performed during this MHC
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-500">
-                            Reason: Routine Maintenance (No Laser Replacement / Path Drift)
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 leading-relaxed">
-                          Focus Optimization is a specialized engineering procedure performed during laser source replacement or major optical path re-alignment. Physical wafer drilling is not performed during routine MHC.
-                        </p>
-                      </div>
+                  ))}
 
-                      {/* Historical Baseline Reference */}
-                      {sections['08'].data.historicalRecord ? (
-                        <div className="p-3 rounded-lg bg-indigo-50/50 border border-indigo-200 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 tracking-wide">
-                              HISTORICAL MACHINE PASSPORT RECORD (REFERENCE ONLY)
-                            </span>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
-                              Historical Verification: {sections['08'].data.historicalRecord.date}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2 text-[10.5px]">
-                            <div className="p-2 rounded bg-white border border-indigo-100">
-                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Procedure</span>
-                              <span className="font-semibold text-slate-800">{sections['08'].data.procedure || 'Drill on using wafer (Dummy)'}</span>
-                            </div>
-                            <div className="p-2 rounded bg-white border border-indigo-100">
-                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Parameter</span>
-                              <span className="font-semibold text-slate-800">{sections['08'].data.performParam || '2W@50kHz (Working zone) + 2 shots'}</span>
-                            </div>
-                            <div className="p-2 rounded bg-white border border-indigo-100">
-                              <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">Specification Standard</span>
-                              <span className="font-semibold text-amber-700">None (Visual Focus Check)</span>
-                            </div>
-                          </div>
-
-                          <div className="text-[10.5px] text-indigo-950 flex items-center justify-between pt-1 border-t border-indigo-100/80">
-                            <span>
-                              Physical Wafer Verification: <strong>Laser Head 1 ({sections['08'].data.historicalRecord.laser1ImageCount}/7 positions)</strong> &amp; <strong>Laser Head 2 ({sections['08'].data.historicalRecord.laser2ImageCount}/7 positions)</strong>
-                            </span>
-                            <span className="font-mono text-[10px] text-indigo-700">
-                              Baseline Optimal Focus: {sections['08'].data.historicalRecord.selectedBestFocusPosition || '0'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-500 font-mono space-y-1">
-                          <p className="font-semibold text-slate-700">No recorded historical Focus Optimization record is available in Machine Passport.</p>
-                          <p className="text-[10px] text-slate-400">Specification: None — Focus Optimization is for checking and setting machining focus. No numerical specification.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Additional Engineering Note */}
+                  <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 flex items-start gap-1.5 text-[10px] text-amber-950 leading-tight">
+                    <span className="font-bold text-amber-900 shrink-0">Note:</span>
+                    <span>{sections['08'].data.topViaImpactNote}</span>
+                  </div>
                 </div>
               </div>
 

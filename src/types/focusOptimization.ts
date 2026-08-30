@@ -20,7 +20,7 @@ export interface WaferPositionEvidence {
 
 export interface LaserFocusEvidence {
   laserHeadId: 'laser1' | 'laser2';
-  laserLabel: 'Laser 1' | 'Laser 2';
+  laserLabel: 'Laser 1' | 'Laser 2' | 'Laser Head 1' | 'Laser Head 2' | string;
   maskName: string; // e.g. "Width Square Mask"
   performParam: string; // e.g. "2W@50kHz (Working zone) + 2 shots"
   selectedBestFocusPosition?: FocusWaferPosition;

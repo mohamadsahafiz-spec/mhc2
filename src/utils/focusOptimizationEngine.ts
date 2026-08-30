@@ -76,7 +76,7 @@ export class FocusOptimizationEngine {
 
     const createHeadEvidence = (
       laserHeadId: 'laser1' | 'laser2',
-      laserLabel: 'Laser 1' | 'Laser 2',
+      laserLabel: 'Laser 1' | 'Laser 2' | 'Laser Head 1' | 'Laser Head 2' | string,
       accentColor: string
     ): LaserFocusEvidence => {
       const positions: Partial<Record<FocusWaferPosition, WaferPositionEvidence>> = {};
@@ -109,8 +109,8 @@ export class FocusOptimizationEngine {
       reason: 'LASER_REPLACEMENT',
       procedure: 'Drill on using wafer (Dummy)',
       specificationText: 'None — This item is for checking and setting machining focus. No numerical specification.',
-      laser1: createHeadEvidence('laser1', 'Laser 1', '#f59e0b'),
-      laser2: createHeadEvidence('laser2', 'Laser 2', '#06b6d4'),
+      laser1: createHeadEvidence('laser1', 'Laser Head 1', '#f59e0b'),
+      laser2: createHeadEvidence('laser2', 'Laser Head 2', '#06b6d4'),
       overallResult: 'VERIFIED',
       createdAt: new Date().toISOString()
     };

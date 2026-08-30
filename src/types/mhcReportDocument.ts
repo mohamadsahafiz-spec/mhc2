@@ -277,37 +277,32 @@ export interface MhcReportBeamProfileData {
 }
 
 // 08 Focus Optimization
+export interface MhcFocusImagePosition {
+  key: '+3' | '+2' | '+1' | '0' | '-1' | '-2' | '-3';
+  positionMm: string; // '+0.300 mm', '+0.200 mm', '+0.100 mm', '0.000 mm', '-0.100 mm', '-0.200 mm', '-0.300 mm'
+  isBaseline: boolean; // true for -0.300 mm
+  imageDataUrl?: string;
+  drillDiameterUm?: number | null;
+  notes?: string;
+}
+
+export interface MhcFocusLaserHeadRecord {
+  laserHeadId: 'laser1' | 'laser2';
+  laserLabel: string; // 'Laser Head 1' | 'Laser Head 2'
+  date: string;
+  adjustmentReason: string; // e.g. "Laser source replacement" or "Beam re-alignment"
+  baseline: string; // "-0.300 mm"
+  evaluation: string; // e.g. "Verified"
+  reason?: string;
+  positions: MhcFocusImagePosition[];
+}
+
 export interface MhcReportFocusOptimizationData {
   status: MhcReportSectionStatus;
-  performedDuringMhc: boolean;
-  reasonNotPerformed?: string;
-  historicalRecord?: {
-    date: string;
-    engineerName?: string;
-    reason?: string;
-    procedure?: string;
-    performParam?: string;
-    specificationText?: string;
-    laser1ImageCount: number;
-    laser2ImageCount: number;
-    selectedBestFocusPosition?: string;
-  } | null;
-  procedure?: string;
-  performParam?: string;
-  specificationText?: string;
-  focusOffsetMm?: number | null;
-  beamWaistMm?: number | null;
-  m2Value?: number | null;
-  cleanlinessScore?: number | null;
-  beforeCondition?: string;
-  afterCondition?: string;
-  rayleighRangeToleranceMm?: number;
-  verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
+  hasRecord: boolean;
+  topViaImpactNote: string;
+  heads: MhcFocusLaserHeadRecord[];
   notes?: string;
-  evidenceImages?: string[];
-  head1FocusOffsetMm?: number | null;
-  head2FocusOffsetMm?: number | null;
-  optimalFocusPointMm?: number | null;
 }
 
 // 09 Power Offset
