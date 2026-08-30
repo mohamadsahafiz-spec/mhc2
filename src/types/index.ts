@@ -822,6 +822,8 @@ export interface MHCSession {
   stageCalibrationData?: Record<string, MHCStageCalibrationResult>;
   agcData?: Record<string, MHCAgcResult>;
   temperatureEvidenceData?: MHCTemperatureEvidenceData;
+  focusOptimizationRecord?: import('./focusOptimization').FocusOptimizationRecord;
+  focusOptimizationRecords?: import('./focusOptimization').FocusOptimizationRecord[];
   fieldLabelOverrides?: Record<string, string>;
   deletedFieldKeys?: string[];
   mhcSpecs?: MachineMhcSpecs;

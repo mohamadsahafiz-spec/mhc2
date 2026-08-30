@@ -534,43 +534,48 @@ export function buildMhcReportDocument(
     data: beamProfileData
   };
 
-  // 08 FOCUS OPTIMIZATION & OPTICAL WAIST
-  const optics = session.stage04_opticsBeam;
-  const rawFocusOffset = optics?.focusOffsetMm;
-  const hasDirectMhcMeasurement = rawFocusOffset !== undefined && rawFocusOffset !== null;
-  const latestHistoricalFocusRecord = (session as any).focusOptimizationRecords?.[0]
-    || matchedMachine?.focusOptimizationRecords?.[0]
+  // 08 FOCUS OPTIMIZATION
+  // Focus Optimization is an engineering calibration procedure (laser replacement / realignment).
+  // Routine MHC does not perform physical wafer focus drilling unless explicit Focus Optimization records exist.
+  const explicitSessionFocusRecord = session.focusOptimizationRecord
+    || (session as any).focusOptimizationRecords?.[0]
     || null;
-
-  const resolvedOpticsImages = (optics?.images || [])
-    .map(img => ImageStore.resolveImage(img) || img)
-    .filter(Boolean);
+  const latestHistoricalFocusRecord = matchedMachine?.focusOptimizationRecords?.[0] || null;
+  const activeFocusRecord = explicitSessionFocusRecord || latestHistoricalFocusRecord;
 
   let focusOptimizationData: MhcReportFocusOptimizationData;
 
-  if (hasDirectMhcMeasurement) {
-    const focusOffsetVal = rawFocusOffset!;
-    const focusVerdict: 'PASS' | 'WARNING' | 'FAIL' = Math.abs(focusOffsetVal) <= 0.150 ? 'PASS' : 'WARNING';
+  if (explicitSessionFocusRecord) {
+    const l1Images = Object.values(explicitSessionFocusRecord.laser1?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
+    const l2Images = Object.values(explicitSessionFocusRecord.laser2?.positions || {}).filter((p: any) => p?.imageDataUrl).length;
 
     focusOptimizationData = {
       status: 'COMPLETE',
       performedDuringMhc: true,
-      procedure: 'Drill on using wafer (Dummy)',
-      performParam: '2W@50kHz (Working zone) + 2 shots',
-      specificationText: 'None — This item is for checking and setting machining focus. No numerical specification.',
-      focusOffsetMm: focusOffsetVal,
-      beamWaistMm: optics?.beamWaistMm ?? null,
-      m2Value: optics?.m2Value ?? null,
-      cleanlinessScore: optics?.cleanlinessScore ?? null,
-      beforeCondition: optics?.beforeCondition,
-      afterCondition: optics?.afterCondition,
+      procedure: explicitSessionFocusRecord.procedure || 'Drill on using wafer (Dummy)',
+      performParam: explicitSessionFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
+      specificationText: explicitSessionFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
+      focusOffsetMm: null,
+      beamWaistMm: null,
+      m2Value: null,
+      cleanlinessScore: null,
+      beforeCondition: undefined,
+      afterCondition: undefined,
       rayleighRangeToleranceMm: 0.150,
-      verdict: focusVerdict,
-      notes: optics?.notes || 'Focus alignment verified on dummy wafer during current service intervention.',
-      evidenceImages: resolvedOpticsImages,
-      head1FocusOffsetMm: focusOffsetVal,
-      head2FocusOffsetMm: focusOffsetVal,
-      optimalFocusPointMm: focusOffsetVal
+      verdict: 'PASS',
+      notes: explicitSessionFocusRecord.notes || `Focus optimization verified on wafer during current intervention by ${explicitSessionFocusRecord.engineerName || session.engineerName || 'Field Engineer'}.`,
+      evidenceImages: [],
+      historicalRecord: {
+        date: explicitSessionFocusRecord.date,
+        engineerName: explicitSessionFocusRecord.engineerName,
+        reason: explicitSessionFocusRecord.reason,
+        procedure: explicitSessionFocusRecord.procedure || 'Drill on using wafer (Dummy)',
+        performParam: explicitSessionFocusRecord.laser1?.performParam || '2W@50kHz (Working zone) + 2 shots',
+        specificationText: explicitSessionFocusRecord.specificationText || 'None — This item is for checking and setting machining focus. No numerical specification.',
+        laser1ImageCount: l1Images,
+        laser2ImageCount: l2Images,
+        selectedBestFocusPosition: explicitSessionFocusRecord.laser1?.selectedBestFocusPosition || '0'
+      }
     };
   } else if (latestHistoricalFocusRecord) {
     const l1Images = Object.values(latestHistoricalFocusRecord.laser1?.positions || {}).filter((p: any) => p?.imageDataUrl).length;

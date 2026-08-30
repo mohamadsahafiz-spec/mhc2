@@ -259,7 +259,7 @@ describe('mhcReportEngine', () => {
     expect(hoursSec.laserHours[0].verifiedHour).toBe(12500);
 
     // Verify restored sections 08 & 09, 13 & 14 are populated and evaluated
-    expect(doc.sections['08'].status).toBe('COMPLETE');
+    expect(doc.sections['08'].status).toBe('NOT_COLLECTED');
     expect(doc.sections['09'].status).toBe('COMPLETE');
     expect(doc.sections['13'].status).toBe('COMPLETE');
     expect(doc.sections['13'].data.productName).toBe('Flex Rigid Standard');
@@ -541,13 +541,15 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
     expect(doc.sections['18'].data.engineerSignoff.name).toBe('Jane Doe');
 
-    // §08 Focus Optimization & Optical Waist data grounding
+    // §08 Focus Optimization data grounding (Routine MHC does not perform destructive wafer ablation drilling)
     expect(doc.sections['08'].code).toBe('08');
-    expect(doc.sections['08'].data.focusOffsetMm).toBe(0);
-    expect(doc.sections['08'].data.beamWaistMm).toBe(2.0);
-    expect(doc.sections['08'].data.m2Value).toBe(1.1);
-    expect(doc.sections['08'].data.cleanlinessScore).toBe(95);
-    expect(doc.sections['08'].data.verdict).toBe('PASS');
+    expect(doc.sections['08'].data.performedDuringMhc).toBe(false);
+    expect(doc.sections['08'].data.status).toBe('NOT_COLLECTED');
+    expect(doc.sections['08'].data.focusOffsetMm).toBeNull();
+    expect(doc.sections['08'].data.beamWaistMm).toBeNull();
+    expect(doc.sections['08'].data.m2Value).toBeNull();
+    expect(doc.sections['08'].data.cleanlinessScore).toBeNull();
+    expect(doc.sections['08'].data.verdict).toBe('NOT_COLLECTED');
 
     // §09 Power Offset & Calibration data grounding
     expect(doc.sections['09'].code).toBe('09');

@@ -60,8 +60,8 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     setHydratedRecords(syncHydrated);
 
     const hasIdbPointer = rawRecs.some(r =>
-      Object.values(r.laser1?.positions || {}).some(p => p?.imageDataUrl?.startsWith('idb:')) ||
-      Object.values(r.laser2?.positions || {}).some(p => p?.imageDataUrl?.startsWith('idb:'))
+      Object.values(r.laser1?.positions || {}).some((p: any) => p?.imageDataUrl?.startsWith('idb:')) ||
+      Object.values(r.laser2?.positions || {}).some((p: any) => p?.imageDataUrl?.startsWith('idb:'))
     );
 
     if (hasIdbPointer) {
