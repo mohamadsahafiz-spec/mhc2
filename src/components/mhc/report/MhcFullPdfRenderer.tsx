@@ -1823,117 +1823,201 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               </div>
 
               {/* SECTION 09: POWER OFFSET & CALIBRATION */}
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
                       09 POWER OFFSET &amp; CALIBRATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                      Measured Setpoint Offsets &amp; Multi-Stage Transmission Telemetry
+                      Bottom Via Diameter Optimization &amp; Process Offset
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['09'].data.verdict || sections['09'].status)}
+                    <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-300 text-[10.5px] font-mono font-bold text-slate-800">
+                      Power Offset Range: −20% to +20%
+                    </span>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
-                  <div className="grid grid-cols-3 gap-2.5 font-mono text-[11px]">
-                    {/* Head 1 Power Offset Card */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          HEAD 1 POWER OFFSET
-                        </span>
-                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                          {sections['09'].data.head1PowerOffsetWatts !== null && sections['09'].data.head1PowerOffsetWatts !== undefined
-                            ? `${sections['09'].data.head1PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head1PowerOffsetWatts.toFixed(2)} W`
-                            : '0.00 W'}
-                        </strong>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
+                  {/* Product / Recipe context header if present */}
+                  {(sections['09'].data.productName || sections['09'].data.recipeName) && (
+                    <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8.5px] font-sans font-bold uppercase text-slate-400">Product Identity:</span>
+                        <span className="font-bold text-slate-800">{sections['09'].data.productName || '—'}</span>
                       </div>
-                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 space-y-0.5 text-[9px] font-sans">
-                        <div className="flex items-center justify-between text-slate-500">
-                          <span>Set vs Meas:</span>
-                          <span className="font-mono font-medium text-slate-700">
-                            {sections['09'].data.head1NominalWatts ? `${sections['09'].data.head1NominalWatts.toFixed(1)}W` : '15.0W'} → {sections['09'].data.head1MeasuredWatts ? `${sections['09'].data.head1MeasuredWatts.toFixed(2)}W` : '15.00W'}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8.5px] font-sans font-bold uppercase text-slate-400">Recipe / Process:</span>
+                        <span className="font-mono font-bold text-slate-800">{sections['09'].data.recipeName || '—'}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Side-by-Side Laser 1 & Laser 2 Cards */}
+                  <div className="grid grid-cols-2 gap-3 font-sans">
+                    {/* Laser 1 */}
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
+                            {sections['09'].data.laser1?.laserLabel || 'Laser Head 1'}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-slate-500">
-                          <span>Shift [Derived]:</span>
-                          <span className="font-bold text-slate-800">
-                            {sections['09'].data.head1OffsetPercent ? `${sections['09'].data.head1OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head1OffsetPercent.toFixed(1)}%` : '0.0%'}
+                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-semibold">
+                          Optimized Offset
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-[10.5px]">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-500 font-medium">Recipe Power:</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            {sections['09'].data.laser1?.recipePowerWatts !== null && sections['09'].data.laser1?.recipePowerWatts !== undefined
+                              ? `${sections['09'].data.laser1.recipePowerWatts.toFixed(2)} W`
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-500 font-medium">Applied Power Offset:</span>
+                          <span className={`font-mono font-bold text-xs ${
+                            sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
+                              ? sections['09'].data.laser1.appliedOffsetPercent === 0
+                                ? 'text-slate-800'
+                                : sections['09'].data.laser1.appliedOffsetPercent < 0
+                                  ? 'text-cyan-800'
+                                  : 'text-indigo-800'
+                              : 'text-slate-400'
+                          }`}>
+                            {sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
+                              ? `${sections['09'].data.laser1.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.appliedOffsetPercent.toFixed(1)}%`
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                          <span className="text-slate-800 font-bold">Resulting Power:</span>
+                          <span className="font-mono font-extrabold text-slate-950 text-sm">
+                            {sections['09'].data.laser1?.resultingPowerWatts !== null && sections['09'].data.laser1?.resultingPowerWatts !== undefined
+                              ? `${sections['09'].data.laser1.resultingPowerWatts.toFixed(2)} W`
+                              : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Previous vs Current & Adjustment Reason */}
+                      <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[9px]">
+                        <div>
+                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Offset Comparison</span>
+                          <div className="font-mono text-slate-700 mt-0.5">
+                            <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
+                            <span className="font-semibold">
+                              {sections['09'].data.laser1?.previousOffsetPercent !== null && sections['09'].data.laser1?.previousOffsetPercent !== undefined
+                                ? `${sections['09'].data.laser1.previousOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.previousOffsetPercent.toFixed(1)}%`
+                                : '—'}
+                            </span>
+                            <span className="mx-1 text-slate-300">→</span>
+                            <span className="text-slate-400 font-sans text-[8px]">Curr: </span>
+                            <span className="font-bold text-slate-900">
+                              {sections['09'].data.laser1?.currentOffsetPercent !== null && sections['09'].data.laser1?.currentOffsetPercent !== undefined
+                                ? `${sections['09'].data.laser1.currentOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.currentOffsetPercent.toFixed(1)}%`
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
+                          <span className="text-slate-700 font-medium block mt-0.5 truncate" title={sections['09'].data.laser1?.adjustmentReason || undefined}>
+                            {sections['09'].data.laser1?.adjustmentReason || '—'}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Head 2 Power Offset Card */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          HEAD 2 POWER OFFSET
-                        </span>
-                        <strong className="text-sm font-extrabold text-slate-900 block pt-1">
-                          {sections['09'].data.head2PowerOffsetWatts !== null && sections['09'].data.head2PowerOffsetWatts !== undefined
-                            ? `${sections['09'].data.head2PowerOffsetWatts > 0 ? '+' : ''}${sections['09'].data.head2PowerOffsetWatts.toFixed(2)} W`
-                            : '0.00 W'}
-                        </strong>
-                      </div>
-                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 space-y-0.5 text-[9px] font-sans">
-                        <div className="flex items-center justify-between text-slate-500">
-                          <span>Set vs Meas:</span>
-                          <span className="font-mono font-medium text-slate-700">
-                            {sections['09'].data.head2NominalWatts ? `${sections['09'].data.head2NominalWatts.toFixed(1)}W` : '15.0W'} → {sections['09'].data.head2MeasuredWatts ? `${sections['09'].data.head2MeasuredWatts.toFixed(2)}W` : '15.00W'}
+                    {/* Laser 2 */}
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
+                            {sections['09'].data.laser2?.laserLabel || 'Laser Head 2'}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-slate-500">
-                          <span>Shift [Derived]:</span>
-                          <span className="font-bold text-slate-800">
-                            {sections['09'].data.head2OffsetPercent ? `${sections['09'].data.head2OffsetPercent > 0 ? '+' : ''}${sections['09'].data.head2OffsetPercent.toFixed(1)}%` : '0.0%'}
+                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-semibold">
+                          Optimized Offset
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-[10.5px]">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-500 font-medium">Recipe Power:</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            {sections['09'].data.laser2?.recipePowerWatts !== null && sections['09'].data.laser2?.recipePowerWatts !== undefined
+                              ? `${sections['09'].data.laser2.recipePowerWatts.toFixed(2)} W`
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-500 font-medium">Applied Power Offset:</span>
+                          <span className={`font-mono font-bold text-xs ${
+                            sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
+                              ? sections['09'].data.laser2.appliedOffsetPercent === 0
+                                ? 'text-slate-800'
+                                : sections['09'].data.laser2.appliedOffsetPercent < 0
+                                  ? 'text-cyan-800'
+                                  : 'text-indigo-800'
+                              : 'text-slate-400'
+                          }`}>
+                            {sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
+                              ? `${sections['09'].data.laser2.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.appliedOffsetPercent.toFixed(1)}%`
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                          <span className="text-slate-800 font-bold">Resulting Power:</span>
+                          <span className="font-mono font-extrabold text-slate-950 text-sm">
+                            {sections['09'].data.laser2?.resultingPowerWatts !== null && sections['09'].data.laser2?.resultingPowerWatts !== undefined
+                              ? `${sections['09'].data.laser2.resultingPowerWatts.toFixed(2)} W`
+                              : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Previous vs Current & Adjustment Reason */}
+                      <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[9px]">
+                        <div>
+                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Offset Comparison</span>
+                          <div className="font-mono text-slate-700 mt-0.5">
+                            <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
+                            <span className="font-semibold">
+                              {sections['09'].data.laser2?.previousOffsetPercent !== null && sections['09'].data.laser2?.previousOffsetPercent !== undefined
+                                ? `${sections['09'].data.laser2.previousOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.previousOffsetPercent.toFixed(1)}%`
+                                : '—'}
+                            </span>
+                            <span className="mx-1 text-slate-300">→</span>
+                            <span className="text-slate-400 font-sans text-[8px]">Curr: </span>
+                            <span className="font-bold text-slate-900">
+                              {sections['09'].data.laser2?.currentOffsetPercent !== null && sections['09'].data.laser2?.currentOffsetPercent !== undefined
+                                ? `${sections['09'].data.laser2.currentOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.currentOffsetPercent.toFixed(1)}%`
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
+                          <span className="text-slate-700 font-medium block mt-0.5 truncate" title={sections['09'].data.laser2?.adjustmentReason || undefined}>
+                            {sections['09'].data.laser2?.adjustmentReason || '—'}
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Optical Path Transmission & Stability Card */}
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[9px] font-sans font-semibold text-slate-400 uppercase block">
-                          TRANSMISSION &amp; STABILITY
-                        </span>
-                        <div className="flex items-center justify-between pt-1">
-                          <strong className="text-sm font-extrabold text-cyan-950">
-                            {sections['09'].data.head1TransmissionPercent !== null && sections['09'].data.head1TransmissionPercent !== undefined
-                              ? `${sections['09'].data.head1TransmissionPercent}%`
-                              : (sections['09'].data.stabilityPercent ? `${sections['09'].data.stabilityPercent.toFixed(1)}%` : '99.2%')}
-                          </strong>
-                          <span className="text-[8.5px] font-sans text-cyan-800 font-semibold bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
-                            {sections['09'].data.head1TransmissionPercent ? 'Source → Mask' : 'Stability'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="pt-1.5 mt-1.5 border-t border-slate-100 text-[8.5px] font-sans text-slate-500 space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span>Optical Transmission:</span>
-                          <span className="font-mono text-slate-700 font-medium">
-                            {sections['09'].data.head1TransmissionPercent ? `${sections['09'].data.head1TransmissionPercent}% [Derived]` : 'Nominal'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Setpoint Stability:</span>
-                          <span className="font-mono text-slate-700 font-medium">
-                            {sections['09'].data.stabilityPercent ? `${sections['09'].data.stabilityPercent.toFixed(1)}% [Measured]` : 'Nominal'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Telemetry Record & Verification Notes */}
-                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed flex items-start gap-1">
-                    <span className="font-bold text-slate-800 shrink-0">Telemetry Record:</span>
-                    <span>{sections['09'].data.notes || 'Laser power setpoint offsets and multi-stage transmission within baseline tolerances.'}</span>
                   </div>
                 </div>
               </div>

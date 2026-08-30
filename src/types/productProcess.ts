@@ -23,6 +23,9 @@ export interface ProductProcessRecord {
   lotPanel?: string;
   engineerRemarks?: string;
 
+  laser1PowerOffsetPercent?: number | null;
+  laser2PowerOffsetPercent?: number | null;
+
   phase1: ProcessPhaseParams;
   phase2: ProcessPhaseParams;
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, Sliders, Layers } from 'lucide-react';
+import { Upload, Image as ImageIcon, Sliders, Layers, Zap } from 'lucide-react';
 import { Machine } from '../../types';
 import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
@@ -27,6 +27,16 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
   const [formRecipe, setFormRecipe] = useState(latestRecord?.recipeName || '');
   const [formLot, setFormLot] = useState(latestRecord?.lotPanel || '');
   const [formRemarks, setFormRemarks] = useState('');
+  const [l1Offset, setL1Offset] = useState<string>(
+    latestRecord?.laser1PowerOffsetPercent !== undefined && latestRecord?.laser1PowerOffsetPercent !== null
+      ? String(latestRecord.laser1PowerOffsetPercent)
+      : ''
+  );
+  const [l2Offset, setL2Offset] = useState<string>(
+    latestRecord?.laser2PowerOffsetPercent !== undefined && latestRecord?.laser2PowerOffsetPercent !== null
+      ? String(latestRecord.laser2PowerOffsetPercent)
+      : ''
+  );
 
   // Phase 1
   const [p1Power, setP1Power] = useState<string>('');
@@ -72,6 +82,8 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
       recipeName: formRecipe,
       lotPanel: formLot,
       engineerRemarks: formRemarks,
+      laser1PowerOffsetPercent: l1Offset !== '' ? parseFloat(l1Offset) : null,
+      laser2PowerOffsetPercent: l2Offset !== '' ? parseFloat(l2Offset) : null,
       phase1: {
         powerWatts: parseFloat(p1Power) || null,
         frequencyKhz: parseFloat(p1Freq) || null,
@@ -216,6 +228,51 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
                   <input type="number" step="0.05" value={p2Defocus} onChange={(e) => setP2Defocus(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Process Power Offset (Machine Passport Source of Truth) */}
+        <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-amber-400" />
+              PROCESS POWER OFFSET
+            </h4>
+            <span className="text-[10px] text-slate-400 font-mono">Range: −20% to +20%</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+              <span className="font-bold text-amber-400 text-[11px] uppercase block">LASER 1 POWER OFFSET</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={l1Offset}
+                  onChange={(e) => setL1Offset(e.target.value)}
+                  placeholder="e.g. -12.0"
+                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 font-mono text-xs"
+                />
+                <span className="text-slate-400 font-mono text-xs font-bold">%</span>
+              </div>
+              <span className="text-[10px] text-slate-500 block">Applied to Laser 1 recipe power in §09</span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+              <span className="font-bold text-cyan-400 text-[11px] uppercase block">LASER 2 POWER OFFSET</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={l2Offset}
+                  onChange={(e) => setL2Offset(e.target.value)}
+                  placeholder="e.g. 2.0"
+                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 font-mono text-xs"
+                />
+                <span className="text-slate-400 font-mono text-xs font-bold">%</span>
+              </div>
+              <span className="text-[10px] text-slate-500 block">Applied to Laser 2 recipe power in §09</span>
             </div>
           </div>
         </div>

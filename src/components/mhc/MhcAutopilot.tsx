@@ -159,7 +159,9 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
       recommendations: '',
       followUpRequired: false,
       productionReleaseVerdict: 'APPROVED'
-    }
+    },
+    productProcessRecords: machine.productProcessRecords || [],
+    productProcessRecord: machine.productProcessRecords?.[0]
   };
 }
 

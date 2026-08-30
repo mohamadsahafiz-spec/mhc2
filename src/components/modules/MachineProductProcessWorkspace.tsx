@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2 } from 'lucide-react';
+import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2, Zap } from 'lucide-react';
 import { Machine } from '../../types';
 import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
@@ -33,6 +33,8 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   const [formRecipe, setFormRecipe] = useState(latestRecord?.recipeName || '');
   const [formLot, setFormLot] = useState(latestRecord?.lotPanel || '');
   const [formRemarks, setFormRemarks] = useState('');
+  const [l1Offset, setL1Offset] = useState<string>('');
+  const [l2Offset, setL2Offset] = useState<string>('');
 
   // Phase 1
   const [p1Power, setP1Power] = useState<string>('');
@@ -89,6 +91,8 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
       recipeName: formRecipe,
       lotPanel: formLot,
       engineerRemarks: formRemarks,
+      laser1PowerOffsetPercent: l1Offset !== '' ? parseFloat(l1Offset) : null,
+      laser2PowerOffsetPercent: l2Offset !== '' ? parseFloat(l2Offset) : null,
       phase1: {
         powerWatts: parseFloat(p1Power) || null,
         frequencyKhz: parseFloat(p1Freq) || null,
@@ -213,6 +217,14 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                   <Sliders className="w-4 h-4" />
                   Process Parameters
                 </h4>
+                <div className="flex items-center gap-3 text-[11px] font-mono">
+                  <span className="text-slate-400">
+                    L1 Offset: <strong className="text-amber-400">{latestRecord.laser1PowerOffsetPercent !== null && latestRecord.laser1PowerOffsetPercent !== undefined ? `${latestRecord.laser1PowerOffsetPercent > 0 ? '+' : ''}${latestRecord.laser1PowerOffsetPercent}%` : '—'}</strong>
+                  </span>
+                  <span className="text-slate-400">
+                    L2 Offset: <strong className="text-cyan-400">{latestRecord.laser2PowerOffsetPercent !== null && latestRecord.laser2PowerOffsetPercent !== undefined ? `${latestRecord.laser2PowerOffsetPercent > 0 ? '+' : ''}${latestRecord.laser2PowerOffsetPercent}%` : '—'}</strong>
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs font-mono">
@@ -400,6 +412,7 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                 <th className="py-2 px-2">Lot / Panel</th>
                 <th className="py-2 px-2">Phase 1 Pwr / Freq</th>
                 <th className="py-2 px-2">Phase 2 Pwr / Freq</th>
+                <th className="py-2 px-2">Power Offset (L1 / L2)</th>
                 <th className="py-2 px-2">Laser 1 Via (Top/Btm)</th>
                 <th className="py-2 px-2">Laser 2 Via (Top/Btm)</th>
                 <th className="py-2 px-2 text-center">Result</th>
@@ -420,6 +433,11 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                   </td>
                   <td className="py-2 px-2 text-slate-300">
                     {rec.phase2.powerWatts ?? '—'}W / {rec.phase2.frequencyKhz ?? '—'}kHz
+                  </td>
+                  <td className="py-2 px-2 font-mono">
+                    <span className="text-amber-400 font-semibold">{rec.laser1PowerOffsetPercent !== null && rec.laser1PowerOffsetPercent !== undefined ? `${rec.laser1PowerOffsetPercent > 0 ? '+' : ''}${rec.laser1PowerOffsetPercent}%` : '—'}</span>
+                    <span className="text-slate-500 mx-1">/</span>
+                    <span className="text-cyan-400 font-semibold">{rec.laser2PowerOffsetPercent !== null && rec.laser2PowerOffsetPercent !== undefined ? `${rec.laser2PowerOffsetPercent > 0 ? '+' : ''}${rec.laser2PowerOffsetPercent}%` : '—'}</span>
                   </td>
                   <td className="py-2 px-2 text-slate-300">
                     {rec.laser1Via.topWidthUm ?? '—'}µm / {rec.laser1Via.bottomWidthUm ?? '—'}µm
@@ -563,6 +581,51 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                     <input type="number" step="0.05" value={p2Defocus} onChange={(e) => setP2Defocus(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Process Power Offset (Authoritative Machine Passport Source) */}
+          <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-400" />
+                PROCESS POWER OFFSET
+              </h4>
+              <span className="text-[10px] text-slate-400 font-mono">Range: −20% to +20%</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                <span className="font-bold text-amber-400 text-[11px] uppercase block">LASER 1 POWER OFFSET</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={l1Offset}
+                    onChange={(e) => setL1Offset(e.target.value)}
+                    placeholder="e.g. -12.0"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 font-mono text-xs"
+                  />
+                  <span className="text-slate-400 font-mono text-xs font-bold">%</span>
+                </div>
+                <span className="text-[10px] text-slate-500 block">Applied to Laser 1 recipe power in §09</span>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                <span className="font-bold text-cyan-400 text-[11px] uppercase block">LASER 2 POWER OFFSET</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={l2Offset}
+                    onChange={(e) => setL2Offset(e.target.value)}
+                    placeholder="e.g. 2.0"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 font-mono text-xs"
+                  />
+                  <span className="text-slate-400 font-mono text-xs font-bold">%</span>
+                </div>
+                <span className="text-[10px] text-slate-500 block">Applied to Laser 2 recipe power in §09</span>
               </div>
             </div>
           </div>

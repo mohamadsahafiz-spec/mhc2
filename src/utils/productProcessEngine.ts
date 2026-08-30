@@ -33,6 +33,8 @@ export class ProductProcessEngine {
     recipeName?: string;
     lotPanel?: string;
     engineerRemarks?: string;
+    laser1PowerOffsetPercent?: number | null;
+    laser2PowerOffsetPercent?: number | null;
     phase1?: { powerWatts?: number | null; frequencyKhz?: number | null; shotCount?: number | null; maskMm?: number | null; defocusMm?: number | null };
     phase2?: { powerWatts?: number | null; frequencyKhz?: number | null; shotCount?: number | null; maskMm?: number | null; defocusMm?: number | null };
     laser1Via?: { topWidthUm?: number | null; bottomWidthUm?: number | null; viaImageDataUrl?: string };
@@ -55,6 +57,8 @@ export class ProductProcessEngine {
       recipeName: draft.recipeName || '',
       lotPanel: draft.lotPanel || '',
       engineerRemarks: draft.engineerRemarks || '',
+      laser1PowerOffsetPercent: draft.laser1PowerOffsetPercent !== undefined ? draft.laser1PowerOffsetPercent : null,
+      laser2PowerOffsetPercent: draft.laser2PowerOffsetPercent !== undefined ? draft.laser2PowerOffsetPercent : null,
       phase1: {
         powerWatts: draft.phase1?.powerWatts ?? null,
         frequencyKhz: draft.phase1?.frequencyKhz ?? null,

@@ -705,4 +705,126 @@ describe('mhcReportEngine', () => {
     const agcRes = majorResults.find(r => r.component === 'AGC / Scanner Calibration');
     expect(agcRes?.note).toMatch(/^±\d+\.\d+ µm$/);
   });
+
+  it('should ground §09 Power Offset in Product Identity / Process Parameters from Machine Passport and compute resulting power', () => {
+    const session = createDummySession('SESS-POWER-OFFSET');
+    (session as any).productProcessRecords = [
+      {
+        id: 'pp-01',
+        date: '2026-08-30',
+        productName: 'HDI Rigid-Flex Rev C',
+        recipeName: 'HDI_VIA_MICRO_50UM',
+        engineerRemarks: 'Laser replacement',
+        laser1PowerOffsetPercent: -12.0,
+        laser2PowerOffsetPercent: 2.0,
+        phase1: { powerWatts: 0.50, frequencyKhz: 50, shotCount: 26, maskMm: 1.8, defocusMm: -0.3 },
+        phase2: { powerWatts: 0.45, frequencyKhz: 50, shotCount: 20, maskMm: 1.3, defocusMm: -0.3 },
+        laser1Via: { topWidthUm: 52, bottomWidthUm: 48, overallPass: true },
+        laser2Via: { topWidthUm: 51, bottomWidthUm: 47, overallPass: true },
+        overallResult: 'PASS'
+      },
+      {
+        id: 'pp-00',
+        date: '2026-06-15',
+        productName: 'HDI Rigid-Flex Rev C',
+        recipeName: 'HDI_VIA_MICRO_50UM',
+        laser1PowerOffsetPercent: -10.0,
+        laser2PowerOffsetPercent: -8.0,
+        phase1: { powerWatts: 0.50, frequencyKhz: 50, shotCount: 26, maskMm: 1.8, defocusMm: -0.3 },
+        phase2: { powerWatts: 0.45, frequencyKhz: 50, shotCount: 20, maskMm: 1.3, defocusMm: -0.3 },
+        laser1Via: { topWidthUm: 50, bottomWidthUm: 45, overallPass: true },
+        laser2Via: { topWidthUm: 50, bottomWidthUm: 45, overallPass: true },
+        overallResult: 'PASS'
+      }
+    ];
+
+    // Calibration evidence in session should NOT overwrite process power offset
+    session.stage03_laserPower = [
+      {
+        laserId: 'lh1',
+        referenceValueWatts: 15.0,
+        afterValueWatts: 14.0, // Different from -12%
+        powerRecord: {
+          id: 'rec-01',
+          date: '2026-08-30',
+          frequencyKhz: 50,
+          engineerRemarks: 'Laser replacement',
+          laserSource: { headA: 15.0, headB: 15.0, specText: '≥15W', passA: true, passB: true, minWatts: 14, maxWatts: 16 },
+          opticsTopHat: { headA: 13.2, headB: 14.0, specText: '≥12W', passA: true, passB: true, minWatts: 12, maxWatts: 16 },
+          workingZoneMasks: [],
+          overallResult: 'PASS'
+        }
+      } as any,
+      {
+        laserId: 'lh2',
+        referenceValueWatts: 15.0,
+        afterValueWatts: 14.5,
+        powerRecord: {
+          id: 'rec-02',
+          date: '2026-08-30',
+          frequencyKhz: 50,
+          laserSource: { headA: 15.0, headB: 15.0, specText: '≥15W', passA: true, passB: true, minWatts: 14, maxWatts: 16 },
+          opticsTopHat: { headA: 13.2, headB: 14.0, specText: '≥12W', passA: true, passB: true, minWatts: 12, maxWatts: 16 },
+          workingZoneMasks: [],
+          overallResult: 'PASS'
+        }
+      } as any
+    ];
+
+    const doc = buildMhcReportDocument(session);
+
+    expect(doc.sections['09'].code).toBe('09');
+    expect(doc.sections['09'].data.productName).toBe('HDI Rigid-Flex Rev C');
+    expect(doc.sections['09'].data.recipeName).toBe('HDI_VIA_MICRO_50UM');
+    expect(doc.sections['09'].data.powerOffsetRangeText).toBe('−20% to +20%');
+
+    // Laser 1
+    expect(doc.sections['09'].data.laser1.recipePowerWatts).toBe(0.50);
+    expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBe(-12.0);
+    // Resulting power: 0.50 * (1 - 0.12) = 0.44
+    expect(doc.sections['09'].data.laser1.resultingPowerWatts).toBe(0.44);
+    expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBe(-10.0);
+    expect(doc.sections['09'].data.laser1.currentOffsetPercent).toBe(-12.0);
+    expect(doc.sections['09'].data.laser1.adjustmentReason).toBe('Laser replacement');
+
+    // Laser 2
+    expect(doc.sections['09'].data.laser2.recipePowerWatts).toBe(0.45);
+    expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBe(2.0);
+    // Resulting power: 0.45 * (1 + 0.02) = 0.46
+    expect(doc.sections['09'].data.laser2.resultingPowerWatts).toBe(0.46);
+    expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBe(-8.0);
+    expect(doc.sections['09'].data.laser2.currentOffsetPercent).toBe(2.0);
+  });
+
+  it('should return null (rendering "—") for §09 Power Offset when no offset exists in Product & Process record', () => {
+    const session = createDummySession('SESS-NO-OFFSET');
+    (session as any).productProcessRecords = [
+      {
+        id: 'pp-no-offset',
+        date: '2026-08-30',
+        productName: 'Sample PCB',
+        recipeName: 'SAMPLE_RECIPE',
+        phase1: { powerWatts: 0.60, frequencyKhz: 50, shotCount: 20, maskMm: 1.5, defocusMm: -0.2 },
+        overallResult: 'PASS'
+      }
+    ];
+
+    // Even if stage03 has calibration power, it MUST NOT become the process power offset
+    session.stage03_laserPower = [
+      {
+        laserId: 'lh1',
+        referenceValueWatts: 15.0,
+        afterValueWatts: 14.0,
+        result: 'PASS'
+      } as any
+    ];
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBeNull();
+    expect(doc.sections['09'].data.laser1.resultingPowerWatts).toBeNull();
+    expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBeNull();
+    expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBeNull();
+    expect(doc.sections['09'].data.laser2.resultingPowerWatts).toBeNull();
+    expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBeNull();
+  });
 });

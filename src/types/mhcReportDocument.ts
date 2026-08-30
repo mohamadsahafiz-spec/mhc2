@@ -306,8 +306,28 @@ export interface MhcReportFocusOptimizationData {
 }
 
 // 09 Power Offset
+export interface MhcLaserPowerOffsetHead {
+  laserHeadId: 'laser1' | 'laser2';
+  laserLabel: string;
+  recipePowerWatts: number | null;
+  appliedOffsetPercent: number | null;
+  resultingPowerWatts: number | null;
+  previousOffsetPercent: number | null;
+  currentOffsetPercent: number | null;
+  adjustmentReason?: string;
+}
+
 export interface MhcReportPowerOffsetData {
   status: MhcReportSectionStatus;
+  productName?: string;
+  recipeName?: string;
+  powerOffsetRangeText?: string;
+  laser1: MhcLaserPowerOffsetHead;
+  laser2: MhcLaserPowerOffsetHead;
+  adjustmentReason?: string;
+  notes?: string;
+
+  // Backwards compatibility fields for engine tests & legacy consumers
   head1PowerOffsetWatts?: number | null;
   head2PowerOffsetWatts?: number | null;
   head1OffsetPercent?: number | null;
@@ -322,7 +342,6 @@ export interface MhcReportPowerOffsetData {
   offsetCorrectionApplied?: boolean;
   linearityTolerancePercent?: number;
   verdict?: 'PASS' | 'WARNING' | 'FAIL' | 'NOT_COLLECTED';
-  notes?: string;
 }
 
 // 10 Stage Calibration Data

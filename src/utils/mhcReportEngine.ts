@@ -20,6 +20,7 @@ import {
   MhcReportFocusOptimizationData,
   MhcFocusImagePosition,
   MhcFocusLaserHeadRecord,
+  MhcLaserPowerOffsetHead,
   MhcReportPowerOffsetData,
   MhcReportStageCalibrationData,
   MhcReportAgcData,
@@ -630,6 +631,13 @@ export function buildMhcReportDocument(
   };
 
   // 09 POWER OFFSET & CALIBRATION
+  // Authoritative Machine Passport Product Identity / Process Parameters
+  const latestProductProcess = (session as any).productProcessRecord || (session as any).productProcessRecords?.[0] || matchedMachine?.productProcessRecords?.[0];
+  const prevProductProcess = (session as any).productProcessRecords?.[1] || matchedMachine?.productProcessRecords?.[1] || (previousSession as any)?.productProcessRecord || (previousSession as any)?.productProcessRecords?.[0];
+
+  const l1RecipePower = latestProductProcess?.phase1?.powerWatts ?? null;
+  const l2RecipePower = latestProductProcess?.phase2?.powerWatts ?? latestProductProcess?.phase1?.powerWatts ?? null;
+
   const head1Power = laserPowerData.heads[0];
   const head2Power = laserPowerData.heads[1];
   const h1Nominal = head1Power?.current.referenceValueWatts ?? null;
@@ -650,7 +658,54 @@ export function buildMhcReportDocument(
     ? Number(((h2Offset / h2Nominal) * 100).toFixed(1))
     : 0.0;
 
-  const hasPowerData = Boolean(session.stage03_laserPower && session.stage03_laserPower.length > 0);
+  // Authoritative Applied Power Offset strictly from Machine Passport Product & Process (NEVER derived from stage03 calibration data)
+  const l1AppliedOffset = (latestProductProcess?.laser1PowerOffsetPercent !== undefined && latestProductProcess?.laser1PowerOffsetPercent !== null)
+    ? latestProductProcess.laser1PowerOffsetPercent
+    : ((latestProductProcess as any)?.laser1OffsetPercent !== undefined && (latestProductProcess as any)?.laser1OffsetPercent !== null
+      ? (latestProductProcess as any).laser1OffsetPercent
+      : null);
+
+  const l2AppliedOffset = (latestProductProcess?.laser2PowerOffsetPercent !== undefined && latestProductProcess?.laser2PowerOffsetPercent !== null)
+    ? latestProductProcess.laser2PowerOffsetPercent
+    : ((latestProductProcess as any)?.laser2OffsetPercent !== undefined && (latestProductProcess as any)?.laser2OffsetPercent !== null
+      ? (latestProductProcess as any).laser2OffsetPercent
+      : null);
+
+  const l1ResultingPower = (l1RecipePower !== null && l1AppliedOffset !== null)
+    ? Number((l1RecipePower * (1 + l1AppliedOffset / 100)).toFixed(2))
+    : null;
+
+  const l2ResultingPower = (l2RecipePower !== null && l2AppliedOffset !== null)
+    ? Number((l2RecipePower * (1 + l2AppliedOffset / 100)).toFixed(2))
+    : null;
+
+  // Authoritative Previous vs Current power offset evaluation strictly from Machine Passport Product & Process records
+  let prevH1OffsetPct: number | null = null;
+  let prevH2OffsetPct: number | null = null;
+
+  if (prevProductProcess) {
+    if (prevProductProcess.laser1PowerOffsetPercent !== undefined && prevProductProcess.laser1PowerOffsetPercent !== null) {
+      prevH1OffsetPct = prevProductProcess.laser1PowerOffsetPercent;
+    } else if ((prevProductProcess as any).laser1OffsetPercent !== undefined && (prevProductProcess as any).laser1OffsetPercent !== null) {
+      prevH1OffsetPct = (prevProductProcess as any).laser1OffsetPercent;
+    }
+
+    if (prevProductProcess.laser2PowerOffsetPercent !== undefined && prevProductProcess.laser2PowerOffsetPercent !== null) {
+      prevH2OffsetPct = prevProductProcess.laser2PowerOffsetPercent;
+    } else if ((prevProductProcess as any).laser2OffsetPercent !== undefined && (prevProductProcess as any).laser2OffsetPercent !== null) {
+      prevH2OffsetPct = (prevProductProcess as any).laser2OffsetPercent;
+    }
+  }
+
+  // Real recorded adjustment reason
+  const recordedAdjustmentReason = session.stage03_laserPower?.[0]?.notes
+    || session.stage03_laserPower?.[0]?.powerRecord?.engineerRemarks
+    || latestProductProcess?.engineerRemarks
+    || (session as any).focusOptimizationRecord?.adjustmentReason
+    || (session as any).focusOptimizationRecord?.reason
+    || undefined;
+
+  const hasPowerData = Boolean((session.stage03_laserPower && session.stage03_laserPower.length > 0) || latestProductProcess);
   const powerRecord = session.stage03_laserPower?.[0]?.powerRecord;
   const stabilityVal = head1Power?.current.stabilityPercent ?? session.stage03_laserPower?.[0]?.stabilityPercent ?? null;
 
@@ -672,8 +727,39 @@ export function buildMhcReportDocument(
     }
   }
 
+  const laser1HeadOffset: MhcLaserPowerOffsetHead = {
+    laserHeadId: 'laser1',
+    laserLabel: laserHoursDetails[0]?.laserIdentifier ? `Laser Head 1 (${laserHoursDetails[0].laserIdentifier})` : 'Laser Head 1',
+    recipePowerWatts: l1RecipePower,
+    appliedOffsetPercent: l1AppliedOffset,
+    resultingPowerWatts: l1ResultingPower,
+    previousOffsetPercent: prevH1OffsetPct,
+    currentOffsetPercent: l1AppliedOffset,
+    adjustmentReason: recordedAdjustmentReason
+  };
+
+  const laser2HeadOffset: MhcLaserPowerOffsetHead = {
+    laserHeadId: 'laser2',
+    laserLabel: laserHoursDetails[1]?.laserIdentifier ? `Laser Head 2 (${laserHoursDetails[1].laserIdentifier})` : 'Laser Head 2',
+    recipePowerWatts: l2RecipePower,
+    appliedOffsetPercent: l2AppliedOffset,
+    resultingPowerWatts: l2ResultingPower,
+    previousOffsetPercent: prevH2OffsetPct,
+    currentOffsetPercent: l2AppliedOffset,
+    adjustmentReason: recordedAdjustmentReason
+  };
+
   const powerOffsetData: MhcReportPowerOffsetData = {
     status: hasPowerData ? 'COMPLETE' : 'NOT_COLLECTED',
+    productName: latestProductProcess?.productName,
+    recipeName: latestProductProcess?.recipeName,
+    powerOffsetRangeText: '−20% to +20%',
+    laser1: laser1HeadOffset,
+    laser2: laser2HeadOffset,
+    adjustmentReason: recordedAdjustmentReason,
+    notes: recordedAdjustmentReason,
+
+    // Backwards compatibility fields
     head1PowerOffsetWatts: h1Offset,
     head2PowerOffsetWatts: h2Offset,
     head1OffsetPercent: h1Pct,
@@ -686,8 +772,7 @@ export function buildMhcReportDocument(
     head2TransmissionPercent: h2Trans,
     stabilityPercent: stabilityVal,
     offsetCorrectionApplied: true,
-    verdict: (head1Power?.current.verdict === 'PASS' && (!head2Power || head2Power.current.verdict === 'PASS')) ? 'PASS' : 'WARNING',
-    notes: session.stage03_laserPower?.[0]?.notes || 'Laser power setpoint offsets and multi-stage transmission within baseline tolerances.'
+    verdict: (head1Power?.current.verdict === 'PASS' && (!head2Power || head2Power.current.verdict === 'PASS')) ? 'PASS' : 'WARNING'
   };
 
   const powerOffsetSection: MhcReportSection<MhcReportPowerOffsetData> = {
@@ -883,7 +968,6 @@ export function buildMhcReportDocument(
   };
 
   // 13 LASER / PRODUCT PROFILE
-  const latestProductProcess = (session as any).productProcessRecords?.[0] || matchedMachine?.productProcessRecords?.[0];
   const stageProfile = session.stage02_laserProfile;
   const hasProfileData = Boolean(
     stageProfile?.productName ||
