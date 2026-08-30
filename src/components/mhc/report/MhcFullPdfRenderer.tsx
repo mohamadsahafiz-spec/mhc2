@@ -1713,42 +1713,53 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </p>
                 </div>
 
-                <div className="space-y-2 text-xs">
-                  {sections['08'].data.heads?.map((head, headIdx) => (
-                    <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-                      {/* Laser Head Record Header (2-Row Hierarchy: Identity & Result) */}
-                      <div className="border-b border-slate-200 pb-1.5 space-y-1">
-                        {/* Row 1: Record Identity (Who → When/Why) */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                            <span className="font-extrabold text-slate-900 text-xs tracking-tight">
-                              {head.laserLabel}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
-                            <div>
-                              <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Date:</span>
-                              <strong className="text-slate-800">{head.date}</strong>
-                            </div>
-                            <span className="text-slate-300">•</span>
-                            <div>
-                              <span className="text-slate-400 font-sans uppercase text-[8.5px] mr-1">Adjustment Reason:</span>
-                              <strong className="text-slate-800">{head.adjustmentReason}</strong>
-                            </div>
-                          </div>
-                        </div>
+                <div className="space-y-2.5 text-xs">
+                  {/* 1. Shared Focus Adjustment Record */}
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="grid grid-cols-4 gap-3 text-[10.5px] items-center">
+                      <div>
+                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Date</span>
+                        <strong className="font-mono text-slate-800 text-[11px] block mt-0.5">
+                          {sections['08'].data.heads?.[0]?.date || '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Adjustment Reason</span>
+                        <strong className="text-slate-800 text-[10.5px] block mt-0.5">
+                          {sections['08'].data.heads?.[0]?.adjustmentReason || 'Laser source replacement'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Baseline</span>
+                        <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold font-mono text-[10.5px] inline-block mt-0.5">
+                          {sections['08'].data.heads?.[0]?.baseline || '-0.300 mm'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Evaluation</span>
+                        <span className="text-slate-800 font-medium text-[10px] leading-tight block mt-0.5">
+                          {sections['08'].data.heads?.[0]?.evaluation || 'Optical focus verified across designated focal sequence.'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                        {/* Row 2: Engineering Result */}
-                        <div className="flex items-center justify-between text-[10px] bg-slate-100/70 px-2 py-0.5 rounded border border-slate-200/70">
-                          <div className="flex items-center gap-1.5 font-mono">
-                            <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Baseline:</span>
-                            <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">{head.baseline}</strong>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-slate-700">
-                            <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Evaluation:</span>
-                            <span className="font-medium text-slate-800">{head.evaluation}</span>
-                          </div>
+                  {/* 2 & 3. Laser Head Evidence Cards (Laser Head 1 & Laser Head 2) */}
+                  {sections['08'].data.heads?.map((head, headIdx) => (
+                    <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                      {/* Laser Head Evidence Header */}
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
+                            {head.laserLabel}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">Baseline:</span>
+                          <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">
+                            {head.baseline}
+                          </strong>
                         </div>
                       </div>
 
@@ -1803,7 +1814,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </div>
                   ))}
 
-                  {/* Additional Engineering Note */}
+                  {/* 4. Additional Engineering Note */}
                   <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 flex items-start gap-1.5 text-[10px] text-amber-950 leading-tight">
                     <span className="font-bold text-amber-900 shrink-0">Note:</span>
                     <span>{sections['08'].data.topViaImpactNote}</span>
