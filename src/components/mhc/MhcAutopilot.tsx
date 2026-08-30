@@ -23,7 +23,8 @@ import {
   Layers,
   Award,
   LogOut,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { Customer, Machine, MHCSession, NavigationTab } from '../../types';
 import { StorageService } from '../../utils/persistence';
@@ -243,10 +244,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
   // Keep currentStep aligned with active session upon returning from navigation or PDF review
   useEffect(() => {
-    if (activeSession?.autopilotProgress && currentStep === 'welcome') {
+    if (activeSession?.autopilotProgress && currentStep !== 'session_active') {
       setCurrentStep('session_active');
     }
-  }, [activeSession?.id]);
+  }, [activeSession?.id, activeSession?.autopilotProgress?.currentActivityCode]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -2174,6 +2175,12 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         {showReviewCompletionModal && (
           <div
             id="modal-mhc-review-completion-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowReviewCompletionModal(false);
+                setIsConfirmingCompletion(false);
+              }
+            }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto"
           >
             <motion.div
@@ -2182,14 +2189,27 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className={`w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
+              className={`relative w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
                 isDark
                   ? 'bg-slate-900/95 border-slate-700 text-slate-100 shadow-cyan-950/40'
                   : 'bg-white/95 border-slate-300 text-slate-900 shadow-slate-900/20'
               }`}
             >
+              {/* Close Button */}
+              <button
+                id="btn-modal-review-completion-close"
+                onClick={() => {
+                  setShowReviewCompletionModal(false);
+                  setIsConfirmingCompletion(false);
+                }}
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                title="Dismiss modal and return to workspace"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
               {/* Modal Header */}
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 pr-6">
                 <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shrink-0">
                   <FileText className="w-6 h-6" />
                 </div>

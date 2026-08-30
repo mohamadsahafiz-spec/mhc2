@@ -1801,10 +1801,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 }`}>
                                   {pos.positionMm}
                                 </span>
-                                <span className={`block text-[7.5px] font-sans uppercase tracking-tight ${
+                                <span className={`block text-[7.5px] font-sans ${
                                   pos.isBaseline ? 'font-semibold text-indigo-700' : 'text-slate-400'
                                 }`}>
-                                  FOCUS POSITION
+                                  Focus Position
                                 </span>
                               </div>
                             </div>
