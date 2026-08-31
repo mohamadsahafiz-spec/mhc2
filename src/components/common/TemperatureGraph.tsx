@@ -119,15 +119,15 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
       return `${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    // 1. Downsample each active channel independently to max ~1,500 display points
+    // 1. Downsample each active channel independently to lightweight display points
     const channelDisplayData: Record<number, Array<{ tsMs: number; timeStr: string; val: number }>> = {};
+    const targetMax = preset === 'report' ? 120 : 400;
 
     activeChannels.forEach((ch) => {
       const rawPts = (channelData as any)[ch] || (channelData as any)[`CH${ch}`];
       if (!rawPts || rawPts.length === 0) return;
 
       const total = rawPts.length;
-      const targetMax = 1500;
       const factor = total > targetMax ? Math.ceil(total / targetMax) : 1;
 
       const sampled: Array<{ tsMs: number; timeStr: string; val: number }> = [];

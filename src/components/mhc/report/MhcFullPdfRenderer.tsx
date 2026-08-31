@@ -132,6 +132,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     (sections['18']?.data?.productionReleaseVerdict as any) || (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
   );
 
+  const totalPages = baseDoc.metadata.totalPagesCount || 10;
+
   // Group index entries by page number for the approved vertical presentation
   const groupedIndexPages = useMemo(() => {
     const pageMap = new Map<number, typeof baseDoc.indexEntries>();
@@ -266,34 +268,47 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         setDownloadProgress(`Rendering Page ${i + 1} of ${pageElements.length}...`);
 
         lastFailingOperation = `HTML2CANVAS_PAGE_${i + 1}`;
-        const canvas = await html2canvas(pageEl, {
-          scale: 2, // High DPI for crisp typography
-          useCORS: true,
-          allowTaint: false, // Prevents tainted canvas security exceptions
-          logging: false,
-          backgroundColor: '#ffffff',
-          scrollX: 0,
-          scrollY: 0,
-          imageTimeout: 10000,
-          onclone: (_clonedDoc, clonedEl) => {
-            clonedEl.style.transform = 'none';
-            const imgs = clonedEl.querySelectorAll('img');
-            imgs.forEach(img => {
-              img.setAttribute('crossOrigin', 'anonymous');
-            });
+        let canvas: HTMLCanvasElement | null = null;
+        try {
+          canvas = await html2canvas(pageEl, {
+            scale: 1.2, // ~120 DPI provides ultra-crisp typography with a lightweight memory footprint
+            useCORS: true,
+            allowTaint: false, // Prevents tainted canvas security exceptions
+            logging: false,
+            backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: 0,
+            imageTimeout: 8000,
+            onclone: (_clonedDoc, clonedEl) => {
+              clonedEl.style.transform = 'none';
+              const imgs = clonedEl.querySelectorAll('img');
+              imgs.forEach(img => {
+                img.setAttribute('crossOrigin', 'anonymous');
+              });
+            }
+          });
+
+          lastFailingOperation = `CANVAS_TO_DATA_URL_PAGE_${i + 1}`;
+          const imgData = canvas.toDataURL('image/jpeg', 0.80);
+
+          lastFailingOperation = `JSPDF_ADD_PAGE_${i + 1}`;
+          if (i > 0) {
+            pdf.addPage('a4', 'portrait');
           }
-        });
 
-        lastFailingOperation = `CANVAS_TO_DATA_URL_PAGE_${i + 1}`;
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-        lastFailingOperation = `JSPDF_ADD_PAGE_${i + 1}`;
-        if (i > 0) {
-          pdf.addPage('a4', 'portrait');
+          lastFailingOperation = `JSPDF_ADD_IMAGE_PAGE_${i + 1}`;
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        } finally {
+          // Immediately release canvas bitmap memory from GPU and RAM backing store
+          if (canvas) {
+            canvas.width = 0;
+            canvas.height = 0;
+            canvas = null;
+          }
         }
 
-        lastFailingOperation = `JSPDF_ADD_IMAGE_PAGE_${i + 1}`;
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        // Micro-yield to allow browser garbage collection between page renders
+        await new Promise(resolve => setTimeout(resolve, 30));
       }
 
       lastFailingOperation = 'JSPDF_SAVE';
@@ -763,7 +778,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
               <div className="text-[10px] text-slate-400 pt-4 text-center border-t border-slate-100 flex items-center justify-between">
                 <span>CONFIDENTIAL — {customerCompany}</span>
-                <span>Page 1 of 10</span>
+                <span>Page 1 of {totalPages}</span>
               </div>
             </div>
 
@@ -791,7 +806,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       02 TABLE OF CONTENTS / REPORT INDEX
                     </h2>
                     <p className="text-xs text-slate-500 font-sans mt-0.5">
-                      18 Standard Subsystem Diagnostics &amp; Certification Modules (§01–§18)
+                      {baseDoc.indexEntries.length} Subsystem Diagnostics &amp; Certification Modules
                     </p>
                   </div>
                   <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
@@ -802,9 +817,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 {/* Approved Vertical Presentation: Grouped by Page Anchor */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   
-                  {/* Left Column: Pages 1 to 5 */}
+                  {/* Left Column */}
                   <div className="space-y-2">
-                    {groupedIndexPages.filter((g) => g.pageNumber <= 5).map((group) => (
+                    {groupedIndexPages.slice(0, Math.ceil(groupedIndexPages.length / 2)).map((group) => (
                       <div 
                         key={group.pageNumber}
                         className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/90 shadow-2xs space-y-1.5"
@@ -844,9 +859,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     ))}
                   </div>
 
-                  {/* Right Column: Pages 6 to 10 */}
+                  {/* Right Column */}
                   <div className="space-y-2">
-                    {groupedIndexPages.filter((g) => g.pageNumber >= 6).map((group) => (
+                    {groupedIndexPages.slice(Math.ceil(groupedIndexPages.length / 2)).map((group) => (
                       <div 
                         key={group.pageNumber}
                         className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/90 shadow-2xs space-y-1.5"
@@ -905,7 +920,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 2 of 10</span>
+              <span>Page 2 of {totalPages}</span>
             </div>
 
           </div>
@@ -1132,7 +1147,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 3 of 10</span>
+              <span>Page 3 of {totalPages}</span>
             </div>
 
           </div>
@@ -1396,7 +1411,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 4 of 10</span>
+              <span>Page 4 of {totalPages}</span>
             </div>
 
           </div>
@@ -1661,7 +1676,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-2.5 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 5 of 10</span>
+              <span>Page 5 of {totalPages}</span>
             </div>
 
           </div>
@@ -2057,7 +2072,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 6 of 10</span>
+              <span>Page 6 of {totalPages}</span>
             </div>
 
           </div>
@@ -2241,7 +2256,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 7 of 10</span>
+              <span>Page 7 of {totalPages}</span>
             </div>
 
           </div>
@@ -2499,7 +2514,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 8 of 10</span>
+              <span>Page 8 of {totalPages}</span>
             </div>
 
           </div>
@@ -2764,7 +2779,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 9 of 10</span>
+              <span>Page 9 of {totalPages}</span>
             </div>
 
           </div>
@@ -3083,7 +3098,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Footer */}
             <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
               <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 10 of 10</span>
+              <span>Page 10 of {totalPages}</span>
             </div>
 
           </div>

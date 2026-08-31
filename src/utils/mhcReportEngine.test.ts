@@ -240,8 +240,8 @@ describe('mhcReportEngine', () => {
     expect(doc.schemaVersion).toBe('1.0.0');
     expect(doc.sessionId).toBe('SESS-1001');
     expect(doc.machineId).toBe('ESI-5330');
-    expect(doc.orderedSections.length).toBe(17); // 17 active sections (§01-§15, §17-§18)
-    expect(doc.indexEntries.length).toBe(16); // Index entries (§01, §03-§15, §17-§18)
+    expect(doc.orderedSections.length).toBe(15); // 15 active rendered sections (§01-§02, §04-§13, §15, §17-§18)
+    expect(doc.indexEntries.length).toBe(14); // Index entries (§01, §04-§13, §15, §17-§18)
 
     // Verify cover
     expect(doc.sections['01'].data.customerName).toBe('Acme PCB Corp');
@@ -634,22 +634,26 @@ describe('mhcReportEngine', () => {
     // Continuous orderedSections without deprecated Section 16
     const orderedCodes = doc.orderedSections.map(s => s.code);
     expect(orderedCodes).toEqual([
-      '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '14', '15', '17', '18'
+      '01', '02', '04', '05', '06', '07', '08', '09', '10',
+      '11', '12', '13', '15', '17', '18'
     ]);
+    expect(orderedCodes).not.toContain('03');
+    expect(orderedCodes).not.toContain('14');
     expect(orderedCodes).not.toContain('16');
     expect(orderedCodes).not.toContain('19');
 
-    // Exactly 17 active sections total
-    expect(doc.orderedSections.length).toBe(17);
-    expect(doc.metadata.totalSectionsCount).toBe(17);
+    // Exactly 15 active rendered sections total
+    expect(doc.orderedSections.length).toBe(15);
+    expect(doc.metadata.totalSectionsCount).toBe(15);
 
-    // Index entries must be active sections from 01 to 18 (excluding 02 TOC and 16)
+    // Index entries must be active rendered sections from 01 to 18 (excluding 02 TOC, 03, 14, 16)
     const indexCodes = doc.indexEntries.map(e => e.code);
     expect(indexCodes).toEqual([
-      '01', '03', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '14', '15', '17', '18'
+      '01', '04', '05', '06', '07', '08', '09', '10',
+      '11', '12', '13', '15', '17', '18'
     ]);
+    expect(indexCodes).not.toContain('03');
+    expect(indexCodes).not.toContain('14');
     expect(indexCodes).not.toContain('16');
     expect(indexCodes).not.toContain('19');
 
@@ -665,6 +669,56 @@ describe('mhcReportEngine', () => {
     const idx17 = indexCodes.indexOf('17');
     const idx18 = indexCodes.indexOf('18');
     expect(idx18).toBe(idx17 + 1);
+  });
+
+  it('should maintain exact physical PDF pagination and TOC mappings for all active sections', () => {
+    const session = createDummySession('SESS-PAGINATION-VERIFY');
+    const doc = buildMhcReportDocument(session);
+
+    // Total page count
+    expect(doc.metadata.totalPagesCount).toBe(10);
+
+    // Expected exact page numbers for each active section
+    const expectedPageMap: Record<string, number> = {
+      '01': 1,
+      '04': 3,
+      '05': 3,
+      '06': 4,
+      '07': 5,
+      '08': 6,
+      '09': 6,
+      '10': 7,
+      '11': 7,
+      '12': 8,
+      '13': 9,
+      '15': 10,
+      '17': 10,
+      '18': 10
+    };
+
+    // Check each index entry
+    doc.indexEntries.forEach(entry => {
+      expect(entry.pageNumber).toBe(expectedPageMap[entry.code]);
+    });
+
+    // Check that deleted sections 03, 14, 16 do not exist in indexEntries or orderedSections
+    const forbiddenCodes = ['03', '14', '16', '19'];
+    forbiddenCodes.forEach(code => {
+      expect(doc.indexEntries.some(e => e.code === code)).toBe(false);
+      expect(doc.orderedSections.some(s => s.code === code)).toBe(false);
+    });
+
+    // Verify all pages from 1 to 10 are covered by the physical document flow
+    const referencedPages = new Set(doc.indexEntries.map(e => e.pageNumber));
+    expect(referencedPages.has(1)).toBe(true); // §01 Cover
+    expect(referencedPages.has(3)).toBe(true); // §04, §05 Exec Summary & Lifecycle
+    expect(referencedPages.has(4)).toBe(true); // §06 Power
+    expect(referencedPages.has(5)).toBe(true); // §07 Beam Profile
+    expect(referencedPages.has(6)).toBe(true); // §08, §09 Focus & Offset
+    expect(referencedPages.has(7)).toBe(true); // §10, §11 Stage & AGC
+    expect(referencedPages.has(8)).toBe(true); // §12 Temperature
+    expect(referencedPages.has(9)).toBe(true); // §13 Product Process & Via Quality
+    expect(referencedPages.has(10)).toBe(true); // §15, §17, §18 Findings, Parts, Buyoff
   });
 
   it('should authoritative carry typed session.productionLineName into §01 Cover and §03 Machine Info', () => {

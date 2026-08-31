@@ -666,6 +666,7 @@ export interface MhcReportMetadata {
   previousSessionId?: string;
   previousSessionDate?: string;
   totalSectionsCount: number;
+  totalPagesCount?: number;
 }
 
 export interface MhcReportDocument {

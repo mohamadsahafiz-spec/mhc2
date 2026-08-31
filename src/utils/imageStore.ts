@@ -7,7 +7,7 @@ const STORE_NAME = 'evidence_images';
 let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
-const MAX_MEMORY_CACHE_ITEMS = 64; // High-performance LRU cache bounded to prevent out-of-memory errors
+const MAX_MEMORY_CACHE_ITEMS = 32; // Strict LRU cache limit to prevent browser memory exhaustion
 
 function setMemoryCache(key: string, val: string) {
   if (imageMemoryCache.has(key)) {

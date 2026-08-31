@@ -1098,7 +1098,7 @@ export function buildMhcReportDocument(
 
   const laserProductProfileSection: MhcReportSection<MhcReportLaserProductProfileData> = {
     code: '13',
-    title: 'Laser / Product Profile',
+    title: 'Product Process & Via Quality',
     displayOrder: 13,
     isVisible: options?.sectionVisibilityOverrides?.['13'] ?? true,
     status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
@@ -1573,10 +1573,9 @@ export function buildMhcReportDocument(
     '18': buyoffSection
   };
 
-  // GENERATE INDEX (02) - CONTINUOUS §01–§18 SEQUENCE (EXCLUDING DEPRECATED §16)
+  // GENERATE INDEX (02) - DYNAMICALLY REFLECTS ACTUAL RENDERED SECTIONS (§01, §04–§13, §15, §17–§18)
   const orderedSectionsList: MhcReportSection[] = [
     coverSection,
-    machineInfoSection,
     executiveSummarySection,
     laserHoursSection,
     laserPowerSection,
@@ -1587,7 +1586,6 @@ export function buildMhcReportDocument(
     agcSection,
     temperatureSection,
     laserProductProfileSection,
-    productViaQualitySection,
     findingsSection,
     sparePartsSection,
     buyoffSection
@@ -1597,7 +1595,6 @@ export function buildMhcReportDocument(
     switch (code) {
       case '01': return 1;
       case '02': return 2;
-      case '03': return 1;
       case '04': return 3;
       case '05': return 3;
       case '06': return 4;
@@ -1608,12 +1605,9 @@ export function buildMhcReportDocument(
       case '11': return 7;
       case '12': return 8;
       case '13': return 9;
-      case '14': return 9;
       case '15': return 10;
-      case '16': return 10;
       case '17': return 10;
       case '18': return 10;
-      case '19': return 10;
       default: return 1;
     }
   };
@@ -1644,7 +1638,6 @@ export function buildMhcReportDocument(
   const allOrderedSections: MhcReportSection[] = [
     coverSection,
     indexSection,
-    machineInfoSection,
     executiveSummarySection,
     laserHoursSection,
     laserPowerSection,
@@ -1655,7 +1648,6 @@ export function buildMhcReportDocument(
     agcSection,
     temperatureSection,
     laserProductProfileSection,
-    productViaQualitySection,
     findingsSection,
     sparePartsSection,
     buyoffSection
@@ -1681,7 +1673,8 @@ export function buildMhcReportDocument(
       hasPreviousBaseline: hasPreviousPower || hasPreviousBeam,
       previousSessionId: previousSession?.id,
       previousSessionDate: previousSession?.completedDate || previousSession?.startDate,
-      totalSectionsCount: allOrderedSections.length
+      totalSectionsCount: allOrderedSections.length,
+      totalPagesCount: Math.max(...indexEntries.map(e => e.pageNumber || 1), 10)
     },
     indexEntries,
     sections: sectionsMap,
