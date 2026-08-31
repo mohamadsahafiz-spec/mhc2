@@ -12,7 +12,8 @@ import {
   Sliders,
   Clock,
   Eye,
-  ChevronRight
+  ChevronRight,
+  Edit3
 } from 'lucide-react';
 import { Machine } from '../../types';
 import {
@@ -46,9 +47,10 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<LaserPowerCheckRecord | null>(null);
 
-  // Form State for New Check
+  // Form State for Power Check
   const [formDate, setFormDate] = useState<string>(getLocalDateString());
   const [formFreq, setFormFreq] = useState<number>(50);
   const [formRemarks, setFormRemarks] = useState<string>('');
@@ -68,6 +70,55 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
     '1.1mm': { headA: '0.8', headB: '0.8' },
     '0.9mm': { headA: '0.5', headB: '0.4' }
   });
+
+  const handleOpenAdd = () => {
+    setEditingRecordId(null);
+    setFormDate(getLocalDateString());
+    setFormFreq(50);
+    setFormRemarks('');
+    setLsHeadA('15.2');
+    setLsHeadB('15.0');
+    setOptHeadA('14.8');
+    setOptHeadB('14.6');
+    setMaskInputs({
+      '2.2mm': { headA: '3.4', headB: '3.3' },
+      '2.0mm': { headA: '2.7', headB: '2.6' },
+      '1.8mm': { headA: '2.1', headB: '2.0' },
+      '1.3mm': { headA: '1.2', headB: '1.1' },
+      '1.1mm': { headA: '0.8', headB: '0.8' },
+      '0.9mm': { headA: '0.5', headB: '0.4' }
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEdit = (rec: LaserPowerCheckRecord) => {
+    setEditingRecordId(rec.id);
+    setFormDate(rec.date);
+    setFormFreq(rec.frequencyKhz);
+    setFormRemarks(rec.engineerRemarks || '');
+    setLsHeadA(rec.laserSource.headA !== null && rec.laserSource.headA !== undefined ? String(rec.laserSource.headA) : '');
+    setLsHeadB(rec.laserSource.headB !== null && rec.laserSource.headB !== undefined ? String(rec.laserSource.headB) : '');
+    setOptHeadA(rec.opticsTopHat.headA !== null && rec.opticsTopHat.headA !== undefined ? String(rec.opticsTopHat.headA) : '');
+    setOptHeadB(rec.opticsTopHat.headB !== null && rec.opticsTopHat.headB !== undefined ? String(rec.opticsTopHat.headB) : '');
+
+    const newMasks: Record<MaskSize, { headA: string; headB: string }> = {
+      '2.2mm': { headA: '', headB: '' },
+      '2.0mm': { headA: '', headB: '' },
+      '1.8mm': { headA: '', headB: '' },
+      '1.3mm': { headA: '', headB: '' },
+      '1.1mm': { headA: '', headB: '' },
+      '0.9mm': { headA: '', headB: '' }
+    };
+    rec.workingZoneMasks.forEach(m => {
+      newMasks[m.maskSize] = {
+        headA: m.headA !== null && m.headA !== undefined ? String(m.headA) : '',
+        headB: m.headB !== null && m.headB !== undefined ? String(m.headB) : ''
+      };
+    });
+    setMaskInputs(newMasks);
+    setSelectedRecordDetail(null);
+    setIsAddModalOpen(true);
+  };
 
   const handleMaskInputChange = (size: MaskSize, head: 'headA' | 'headB', val: string) => {
     setMaskInputs(prev => ({
@@ -135,8 +186,19 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
 
   // Save Record
   const handleSaveRecord = () => {
-    const newRecord = LaserPowerEngine.evaluateRecord(currentFormParsed);
-    const updatedRecords = [newRecord, ...records];
+    const evaluated = LaserPowerEngine.evaluateRecord(currentFormParsed);
+    let updatedRecords: LaserPowerCheckRecord[];
+
+    if (editingRecordId) {
+      updatedRecords = records.map(r =>
+        r.id === editingRecordId
+          ? { ...evaluated, id: editingRecordId, createdAt: r.createdAt }
+          : r
+      );
+    } else {
+      updatedRecords = [evaluated, ...records];
+    }
+
     const updatedMachine: Machine = {
       ...machine,
       laserPowerRecords: updatedRecords
@@ -148,6 +210,7 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
     StorageService.saveMachines([updatedMachine, ...otherMachines]);
 
     setIsAddModalOpen(false);
+    setEditingRecordId(null);
   };
 
   // Delete Record
@@ -192,7 +255,7 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
         </div>
 
         <Button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={handleOpenAdd}
           className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2 px-4 flex items-center gap-1.5 shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -420,6 +483,15 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleOpenEdit(rec)}
+                          className="py-1 px-2 text-[11px] text-amber-400 border-amber-500/40 hover:bg-amber-500/10"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setSelectedRecordDetail(rec)}
                           className="py-1 px-2 text-[11px]"
                         >
@@ -443,11 +515,14 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
         )}
       </Card>
 
-      {/* MODAL 1: ENTER NEW POWER CHECK */}
+      {/* MODAL 1: ENTER / EDIT POWER CHECK */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title={`New Laser Power Check — ${machine.model} (${machine.machineNumber})`}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingRecordId(null);
+        }}
+        title={editingRecordId ? `Edit Laser Power Check — ${formDate} (${machine.machineNumber})` : `New Laser Power Check — ${machine.model} (${machine.machineNumber})`}
         maxWidth="max-w-3xl"
       >
         <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
@@ -668,7 +743,10 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingRecordId(null);
+                }}
                 className="text-xs py-1.5 px-3"
               >
                 Cancel
@@ -677,7 +755,7 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
                 onClick={handleSaveRecord}
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-1.5 px-4"
               >
-                Save Power Check Record
+                {editingRecordId ? 'Save Changes' : 'Save Power Check Record'}
               </Button>
             </div>
           </div>
@@ -770,6 +848,25 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
                 <p className="text-slate-200">{selectedRecordDetail.engineerRemarks}</p>
               </div>
             )}
+
+            {/* Modal Detail Footer with Edit button */}
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between font-sans">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedRecordDetail(null)}
+                className="text-xs"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => handleOpenEdit(selectedRecordDetail)}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit This Record
+              </Button>
+            </div>
           </div>
         </Modal>
       )}

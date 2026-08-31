@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Zap,
   Clock,
-  UserCheck
+  UserCheck,
+  Edit3
 } from 'lucide-react';
 import { Machine } from '../../types';
 import {
@@ -88,6 +89,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<FocusOptimizationRecord | null>(null);
   const [previewImage, setPreviewImage] = useState<{ title: string; src: string } | null>(null);
 
@@ -107,6 +109,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
   });
 
   const handleOpenAddModal = () => {
+    setEditingRecordId(null);
     const template = FocusOptimizationEngine.createDefaultRecord(getLocalDateString(), formEngineer);
     setFormDate(template.date);
     setFormEngineer(template.engineerName || 'EO Technics Field Engineer');
@@ -114,6 +117,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     setFormReason(template.reason || 'LASER_REPLACEMENT');
     setFormLaser1(template.laser1);
     setFormLaser2(template.laser2);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (rec: FocusOptimizationRecord, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingRecordId(rec.id);
+    setFormDate(rec.date);
+    setFormEngineer(rec.engineerName || 'EO Technics Field Engineer');
+    setFormRemarks(rec.serviceRecord || '');
+    setFormReason(rec.reason || 'LASER_REPLACEMENT');
+    setFormLaser1(rec.laser1 || FocusOptimizationEngine.createDefaultRecord().laser1);
+    setFormLaser2(rec.laser2 || FocusOptimizationEngine.createDefaultRecord().laser2);
+    setSelectedRecordDetail(null);
     setIsAddModalOpen(true);
   };
 
@@ -145,8 +161,8 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
   };
 
   const handleSaveRecord = () => {
-    const newRecord: FocusOptimizationRecord = {
-      id: `FOC-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    const draft: FocusOptimizationRecord = {
+      id: editingRecordId || `FOC-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       date: formDate,
       engineerName: formEngineer,
       serviceRecord: formRemarks,
@@ -159,7 +175,15 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
       createdAt: new Date().toISOString()
     };
 
-    const updatedRecords = [newRecord, ...records];
+    let updatedRecords: FocusOptimizationRecord[];
+    if (editingRecordId) {
+      updatedRecords = records.map(r =>
+        r.id === editingRecordId ? { ...draft, id: editingRecordId, createdAt: r.createdAt } : r
+      );
+    } else {
+      updatedRecords = [draft, ...records];
+    }
+
     const updatedMachine: Machine = {
       ...machine,
       focusOptimizationRecords: updatedRecords
@@ -171,6 +195,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     StorageService.saveMachines([updatedMachine, ...otherMachines]);
 
     setIsAddModalOpen(false);
+    setEditingRecordId(null);
   };
 
   const handleDeleteRecord = (id: string, e?: React.MouseEvent) => {
@@ -506,7 +531,16 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                       <td className="py-2.5 px-3">
                         <Badge variant="success">VERIFIED</Badge>
                       </td>
-                      <td className="py-2.5 px-3 text-right">
+                      <td className="py-2.5 px-3 text-right space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => handleOpenEditModal(rec, e)}
+                          className="py-1 px-2 text-[11px] text-indigo-400 border-indigo-500/40 hover:bg-indigo-500/10"
+                        >
+                          <Edit3 className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -524,12 +558,15 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
         </div>
       )}
 
-      {/* Modal to Add New Focus Optimization Record */}
+      {/* Modal to Add / Edit Focus Optimization Record */}
       {isAddModalOpen && (
         <Modal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          title="New Focus Optimization Engineering Record"
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingRecordId(null);
+          }}
+          title={editingRecordId ? `Edit Focus Optimization Audit — ${formDate}` : "New Focus Optimization Engineering Record"}
         >
           <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -656,11 +693,17 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingRecordId(null);
+                }}
+              >
                 Cancel
               </Button>
               <Button variant="primary" onClick={handleSaveRecord}>
-                Save Focus Optimization Record
+                {editingRecordId ? 'Save Changes' : 'Save Focus Optimization Record'}
               </Button>
             </div>
           </div>
@@ -763,9 +806,16 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-between items-center pt-2">
               <Button variant="secondary" onClick={() => setSelectedRecordDetail(null)}>
                 Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => handleOpenEditModal(selectedRecordDetail)}
+                icon={<Edit3 className="w-3.5 h-3.5" />}
+              >
+                Edit This Record
               </Button>
             </div>
           </div>

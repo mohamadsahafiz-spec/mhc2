@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2, Zap } from 'lucide-react';
+import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2, Zap, Edit3 } from 'lucide-react';
 import { Machine } from '../../types';
 import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
@@ -26,12 +26,13 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   const latestRecord = records[0] || null;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
 
-  // Form State for New Check
+  // Form State for Inspection
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
-  const [formProduct, setFormProduct] = useState(latestRecord?.productName || '');
-  const [formRecipe, setFormRecipe] = useState(latestRecord?.recipeName || '');
-  const [formLot, setFormLot] = useState(latestRecord?.lotPanel || '');
+  const [formProduct, setFormProduct] = useState('');
+  const [formRecipe, setFormRecipe] = useState('');
+  const [formLot, setFormLot] = useState('');
   const [formRemarks, setFormRemarks] = useState('');
   const [l1Offset, setL1Offset] = useState<string>('');
   const [l2Offset, setL2Offset] = useState<string>('');
@@ -60,6 +61,71 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   const [l2Bottom, setL2Bottom] = useState<string>('');
   const [l2Image, setL2Image] = useState<string | undefined>(undefined);
 
+  const handleOpenAdd = () => {
+    setEditingRecordId(null);
+    setFormDate(new Date().toISOString().split('T')[0]);
+    setFormProduct(latestRecord?.productName || '');
+    setFormRecipe(latestRecord?.recipeName || '');
+    setFormLot(latestRecord?.lotPanel || '');
+    setFormRemarks('');
+    setL1Offset(latestRecord?.laser1PowerOffsetPercent !== null && latestRecord?.laser1PowerOffsetPercent !== undefined ? String(latestRecord.laser1PowerOffsetPercent) : '');
+    setL2Offset(latestRecord?.laser2PowerOffsetPercent !== null && latestRecord?.laser2PowerOffsetPercent !== undefined ? String(latestRecord.laser2PowerOffsetPercent) : '');
+
+    setP1Power(latestRecord?.phase1?.powerWatts !== null && latestRecord?.phase1?.powerWatts !== undefined ? String(latestRecord.phase1.powerWatts) : '');
+    setP1Freq(latestRecord?.phase1?.frequencyKhz !== null && latestRecord?.phase1?.frequencyKhz !== undefined ? String(latestRecord.phase1.frequencyKhz) : '');
+    setP1Shots(latestRecord?.phase1?.shotCount !== null && latestRecord?.phase1?.shotCount !== undefined ? String(latestRecord.phase1.shotCount) : '');
+    setP1Mask(latestRecord?.phase1?.maskMm !== null && latestRecord?.phase1?.maskMm !== undefined ? String(latestRecord.phase1.maskMm) : '');
+    setP1Defocus(latestRecord?.phase1?.defocusMm !== null && latestRecord?.phase1?.defocusMm !== undefined ? String(latestRecord.phase1.defocusMm) : '');
+
+    setP2Power(latestRecord?.phase2?.powerWatts !== null && latestRecord?.phase2?.powerWatts !== undefined ? String(latestRecord.phase2.powerWatts) : '');
+    setP2Freq(latestRecord?.phase2?.frequencyKhz !== null && latestRecord?.phase2?.frequencyKhz !== undefined ? String(latestRecord.phase2.frequencyKhz) : '');
+    setP2Shots(latestRecord?.phase2?.shotCount !== null && latestRecord?.phase2?.shotCount !== undefined ? String(latestRecord.phase2.shotCount) : '');
+    setP2Mask(latestRecord?.phase2?.maskMm !== null && latestRecord?.phase2?.maskMm !== undefined ? String(latestRecord.phase2.maskMm) : '');
+    setP2Defocus(latestRecord?.phase2?.defocusMm !== null && latestRecord?.phase2?.defocusMm !== undefined ? String(latestRecord.phase2.defocusMm) : '');
+
+    setL1Top('');
+    setL1Bottom('');
+    setL1Image(undefined);
+    setL2Top('');
+    setL2Bottom('');
+    setL2Image(undefined);
+
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEdit = (rec: ProductProcessRecord) => {
+    setEditingRecordId(rec.id);
+    setFormDate(rec.date);
+    setFormProduct(rec.productName || '');
+    setFormRecipe(rec.recipeName || '');
+    setFormLot(rec.lotPanel || '');
+    setFormRemarks(rec.engineerRemarks || '');
+    setL1Offset(rec.laser1PowerOffsetPercent !== null && rec.laser1PowerOffsetPercent !== undefined ? String(rec.laser1PowerOffsetPercent) : '');
+    setL2Offset(rec.laser2PowerOffsetPercent !== null && rec.laser2PowerOffsetPercent !== undefined ? String(rec.laser2PowerOffsetPercent) : '');
+
+    setP1Power(rec.phase1?.powerWatts !== null && rec.phase1?.powerWatts !== undefined ? String(rec.phase1.powerWatts) : '');
+    setP1Freq(rec.phase1?.frequencyKhz !== null && rec.phase1?.frequencyKhz !== undefined ? String(rec.phase1.frequencyKhz) : '');
+    setP1Shots(rec.phase1?.shotCount !== null && rec.phase1?.shotCount !== undefined ? String(rec.phase1.shotCount) : '');
+    setP1Mask(rec.phase1?.maskMm !== null && rec.phase1?.maskMm !== undefined ? String(rec.phase1.maskMm) : '');
+    setP1Defocus(rec.phase1?.defocusMm !== null && rec.phase1?.defocusMm !== undefined ? String(rec.phase1.defocusMm) : '');
+
+    setP2Power(rec.phase2?.powerWatts !== null && rec.phase2?.powerWatts !== undefined ? String(rec.phase2.powerWatts) : '');
+    setP2Freq(rec.phase2?.frequencyKhz !== null && rec.phase2?.frequencyKhz !== undefined ? String(rec.phase2.frequencyKhz) : '');
+    setP2Shots(rec.phase2?.shotCount !== null && rec.phase2?.shotCount !== undefined ? String(rec.phase2.shotCount) : '');
+    setP2Mask(rec.phase2?.maskMm !== null && rec.phase2?.maskMm !== undefined ? String(rec.phase2.maskMm) : '');
+    setP2Defocus(rec.phase2?.defocusMm !== null && rec.phase2?.defocusMm !== undefined ? String(rec.phase2.defocusMm) : '');
+
+    setL1Top(rec.laser1Via?.topWidthUm !== null && rec.laser1Via?.topWidthUm !== undefined ? String(rec.laser1Via.topWidthUm) : '');
+    setL1Bottom(rec.laser1Via?.bottomWidthUm !== null && rec.laser1Via?.bottomWidthUm !== undefined ? String(rec.laser1Via.bottomWidthUm) : '');
+    setL1Image(rec.laser1Via?.viaImageDataUrl);
+
+    setL2Top(rec.laser2Via?.topWidthUm !== null && rec.laser2Via?.topWidthUm !== undefined ? String(rec.laser2Via.topWidthUm) : '');
+    setL2Bottom(rec.laser2Via?.bottomWidthUm !== null && rec.laser2Via?.bottomWidthUm !== undefined ? String(rec.laser2Via.bottomWidthUm) : '');
+    setL2Image(rec.laser2Via?.viaImageDataUrl);
+
+    setIsAddModalOpen(true);
+  };
+
   const handleImageUpload = (laser: 1 | 2, file: File) => {
     if (!file) return;
     const reader = new FileReader();
@@ -84,7 +150,7 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
     );
   }
 
-  const handleSaveNewRecord = () => {
+  const handleSaveRecord = () => {
     const draft = {
       date: formDate,
       productName: formProduct,
@@ -94,33 +160,44 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
       laser1PowerOffsetPercent: l1Offset !== '' ? parseFloat(l1Offset) : null,
       laser2PowerOffsetPercent: l2Offset !== '' ? parseFloat(l2Offset) : null,
       phase1: {
-        powerWatts: parseFloat(p1Power) || null,
-        frequencyKhz: parseFloat(p1Freq) || null,
-        shotCount: parseInt(p1Shots) || null,
-        maskMm: parseFloat(p1Mask) || null,
-        defocusMm: parseFloat(p1Defocus) || null
+        powerWatts: p1Power !== '' ? parseFloat(p1Power) : null,
+        frequencyKhz: p1Freq !== '' ? parseFloat(p1Freq) : null,
+        shotCount: p1Shots !== '' ? parseInt(p1Shots, 10) : null,
+        maskMm: p1Mask !== '' ? parseFloat(p1Mask) : null,
+        defocusMm: p1Defocus !== '' ? parseFloat(p1Defocus) : null
       },
       phase2: {
-        powerWatts: parseFloat(p2Power) || null,
-        frequencyKhz: parseFloat(p2Freq) || null,
-        shotCount: parseInt(p2Shots) || null,
-        maskMm: parseFloat(p2Mask) || null,
-        defocusMm: parseFloat(p2Defocus) || null
+        powerWatts: p2Power !== '' ? parseFloat(p2Power) : null,
+        frequencyKhz: p2Freq !== '' ? parseFloat(p2Freq) : null,
+        shotCount: p2Shots !== '' ? parseInt(p2Shots, 10) : null,
+        maskMm: p2Mask !== '' ? parseFloat(p2Mask) : null,
+        defocusMm: p2Defocus !== '' ? parseFloat(p2Defocus) : null
       },
       laser1Via: {
-        topWidthUm: parseFloat(l1Top) || null,
-        bottomWidthUm: parseFloat(l1Bottom) || null,
+        topWidthUm: l1Top !== '' ? parseFloat(l1Top) : null,
+        bottomWidthUm: l1Bottom !== '' ? parseFloat(l1Bottom) : null,
         viaImageDataUrl: l1Image
       },
       laser2Via: {
-        topWidthUm: parseFloat(l2Top) || null,
-        bottomWidthUm: parseFloat(l2Bottom) || null,
+        topWidthUm: l2Top !== '' ? parseFloat(l2Top) : null,
+        bottomWidthUm: l2Bottom !== '' ? parseFloat(l2Bottom) : null,
         viaImageDataUrl: l2Image
       }
     };
 
-    const newRecord = ProductProcessEngine.evaluateRecord(draft);
-    const updatedRecords = [newRecord, ...records];
+    const evaluated = ProductProcessEngine.evaluateRecord(draft);
+    let updatedRecords: ProductProcessRecord[];
+
+    if (editingRecordId) {
+      updatedRecords = records.map(r => 
+        r.id === editingRecordId 
+          ? { ...evaluated, id: editingRecordId, createdAt: r.createdAt } 
+          : r
+      );
+    } else {
+      updatedRecords = [evaluated, ...records];
+    }
+
     const updatedMachine: Machine = {
       ...machine,
       productProcessRecords: updatedRecords
@@ -132,9 +209,11 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
     StorageService.saveMachines([updatedMachine, ...others]);
 
     setIsAddModalOpen(false);
+    setEditingRecordId(null);
   };
 
   const handleDeleteRecord = (id: string) => {
+    if (!confirm('Are you sure you want to delete this Product & Process record?')) return;
     const updatedRecords = records.filter(r => r.id !== id);
     const updatedMachine: Machine = {
       ...machine,
@@ -165,7 +244,7 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
           </div>
 
           <Button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAdd}
             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-2 px-4 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -178,10 +257,21 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
       {latestRecord ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs font-mono text-slate-400 px-1">
-            <span className="font-bold text-slate-200">LATEST VERIFIED RECORD ({latestRecord.date})</span>
-            <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
-              OVERALL: {latestRecord.overallResult}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-200">LATEST VERIFIED RECORD ({latestRecord.date})</span>
+              <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
+                OVERALL: {latestRecord.overallResult}
+              </Badge>
+            </div>
+            <Button
+              onClick={() => handleOpenEdit(latestRecord)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs py-1 px-2.5 font-sans"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+              Edit Record
+            </Button>
           </div>
 
           {/* Product & Process Summary Grid */}
@@ -450,11 +540,19 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                       {rec.overallResult}
                     </Badge>
                   </td>
-                  <td className="py-2 px-2 text-right">
+                  <td className="py-2 px-2 text-right space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(rec)}
+                      className="text-cyan-400 hover:text-cyan-300 p-1 inline-flex items-center"
+                      title="Edit record"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteRecord(rec.id)}
-                      className="text-rose-400 hover:text-rose-300 p-1"
+                      className="text-rose-400 hover:text-rose-300 p-1 inline-flex items-center"
                       title="Delete record"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -467,11 +565,14 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
         </div>
       </Card>
 
-      {/* Enter New Record Modal */}
+      {/* Enter / Edit Record Modal */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title={`Enter New Product, Process & Via Check — ${machine.model}`}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingRecordId(null);
+        }}
+        title={editingRecordId ? `Edit Product, Process & Via Check — ${formDate}` : `Enter New Product, Process & Via Check — ${machine.model}`}
         maxWidth="max-w-4xl"
       >
         <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 text-xs">
@@ -766,11 +867,21 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
 
           {/* Footer & Save */}
           <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="text-xs py-1.5 px-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setEditingRecordId(null);
+              }}
+              className="text-xs py-1.5 px-3"
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveNewRecord} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1.5 px-4">
-              Save Record to Passport
+            <Button
+              onClick={handleSaveRecord}
+              className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1.5 px-4"
+            >
+              {editingRecordId ? 'Save Changes' : 'Save Record to Passport'}
             </Button>
           </div>
         </div>

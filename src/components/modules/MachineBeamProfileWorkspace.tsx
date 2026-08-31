@@ -12,7 +12,8 @@ import {
   Sliders,
   Layers,
   Sparkles,
-  Info
+  Info,
+  Edit3
 } from 'lucide-react';
 import { Machine } from '../../types';
 import {
@@ -49,6 +50,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<BeamProfileCheckRecord | null>(null);
 
   // Form State for New Check
@@ -70,6 +72,42 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
     });
     return init as Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>;
   });
+
+  const handleOpenAdd = () => {
+    setEditingRecordId(null);
+    setFormDate(getLocalDateString());
+    setFormRemarks('');
+    const init: Partial<Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>> = {};
+    CHECKPOINT_SPECS.forEach(s => {
+      let defaultValStr = '3.5';
+      if (s.id.startsWith('6B') || s.id.startsWith('7B')) defaultValStr = '4.15';
+      else if (s.maskSize) defaultValStr = (s.minMm + 0.1).toFixed(1);
+
+      init[s.id] = {
+        diameterStr: defaultValStr,
+        imageDataUrl: BeamProfileEngine.generateSyntheticBeamSvg(s.id, s.id.includes('6A') || s.id.includes('7A') ? '#f59e0b' : '#06b6d4')
+      };
+    });
+    setFormReadings(init as Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEdit = (rec: BeamProfileCheckRecord) => {
+    setEditingRecordId(rec.id);
+    setFormDate(rec.date);
+    setFormRemarks(rec.engineerRemarks || '');
+    const init: Partial<Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>> = {};
+    CHECKPOINT_SPECS.forEach(s => {
+      const r = rec.readings[s.id];
+      init[s.id] = {
+        diameterStr: r?.measuredDiameterMm !== null && r?.measuredDiameterMm !== undefined ? String(r.measuredDiameterMm) : '',
+        imageDataUrl: r?.imageDataUrl
+      };
+    });
+    setFormReadings(init as Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>);
+    setSelectedRecordDetail(null);
+    setIsAddModalOpen(true);
+  };
 
   const handleInputChange = (id: CheckpointId, field: 'diameterStr' | 'imageDataUrl', val?: string) => {
     setFormReadings(prev => ({
@@ -126,10 +164,21 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
     );
   }
 
-  // Save New Record
+  // Save Record
   const handleSaveRecord = () => {
-    const newRecord = BeamProfileEngine.evaluateRecord(currentFormParsed);
-    const updatedRecords = [newRecord, ...records];
+    const evaluated = BeamProfileEngine.evaluateRecord(currentFormParsed);
+    let updatedRecords: BeamProfileCheckRecord[];
+
+    if (editingRecordId) {
+      updatedRecords = records.map(r =>
+        r.id === editingRecordId
+          ? { ...evaluated, id: editingRecordId, createdAt: r.createdAt }
+          : r
+      );
+    } else {
+      updatedRecords = [evaluated, ...records];
+    }
+
     const updatedMachine: Machine = {
       ...machine,
       beamProfileRecords: updatedRecords
@@ -141,6 +190,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
     StorageService.saveMachines([updatedMachine, ...otherMachines]);
 
     setIsAddModalOpen(false);
+    setEditingRecordId(null);
   };
 
   // Delete Record
@@ -196,7 +246,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
         </div>
 
         <Button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={handleOpenAdd}
           className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-2 px-4 flex items-center gap-1.5 shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -477,6 +527,15 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleOpenEdit(rec)}
+                          className="py-1 px-2 text-[11px] text-cyan-400 border-cyan-500/40 hover:bg-cyan-500/10"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setSelectedRecordDetail(rec)}
                           className="py-1 px-2 text-[11px]"
                         >
@@ -500,11 +559,14 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
         )}
       </Card>
 
-      {/* MODAL 1: ENTER NEW BEAM CHECK */}
+      {/* MODAL 1: ENTER / EDIT BEAM CHECK */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title={`New Beam Profile Check — ${machine.model} (${machine.machineNumber})`}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingRecordId(null);
+        }}
+        title={editingRecordId ? `Edit Beam Profile Check — ${formDate} (${machine.machineNumber})` : `New Beam Profile Check — ${machine.model} (${machine.machineNumber})`}
         maxWidth="max-w-4xl"
       >
         <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 text-xs">
@@ -705,11 +767,18 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="text-xs py-1.5 px-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingRecordId(null);
+                }}
+                className="text-xs py-1.5 px-3"
+              >
                 Cancel
               </Button>
               <Button onClick={handleSaveRecord} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1.5 px-4">
-                Save Beam Check Record
+                {editingRecordId ? 'Save Changes' : 'Save Beam Check Record'}
               </Button>
             </div>
           </div>
@@ -785,6 +854,25 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                 <p className="text-slate-200">{selectedRecordDetail.engineerRemarks}</p>
               </div>
             )}
+
+            {/* Modal Detail Footer with Edit button */}
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between font-sans">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedRecordDetail(null)}
+                className="text-xs"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => handleOpenEdit(selectedRecordDetail)}
+                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit This Record
+              </Button>
+            </div>
           </div>
         </Modal>
       )}
