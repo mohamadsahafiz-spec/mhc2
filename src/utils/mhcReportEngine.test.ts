@@ -871,4 +871,55 @@ describe('mhcReportEngine', () => {
     expect(docWithRealReason.sections['09'].data.laser2.adjustmentReason).toBe('New laser installed');
     expect(docWithRealReason.sections['09'].data.adjustmentReason).toBe('New laser installed');
   });
+
+  it('should use machine passport temperatureCooling specs as authoritative for Section 12 and derive pass/fail accordingly', () => {
+    const session = createDummySession('SESS-TEMP-PASSPORT');
+    session.mhcSpecs = {
+      temperatureCooling: {
+        targetTempCelsius: 24.5,
+        tempToleranceCelsius: 0.5
+      }
+    };
+    session.temperatureEvidenceData = {
+      hasValidTemperatureAnalysis: true,
+      stats: {
+        min: 24.1,
+        max: 24.8,
+        avg: 24.6,
+        range: 0.7,
+        points: 500
+      }
+    };
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['12'].data.targetTempCelsius).toBe(24.5);
+    expect(doc.sections['12'].data.tempToleranceCelsius).toBe(0.5);
+    expect(doc.sections['12'].status).toBe('COMPLETE');
+
+    // Out of spec test: avg 25.2 is outside [24.0, 25.0]
+    session.temperatureEvidenceData.stats!.avg = 25.2;
+    const docOutOfSpec = buildMhcReportDocument(session);
+    expect(docOutOfSpec.sections['12'].status).toBe('NEEDS_REVIEW');
+  });
+
+  it('should leave targetTempCelsius and tempToleranceCelsius undefined when unconfigured in Machine Passport', () => {
+    const session = createDummySession('SESS-TEMP-UNCONFIGURED');
+    session.mhcSpecs = undefined;
+    session.temperatureEvidenceData = {
+      hasValidTemperatureAnalysis: true,
+      stats: {
+        min: 21.0,
+        max: 23.0,
+        avg: 22.0,
+        range: 2.0,
+        points: 100
+      }
+    };
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['12'].data.targetTempCelsius).toBeUndefined();
+    expect(doc.sections['12'].data.tempToleranceCelsius).toBeUndefined();
+    expect(doc.sections['12'].status).toBe('COMPLETE');
+  });
 });
+

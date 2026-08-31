@@ -995,6 +995,13 @@ export function buildMhcReportDocument(
   // 12 TEMPERATURE MONITORING (CONSUMES EXISTING TEMPERATURE ENGINE RESULT)
   const tempEvData = session.temperatureEvidenceData;
   const coolingData = session.stage05_cooling;
+  const tempMhcSpecs = session.mhcSpecs || matchedMachine?.mhcSpecs;
+  const targetTempCelsius = tempMhcSpecs?.temperatureCooling?.targetTempCelsius !== null && tempMhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined
+    ? tempMhcSpecs.temperatureCooling.targetTempCelsius
+    : undefined;
+  const tempToleranceCelsius = tempMhcSpecs?.temperatureCooling?.tempToleranceCelsius !== null && tempMhcSpecs?.temperatureCooling?.tempToleranceCelsius !== undefined
+    ? tempMhcSpecs.temperatureCooling.tempToleranceCelsius
+    : undefined;
 
   // Resolve temperature records from session or machine passport
   const matchedTempRec = matchedMachine?.temperatureRecords?.find(r => r.id === tempEvData?.temperatureRecordId)
@@ -1017,6 +1024,8 @@ export function buildMhcReportDocument(
     temperatureRecordId: effectiveRecordId,
     temperatureRecordTitle: effectiveTitle,
     temperatureLogFileName: effectiveFileName,
+    targetTempCelsius,
+    tempToleranceCelsius,
     rawRecordsCount: effectiveRawCount,
     stats: effectiveStats,
     channelStats: effectiveChannelStats,
@@ -1028,7 +1037,13 @@ export function buildMhcReportDocument(
     engineerNote: tempEvData?.engineerNote || coolingData?.notes
   };
 
-  const isTempPass = (!coolingData?.result || coolingData.result === 'PASS') && (!effectiveStats || (effectiveStats.avg >= 20.0 && effectiveStats.avg <= 24.0));
+  const hasTempSpec = targetTempCelsius !== undefined && tempToleranceCelsius !== undefined;
+  const isStatsPass = !effectiveStats || !hasTempSpec || (
+    effectiveStats.avg >= (targetTempCelsius - tempToleranceCelsius) &&
+    effectiveStats.avg <= (targetTempCelsius + tempToleranceCelsius)
+  );
+  const isCoolingPass = !coolingData?.result || coolingData.result === 'PASS';
+  const isTempPass = isCoolingPass && isStatsPass;
 
   const temperatureSection: MhcReportSection<MhcReportTemperatureData> = {
     code: '12',

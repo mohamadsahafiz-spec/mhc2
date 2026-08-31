@@ -2299,186 +2299,213 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 text-xs font-mono">
-                  {/* Optics Markbox Air-Cooling Subsystem Overview */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-slate-500 font-bold uppercase block">
-                        OPTICS MARKBOX AIR-COOLING SUBSYSTEM OVERVIEW
-                      </span>
-                      <span className="text-[9px] text-slate-400 font-mono">
-                        TARGET SPEC: 22.0°C ± 1.0°C (21.0°C – 23.0°C)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {(() => {
-                        const chStats = sections['12'].data.channelStats || {};
-                        const markboxes = [
-                          { id: 1, title: 'MARKBOX 1', channels: [1, 4], desc: 'Optics Markbox 1 (CH1 + CH4)' },
-                          { id: 2, title: 'MARKBOX 2', channels: [2, 5], desc: 'Optics Markbox 2 (CH2 + CH5)' },
-                          { id: 3, title: 'MARKBOX 3', channels: [3, 6], desc: 'Optics Markbox 3 (CH3 + CH6)' }
-                        ];
+                  {(() => {
+                    const targetTemp = sections['12'].data.targetTempCelsius;
+                    const tempTol = sections['12'].data.tempToleranceCelsius;
+                    const hasSpec = targetTemp !== undefined && targetTemp !== null;
+                    const minSpec = hasSpec && tempTol !== undefined && tempTol !== null ? targetTemp - tempTol : undefined;
+                    const maxSpec = hasSpec && tempTol !== undefined && tempTol !== null ? targetTemp + tempTol : undefined;
+                    const specToleranceBand = minSpec !== undefined && maxSpec !== undefined
+                      ? `${minSpec.toFixed(1)}°C – ${maxSpec.toFixed(1)}°C`
+                      : (hasSpec ? `${targetTemp!.toFixed(1)}°C` : '—');
+                    const targetSpecText = hasSpec
+                      ? (tempTol !== undefined && tempTol !== null
+                          ? `TARGET SPEC: ${targetTemp!.toFixed(1)}°C ± ${tempTol.toFixed(1)}°C (${specToleranceBand})`
+                          : `TARGET SPEC: ${targetTemp!.toFixed(1)}°C`)
+                      : 'TARGET SPEC: —';
+                    const tableSpecText = hasSpec
+                      ? (tempTol !== undefined && tempTol !== null
+                          ? `SPEC: ${targetTemp!.toFixed(1)}°C ± ${tempTol.toFixed(1)}°C (${specToleranceBand})`
+                          : `SPEC: ${targetTemp!.toFixed(1)}°C`)
+                      : 'SPEC: —';
 
-                        return markboxes.map(mb => {
-                          const available = mb.channels.filter(ch => chStats[ch]);
-                          const hasData = available.length > 0;
-                          const avgVal = hasData
-                            ? available.reduce((acc, ch) => acc + chStats[ch].avg, 0) / available.length
-                            : undefined;
-                          const minVal = hasData
-                            ? Math.min(...available.map(ch => chStats[ch].min))
-                            : undefined;
-                          const maxVal = hasData
-                            ? Math.max(...available.map(ch => chStats[ch].max))
-                            : undefined;
-                          const isPass = avgVal !== undefined ? (avgVal >= 21.0 && avgVal <= 23.0) : true;
+                    return (
+                      <>
+                        {/* Optics Markbox Air-Cooling Subsystem Overview */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase block">
+                              OPTICS MARKBOX AIR-COOLING SUBSYSTEM OVERVIEW
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-mono">
+                              {targetSpecText}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2.5">
+                            {(() => {
+                              const chStats = sections['12'].data.channelStats || {};
+                              const markboxes = [
+                                { id: 1, title: 'MARKBOX 1', channels: [1, 4], desc: 'Optics Markbox 1 (CH1 + CH4)' },
+                                { id: 2, title: 'MARKBOX 2', channels: [2, 5], desc: 'Optics Markbox 2 (CH2 + CH5)' },
+                                { id: 3, title: 'MARKBOX 3', channels: [3, 6], desc: 'Optics Markbox 3 (CH3 + CH6)' }
+                              ];
 
-                          return (
-                            <div key={mb.id} className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[9px] text-slate-500 font-bold font-mono">{mb.title}</span>
-                                {hasData ? (
-                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                    {isPass ? 'PASS' : 'WARN'}
-                                  </span>
-                                ) : (
-                                  <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-100 text-slate-500 font-bold">
-                                    NO DATA
-                                  </span>
-                                )}
+                              return markboxes.map(mb => {
+                                const available = mb.channels.filter(ch => chStats[ch]);
+                                const hasData = available.length > 0;
+                                const avgVal = hasData
+                                  ? available.reduce((acc, ch) => acc + chStats[ch].avg, 0) / available.length
+                                  : undefined;
+                                const minVal = hasData
+                                  ? Math.min(...available.map(ch => chStats[ch].min))
+                                  : undefined;
+                                const maxVal = hasData
+                                  ? Math.max(...available.map(ch => chStats[ch].max))
+                                  : undefined;
+                                const isPass = avgVal !== undefined
+                                  ? (minSpec !== undefined && maxSpec !== undefined ? (avgVal >= minSpec && avgVal <= maxSpec) : true)
+                                  : true;
+
+                                return (
+                                  <div key={mb.id} className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] text-slate-500 font-bold font-mono">{mb.title}</span>
+                                      {hasData ? (
+                                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                          {isPass ? 'PASS' : 'WARN'}
+                                        </span>
+                                      ) : (
+                                        <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-100 text-slate-500 font-bold">
+                                          NO DATA
+                                        </span>
+                                      )}
+                                    </div>
+                                    <strong className="text-slate-800 text-sm block font-bold">
+                                      {avgVal !== undefined ? `${avgVal.toFixed(2)} °C` : 'Not Linked'}
+                                    </strong>
+                                    <div className="text-[8px] text-slate-400 font-sans flex justify-between">
+                                      <span>{mb.desc}</span>
+                                      {hasData && (
+                                        <span>[{minVal?.toFixed(1)} – {maxVal?.toFixed(1)}°C]</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Telemetry Record Statistics & Matrix */}
+                        {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats ? (
+                          <>
+                            {/* Overall Telemetry Stats Header */}
+                            <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+                                <span>PERSISTED THERMAL TELEMETRY RECORD</span>
+                                <span className="text-cyan-800">
+                                  {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Authoritative Telemetry Log'}
+                                  {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} DATA POINTS)` : ''}
+                                </span>
                               </div>
-                              <strong className="text-slate-800 text-sm block font-bold">
-                                {avgVal !== undefined ? `${avgVal.toFixed(2)} °C` : 'Not Linked'}
-                              </strong>
-                              <div className="text-[8px] text-slate-400 font-sans flex justify-between">
-                                <span>{mb.desc}</span>
-                                {hasData && (
-                                  <span>[{minVal?.toFixed(1)} – {maxVal?.toFixed(1)}°C]</span>
-                                )}
+                              <div className="grid grid-cols-4 gap-2 text-[10px]">
+                                <div className="p-2 rounded bg-white border border-slate-200">
+                                  <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MIN TEMP</span>
+                                  <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
+                                </div>
+                                <div className="p-2 rounded bg-white border border-slate-200">
+                                  <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MAX TEMP</span>
+                                  <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
+                                </div>
+                                <div className="p-2 rounded bg-cyan-50/60 border border-cyan-300">
+                                  <span className="text-cyan-800 block font-sans font-bold text-[8px]">GLOBAL AVG TEMP</span>
+                                  <strong className="text-cyan-950 font-extrabold text-xs">{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
+                                </div>
+                                <div className="p-2 rounded bg-white border border-slate-200">
+                                  <span className="text-slate-400 block font-sans text-[8px]">TEMPERATURE RANGE</span>
+                                  <strong className="text-slate-800 font-bold text-xs">
+                                    {(((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max) - ((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min)).toFixed(2)} °C
+                                  </strong>
+                                </div>
                               </div>
                             </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
 
-                  {/* Telemetry Record Statistics & Matrix */}
-                  {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats ? (
-                    <>
-                      {/* Overall Telemetry Stats Header */}
-                      <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
-                          <span>PERSISTED THERMAL TELEMETRY RECORD</span>
-                          <span className="text-cyan-800">
-                            {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Authoritative Telemetry Log'}
-                            {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} DATA POINTS)` : ''}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-2 text-[10px]">
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MIN TEMP</span>
-                            <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
-                          </div>
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MAX TEMP</span>
-                            <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
-                          </div>
-                          <div className="p-2 rounded bg-cyan-50/60 border border-cyan-300">
-                            <span className="text-cyan-800 block font-sans font-bold text-[8px]">GLOBAL AVG TEMP</span>
-                            <strong className="text-cyan-950 font-extrabold text-xs">{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
-                          </div>
-                          <div className="p-2 rounded bg-white border border-slate-200">
-                            <span className="text-slate-400 block font-sans text-[8px]">TEMPERATURE RANGE</span>
-                            <strong className="text-slate-800 font-bold text-xs">
-                              {(((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max) - ((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min)).toFixed(2)} °C
-                            </strong>
-                          </div>
-                        </div>
-                      </div>
+                            {/* 6-Channel Telemetry Matrix Table */}
+                            {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
+                              <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                                <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+                                  <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
+                                  <span className="text-cyan-800">{tableSpecText}</span>
+                                </div>
+                                <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50 font-mono text-[9px]">
+                                      <th className="py-1.5 px-2.5">CHANNEL</th>
+                                      <th className="py-1.5 px-2.5">ASSIGNED OPTICS MARKBOX</th>
+                                      <th className="py-1.5 px-2.5">MIN (°C)</th>
+                                      <th className="py-1.5 px-2.5">MAX (°C)</th>
+                                      <th className="py-1.5 px-2.5">AVG (°C)</th>
+                                      <th className="py-1.5 px-2.5 text-right font-sans">STATUS</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
+                                      const chMapping: Record<string, string> = {
+                                        '1': 'Markbox 1',
+                                        '2': 'Markbox 2',
+                                        '3': 'Markbox 3',
+                                        '4': 'Markbox 1',
+                                        '5': 'Markbox 2',
+                                        '6': 'Markbox 3'
+                                      };
+                                      const markboxName = chMapping[chNum] || `Markbox ${chNum}`;
+                                      const isPass = minSpec !== undefined && maxSpec !== undefined
+                                        ? (cStat.avg >= minSpec && cStat.avg <= maxSpec)
+                                        : true;
+                                      return (
+                                        <tr key={chNum}>
+                                          <td className="py-1.5 px-2.5 font-bold text-slate-800 font-mono">CH{chNum}</td>
+                                          <td className="py-1.5 px-2.5 font-bold text-slate-800 font-sans">{markboxName}</td>
+                                          <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.min.toFixed(2)}</td>
+                                          <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.max.toFixed(2)}</td>
+                                          <td className="py-1.5 px-2.5 font-bold text-cyan-900 font-mono">{cStat.avg.toFixed(2)}</td>
+                                          <td className="py-1.5 px-2.5 text-right">
+                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                              {isPass ? 'PASS' : 'WARN'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
 
-                      {/* 6-Channel Telemetry Matrix Table */}
-                      {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
-                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
-                            <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
-                            <span className="text-cyan-800">SPEC: 22.0°C ± 1.0°C (21.0°C – 23.0°C)</span>
+                            {/* Authoritative Multi-Channel Thermal Profile Graph */}
+                            {sections['12'].data.channelData && Object.keys(sections['12'].data.channelData).length > 0 && (
+                              <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                                <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                                  <span className="font-bold text-slate-700 uppercase">AUTHORITATIVE MULTI-CHANNEL THERMAL PROFILE</span>
+                                  <span>SPEC TOLERANCE BAND: {specToleranceBand}</span>
+                                </div>
+                                <div className="w-full bg-white rounded-lg p-2.5 border border-slate-200">
+                                  <TemperatureGraph
+                                    channelData={sections['12'].data.channelData as any}
+                                    stats={sections['12'].data.stats}
+                                    preset="report"
+                                    height={180}
+                                    showLegend={true}
+                                    showGrid={true}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          /* Clean Fallback when no temperature log is linked */
+                          <div className="pt-3 border-t border-slate-200 text-center py-6 space-y-2">
+                            <div className="text-slate-400 font-mono text-xs">
+                              NO CONTINUOUS MULTI-CHANNEL THERMAL LOG LINKED TO THIS SESSION
+                            </div>
+                            <p className="text-slate-500 font-sans text-xs max-w-md mx-auto">
+                              To populate detailed 6-channel optics markbox sensor matrices and profile curves, link a temperature log record to this machine.
+                            </p>
                           </div>
-                          <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
-                            <thead>
-                              <tr className="border-b border-slate-200 text-slate-400 font-normal bg-slate-50 font-mono text-[9px]">
-                                <th className="py-1.5 px-2.5">CHANNEL</th>
-                                <th className="py-1.5 px-2.5">ASSIGNED OPTICS MARKBOX</th>
-                                <th className="py-1.5 px-2.5">SENSOR ROLE / AIR-COOLING</th>
-                                <th className="py-1.5 px-2.5">MIN (°C)</th>
-                                <th className="py-1.5 px-2.5">MAX (°C)</th>
-                                <th className="py-1.5 px-2.5">AVG (°C)</th>
-                                <th className="py-1.5 px-2.5 text-right font-sans">STATUS</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
-                                const chMapping: Record<string, { markbox: string; role: string }> = {
-                                  '1': { markbox: 'Markbox 1', role: 'Air-Cooling Sensor 1 (Primary)' },
-                                  '2': { markbox: 'Markbox 2', role: 'Air-Cooling Sensor 2 (Primary)' },
-                                  '3': { markbox: 'Markbox 3', role: 'Air-Cooling Sensor 3 (Primary)' },
-                                  '4': { markbox: 'Markbox 1', role: 'Air-Cooling Sensor 4 (Secondary)' },
-                                  '5': { markbox: 'Markbox 2', role: 'Air-Cooling Sensor 5 (Secondary)' },
-                                  '6': { markbox: 'Markbox 3', role: 'Air-Cooling Sensor 6 (Secondary)' }
-                                };
-                                const info = chMapping[chNum] || { markbox: `Markbox ${chNum}`, role: `Air-Cooling Channel ${chNum}` };
-                                const isPass = cStat.avg >= 21.0 && cStat.avg <= 23.0;
-                                return (
-                                  <tr key={chNum}>
-                                    <td className="py-1.5 px-2.5 font-bold text-slate-800 font-mono">CH{chNum}</td>
-                                    <td className="py-1.5 px-2.5 font-bold text-slate-800 font-sans">{info.markbox}</td>
-                                    <td className="py-1.5 px-2.5 text-slate-600 font-sans">{info.role}</td>
-                                    <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.min.toFixed(2)}</td>
-                                    <td className="py-1.5 px-2.5 text-slate-500 font-mono">{cStat.max.toFixed(2)}</td>
-                                    <td className="py-1.5 px-2.5 font-bold text-cyan-900 font-mono">{cStat.avg.toFixed(2)}</td>
-                                    <td className="py-1.5 px-2.5 text-right">
-                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                        {isPass ? 'PASS' : 'WARN'}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      {/* Authoritative Multi-Channel Thermal Profile Graph */}
-                      {sections['12'].data.channelData && Object.keys(sections['12'].data.channelData).length > 0 && (
-                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                          <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                            <span className="font-bold text-slate-700 uppercase">AUTHORITATIVE MULTI-CHANNEL THERMAL PROFILE</span>
-                            <span>SPEC TOLERANCE BAND: 21.0°C – 23.0°C</span>
-                          </div>
-                          <div className="w-full bg-white rounded-lg p-2.5 border border-slate-200">
-                            <TemperatureGraph
-                              channelData={sections['12'].data.channelData as any}
-                              stats={sections['12'].data.stats}
-                              preset="report"
-                              height={180}
-                              showLegend={true}
-                              showGrid={true}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Clean Fallback when no temperature log is linked */
-                    <div className="pt-3 border-t border-slate-200 text-center py-6 space-y-2">
-                      <div className="text-slate-400 font-mono text-xs">
-                        NO CONTINUOUS MULTI-CHANNEL THERMAL LOG LINKED TO THIS SESSION
-                      </div>
-                      <p className="text-slate-500 font-sans text-xs max-w-md mx-auto">
-                        To populate detailed 6-channel optics markbox sensor matrices and profile curves, link a temperature log record to this machine.
-                      </p>
-                    </div>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {/* Engineer Observation / Notes */}
                   {(sections['12'].data.engineerNote || sections['12'].data.notes) && (

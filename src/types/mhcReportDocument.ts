@@ -421,6 +421,8 @@ export interface MhcReportTemperatureData {
   temperatureRecordId?: string;
   temperatureRecordTitle?: string;
   temperatureLogFileName?: string;
+  targetTempCelsius?: number;
+  tempToleranceCelsius?: number;
   rawRecordsCount?: number;
   stats?: {
     min: number;
