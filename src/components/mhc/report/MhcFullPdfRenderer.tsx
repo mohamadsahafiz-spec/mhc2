@@ -305,46 +305,23 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         const pdfBlob = pdf.output('blob');
         blobUrl = URL.createObjectURL(pdfBlob);
         
-        // Defer tab opening and download execution to prevent React 18 scheduler conflict ("Should not already be working")
-        const currentBlobUrl = blobUrl;
-        setTimeout(() => {
-          try {
-            // 1. Open exactly ONE intentional new tab for report review
-            window.open(currentBlobUrl, '_blank');
-          } catch (openErr) {
-            console.warn('[PDF Export] Review tab could not be opened automatically:', openErr);
-          }
+        // Trigger standard browser download
+        pdf.save(fileName);
 
-          try {
-            // 2. Trigger programmatic file download as binary octet-stream so the browser downloads to disk without launching a 2nd auto-viewer tab
-            const downloadBlob = new Blob([pdfBlob], { type: 'application/octet-stream' });
-            const downloadUrl = URL.createObjectURL(downloadBlob);
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.href = downloadUrl;
-            downloadAnchor.download = fileName;
-            downloadAnchor.rel = 'noopener noreferrer';
-            downloadAnchor.style.display = 'none';
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            document.body.removeChild(downloadAnchor);
-            setTimeout(() => {
-              URL.revokeObjectURL(downloadUrl);
-            }, 1500);
-          } catch (downloadErr) {
-            console.warn('[PDF Export] Download anchor dispatch issue:', downloadErr);
-          }
-
-          if (onPdfGenerated) {
+        // Defer UI notification callback to ensure current render and DOM transitions complete smoothly
+        if (onPdfGenerated && blobUrl) {
+          const currentBlobUrl = blobUrl;
+          setTimeout(() => {
             onPdfGenerated(currentBlobUrl);
-          }
-        }, 20);
+          }, 100);
+        }
       } catch (exportErr) {
         console.warn('[PDF Export] Issue during blob/download dispatch, falling back to pdf.save:', exportErr);
         pdf.save(fileName);
         if (onPdfGenerated) {
           setTimeout(() => {
             onPdfGenerated();
-          }, 20);
+          }, 100);
         }
       }
     } catch (err) {
@@ -2592,9 +2569,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                   {/* 2. Process Recipe Parameters Table */}
                   <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
-                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase font-mono">
-                      <span>PROCESS RECIPE PHASE PARAMETERS</span>
-                      <span className="text-slate-400">PULSE POWER &amp; TIMING CONFIGURATION</span>
+                    <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
+                      PROCESS RECIPE PHASE PARAMETERS
                     </div>
                     <table className="w-full text-left text-[11px] border-collapse">
                       <thead>
@@ -2661,7 +2637,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
                               <th className="py-1">LASER HEAD</th>
                               <th className="py-1 text-center">TOP DIA.</th>
-                              <th className="py-1 text-center">BOTTOM DIA.</th>
+                              <th className="py-1 text-center">BOT DIA.</th>
                               <th className="py-1 text-center">TAPER</th>
                               <th className="py-1 text-right">VERDICT</th>
                             </tr>
