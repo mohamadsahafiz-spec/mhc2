@@ -63,30 +63,37 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
     const session = createTestSession();
     expect(session.completionStatus).toBe('IN_PROGRESS');
 
-    // Complete 07 (Readiness Review) -> moves to 08 (Report Generation)
+    // Complete 07 (Recommendations & Spare Parts) -> moves to 08 (MHC Readiness Review)
     const after07 = advanceAutopilotActivity(session, '07', 'COMPLETED');
     expect(after07.autopilotProgress?.activityStatuses['07']).toBe('COMPLETED');
     expect(after07.autopilotProgress?.activityStatuses['08']).toBe('IN_PROGRESS');
     expect(after07.completionStatus).toBe('IN_PROGRESS');
 
-    // Complete 08 (Report Generation) -> moves to 09 (Buyoff / Complete)
+    // Complete 08 (MHC Readiness Review) -> moves to 09 (Report Generation)
     const after08 = advanceAutopilotActivity(after07, '08', 'COMPLETED');
     expect(after08.autopilotProgress?.activityStatuses['08']).toBe('COMPLETED');
     expect(after08.autopilotProgress?.activityStatuses['09']).toBe('IN_PROGRESS');
     expect(after08.completionStatus).toBe('IN_PROGRESS');
+
+    // Complete 09 (Report Generation) -> moves to 10 (Buyoff / Complete)
+    const after09 = advanceAutopilotActivity(after08, '09', 'COMPLETED');
+    expect(after09.autopilotProgress?.activityStatuses['09']).toBe('COMPLETED');
+    expect(after09.autopilotProgress?.activityStatuses['10']).toBe('IN_PROGRESS');
+    expect(after09.completionStatus).toBe('IN_PROGRESS');
   });
 
-  it('sets completionStatus = COMPLETED when final activity 09 (Buyoff / Complete) is completed', () => {
+  it('sets completionStatus = COMPLETED when final activity 10 (Buyoff / Complete) is completed', () => {
     const session = createTestSession();
 
-    // Advance through 07, 08, and 09
+    // Advance through 07, 08, 09, and 10
     const step1 = advanceAutopilotActivity(session, '07', 'COMPLETED');
     const step2 = advanceAutopilotActivity(step1, '08', 'COMPLETED');
-    const finalized = advanceAutopilotActivity(step2, '09', 'COMPLETED', 'Customer signed off');
+    const step3 = advanceAutopilotActivity(step2, '09', 'COMPLETED');
+    const finalized = advanceAutopilotActivity(step3, '10', 'COMPLETED', 'Customer signed off');
 
-    expect(finalized.autopilotProgress?.activityStatuses['09']).toBe('COMPLETED');
+    expect(finalized.autopilotProgress?.activityStatuses['10']).toBe('COMPLETED');
     expect(finalized.completionStatus).toBe('COMPLETED');
-    expect(finalized.autopilotProgress?.activityNotes?.['09']).toBe('Customer signed off');
+    expect(finalized.autopilotProgress?.activityNotes?.['10']).toBe('Customer signed off');
   });
 
   it('excludes genuinely completed sessions from findLatestResumableMhcSession()', () => {
@@ -100,7 +107,8 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
     // Finalize session
     const step1 = advanceAutopilotActivity(session, '07', 'COMPLETED');
     const step2 = advanceAutopilotActivity(step1, '08', 'COMPLETED');
-    const finalized = advanceAutopilotActivity(step2, '09', 'COMPLETED');
+    const step3 = advanceAutopilotActivity(step2, '09', 'COMPLETED');
+    const finalized = advanceAutopilotActivity(step3, '10', 'COMPLETED');
 
     // After completion: session is no longer resumable
     const resumableAfter = findLatestResumableMhcSession([finalized], [sampleMachine]);
@@ -111,11 +119,12 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
     const session = createTestSession();
     const step1 = advanceAutopilotActivity(session, '07', 'COMPLETED');
     const step2 = advanceAutopilotActivity(step1, '08', 'COMPLETED');
-    const finalized = advanceAutopilotActivity(step2, '09', 'COMPLETED');
+    const step3 = advanceAutopilotActivity(step2, '09', 'COMPLETED');
+    const finalized = advanceAutopilotActivity(step3, '10', 'COMPLETED');
     expect(finalized.completionStatus).toBe('COMPLETED');
 
-    // Reopen 09
-    const reopened = advanceAutopilotActivity(finalized, '09', 'IN_PROGRESS');
+    // Reopen 10
+    const reopened = advanceAutopilotActivity(finalized, '10', 'IN_PROGRESS');
     expect(reopened.completionStatus).toBe('IN_PROGRESS');
 
     // Now it becomes resumable again
@@ -126,24 +135,25 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
 
   it('guarantees PDF download / export does not mutate or complete session until explicit confirmation', () => {
     const session = createTestSession();
-    // Simulate Activity 08 IN_PROGRESS (Report generation)
-    const inReportGen = advanceAutopilotActivity(session, '07', 'COMPLETED');
-    expect(inReportGen.autopilotProgress?.activityStatuses['08']).toBe('IN_PROGRESS');
+    // Simulate Activity 09 IN_PROGRESS (Report generation)
+    const after07 = advanceAutopilotActivity(session, '07', 'COMPLETED');
+    const inReportGen = advanceAutopilotActivity(after07, '08', 'COMPLETED');
+    expect(inReportGen.autopilotProgress?.activityStatuses['09']).toBe('IN_PROGRESS');
     expect(inReportGen.completionStatus).toBe('IN_PROGRESS');
 
     // Generating/downloading PDF is a non-destructive export operation
     // Session state remains intact and IN_PROGRESS
     expect(inReportGen.completionStatus).toBe('IN_PROGRESS');
-    expect(inReportGen.autopilotProgress?.activityStatuses['09']).toBe('UPCOMING');
+    expect(inReportGen.autopilotProgress?.activityStatuses['10']).toBe('UPCOMING');
 
     // Review Report step keeps session in progress
-    // Explicit completion step advances 08 & 09 to COMPLETED
-    const step1 = advanceAutopilotActivity(inReportGen, '08', 'COMPLETED');
-    const finalized = advanceAutopilotActivity(step1, '09', 'COMPLETED', 'Report reviewed and finalized after PDF generation');
+    // Explicit completion step advances 09 & 10 to COMPLETED
+    const step1 = advanceAutopilotActivity(inReportGen, '09', 'COMPLETED');
+    const finalized = advanceAutopilotActivity(step1, '10', 'COMPLETED', 'Report reviewed and finalized after PDF generation');
 
     expect(finalized.completionStatus).toBe('COMPLETED');
-    expect(finalized.autopilotProgress?.activityStatuses['08']).toBe('COMPLETED');
     expect(finalized.autopilotProgress?.activityStatuses['09']).toBe('COMPLETED');
+    expect(finalized.autopilotProgress?.activityStatuses['10']).toBe('COMPLETED');
     // Machine and session inspection records remain fully preserved
     expect(finalized.stage01_laserHours).toEqual(session.stage01_laserHours);
     expect(finalized.machineId).toBe(sampleMachine.id);
@@ -159,14 +169,14 @@ describe('MHC Session Finalization & Completion Lifecycle', () => {
     // User executes quick-access completion from Welcome banner
     const quickCompleted = advanceAutopilotActivity(
       session,
-      '09',
+      '10',
       'COMPLETED',
       'Completed via Welcome Quick-Access'
     );
 
     expect(quickCompleted.completionStatus).toBe('COMPLETED');
-    expect(quickCompleted.autopilotProgress?.activityStatuses['09']).toBe('COMPLETED');
-    expect(quickCompleted.autopilotProgress?.activityNotes?.['09']).toBe('Completed via Welcome Quick-Access');
+    expect(quickCompleted.autopilotProgress?.activityStatuses['10']).toBe('COMPLETED');
+    expect(quickCompleted.autopilotProgress?.activityNotes?.['10']).toBe('Completed via Welcome Quick-Access');
 
     // Resumable detection immediately returns null (session removed from continue last activity)
     const afterResumable = findLatestResumableMhcSession([quickCompleted], [sampleMachine]);

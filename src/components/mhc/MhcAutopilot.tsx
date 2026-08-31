@@ -48,6 +48,7 @@ import { MhcLaserInspectionActivity } from './autopilot/MhcLaserInspectionActivi
 import { MhcStageCalibrationActivity } from './autopilot/MhcStageCalibrationActivity';
 import { MhcAgcActivity } from './autopilot/MhcAgcActivity';
 import { MhcTemperatureEvidenceActivity } from './autopilot/MhcTemperatureEvidenceActivity';
+import { MhcRecommendationsSparePartsActivity } from './autopilot/MhcRecommendationsSparePartsActivity';
 import { MhcReadinessReviewActivity } from './autopilot/MhcReadinessReviewActivity';
 import { MhcFullPdfRenderer } from './report/MhcFullPdfRenderer';
 
@@ -305,9 +306,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   // Handler: Explicitly Complete MHC from modal
   const handleModalConfirmCompleteMhc = () => {
     if (!effectiveSession) return;
-    // Advance 08 to COMPLETED and 09 to COMPLETED
-    const step1 = advanceAutopilotActivity(effectiveSession, '08', 'COMPLETED');
-    const finalizedSession = advanceAutopilotActivity(step1, '09', 'COMPLETED', activeNoteText || 'Report reviewed and finalized after PDF generation');
+    // Advance 09 to COMPLETED and 10 to COMPLETED
+    const step1 = advanceAutopilotActivity(effectiveSession, '09', 'COMPLETED');
+    const finalizedSession = advanceAutopilotActivity(step1, '10', 'COMPLETED', activeNoteText || 'Report reviewed and finalized after PDF generation');
 
     onUpdateSession(finalizedSession);
     setShowReviewCompletionModal(false);
@@ -320,7 +321,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     if (!latestResumableSession) return;
     const finalizedSession = advanceAutopilotActivity(
       latestResumableSession,
-      '09',
+      '10',
       'COMPLETED',
       'Completed via Welcome Quick-Access'
     );
@@ -618,7 +619,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     onUpdateSession(updated);
   };
 
-  // Proceed to Report Generation from Readiness Review
+  // Proceed to Report Generation from Readiness Review (Activity 08 -> 09)
   const handleProceedToReportGeneration = () => {
     if (!effectiveSession) return;
     const audit = auditMhcSession(effectiveSession);
@@ -627,31 +628,6 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       return;
     }
 
-    const currProgress = effectiveSession.autopilotProgress || createDefaultAutopilotProgress();
-    const updatedStatuses = {
-      ...currProgress.activityStatuses,
-      '07': 'COMPLETED' as const,
-      '08': 'IN_PROGRESS' as const
-    };
-
-    const updatedSession: MHCSession = {
-      ...effectiveSession,
-      autopilotProgress: {
-        ...currProgress,
-        activityStatuses: updatedStatuses,
-        currentActivityCode: '08',
-        currentDay: 'DAY 4',
-        lastActiveTimestamp: new Date().toISOString()
-      }
-    };
-
-    onUpdateSession(updatedSession);
-    showNotification("MHC Session Readiness verified! Activity 08 Report Generation unlocked ✓");
-  };
-
-  // Proceed to Buyoff / Complete from Report Generation (Activity 08 -> 09)
-  const handleProceedToBuyoff = () => {
-    if (!effectiveSession) return;
     const currProgress = effectiveSession.autopilotProgress || createDefaultAutopilotProgress();
     const updatedStatuses = {
       ...currProgress.activityStatuses,
@@ -671,7 +647,32 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     };
 
     onUpdateSession(updatedSession);
-    showNotification("Activity 08 Report Generation marked COMPLETED! Proceeding to 09 Buyoff / Complete ✓");
+    showNotification("MHC Session Readiness verified! Activity 09 Report Generation unlocked ✓");
+  };
+
+  // Proceed to Buyoff / Complete from Report Generation (Activity 09 -> 10)
+  const handleProceedToBuyoff = () => {
+    if (!effectiveSession) return;
+    const currProgress = effectiveSession.autopilotProgress || createDefaultAutopilotProgress();
+    const updatedStatuses = {
+      ...currProgress.activityStatuses,
+      '09': 'COMPLETED' as const,
+      '10': 'IN_PROGRESS' as const
+    };
+
+    const updatedSession: MHCSession = {
+      ...effectiveSession,
+      autopilotProgress: {
+        ...currProgress,
+        activityStatuses: updatedStatuses,
+        currentActivityCode: '10',
+        currentDay: 'DAY 4',
+        lastActiveTimestamp: new Date().toISOString()
+      }
+    };
+
+    onUpdateSession(updatedSession);
+    showNotification("Activity 09 Report Generation marked COMPLETED! Proceeding to 10 Buyoff / Complete ✓");
   };
 
   // Handle Activity Navigation Jump
@@ -1827,7 +1828,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     showNotification={showNotification}
                     activeCode={progress.currentActivityCode}
                   />
-                ) : (progress.currentActivityCode === '07' || progress.currentActivityCode === '07_review') ? (
+                ) : progress.currentActivityCode === '07' ? (
+                  <MhcRecommendationsSparePartsActivity
+                    session={effectiveSession!}
+                    machine={localSelectedMachine}
+                    isDark={isDark}
+                    isReadOnly={isReadOnlyMode}
+                    onNavigateToActivity={handleJumpToActivityCode}
+                    onCompleteActivity={handleCompleteCurrentActivity}
+                    onUpdateSession={onUpdateSession}
+                    showNotification={showNotification}
+                    activeCode={progress.currentActivityCode}
+                  />
+                ) : (progress.currentActivityCode === '08' || progress.currentActivityCode === '08_review') ? (
                   <MhcReadinessReviewActivity
                     session={effectiveSession!}
                     machine={localSelectedMachine}
@@ -1835,21 +1848,21 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     isReadOnly={isReadOnlyMode}
                     onNavigateToActivity={handleJumpToActivityCode}
                     onProceedToReportGeneration={handleProceedToReportGeneration}
-                    onUpdateEngineerNote={(note) => handleUpdateNoteForActivity('07', note)}
+                    onUpdateEngineerNote={(note) => handleUpdateNoteForActivity('08', note)}
                     onUpdateSession={onUpdateSession}
                     showNotification={showNotification}
                   />
-                ) : (progress.currentActivityCode === '08' || progress.currentActivityCode === '08_report') ? (
+                ) : (progress.currentActivityCode === '09' || progress.currentActivityCode === '09_report') ? (
                   <MhcFullPdfRenderer
                     session={effectiveSession!}
                     previousSession={previousSession}
                     isDark={isDark}
                     onProceedToBuyoff={handleProceedToBuyoff}
                     onPdfGenerated={handlePdfGenerated}
-                    onBackToAutopilot={() => handleJumpToActivityCode('07')}
+                    onBackToAutopilot={() => handleJumpToActivityCode('08')}
                   />
-                ) : (progress.currentActivityCode === '09' || progress.currentActivityCode === '09_buyoff') ? (
-                  /* ACTIVITY 09: BUYOFF / COMPLETE FINALIZATION VIEW */
+                ) : (progress.currentActivityCode === '10' || progress.currentActivityCode === '10_buyoff') ? (
+                  /* ACTIVITY 10: BUYOFF / COMPLETE FINALIZATION VIEW */
                   <div className={`p-5 rounded-2xl border space-y-5 ${
                     effectiveSession?.completionStatus === 'COMPLETED'
                       ? isDark ? 'bg-emerald-950/20 border-emerald-500/40' : 'bg-emerald-50/70 border-emerald-300'
@@ -1863,7 +1876,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                             : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
                         }`}>
-                          DAY 4 • 09
+                          DAY 4 • 10
                         </span>
                         <h3 className="font-bold text-base text-slate-100">
                           Buyoff &amp; Final MHC Session Acceptance
@@ -1918,15 +1931,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                             <div className="flex items-center gap-2 text-emerald-400">
                               <CheckCircle2 className="w-4 h-4 shrink-0" />
-                              <span>07 Readiness Review (Passed)</span>
+                              <span>08 Readiness Review (Passed)</span>
                             </div>
                             <div className="flex items-center gap-2 text-emerald-400">
                               <CheckCircle2 className="w-4 h-4 shrink-0" />
-                              <span>08 PDF Report Generated</span>
+                              <span>09 PDF Report Generated</span>
                             </div>
                             <div className="flex items-center gap-2 text-cyan-400">
                               <Award className="w-4 h-4 shrink-0" />
-                              <span>09 Buyoff Ready for Sign-Off</span>
+                              <span>10 Buyoff Ready for Sign-Off</span>
                             </div>
                           </div>
                         </div>
@@ -1952,7 +1965,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                               ...currP,
                               activityNotes: {
                                 ...(currP.activityNotes || {}),
-                                ['09']: e.target.value
+                                ['10']: e.target.value
                               }
                             };
                             onUpdateSession(updated);
@@ -1982,10 +1995,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             </button>
 
                             <button
-                              onClick={() => handleJumpToActivityCode('08')}
+                              onClick={() => handleJumpToActivityCode('09')}
                               className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
                             >
-                              <span>← Review Report (08)</span>
+                              <span>← Review Report (09)</span>
                             </button>
                           </>
                         ) : (
@@ -1997,11 +2010,11 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       ) : (
                         <>
                           <button
-                            onClick={() => handleJumpToActivityCode('08')}
+                            onClick={() => handleJumpToActivityCode('09')}
                             className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
                           >
                             <FileText className="w-4 h-4" />
-                            <span>View Full MHC Report (08)</span>
+                            <span>View Full MHC Report (09)</span>
                           </button>
 
                           <button
@@ -2013,7 +2026,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                           {!isReadOnlyMode && (
                             <button
-                              onClick={() => handleReopenActivity('09')}
+                              onClick={() => handleReopenActivity('10')}
                               className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-mono font-semibold border border-slate-800 ml-auto"
                             >
                               Re-open Buyoff Activity

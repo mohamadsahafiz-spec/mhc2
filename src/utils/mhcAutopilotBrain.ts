@@ -59,18 +59,24 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
   {
     day: 'DAY 4',
     code: '07',
-    title: 'MHC Readiness Review',
+    title: 'Recommendations & Spare Parts',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '08',
-    title: 'Report Generation',
+    title: 'MHC Readiness Review',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '09',
+    title: 'Report Generation',
+    subItems: []
+  },
+  {
+    day: 'DAY 4',
+    code: '10',
     title: 'Buyoff / Complete',
     subItems: []
   }
@@ -87,9 +93,10 @@ export const ACTIONABLE_ACTIVITIES: { code: string; title: string; day: 'DAY 1' 
   { code: '05_agc1', title: 'AGC — AGC 1', day: 'DAY 3', parentCode: '05' },
   { code: '05_agc2', title: 'AGC — AGC 2', day: 'DAY 3', parentCode: '05' },
   { code: '06', title: 'Temperature & Evidence', day: 'DAY 3' },
-  { code: '07', title: 'MHC Readiness Review', day: 'DAY 4' },
-  { code: '08', title: 'Report Generation', day: 'DAY 4' },
-  { code: '09', title: 'Buyoff / Complete', day: 'DAY 4' }
+  { code: '07', title: 'Recommendations & Spare Parts', day: 'DAY 4' },
+  { code: '08', title: 'MHC Readiness Review', day: 'DAY 4' },
+  { code: '09', title: 'Report Generation', day: 'DAY 4' },
+  { code: '10', title: 'Buyoff / Complete', day: 'DAY 4' }
 ];
 
 export function createDefaultAutopilotProgress(): MHCAutopilotSessionProgress {
@@ -110,6 +117,7 @@ export function createDefaultAutopilotProgress(): MHCAutopilotSessionProgress {
   activityStatuses['07'] = 'LOCKED';
   activityStatuses['08'] = 'LOCKED';
   activityStatuses['09'] = 'LOCKED';
+  activityStatuses['10'] = 'LOCKED';
 
   return {
     currentDay: 'DAY 1',
@@ -754,7 +762,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   const totalRequiredCount = auditItems.length;
   const readinessScore = Math.round((completedRequiredCount / totalRequiredCount) * 100);
 
-  let nextAction = { text: 'Generate Report', targetCode: '08' };
+  let nextAction = { text: 'Generate Report', targetCode: '09' };
   if (!isReadyForReport && blockers.length > 0) {
     const firstBlocker = blockers[0];
     nextAction = {
@@ -958,13 +966,14 @@ export function advanceAutopilotActivity(
     return false;
   });
 
-  const isDirectFinalization = targetCode === '09' && newStatus === 'COMPLETED';
+  const isDirectFinalization = targetCode === '10' && newStatus === 'COMPLETED';
 
   const isAllComplete = isDirectFinalization || (
     isAllResolved &&
     activityStatuses['07'] === 'COMPLETED' &&
     activityStatuses['08'] === 'COMPLETED' &&
-    activityStatuses['09'] === 'COMPLETED'
+    activityStatuses['09'] === 'COMPLETED' &&
+    activityStatuses['10'] === 'COMPLETED'
   );
 
   return {

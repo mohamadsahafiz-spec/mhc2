@@ -178,7 +178,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-800">
-                DAY 4 • 07
+                DAY 4 • 08
               </span>
               <h2 className="text-base font-bold tracking-tight">MHC Readiness Review</h2>
             </div>
