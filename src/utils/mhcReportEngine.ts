@@ -1082,8 +1082,8 @@ export function buildMhcReportDocument(
   const laserProductProfileData: MhcReportLaserProductProfileData = {
     status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
     laserId: derivedLaserId,
-    productName: stageProfile?.productName || latestProductProcess?.productName || undefined,
-    recipeProgram: stageProfile?.recipeProgram || latestProductProcess?.recipeName || undefined,
+    productName: latestProductProcess?.productName || stageProfile?.productName || undefined,
+    recipeProgram: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
     recipeName: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
     lotPanel: latestProductProcess?.lotPanel || undefined,
     profileInfo: stageProfile?.profileInfo || undefined,

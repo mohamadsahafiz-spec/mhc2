@@ -921,5 +921,35 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['12'].data.tempToleranceCelsius).toBeUndefined();
     expect(doc.sections['12'].status).toBe('COMPLETE');
   });
+
+  it('should prioritize latestProductProcess for Section 13 Product and Recipe over stage02 placeholder values', () => {
+    const session = createDummySession('SESS-SECTION13-PRIORITY');
+    // Simulate stage02 initialized with default placeholder
+    session.stage02_laserProfile = {
+      productName: 'Standard Optical Profile',
+      recipeProgram: 'RECIPE-01',
+      profileInfo: 'Default Profile Info'
+    } as any;
+
+    // Simulate authoritative Machine Passport Product & Process record
+    (session as any).productProcessRecord = {
+      id: 'pp-authoritative',
+      productName: 'PEZ',
+      recipeName: 'PEZ_PROD',
+      lotPanel: 'LOT-999',
+      phase1: { powerWatts: 0.50, frequencyKhz: 60, shotCount: 25, maskMm: 1.6, defocusMm: -0.1 },
+      phase2: { powerWatts: 0.40, frequencyKhz: 50, shotCount: 20, maskMm: 1.4, defocusMm: -0.1 },
+      overallResult: 'PASS',
+      engineerRemarks: 'Nominal microvia verification passed.'
+    };
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['13'].data.productName).toBe('PEZ');
+    expect(doc.sections['13'].data.recipeProgram).toBe('PEZ_PROD');
+    expect(doc.sections['13'].data.recipeName).toBe('PEZ_PROD');
+    expect(doc.sections['13'].data.lotPanel).toBe('LOT-999');
+    expect(doc.sections['13'].data.phase1?.powerWatts).toBe(0.50);
+    expect(doc.sections['13'].data.engineerRemarks).toBe('Nominal microvia verification passed.');
+  });
 });
 
