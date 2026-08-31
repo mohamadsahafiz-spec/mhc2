@@ -1209,23 +1209,9 @@ export function buildMhcReportDocument(
     data: findingsData
   };
 
-  // 16 CORRECTIVE ACTIONS
-  const derivedActions: MhcReportCorrectiveActionsData['actionsList'] = [];
-
-  formattedHeadsFindings.forEach(h => {
-    h.findingsList.forEach(f => {
-      derivedActions.push({
-        id: `ACT-${f.id}`,
-        source: h.headName,
-        findingComponent: f.component,
-        actionText: f.actionRecommendation,
-        status: 'RECOMMENDED'
-      });
-    });
-  });
-
+  // 16 CORRECTIVE ACTIONS (Deprecated / Removed from Full PDF)
   const correctiveActionsData: MhcReportCorrectiveActionsData = {
-    actionsList: derivedActions,
+    actionsList: [],
     generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || undefined
   };
 
@@ -1233,8 +1219,8 @@ export function buildMhcReportDocument(
     code: '16',
     title: 'Corrective Actions',
     displayOrder: 16,
-    isVisible: options?.sectionVisibilityOverrides?.['16'] ?? true,
-    status: (derivedActions.length > 0 || Boolean(session.stage08_engineerRemarks?.correctiveActions)) ? 'COMPLETE' : 'NOT_COLLECTED',
+    isVisible: false,
+    status: 'NOT_COLLECTED',
     data: correctiveActionsData
   };
 
@@ -1253,10 +1239,10 @@ export function buildMhcReportDocument(
 
   const consumedParts = rawSparePartsList.filter(sp => sp.action === 'REPLACED' || sp.action === 'USED') as MhcReportSparePartsData['consumedParts'];
   
-  // Extract explicit recommended parts from findings if no consumed parts exist but actions recommend parts
-  const derivedRecommendedParts: MhcReportSparePartsData['recommendedParts'] = [];
+  // Explicit recommended parts from stage07_spareParts only (action === 'RECOMMENDED')
+  const recordedRecommendedParts: MhcReportSparePartsData['recommendedParts'] = [];
   rawSparePartsList.filter(sp => sp.action === 'RECOMMENDED').forEach(sp => {
-    derivedRecommendedParts.push({
+    recordedRecommendedParts.push({
       id: sp.id,
       partName: sp.partName,
       partNumber: sp.partNumber,
@@ -1267,38 +1253,13 @@ export function buildMhcReportDocument(
     });
   });
 
-  // Cross-reference findings for recommended parts
-  formattedHeadsFindings.forEach(h => {
-    h.findingsList.forEach(f => {
-      if (f.actionRecommendation && (
-        f.actionRecommendation.toLowerCase().includes('replace') ||
-        f.actionRecommendation.toLowerCase().includes('spare') ||
-        f.actionRecommendation.toLowerCase().includes('lens') ||
-        f.actionRecommendation.toLowerCase().includes('mirror') ||
-        f.actionRecommendation.toLowerCase().includes('filter')
-      )) {
-        // Only add if not already in list
-        const alreadyExists = derivedRecommendedParts.some(p => p.sourceFinding === f.id || (p.reason && p.reason.includes(f.component)));
-        if (!alreadyExists) {
-          derivedRecommendedParts.push({
-            id: `REC-PART-${f.id}`,
-            partName: `${f.component} (Replacement Recommended)`,
-            reason: f.actionRecommendation,
-            sourceFinding: f.id,
-            notes: `${h.headName}: ${f.actionRecommendation}`
-          });
-        }
-      }
-    });
-  });
-
   const sparePartsData: MhcReportSparePartsData = {
     spareParts: rawSparePartsList,
     consumedParts,
-    recommendedParts: derivedRecommendedParts,
-    recommendations: session.stage08_engineerRemarks?.recommendations ? [session.stage08_engineerRemarks.recommendations] : derivedActions.filter(a => a.status === 'RECOMMENDED').map(a => a.actionText),
+    recommendedParts: recordedRecommendedParts,
+    recommendations: session.stage08_engineerRemarks?.recommendations ? [session.stage08_engineerRemarks.recommendations] : [],
     engineerRecommendationsText: session.stage08_engineerRemarks?.recommendations || undefined,
-    followUpRequired: session.stage08_engineerRemarks?.followUpRequired ?? (derivedRecommendedParts.length > 0),
+    followUpRequired: session.stage08_engineerRemarks?.followUpRequired,
     generalFindingsNote: session.stage08_engineerRemarks?.generalFindings || undefined
   };
 
@@ -1307,7 +1268,7 @@ export function buildMhcReportDocument(
     title: 'Spare Parts / Recommendations',
     displayOrder: 17,
     isVisible: options?.sectionVisibilityOverrides?.['17'] ?? true,
-    status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || derivedRecommendedParts.length > 0 || rawSparePartsList.length > 0 || Boolean(session.stage08_engineerRemarks?.recommendations)) ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || recordedRecommendedParts.length > 0 || rawSparePartsList.length > 0 || Boolean(session.stage08_engineerRemarks?.recommendations)) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: sparePartsData
   };
 
@@ -1612,7 +1573,7 @@ export function buildMhcReportDocument(
     '18': buyoffSection
   };
 
-  // GENERATE INDEX (02) - CONTINUOUS §01–§18 SEQUENCE (§18 IS BUYOFF & APPROVALS)
+  // GENERATE INDEX (02) - CONTINUOUS §01–§18 SEQUENCE (EXCLUDING DEPRECATED §16)
   const orderedSectionsList: MhcReportSection[] = [
     coverSection,
     machineInfoSection,
@@ -1628,7 +1589,6 @@ export function buildMhcReportDocument(
     laserProductProfileSection,
     productViaQualitySection,
     findingsSection,
-    correctiveActionsSection,
     sparePartsSection,
     buyoffSection
   ];
@@ -1697,7 +1657,6 @@ export function buildMhcReportDocument(
     laserProductProfileSection,
     productViaQualitySection,
     findingsSection,
-    correctiveActionsSection,
     sparePartsSection,
     buyoffSection
   ];

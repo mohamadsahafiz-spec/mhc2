@@ -2770,18 +2770,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 11: FINDINGS (15), ACTIONS (16), PARTS & RECOMMENDATIONS (17), BUYOFF (18)
+              PAGE 11: FINDINGS (15), PARTS & RECOMMENDATIONS (17), BUYOFF (18)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 15–18 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>SECTION 15, 17–18 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
-            <div className="space-y-3.5 my-2 flex-1 min-h-0">
+            <div className="space-y-4 my-2 flex-1 min-h-0">
               
               {/* SECTION 15: FINDINGS & OBSERVATIONS */}
               <div className="space-y-1.5">
@@ -2815,7 +2815,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           source: h.headName,
                           component: f.component,
                           conditions: f.conditions,
-                          engineerNote: f.engineerNote || f.aiGeneratedWording,
+                          engineerNote: f.engineerNote,
                           actionRecommendation: f.actionRecommendation
                         });
                       });
@@ -2839,9 +2839,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                   <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{f.source}</td>
                                   <td className="py-1 px-2 font-mono text-[10.5px] text-slate-700">{f.component}</td>
                                   <td className="py-1 px-2 text-slate-600 text-[10.5px]">
-                                    {f.conditions && f.conditions.length > 0 ? f.conditions.join(', ') : 'Visual inspection finding'}
+                                    {f.conditions && f.conditions.length > 0 ? f.conditions.join(', ') : '—'}
                                   </td>
-                                  <td className="py-1 px-2 text-slate-700 text-[10.5px]">{f.engineerNote || f.actionRecommendation || 'Observed during routine inspection'}</td>
+                                  <td className="py-1 px-2 text-slate-700 text-[10.5px]">{f.engineerNote || '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2861,7 +2861,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <span className="italic text-[11px]">
                           {sections['15']?.data?.generalFindingsNote 
                             ? `General Observations: ${sections['15'].data.generalFindingsNote}`
-                            : 'No component anomalies or optical defects observed during visual inspection.'}
+                            : '—'}
                         </span>
                         <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                           ALL SUBSYSTEMS NOMINAL
@@ -2869,62 +2869,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </div>
                     );
                   })()}
-                </div>
-              </div>
-
-              {/* SECTION 16: CORRECTIVE ACTIONS */}
-              <div className="space-y-1.5">
-                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                    16 CORRECTIVE ACTIONS
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['16']?.status || 'NOT_COLLECTED')}
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
-                  {sections['16']?.data?.actionsList && sections['16'].data.actionsList.length > 0 ? (
-                    <div className="space-y-1.5">
-                      <table className="w-full text-left text-[11px] border-collapse bg-white rounded border border-slate-200">
-                        <thead>
-                          <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400 bg-slate-50/70">
-                            <th className="py-1 px-2">SOURCE / MODULE</th>
-                            <th className="py-1 px-2">TARGET COMPONENT</th>
-                            <th className="py-1 px-2">ACTION / PROCEDURE PERFORMED</th>
-                            <th className="py-1 px-2 text-right">ACTION STATUS</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 font-sans">
-                          {sections['16'].data.actionsList.map(act => (
-                            <tr key={act.id}>
-                              <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{act.source}</td>
-                              <td className="py-1 px-2 font-mono text-[10.5px] text-slate-600">{act.findingComponent || 'System'}</td>
-                              <td className="py-1 px-2 text-slate-700 text-[10.5px]">{act.actionText}</td>
-                              <td className="py-1 px-2 text-right font-mono text-[10px] font-bold text-cyan-800">{act.status}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      {sections['16'].data.generalCorrectiveActionsText && (
-                        <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
-                          <strong>Maintenance Execution: </strong>{sections['16'].data.generalCorrectiveActionsText}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-slate-500 py-0.5">
-                      <span className="italic text-[11px]">
-                        {sections['16']?.data?.generalCorrectiveActionsText
-                          ? `Maintenance Execution: ${sections['16'].data.generalCorrectiveActionsText}`
-                          : 'All subsystem diagnostics verified within operational specifications; no corrective adjustments required during this maintenance window.'}
-                      </span>
-                      <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                        NO CORRECTIVE ACTION REQUIRED
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -2959,7 +2903,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <div className="bg-white p-2 rounded border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
                       {sections['17']?.data?.engineerRecommendationsText || 
                        (sections['17']?.data?.recommendations && sections['17'].data.recommendations.length > 0 ? sections['17'].data.recommendations.join(' • ') : null) || 
-                       'System operating within validated tolerances; maintain standard preventative maintenance cycle.'}
+                       '—'}
                     </div>
                   </div>
 
@@ -2992,7 +2936,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </tbody>
                         </table>
                       ) : (
-                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">No parts consumed/replaced during service.</p>
+                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
                       )}
                     </div>
 
@@ -3015,13 +2959,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               <tr key={rec.id}>
                                 <td className="py-1 px-1.5 font-bold text-slate-800 text-[10px]">{rec.partName}</td>
                                 <td className="py-1 px-1.5 font-mono text-[10px]">{rec.quantity || 1}</td>
-                                <td className="py-1 px-1.5 text-right text-slate-600 text-[9.5px] truncate max-w-[130px]">{rec.reason}</td>
+                                <td className="py-1 px-1.5 text-right text-slate-600 text-[9.5px] truncate max-w-[130px]">{rec.reason || '—'}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       ) : (
-                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">No spare parts procurement required.</p>
+                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
                       )}
                     </div>
                   </div>

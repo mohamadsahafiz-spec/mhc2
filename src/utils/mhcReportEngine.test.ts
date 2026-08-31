@@ -240,8 +240,8 @@ describe('mhcReportEngine', () => {
     expect(doc.schemaVersion).toBe('1.0.0');
     expect(doc.sessionId).toBe('SESS-1001');
     expect(doc.machineId).toBe('ESI-5330');
-    expect(doc.orderedSections.length).toBe(18); // 18 active sections (§01-§17, §19)
-    expect(doc.indexEntries.length).toBe(17); // Index entries (§01, §03-§17, §19)
+    expect(doc.orderedSections.length).toBe(17); // 17 active sections (§01-§15, §17-§18)
+    expect(doc.indexEntries.length).toBe(16); // Index entries (§01, §03-§15, §17-§18)
 
     // Verify cover
     expect(doc.sections['01'].data.customerName).toBe('Acme PCB Corp');
@@ -524,17 +524,46 @@ describe('mhcReportEngine', () => {
       }
     };
 
+    session.stage07_spareParts = [
+      {
+        id: 'SP-01',
+        partName: 'Air Filter Element',
+        partNumber: 'AF-900',
+        category: 'CONSUMABLES',
+        quantity: 1,
+        reason: 'Periodic Maintenance replacement',
+        action: 'REPLACED',
+        costIndicator: 'CUSTOMER_COST',
+        notes: 'Routine service'
+      },
+      {
+        id: 'SP-02',
+        partName: 'Galvo Mirror Set',
+        partNumber: 'GM-200',
+        category: 'OPTICS',
+        quantity: 2,
+        reason: 'Recommended for next PM cycle',
+        action: 'RECOMMENDED',
+        costIndicator: 'CUSTOMER_COST',
+        notes: 'Lead time 4 weeks'
+      }
+    ];
+
     const doc = buildMhcReportDocument(session);
 
     // Machine info
     expect(doc.sections['03'].data.department).toBe('Microvia Drilling Dept');
     expect(doc.sections['03'].data.productionLine).toBe('Line 04 - High Density');
 
-    // Spare parts separation
+    // Spare parts separation - only explicit recorded data, no regex/keyword inference
     expect(doc.sections['17'].data.consumedParts.length).toBe(1);
     expect(doc.sections['17'].data.consumedParts[0].partName).toBe('Air Filter Element');
     expect(doc.sections['17'].data.recommendedParts.length).toBe(1);
-    expect(doc.sections['17'].data.recommendedParts[0].partName).toContain('Turning Mirror 2');
+    expect(doc.sections['17'].data.recommendedParts[0].partName).toBe('Galvo Mirror Set');
+
+    // Section 16 is deprecated/invisible
+    expect(doc.sections['16'].isVisible).toBe(false);
+    expect(doc.orderedSections.find(s => s.code === '16')).toBeUndefined();
 
     // Buyoff section verification (renumbered to §18)
     expect(doc.sections['18'].code).toBe('18');
@@ -598,28 +627,30 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['11'].data.agcs[1].verdict).toBe('PASS');
   });
 
-  it('should enforce continuous §01 through §18 numbering with §18 as Buyoff & Sign-off without gaps', () => {
+  it('should enforce continuous active numbering with §18 as Buyoff & Sign-off without §16', () => {
     const session = createDummySession('SESS-SECTION-FLOW');
     const doc = buildMhcReportDocument(session);
 
-    // Continuous 01 through 18 in orderedSections
+    // Continuous orderedSections without deprecated Section 16
     const orderedCodes = doc.orderedSections.map(s => s.code);
     expect(orderedCodes).toEqual([
       '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '14', '15', '16', '17', '18'
+      '11', '12', '13', '14', '15', '17', '18'
     ]);
+    expect(orderedCodes).not.toContain('16');
     expect(orderedCodes).not.toContain('19');
 
-    // Exactly 18 sections total
-    expect(doc.orderedSections.length).toBe(18);
-    expect(doc.metadata.totalSectionsCount).toBe(18);
+    // Exactly 17 active sections total
+    expect(doc.orderedSections.length).toBe(17);
+    expect(doc.metadata.totalSectionsCount).toBe(17);
 
-    // Index entries must be continuous from 01 to 18 (excluding 02 TOC itself)
+    // Index entries must be active sections from 01 to 18 (excluding 02 TOC and 16)
     const indexCodes = doc.indexEntries.map(e => e.code);
     expect(indexCodes).toEqual([
       '01', '03', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '14', '15', '16', '17', '18'
+      '11', '12', '13', '14', '15', '17', '18'
     ]);
+    expect(indexCodes).not.toContain('16');
     expect(indexCodes).not.toContain('19');
 
     const entry17 = doc.indexEntries.find(e => e.code === '17');
