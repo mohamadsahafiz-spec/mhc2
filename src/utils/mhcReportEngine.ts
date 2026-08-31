@@ -712,13 +712,55 @@ export function buildMhcReportDocument(
     }
   }
 
-  // Real recorded adjustment reason
-  const recordedAdjustmentReason = session.stage03_laserPower?.[0]?.notes
-    || session.stage03_laserPower?.[0]?.powerRecord?.engineerRemarks
-    || latestProductProcess?.engineerRemarks
-    || (session as any).focusOptimizationRecord?.adjustmentReason
-    || (session as any).focusOptimizationRecord?.reason
-    || undefined;
+  // Helper to validate that a string is a genuine adjustment reason and not a verification/activity result
+  const isValidAdjustmentReason = (text?: string | null): boolean => {
+    if (!text || typeof text !== 'string') return false;
+    const trimmed = text.trim();
+    if (!trimmed || trimmed === '—' || trimmed === '-') return false;
+    
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.includes('points passed') ||
+      lower.includes('power check') ||
+      lower.includes('check pass') ||
+      lower.includes('check fail') ||
+      lower.includes('wlvi#') ||
+      lower.includes('inspection verified') ||
+      lower.includes('overall result') ||
+      lower.startsWith('activity ') ||
+      /^(pass|fail|warning|not_collected|completed)$/i.test(trimmed)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const formatAdjustmentReasonKey = (reason?: string): string | undefined => {
+    if (!reason) return undefined;
+    if (reason === 'LASER_REPLACEMENT') return 'Laser replacement';
+    if (reason === 'BEAM_REALIGNMENT') return 'Beam re-alignment';
+    if (reason === 'ROUTINE_ENGINEERING') return 'Engineering focus calibration';
+    return reason;
+  };
+
+  // Real recorded adjustment reason strictly from authoritative persisted records
+  const candidateReasons = [
+    latestProductProcess?.engineerRemarks,
+    (latestProductProcess as any)?.adjustmentReason,
+    session.stage03_laserPower?.[0]?.powerRecord?.engineerRemarks,
+    (session as any).focusOptimizationRecord?.adjustmentReason,
+    formatAdjustmentReasonKey(activeFocusRecord?.reason),
+    formatAdjustmentReasonKey((session as any).focusOptimizationRecord?.reason),
+    (activeFocusRecord as any)?.serviceRecord
+  ];
+
+  let recordedAdjustmentReason: string | undefined = undefined;
+  for (const candidate of candidateReasons) {
+    if (isValidAdjustmentReason(candidate)) {
+      recordedAdjustmentReason = candidate!.trim();
+      break;
+    }
+  }
 
   const hasPowerData = Boolean((session.stage03_laserPower && session.stage03_laserPower.length > 0) || latestProductProcess);
   const powerRecord = session.stage03_laserPower?.[0]?.powerRecord;

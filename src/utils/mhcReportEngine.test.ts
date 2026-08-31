@@ -827,8 +827,47 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBeNull();
     expect(doc.sections['09'].data.laser1.resultingPowerWatts).toBeNull();
     expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBeNull();
+    expect(doc.sections['09'].data.laser1.adjustmentReason).toBeUndefined();
     expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBeNull();
     expect(doc.sections['09'].data.laser2.resultingPowerWatts).toBeNull();
     expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBeNull();
+    expect(doc.sections['09'].data.laser2.adjustmentReason).toBeUndefined();
+  });
+
+  it('should reject verification results and test check activity notes from being used as §09 adjustment reason', () => {
+    const session = createDummySession('SESS-VERIFY-REJECT');
+    (session as any).productProcessRecords = [
+      {
+        id: 'pp-test',
+        date: '2026-08-30',
+        productName: 'Sample PCB',
+        recipeName: 'SAMPLE_RECIPE',
+        laser1PowerOffsetPercent: -5.0,
+        laser2PowerOffsetPercent: 3.0,
+        phase1: { powerWatts: 0.50, frequencyKhz: 50, shotCount: 20, maskMm: 1.5, defocusMm: -0.2 },
+        phase2: { powerWatts: 0.40, frequencyKhz: 50, shotCount: 15, maskMm: 1.2, defocusMm: -0.2 }
+      }
+    ];
+
+    // Activity check completion notes that MUST NOT be used as reason
+    session.stage03_laserPower = [
+      {
+        laserId: 'lh1',
+        notes: 'WLVI#3 Power Check PASS (8/8 points passed)',
+        result: 'PASS'
+      } as any
+    ];
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['09'].data.laser1.adjustmentReason).toBeUndefined();
+    expect(doc.sections['09'].data.laser2.adjustmentReason).toBeUndefined();
+    expect(doc.sections['09'].data.adjustmentReason).toBeUndefined();
+
+    // Now supply genuine engineer remarks on the process record
+    (session as any).productProcessRecords[0].engineerRemarks = 'New laser installed';
+    const docWithRealReason = buildMhcReportDocument(session);
+    expect(docWithRealReason.sections['09'].data.laser1.adjustmentReason).toBe('New laser installed');
+    expect(docWithRealReason.sections['09'].data.laser2.adjustmentReason).toBe('New laser installed');
+    expect(docWithRealReason.sections['09'].data.adjustmentReason).toBe('New laser installed');
   });
 });
