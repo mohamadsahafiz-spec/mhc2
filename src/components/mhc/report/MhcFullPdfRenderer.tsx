@@ -2063,6 +2063,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Engineering Note: Bottom Via Impact */}
+                  <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 flex items-start gap-1.5 text-[10px] text-amber-950 leading-tight">
+                    <span className="font-bold text-amber-900 shrink-0">Note:</span>
+                    <span>
+                      {sections['09'].data.bottomViaImpactNote || 'Bottom via impact: Power offset primarily influences bottom via diameter (~90%), making it a key factor in bottom via diameter control.'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

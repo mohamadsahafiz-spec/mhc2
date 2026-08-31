@@ -334,6 +334,7 @@ export interface MhcReportPowerOffsetData {
   productName?: string;
   recipeName?: string;
   powerOffsetRangeText?: string;
+  bottomViaImpactNote?: string;
   laser1: MhcLaserPowerOffsetHead;
   laser2: MhcLaserPowerOffsetHead;
   adjustmentReason?: string;

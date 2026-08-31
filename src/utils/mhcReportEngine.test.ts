@@ -777,6 +777,7 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['09'].data.productName).toBe('HDI Rigid-Flex Rev C');
     expect(doc.sections['09'].data.recipeName).toBe('HDI_VIA_MICRO_50UM');
     expect(doc.sections['09'].data.powerOffsetRangeText).toBe('−20% to +20%');
+    expect(doc.sections['09'].data.bottomViaImpactNote).toContain('Power offset primarily influences bottom via diameter');
 
     // Laser 1
     expect(doc.sections['09'].data.laser1.laserLabel).toBe('LASER 1');

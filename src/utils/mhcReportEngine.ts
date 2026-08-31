@@ -814,11 +814,14 @@ export function buildMhcReportDocument(
     adjustmentReason: recordedAdjustmentReason
   };
 
+  const BOTTOM_VIA_IMPACT_NOTE = 'Bottom via impact: Power offset primarily influences bottom via diameter (~90%), making it a key factor in bottom via diameter control.';
+
   const powerOffsetData: MhcReportPowerOffsetData = {
     status: hasPowerData ? 'COMPLETE' : 'NOT_COLLECTED',
     productName: latestProductProcess?.productName,
     recipeName: latestProductProcess?.recipeName,
     powerOffsetRangeText: '−20% to +20%',
+    bottomViaImpactNote: BOTTOM_VIA_IMPACT_NOTE,
     laser1: laser1HeadOffset,
     laser2: laser2HeadOffset,
     adjustmentReason: recordedAdjustmentReason,
