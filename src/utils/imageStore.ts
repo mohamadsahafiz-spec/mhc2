@@ -7,7 +7,7 @@ const STORE_NAME = 'evidence_images';
 let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
-const MAX_MEMORY_CACHE_ITEMS = 2048;
+const MAX_MEMORY_CACHE_ITEMS = 64; // High-performance LRU cache bounded to prevent out-of-memory errors
 
 function setMemoryCache(key: string, val: string) {
   if (imageMemoryCache.has(key)) {
@@ -387,17 +387,17 @@ export const ImageStore = {
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
-        const req = store.openCursor();
+        const req = store.getAllKeys();
         req.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-          if (cursor) {
-            const keyStr = cursor.key as string;
-            setMemoryCache(keyStr, cursor.value as string);
-            persistedInIdbKeys.add(keyStr);
-            cursor.continue();
-          } else {
-            resolve();
+          const keys = (event.target as IDBRequest<IDBValidKey[]>).result;
+          if (Array.isArray(keys)) {
+            keys.forEach(k => {
+              if (typeof k === 'string') {
+                persistedInIdbKeys.add(k);
+              }
+            });
           }
+          resolve();
         };
         req.onerror = () => reject(req.error);
       });

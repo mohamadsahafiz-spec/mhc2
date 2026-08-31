@@ -2549,7 +2549,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       13 PRODUCT PROCESS &amp; VIA QUALITY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Substrate Recipe Parameters &amp; Microvia Quality
+                      Product Recipe Parameters &amp; Microvia Measurements
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -2569,9 +2569,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs font-mono">
                   
                   {/* 1. Substrate & Recipe Identity Grid */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">PRODUCT / SUBSTRATE</span>
+                      <span className="text-[9px] text-slate-400 block font-sans">PRODUCT</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
                         {sections['13'].data.productName || (sections['14']?.data as any)?.productName || 'Not Recorded'}
                       </strong>
@@ -2586,20 +2586,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <span className="text-[9px] text-slate-400 block font-sans">LOT / PANEL IDENTIFIER</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
                         {sections['13'].data.lotPanel || sections['14']?.data?.sampleId || 'Not Recorded'}
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                      <span className="text-[9px] text-slate-400 block font-sans">LASER ALLOCATION</span>
-                      <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.laserId === 'lh2'
-                          ? 'Laser 2 (LH2)'
-                          : sections['13'].data.laserId === 'lh1'
-                          ? 'Laser 1 (LH1)'
-                          : sections['13'].data.laserId === 'both'
-                          ? 'Dual Laser (LH1 & LH2)'
-                          : sections['13'].data.laserId
-                          ? sections['13'].data.laserId
-                          : 'Not Recorded'}
                       </strong>
                     </div>
                   </div>
@@ -2625,7 +2611,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <tr>
                           <td className="py-1.5 font-bold text-slate-800">Phase 1</td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts} W` : '-'}
+                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts.toFixed(2)} W` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
                             {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '-'}
@@ -2643,7 +2629,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <tr>
                           <td className="py-1.5 font-bold text-slate-800">Phase 2</td>
                           <td className="py-1.5 text-center text-slate-700">
-                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts} W` : '-'}
+                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts.toFixed(2)} W` : '-'}
                           </td>
                           <td className="py-1.5 text-center text-slate-700">
                             {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '-'}
@@ -2674,8 +2660,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <thead>
                             <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
                               <th className="py-1">LASER HEAD</th>
-                              <th className="py-1 text-center">TOP WIDTH</th>
-                              <th className="py-1 text-center">BOTTOM WIDTH</th>
+                              <th className="py-1 text-center">TOP DIA.</th>
+                              <th className="py-1 text-center">BOTTOM DIA.</th>
                               <th className="py-1 text-center">TAPER</th>
                               <th className="py-1 text-right">VERDICT</th>
                             </tr>
