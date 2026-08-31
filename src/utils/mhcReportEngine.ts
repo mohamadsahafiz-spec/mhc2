@@ -635,8 +635,13 @@ export function buildMhcReportDocument(
   const latestProductProcess = (session as any).productProcessRecord || (session as any).productProcessRecords?.[0] || matchedMachine?.productProcessRecords?.[0];
   const prevProductProcess = (session as any).productProcessRecords?.[1] || matchedMachine?.productProcessRecords?.[1] || (previousSession as any)?.productProcessRecord || (previousSession as any)?.productProcessRecords?.[0];
 
-  const l1RecipePower = latestProductProcess?.phase1?.powerWatts ?? null;
-  const l2RecipePower = latestProductProcess?.phase2?.powerWatts ?? latestProductProcess?.phase1?.powerWatts ?? null;
+  const p1RecipePower = (latestProductProcess?.phase1?.powerWatts !== undefined && latestProductProcess?.phase1?.powerWatts !== null)
+    ? latestProductProcess.phase1.powerWatts
+    : null;
+
+  const p2RecipePower = (latestProductProcess?.phase2?.powerWatts !== undefined && latestProductProcess?.phase2?.powerWatts !== null)
+    ? latestProductProcess.phase2.powerWatts
+    : null;
 
   const head1Power = laserPowerData.heads[0];
   const head2Power = laserPowerData.heads[1];
@@ -671,12 +676,22 @@ export function buildMhcReportDocument(
       ? (latestProductProcess as any).laser2OffsetPercent
       : null);
 
-  const l1ResultingPower = (l1RecipePower !== null && l1AppliedOffset !== null)
-    ? Number((l1RecipePower * (1 + l1AppliedOffset / 100)).toFixed(2))
+  // Laser 1 Adjusted Powers (Phase 1 & Phase 2)
+  const l1P1AdjustedPower = (p1RecipePower !== null && l1AppliedOffset !== null)
+    ? Number((p1RecipePower * (1 + l1AppliedOffset / 100)).toFixed(2))
     : null;
 
-  const l2ResultingPower = (l2RecipePower !== null && l2AppliedOffset !== null)
-    ? Number((l2RecipePower * (1 + l2AppliedOffset / 100)).toFixed(2))
+  const l1P2AdjustedPower = (p2RecipePower !== null && l1AppliedOffset !== null)
+    ? Number((p2RecipePower * (1 + l1AppliedOffset / 100)).toFixed(2))
+    : null;
+
+  // Laser 2 Adjusted Powers (Phase 1 & Phase 2)
+  const l2P1AdjustedPower = (p1RecipePower !== null && l2AppliedOffset !== null)
+    ? Number((p1RecipePower * (1 + l2AppliedOffset / 100)).toFixed(2))
+    : null;
+
+  const l2P2AdjustedPower = (p2RecipePower !== null && l2AppliedOffset !== null)
+    ? Number((p2RecipePower * (1 + l2AppliedOffset / 100)).toFixed(2))
     : null;
 
   // Authoritative Previous vs Current power offset evaluation strictly from Machine Passport Product & Process records
@@ -729,10 +744,14 @@ export function buildMhcReportDocument(
 
   const laser1HeadOffset: MhcLaserPowerOffsetHead = {
     laserHeadId: 'laser1',
-    laserLabel: laserHoursDetails[0]?.laserIdentifier ? `Laser Head 1 (${laserHoursDetails[0].laserIdentifier})` : 'Laser Head 1',
-    recipePowerWatts: l1RecipePower,
+    laserLabel: 'LASER 1',
+    phase1RecipePowerWatts: p1RecipePower,
+    phase1AdjustedPowerWatts: l1P1AdjustedPower,
+    phase2RecipePowerWatts: p2RecipePower,
+    phase2AdjustedPowerWatts: l1P2AdjustedPower,
+    recipePowerWatts: p1RecipePower,
     appliedOffsetPercent: l1AppliedOffset,
-    resultingPowerWatts: l1ResultingPower,
+    resultingPowerWatts: l1P1AdjustedPower,
     previousOffsetPercent: prevH1OffsetPct,
     currentOffsetPercent: l1AppliedOffset,
     adjustmentReason: recordedAdjustmentReason
@@ -740,10 +759,14 @@ export function buildMhcReportDocument(
 
   const laser2HeadOffset: MhcLaserPowerOffsetHead = {
     laserHeadId: 'laser2',
-    laserLabel: laserHoursDetails[1]?.laserIdentifier ? `Laser Head 2 (${laserHoursDetails[1].laserIdentifier})` : 'Laser Head 2',
-    recipePowerWatts: l2RecipePower,
+    laserLabel: 'LASER 2',
+    phase1RecipePowerWatts: p1RecipePower,
+    phase1AdjustedPowerWatts: l2P1AdjustedPower,
+    phase2RecipePowerWatts: p2RecipePower,
+    phase2AdjustedPowerWatts: l2P2AdjustedPower,
+    recipePowerWatts: p1RecipePower,
     appliedOffsetPercent: l2AppliedOffset,
-    resultingPowerWatts: l2ResultingPower,
+    resultingPowerWatts: l2P1AdjustedPower,
     previousOffsetPercent: prevH2OffsetPct,
     currentOffsetPercent: l2AppliedOffset,
     adjustmentReason: recordedAdjustmentReason

@@ -779,19 +779,23 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['09'].data.powerOffsetRangeText).toBe('−20% to +20%');
 
     // Laser 1
-    expect(doc.sections['09'].data.laser1.recipePowerWatts).toBe(0.50);
+    expect(doc.sections['09'].data.laser1.laserLabel).toBe('LASER 1');
+    expect(doc.sections['09'].data.laser1.phase1RecipePowerWatts).toBe(0.50);
+    expect(doc.sections['09'].data.laser1.phase1AdjustedPowerWatts).toBe(0.44);
+    expect(doc.sections['09'].data.laser1.phase2RecipePowerWatts).toBe(0.45);
+    expect(doc.sections['09'].data.laser1.phase2AdjustedPowerWatts).toBe(0.40);
     expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBe(-12.0);
-    // Resulting power: 0.50 * (1 - 0.12) = 0.44
-    expect(doc.sections['09'].data.laser1.resultingPowerWatts).toBe(0.44);
     expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBe(-10.0);
     expect(doc.sections['09'].data.laser1.currentOffsetPercent).toBe(-12.0);
     expect(doc.sections['09'].data.laser1.adjustmentReason).toBe('Laser replacement');
 
     // Laser 2
-    expect(doc.sections['09'].data.laser2.recipePowerWatts).toBe(0.45);
+    expect(doc.sections['09'].data.laser2.laserLabel).toBe('LASER 2');
+    expect(doc.sections['09'].data.laser2.phase1RecipePowerWatts).toBe(0.50);
+    expect(doc.sections['09'].data.laser2.phase1AdjustedPowerWatts).toBe(0.51);
+    expect(doc.sections['09'].data.laser2.phase2RecipePowerWatts).toBe(0.45);
+    expect(doc.sections['09'].data.laser2.phase2AdjustedPowerWatts).toBe(0.46);
     expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBe(2.0);
-    // Resulting power: 0.45 * (1 + 0.02) = 0.46
-    expect(doc.sections['09'].data.laser2.resultingPowerWatts).toBe(0.46);
     expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBe(-8.0);
     expect(doc.sections['09'].data.laser2.currentOffsetPercent).toBe(2.0);
   });

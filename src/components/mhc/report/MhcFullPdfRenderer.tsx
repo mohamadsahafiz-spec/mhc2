@@ -1830,7 +1830,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       09 POWER OFFSET &amp; CALIBRATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                      Bottom Via Diameter Optimization &amp; Process Offset
+                      Power Offset &amp; Process Optimization
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1858,61 +1858,83 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   {/* Side-by-Side Laser 1 & Laser 2 Cards */}
                   <div className="grid grid-cols-2 gap-3 font-sans">
                     {/* Laser 1 */}
-                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
+                      {/* Card Header: Laser 1 & Applied Offset */}
                       <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="w-2 h-2 rounded-full bg-slate-800"></span>
                           <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
-                            {sections['09'].data.laser1?.laserLabel || 'Laser Head 1'}
+                            LASER 1
                           </span>
                         </div>
-                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-semibold">
-                          Optimized Offset
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-[10.5px]">
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="text-slate-500 font-medium">Recipe Power:</span>
-                          <span className="font-mono font-bold text-slate-900 text-xs">
-                            {sections['09'].data.laser1?.recipePowerWatts !== null && sections['09'].data.laser1?.recipePowerWatts !== undefined
-                              ? `${sections['09'].data.laser1.recipePowerWatts.toFixed(2)} W`
-                              : '—'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="text-slate-500 font-medium">Applied Power Offset:</span>
-                          <span className={`font-mono font-bold text-xs ${
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8.5px] font-sans font-bold text-slate-400 uppercase">Power Offset:</span>
+                          <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded ${
                             sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
                               ? sections['09'].data.laser1.appliedOffsetPercent === 0
-                                ? 'text-slate-800'
+                                ? 'text-slate-800 bg-slate-100'
                                 : sections['09'].data.laser1.appliedOffsetPercent < 0
-                                  ? 'text-cyan-800'
-                                  : 'text-indigo-800'
-                              : 'text-slate-400'
+                                  ? 'text-cyan-800 bg-cyan-50'
+                                  : 'text-indigo-800 bg-indigo-50'
+                              : 'text-slate-400 bg-slate-50'
                           }`}>
                             {sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
                               ? `${sections['09'].data.laser1.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.appliedOffsetPercent.toFixed(1)}%`
                               : '—'}
                           </span>
                         </div>
+                      </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                          <span className="text-slate-800 font-bold">Resulting Power:</span>
-                          <span className="font-mono font-extrabold text-slate-950 text-sm">
-                            {sections['09'].data.laser1?.resultingPowerWatts !== null && sections['09'].data.laser1?.resultingPowerWatts !== undefined
-                              ? `${sections['09'].data.laser1.resultingPowerWatts.toFixed(2)} W`
-                              : '—'}
-                          </span>
+                      {/* Two-Phase Power Grid: Phase 1 & Phase 2 */}
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        {/* Phase 1 */}
+                        <div className="p-2 rounded bg-slate-50 border border-slate-200/80 space-y-1">
+                          <span className="text-[8.5px] font-bold uppercase text-slate-500 block">Phase 1</span>
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="text-slate-500 text-[9px]">Recipe:</span>
+                            <span className="font-mono font-semibold text-slate-800 text-[10px]">
+                              {sections['09'].data.laser1?.phase1RecipePowerWatts !== null && sections['09'].data.laser1?.phase1RecipePowerWatts !== undefined
+                                ? `${sections['09'].data.laser1.phase1RecipePowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
+                            <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
+                            <span className="font-mono font-extrabold text-slate-950 text-[11px]">
+                              {sections['09'].data.laser1?.phase1AdjustedPowerWatts !== null && sections['09'].data.laser1?.phase1AdjustedPowerWatts !== undefined
+                                ? `${sections['09'].data.laser1.phase1AdjustedPowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Phase 2 */}
+                        <div className="p-2 rounded bg-slate-50 border border-slate-200/80 space-y-1">
+                          <span className="text-[8.5px] font-bold uppercase text-slate-500 block">Phase 2</span>
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="text-slate-500 text-[9px]">Recipe:</span>
+                            <span className="font-mono font-semibold text-slate-800 text-[10px]">
+                              {sections['09'].data.laser1?.phase2RecipePowerWatts !== null && sections['09'].data.laser1?.phase2RecipePowerWatts !== undefined
+                                ? `${sections['09'].data.laser1.phase2RecipePowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
+                            <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
+                            <span className="font-mono font-extrabold text-slate-950 text-[11px]">
+                              {sections['09'].data.laser1?.phase2AdjustedPowerWatts !== null && sections['09'].data.laser1?.phase2AdjustedPowerWatts !== undefined
+                                ? `${sections['09'].data.laser1.phase2AdjustedPowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Previous vs Current & Adjustment Reason */}
-                      <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[9px]">
-                        <div>
-                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Offset Comparison</span>
-                          <div className="font-mono text-slate-700 mt-0.5">
+                      {/* Offset Comparison & Full Reason (Wrapping naturally) */}
+                      <div className="space-y-1.5 pt-1.5 border-t border-slate-100 text-[9.5px]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8px] uppercase font-bold text-slate-400">Offset Comparison</span>
+                          <div className="font-mono text-slate-700">
                             <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
                             <span className="font-semibold">
                               {sections['09'].data.laser1?.previousOffsetPercent !== null && sections['09'].data.laser1?.previousOffsetPercent !== undefined
@@ -1931,69 +1953,91 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                         <div>
                           <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
-                          <span className="text-slate-700 font-medium block mt-0.5 truncate" title={sections['09'].data.laser1?.adjustmentReason || undefined}>
+                          <p className="text-slate-700 font-medium mt-0.5 break-words whitespace-normal leading-snug">
                             {sections['09'].data.laser1?.adjustmentReason || '—'}
-                          </span>
+                          </p>
                         </div>
                       </div>
                     </div>
 
                     {/* Laser 2 */}
-                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
+                      {/* Card Header: Laser 2 & Applied Offset */}
                       <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                          <span className="w-2 h-2 rounded-full bg-slate-800"></span>
                           <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
-                            {sections['09'].data.laser2?.laserLabel || 'Laser Head 2'}
+                            LASER 2
                           </span>
                         </div>
-                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-semibold">
-                          Optimized Offset
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-[10.5px]">
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="text-slate-500 font-medium">Recipe Power:</span>
-                          <span className="font-mono font-bold text-slate-900 text-xs">
-                            {sections['09'].data.laser2?.recipePowerWatts !== null && sections['09'].data.laser2?.recipePowerWatts !== undefined
-                              ? `${sections['09'].data.laser2.recipePowerWatts.toFixed(2)} W`
-                              : '—'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="text-slate-500 font-medium">Applied Power Offset:</span>
-                          <span className={`font-mono font-bold text-xs ${
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8.5px] font-sans font-bold text-slate-400 uppercase">Power Offset:</span>
+                          <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded ${
                             sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
                               ? sections['09'].data.laser2.appliedOffsetPercent === 0
-                                ? 'text-slate-800'
+                                ? 'text-slate-800 bg-slate-100'
                                 : sections['09'].data.laser2.appliedOffsetPercent < 0
-                                  ? 'text-cyan-800'
-                                  : 'text-indigo-800'
-                              : 'text-slate-400'
+                                  ? 'text-cyan-800 bg-cyan-50'
+                                  : 'text-indigo-800 bg-indigo-50'
+                              : 'text-slate-400 bg-slate-50'
                           }`}>
                             {sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
                               ? `${sections['09'].data.laser2.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.appliedOffsetPercent.toFixed(1)}%`
                               : '—'}
                           </span>
                         </div>
+                      </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                          <span className="text-slate-800 font-bold">Resulting Power:</span>
-                          <span className="font-mono font-extrabold text-slate-950 text-sm">
-                            {sections['09'].data.laser2?.resultingPowerWatts !== null && sections['09'].data.laser2?.resultingPowerWatts !== undefined
-                              ? `${sections['09'].data.laser2.resultingPowerWatts.toFixed(2)} W`
-                              : '—'}
-                          </span>
+                      {/* Two-Phase Power Grid: Phase 1 & Phase 2 */}
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        {/* Phase 1 */}
+                        <div className="p-2 rounded bg-slate-50 border border-slate-200/80 space-y-1">
+                          <span className="text-[8.5px] font-bold uppercase text-slate-500 block">Phase 1</span>
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="text-slate-500 text-[9px]">Recipe:</span>
+                            <span className="font-mono font-semibold text-slate-800 text-[10px]">
+                              {sections['09'].data.laser2?.phase1RecipePowerWatts !== null && sections['09'].data.laser2?.phase1RecipePowerWatts !== undefined
+                                ? `${sections['09'].data.laser2.phase1RecipePowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
+                            <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
+                            <span className="font-mono font-extrabold text-slate-950 text-[11px]">
+                              {sections['09'].data.laser2?.phase1AdjustedPowerWatts !== null && sections['09'].data.laser2?.phase1AdjustedPowerWatts !== undefined
+                                ? `${sections['09'].data.laser2.phase1AdjustedPowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Phase 2 */}
+                        <div className="p-2 rounded bg-slate-50 border border-slate-200/80 space-y-1">
+                          <span className="text-[8.5px] font-bold uppercase text-slate-500 block">Phase 2</span>
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="text-slate-500 text-[9px]">Recipe:</span>
+                            <span className="font-mono font-semibold text-slate-800 text-[10px]">
+                              {sections['09'].data.laser2?.phase2RecipePowerWatts !== null && sections['09'].data.laser2?.phase2RecipePowerWatts !== undefined
+                                ? `${sections['09'].data.laser2.phase2RecipePowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
+                            <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
+                            <span className="font-mono font-extrabold text-slate-950 text-[11px]">
+                              {sections['09'].data.laser2?.phase2AdjustedPowerWatts !== null && sections['09'].data.laser2?.phase2AdjustedPowerWatts !== undefined
+                                ? `${sections['09'].data.laser2.phase2AdjustedPowerWatts.toFixed(2)} W`
+                                : '—'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Previous vs Current & Adjustment Reason */}
-                      <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[9px]">
-                        <div>
-                          <span className="text-[8px] uppercase font-bold text-slate-400 block">Offset Comparison</span>
-                          <div className="font-mono text-slate-700 mt-0.5">
+                      {/* Offset Comparison & Full Reason (Wrapping naturally) */}
+                      <div className="space-y-1.5 pt-1.5 border-t border-slate-100 text-[9.5px]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8px] uppercase font-bold text-slate-400">Offset Comparison</span>
+                          <div className="font-mono text-slate-700">
                             <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
                             <span className="font-semibold">
                               {sections['09'].data.laser2?.previousOffsetPercent !== null && sections['09'].data.laser2?.previousOffsetPercent !== undefined
@@ -2012,9 +2056,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                         <div>
                           <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
-                          <span className="text-slate-700 font-medium block mt-0.5 truncate" title={sections['09'].data.laser2?.adjustmentReason || undefined}>
+                          <p className="text-slate-700 font-medium mt-0.5 break-words whitespace-normal leading-snug">
                             {sections['09'].data.laser2?.adjustmentReason || '—'}
-                          </span>
+                          </p>
                         </div>
                       </div>
                     </div>

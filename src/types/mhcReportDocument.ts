@@ -309,12 +309,24 @@ export interface MhcReportFocusOptimizationData {
 export interface MhcLaserPowerOffsetHead {
   laserHeadId: 'laser1' | 'laser2';
   laserLabel: string;
-  recipePowerWatts: number | null;
+  
+  // Phase 1 Process Power
+  phase1RecipePowerWatts: number | null;
+  phase1AdjustedPowerWatts: number | null;
+
+  // Phase 2 Process Power
+  phase2RecipePowerWatts: number | null;
+  phase2AdjustedPowerWatts: number | null;
+
+  // Offset Evaluation
   appliedOffsetPercent: number | null;
-  resultingPowerWatts: number | null;
   previousOffsetPercent: number | null;
   currentOffsetPercent: number | null;
   adjustmentReason?: string;
+
+  // Backwards compatibility fields
+  recipePowerWatts?: number | null;
+  resultingPowerWatts?: number | null;
 }
 
 export interface MhcReportPowerOffsetData {
