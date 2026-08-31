@@ -2572,30 +2572,30 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
                       PROCESS RECIPE PHASE PARAMETERS
                     </div>
-                    <table className="w-full text-left text-[11px] border-collapse">
+                    <table className="w-full table-fixed text-[11px] border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
-                          <th className="py-1">PROCESS PHASE</th>
-                          <th className="py-1 text-center">POWER (W)</th>
-                          <th className="py-1 text-center">FREQUENCY (kHz)</th>
-                          <th className="py-1 text-center">SHOT COUNT</th>
-                          <th className="py-1 text-center">MASK (mm)</th>
-                          <th className="py-1 text-right">DEFOCUS (mm)</th>
+                          <th className="py-1 text-left w-[24%]">PROCESS PHASE</th>
+                          <th className="py-1 text-right w-[13%]">POWER (W)</th>
+                          <th className="py-1 text-right w-[17%]">FREQUENCY (kHz)</th>
+                          <th className="py-1 text-right w-[13%]">SHOT COUNT</th>
+                          <th className="py-1 text-right w-[14%]">MASK (mm)</th>
+                          <th className="py-1 text-right w-[19%]">DEFOCUS (mm)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-mono">
                         <tr>
-                          <td className="py-1.5 font-bold text-slate-800">Phase 1</td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-left font-bold text-slate-800">Phase 1</td>
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts.toFixed(2)} W` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase1?.shotCount !== null && sections['13'].data.phase1?.shotCount !== undefined ? `${sections['13'].data.phase1.shotCount} shots` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase1?.maskMm !== null && sections['13'].data.phase1?.maskMm !== undefined ? `${sections['13'].data.phase1.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
@@ -2603,17 +2603,17 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-1.5 font-bold text-slate-800">Phase 2</td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-left font-bold text-slate-800">Phase 2</td>
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts.toFixed(2)} W` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase2?.shotCount !== null && sections['13'].data.phase2?.shotCount !== undefined ? `${sections['13'].data.phase2.shotCount} shots` : '-'}
                           </td>
-                          <td className="py-1.5 text-center text-slate-700">
+                          <td className="py-1.5 text-right text-slate-700">
                             {sections['13'].data.phase2?.maskMm !== null && sections['13'].data.phase2?.maskMm !== undefined ? `${sections['13'].data.phase2.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
