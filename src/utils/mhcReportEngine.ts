@@ -896,11 +896,13 @@ export function buildMhcReportDocument(
       ? 'PASS'
       : 'NOT_COLLECTED';
 
+  const DEFAULT_STAGE_CALIBRATION_RECORD = 'Stage positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.';
+
   const stageCalibrationData: MhcReportStageCalibrationData = {
     specToleranceUm: 2.0,
     overallVerdict: stageOverallVerdict,
     overallDisposition: stage1Data?.engineerDisposition || stage2Data?.engineerDisposition,
-    notes: stage1Data?.engineerNote || stage2Data?.engineerNote || undefined,
+    notes: stage1Data?.engineerNote || stage2Data?.engineerNote || DEFAULT_STAGE_CALIBRATION_RECORD,
     stages: stagesList
   };
 
@@ -970,11 +972,13 @@ export function buildMhcReportDocument(
       ? 'PASS'
       : 'NOT_COLLECTED';
 
+  const DEFAULT_AGC_CALIBRATION_RECORD = 'AGC/scanner positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.';
+
   const agcData: MhcReportAgcData = {
     specToleranceUm: 3.0,
     overallVerdict: agcOverallVerdict,
     overallDisposition: agc1Data?.engineerDisposition || agc2Data?.engineerDisposition,
-    notes: agc1Data?.engineerNote || agc2Data?.engineerNote || undefined,
+    notes: agc1Data?.engineerNote || agc2Data?.engineerNote || DEFAULT_AGC_CALIBRATION_RECORD,
     scannerAttentionRequired: agcScannerAttention,
     agcs: agcsList
   };

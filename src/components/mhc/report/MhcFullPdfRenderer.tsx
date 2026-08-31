@@ -2110,7 +2110,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: |Δ| ≤ {sections['10'].data.specToleranceUm?.toFixed(1) || '2.0'} µm</span>
+                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['10'].data.specToleranceUm ? sections['10'].data.specToleranceUm.toFixed(1) : '2.0'} μm</span>
                     {renderStatusBadge(sections['10'].data.overallVerdict)}
                   </div>
                 </div>
@@ -2123,7 +2123,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-1.5 font-semibold">X DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 font-semibold">Y DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 font-semibold">MAX ABS DEV [DERIVED]</th>
-                        <th className="py-1.5 font-semibold">SPEC LIMIT</th>
                         <th className="py-1.5 text-right font-semibold">VERDICT</th>
                       </tr>
                     </thead>
@@ -2144,9 +2143,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <td className="py-2.5 font-bold text-slate-900">
                             {stg.overallMaxDevUm !== undefined ? `${stg.overallMaxDevUm.toFixed(2)} µm` : '—'}
                           </td>
-                          <td className="py-2.5 font-medium text-cyan-900">
-                            |Δ| ≤ {stg.specToleranceUm ? stg.specToleranceUm.toFixed(1) : (sections['10'].data.specToleranceUm?.toFixed(1) || '2.0')} µm
-                          </td>
                           <td className="py-2.5 text-right">{renderStatusBadge(stg.verdict)}</td>
                         </tr>
                       ))}
@@ -2165,8 +2161,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
                           />
                           <div className="text-[10px] min-w-0">
-                            <div className="font-bold text-slate-800 truncate">{stg.stageName} Evidence</div>
-                            <div className="text-slate-500 font-mono text-[9px] truncate">{stg.engineerNote || 'Stage calibration grid artifact'}</div>
+                            <div className="font-bold text-slate-800 truncate">{stg.stageName}</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">Stage calibration grid</div>
                           </div>
                         </div>
                       ))}
@@ -2178,8 +2174,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <span className="font-bold text-slate-800 shrink-0">Calibration Record:</span>
                     <span>
                       {sections['10'].data.notes || 
-                        sections['10'].data.stages.find(s => s.engineerNote)?.engineerNote || 
-                        'Sub-micron motion stages calibrated across full travel range. Positional deviation within ±2.0 µm envelope.'}
+                        'Stage positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.'}
                     </span>
                   </div>
                 </div>
@@ -2197,7 +2192,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: |Δ| ≤ {sections['11'].data.specToleranceUm?.toFixed(1) || '3.0'} µm</span>
+                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['11'].data.specToleranceUm ? sections['11'].data.specToleranceUm.toFixed(1) : '3.0'} μm</span>
                     {renderStatusBadge(sections['11'].data.overallVerdict)}
                   </div>
                 </div>
@@ -2209,7 +2204,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <th className="py-1.5 font-semibold">AGC IDENTIFIER</th>
                         <th className="py-1.5 font-semibold">X DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 font-semibold">Y DEVIATION RANGE [MEASURED]</th>
-                        <th className="py-1.5 font-semibold">SPECIFICATION LIMIT</th>
                         <th className="py-1.5 text-right font-semibold">VERDICT</th>
                       </tr>
                     </thead>
@@ -2226,9 +2220,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             {agc.yMinUm !== null && agc.yMinUm !== undefined && agc.yMaxUm !== null && agc.yMaxUm !== undefined
                               ? `${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)} to ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)} µm`
                               : '—'}
-                          </td>
-                          <td className="py-2.5 font-medium text-cyan-900">
-                            |Δ| ≤ {agc.specToleranceUm ? agc.specToleranceUm.toFixed(1) : (sections['11'].data.specToleranceUm?.toFixed(1) || '3.0')} µm
                           </td>
                           <td className="py-2.5 text-right">{renderStatusBadge(agc.verdict)}</td>
                         </tr>
@@ -2248,8 +2239,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             className="h-14 w-auto max-w-[90px] object-contain rounded border border-slate-100 bg-slate-50 shrink-0"
                           />
                           <div className="text-[10px] min-w-0">
-                            <div className="font-bold text-slate-800 truncate">{agc.agcName} Record</div>
-                            <div className="text-slate-500 font-mono text-[9px] truncate">{agc.engineerNote || 'Calibration record artifact'}</div>
+                            <div className="font-bold text-slate-800 truncate">{agc.agcName}</div>
+                            <div className="text-slate-500 font-mono text-[9px] truncate">AGC calibration grid</div>
                           </div>
                         </div>
                       ))}
@@ -2261,8 +2252,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <span className="font-bold text-slate-800 shrink-0">Calibration Record:</span>
                     <span>
                       {sections['11'].data.notes || 
-                        sections['11'].data.agcs.find(a => a.engineerNote)?.engineerNote || 
-                        'Galvo scanner positional repeatability and AGC multi-index grid calibrated across dynamic scan field. Positional deviation within ±3.0 µm envelope.'}
+                        'AGC/scanner positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.'}
                     </span>
                   </div>
                 </div>
