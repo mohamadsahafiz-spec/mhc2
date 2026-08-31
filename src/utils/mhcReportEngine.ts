@@ -786,7 +786,7 @@ export function buildMhcReportDocument(
 
   const laser1HeadOffset: MhcLaserPowerOffsetHead = {
     laserHeadId: 'laser1',
-    laserLabel: 'LASER 1',
+    laserLabel: 'Laser Head 1 (LH1)',
     phase1RecipePowerWatts: p1RecipePower,
     phase1AdjustedPowerWatts: l1P1AdjustedPower,
     phase2RecipePowerWatts: p2RecipePower,
@@ -801,7 +801,7 @@ export function buildMhcReportDocument(
 
   const laser2HeadOffset: MhcLaserPowerOffsetHead = {
     laserHeadId: 'laser2',
-    laserLabel: 'LASER 2',
+    laserLabel: 'Laser Head 2 (LH2)',
     phase1RecipePowerWatts: p1RecipePower,
     phase1AdjustedPowerWatts: l2P1AdjustedPower,
     phase2RecipePowerWatts: p2RecipePower,
@@ -1597,23 +1597,23 @@ export function buildMhcReportDocument(
     switch (code) {
       case '01': return 1;
       case '02': return 2;
-      case '03': return 3;
-      case '04': return 4;
-      case '05': return 4;
-      case '06': return 5;
-      case '07': return 6;
-      case '08': return 7;
-      case '09': return 7;
-      case '10': return 8;
-      case '11': return 8;
-      case '12': return 9;
-      case '13': return 10;
-      case '14': return 10;
-      case '15': return 11;
-      case '16': return 11;
-      case '17': return 11;
-      case '18': return 11;
-      case '19': return 11;
+      case '03': return 1;
+      case '04': return 3;
+      case '05': return 3;
+      case '06': return 4;
+      case '07': return 5;
+      case '08': return 6;
+      case '09': return 6;
+      case '10': return 7;
+      case '11': return 7;
+      case '12': return 8;
+      case '13': return 9;
+      case '14': return 9;
+      case '15': return 10;
+      case '16': return 10;
+      case '17': return 10;
+      case '18': return 10;
+      case '19': return 10;
       default: return 1;
     }
   };

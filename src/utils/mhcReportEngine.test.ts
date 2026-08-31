@@ -656,9 +656,9 @@ describe('mhcReportEngine', () => {
     const entry17 = doc.indexEntries.find(e => e.code === '17');
     const entry18 = doc.indexEntries.find(e => e.code === '18');
     expect(entry17?.title).toBe('Spare Parts / Recommendations');
-    expect(entry17?.pageNumber).toBe(11);
+    expect(entry17?.pageNumber).toBe(10);
     expect(entry18?.title).toBe('Buyoff & Approvals');
-    expect(entry18?.pageNumber).toBe(11);
+    expect(entry18?.pageNumber).toBe(10);
     expect(entry18?.category).toBe('Signoff');
 
     // Position of 17 immediately followed by 18 in indexEntries
@@ -810,8 +810,8 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['09'].data.powerOffsetRangeText).toBe('−20% to +20%');
     expect(doc.sections['09'].data.bottomViaImpactNote).toContain('Power offset primarily influences bottom via diameter');
 
-    // Laser 1
-    expect(doc.sections['09'].data.laser1.laserLabel).toBe('LASER 1');
+    // Laser Head 1 (LH1)
+    expect(doc.sections['09'].data.laser1.laserLabel).toBe('Laser Head 1 (LH1)');
     expect(doc.sections['09'].data.laser1.phase1RecipePowerWatts).toBe(0.50);
     expect(doc.sections['09'].data.laser1.phase1AdjustedPowerWatts).toBe(0.44);
     expect(doc.sections['09'].data.laser1.phase2RecipePowerWatts).toBe(0.45);
@@ -821,8 +821,8 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['09'].data.laser1.currentOffsetPercent).toBe(-12.0);
     expect(doc.sections['09'].data.laser1.adjustmentReason).toBe('Laser replacement');
 
-    // Laser 2
-    expect(doc.sections['09'].data.laser2.laserLabel).toBe('LASER 2');
+    // Laser Head 2 (LH2)
+    expect(doc.sections['09'].data.laser2.laserLabel).toBe('Laser Head 2 (LH2)');
     expect(doc.sections['09'].data.laser2.phase1RecipePowerWatts).toBe(0.50);
     expect(doc.sections['09'].data.laser2.phase1AdjustedPowerWatts).toBe(0.51);
     expect(doc.sections['09'].data.laser2.phase2RecipePowerWatts).toBe(0.45);
