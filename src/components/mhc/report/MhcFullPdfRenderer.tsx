@@ -21,7 +21,8 @@ import {
   Clock,
   XCircle,
   Minus,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
@@ -2548,7 +2549,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       13 PRODUCT PROCESS &amp; VIA QUALITY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      Substrate Recipe Parameters, Process Phase Setup &amp; Microvia Quality Tolerances
+                      Substrate Recipe Parameters &amp; Microvia Quality
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -2590,7 +2591,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">LASER ALLOCATION</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.laserId === 'lh2' ? 'Laser 2 (LH2)' : sections['13'].data.laserId === 'lh1' ? 'Laser 1 (LH1)' : sections['13'].data.laserId ? sections['13'].data.laserId : 'Dual Laser (LH1 & LH2)'}
+                        {sections['13'].data.laserId === 'lh2'
+                          ? 'Laser 2 (LH2)'
+                          : sections['13'].data.laserId === 'lh1'
+                          ? 'Laser 1 (LH1)'
+                          : sections['13'].data.laserId === 'both'
+                          ? 'Dual Laser (LH1 & LH2)'
+                          : sections['13'].data.laserId
+                          ? sections['13'].data.laserId
+                          : 'Not Recorded'}
                       </strong>
                     </div>
                   </div>
@@ -2614,7 +2623,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-mono">
                         <tr>
-                          <td className="py-1.5 font-bold text-slate-800">Phase 1 (Main / Rough Cut)</td>
+                          <td className="py-1.5 font-bold text-slate-800">Phase 1</td>
                           <td className="py-1.5 text-center text-slate-700">
                             {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts} W` : '-'}
                           </td>
@@ -2632,7 +2641,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-1.5 font-bold text-slate-800">Phase 2 (Clean / Bottom Polish)</td>
+                          <td className="py-1.5 font-bold text-slate-800">Phase 2</td>
                           <td className="py-1.5 text-center text-slate-700">
                             {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts} W` : '-'}
                           </td>
@@ -2653,54 +2662,18 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </table>
                   </div>
 
-                  {/* 3. Microvia Quality Metrics Grid */}
+                  {/* 3. Microvia Quality Measurements & Cross-Section Evidence */}
                   <div className="space-y-2 pt-1 border-t border-slate-200">
-                    <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase font-mono">
-                      <span>MICROVIA QUALITY &amp; DRILLING TOLERANCES</span>
-                      <span className="text-cyan-900 font-bold">IPC-6012 INSPECTION CRITERIA</span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">NOMINAL VIA APERTURE</span>
-                        <strong className="text-slate-800 text-xs block font-bold">
-                          {sections['14']?.data?.viaDiameterUm !== undefined && sections['14'].data.viaDiameterUm !== null ? `${sections['14'].data.viaDiameterUm.toFixed(1)} µm` : 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Spec: 41.0 – 61.0 µm</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">VIA OFFSET / CONCENTRICITY</span>
-                        <strong className="text-slate-800 text-xs block font-bold">
-                          {sections['14']?.data?.viaOffsetUm !== undefined && sections['14'].data.viaOffsetUm !== null ? `${sections['14'].data.viaOffsetUm.toFixed(1)} µm` : 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Tolerance: ≤ ±2.0 µm</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">VIA GEOMETRY &amp; SHAPE</span>
-                        <strong className="text-slate-800 text-xs block font-bold truncate">
-                          {sections['14']?.data?.viaShape || 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Aperture Uniformity</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[9px] text-slate-400 block font-sans">LANDING RECAST QUALITY</span>
-                        <strong className="text-slate-800 text-xs block font-bold truncate">
-                          {sections['14']?.data?.padQuality || 'Not Recorded'}
-                        </strong>
-                        <span className="text-[8px] text-slate-400 font-sans">Copper Base Cleanliness</span>
-                      </div>
-                    </div>
-
-                    {/* Dual-Head Microvia Table & Cross-Section SVGs */}
-                    <div className="grid grid-cols-12 gap-3 items-center">
-                      <div className="col-span-8 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                    <div className="grid grid-cols-12 gap-3 items-stretch">
+                      {/* Left: Dual-Head Microvia Table */}
+                      <div className="col-span-7 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5 flex flex-col justify-between">
                         <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
-                          DUAL-HEAD MICROVIA DRILLING TOLERANCES
+                          MICROVIA DRILLING MEASUREMENTS
                         </div>
                         <table className="w-full text-left text-[11px] border-collapse">
                           <thead>
                             <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-400">
-                              <th className="py-1">CHANNEL</th>
+                              <th className="py-1">LASER HEAD</th>
                               <th className="py-1 text-center">TOP WIDTH</th>
                               <th className="py-1 text-center">BOTTOM WIDTH</th>
                               <th className="py-1 text-center">TAPER</th>
@@ -2723,32 +2696,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               return (
                                 <>
                                   <tr>
-                                    <td className="py-1.5 font-bold text-slate-800">Laser 1 Microvia</td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 font-bold text-slate-800">Laser 1</td>
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh1Top !== null ? `${lh1Top.toFixed(1)} µm` : '-'}
                                     </td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh1Bot !== null ? `${lh1Bot.toFixed(1)} µm` : '-'}
                                     </td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh1Taper}
                                     </td>
-                                    <td className="py-1.5 text-right font-bold">
+                                    <td className="py-2 text-right font-bold">
                                       {renderStatusBadge(lh1Pass)}
                                     </td>
                                   </tr>
                                   <tr>
-                                    <td className="py-1.5 font-bold text-slate-800">Laser 2 Microvia</td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 font-bold text-slate-800">Laser 2</td>
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh2Top !== null ? `${lh2Top.toFixed(1)} µm` : '-'}
                                     </td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh2Bot !== null ? `${lh2Bot.toFixed(1)} µm` : '-'}
                                     </td>
-                                    <td className="py-1.5 text-center text-slate-700">
+                                    <td className="py-2 text-center text-slate-700">
                                       {lh2Taper}
                                     </td>
-                                    <td className="py-1.5 text-right font-bold">
+                                    <td className="py-2 text-right font-bold">
                                       {renderStatusBadge(lh2Pass)}
                                     </td>
                                   </tr>
@@ -2759,56 +2732,67 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </table>
                       </div>
 
-                      {/* Vector Cross-Section Visual Diagrams */}
-                      <div className="col-span-4 flex items-center justify-center gap-2">
-                        {(() => {
-                          const qData = sections['14']?.data;
-                          const lh1Top = qData?.laser1Via?.topWidthUm ?? qData?.viaDiameterUm ?? null;
-                          const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? (lh1Top ? lh1Top * 0.45 : null);
-                          const lh2Top = qData?.laser2Via?.topWidthUm ?? (qData?.viaDiameterUm ? qData.viaDiameterUm - 0.4 : null);
-                          const lh2Bot = qData?.laser2Via?.bottomWidthUm ?? (lh2Top ? lh2Top * 0.45 : null);
+                      {/* Right: Actual Cross-Section Microscope Images */}
+                      <div className="col-span-5 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                        <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
+                          MICROVIA CROSS-SECTION EVIDENCE
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(() => {
+                            const qData = sections['14']?.data;
+                            const l1Img = qData?.laser1Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser1Via.viaImageDataUrl) || qData.laser1Via.viaImageDataUrl) : undefined;
+                            const l2Img = qData?.laser2Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser2Via.viaImageDataUrl) || qData.laser2Via.viaImageDataUrl) : undefined;
 
-                          return (
-                            <>
-                              <div className="text-center">
-                                <div 
-                                  className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
-                                  dangerouslySetInnerHTML={{
-                                    __html: ProductProcessEngine.generateSyntheticViaSvg(
-                                      'LH1 Via',
-                                      lh1Top || 51.0,
-                                      lh1Bot || 23.0,
-                                      '#06b6d4'
-                                    )
-                                  }}
-                                />
-                                <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 1 Profile</span>
-                              </div>
-                              <div className="text-center">
-                                <div 
-                                  className="w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-xs bg-slate-950 flex items-center justify-center mx-auto"
-                                  dangerouslySetInnerHTML={{
-                                    __html: ProductProcessEngine.generateSyntheticViaSvg(
-                                      'LH2 Via',
-                                      lh2Top || 51.0,
-                                      lh2Bot || 23.0,
-                                      '#0ea5e9'
-                                    )
-                                  }}
-                                />
-                                <span className="text-[8px] font-mono text-slate-500 font-bold block mt-1">Laser 2 Profile</span>
-                              </div>
-                            </>
-                          );
-                        })()}
+                            return (
+                              <>
+                                <div className="text-center space-y-1">
+                                  <div className="w-full aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                                    {l1Img ? (
+                                      <img
+                                        src={l1Img}
+                                        alt="Laser 1 Microvia"
+                                        className="w-full h-full object-contain"
+                                        crossOrigin="anonymous"
+                                      />
+                                    ) : (
+                                      <div className="text-[9px] font-mono text-slate-500 flex flex-col items-center gap-1">
+                                        <Camera className="w-4 h-4 text-slate-600" />
+                                        <span>No Image</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] font-mono text-slate-700 font-bold block">Laser 1</span>
+                                </div>
+                                <div className="text-center space-y-1">
+                                  <div className="w-full aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                                    {l2Img ? (
+                                      <img
+                                        src={l2Img}
+                                        alt="Laser 2 Microvia"
+                                        className="w-full h-full object-contain"
+                                        crossOrigin="anonymous"
+                                      />
+                                    ) : (
+                                      <div className="text-[9px] font-mono text-slate-500 flex flex-col items-center gap-1">
+                                        <Camera className="w-4 h-4 text-slate-600" />
+                                        <span>No Image</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] font-mono text-slate-700 font-bold block">Laser 2</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* 4. Unified Verification Remarks */}
+                  {/* 4. Real Engineer Remarks */}
                   <div className="text-[10px] text-slate-600 font-sans leading-relaxed pt-2 border-t border-slate-200">
-                    <strong>Process &amp; Quality Verification: </strong>
-                    {sections['13'].data.engineerRemarks || sections['14']?.data?.visualVerification || sections['14']?.data?.notes || sections['14']?.data?.engineerRemarks || sections['13'].data.supportingEvidence || sections['13'].data.profileInfo || 'Recipe laser operating parameters and microvia dimensional tolerances verified within machine process specifications.'}
+                    <strong>Engineer Remarks: </strong>
+                    {sections['13'].data.engineerRemarks || sections['14']?.data?.engineerRemarks || sections['14']?.data?.notes || '—'}
                   </div>
                 </div>
               </div>

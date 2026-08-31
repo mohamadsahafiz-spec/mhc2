@@ -1066,14 +1066,27 @@ export function buildMhcReportDocument(
     latestProductProcess?.recipeName
   );
 
+  // Derive laser allocation strictly from recorded data without defaulting blindly to 'lh1'
+  const hasL1Via = Boolean(latestProductProcess?.laser1Via);
+  const hasL2Via = Boolean(latestProductProcess?.laser2Via);
+  const derivedLaserId = stageProfile?.laserId || (
+    hasL1Via && hasL2Via
+      ? 'both'
+      : hasL2Via && !hasL1Via
+      ? 'lh2'
+      : hasL1Via
+      ? 'lh1'
+      : undefined
+  );
+
   const laserProductProfileData: MhcReportLaserProductProfileData = {
     status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
-    laserId: stageProfile?.laserId || 'lh1',
+    laserId: derivedLaserId,
     productName: stageProfile?.productName || latestProductProcess?.productName || undefined,
     recipeProgram: stageProfile?.recipeProgram || latestProductProcess?.recipeName || undefined,
     recipeName: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
     lotPanel: latestProductProcess?.lotPanel || undefined,
-    profileInfo: stageProfile?.profileInfo || (latestProductProcess ? 'Standard Process Recipe Profile' : undefined),
+    profileInfo: stageProfile?.profileInfo || undefined,
     measurementInfo: stageProfile?.measurementInfo || undefined,
     supportingEvidence: stageProfile?.supportingEvidence || undefined,
     images: stageProfile?.images || [],
@@ -1108,22 +1121,41 @@ export function buildMhcReportDocument(
   const qualityResult = stageQuality?.result || (latestProductProcess ? (latestProductProcess.overallResult === 'PASS' ? 'PASS' : 'FAIL') : 'NOT_COLLECTED');
   const isQualityPass = qualityResult === 'PASS';
 
+  // Hydrate via microscope image URLs from ImageStore if stored as IDB keys
+  const resolvedLaser1Via = latestProductProcess?.laser1Via
+    ? {
+        ...latestProductProcess.laser1Via,
+        viaImageDataUrl: latestProductProcess.laser1Via.viaImageDataUrl
+          ? ImageStore.resolveImage(latestProductProcess.laser1Via.viaImageDataUrl) || latestProductProcess.laser1Via.viaImageDataUrl
+          : undefined
+      }
+    : undefined;
+
+  const resolvedLaser2Via = latestProductProcess?.laser2Via
+    ? {
+        ...latestProductProcess.laser2Via,
+        viaImageDataUrl: latestProductProcess.laser2Via.viaImageDataUrl
+          ? ImageStore.resolveImage(latestProductProcess.laser2Via.viaImageDataUrl) || latestProductProcess.laser2Via.viaImageDataUrl
+          : undefined
+      }
+    : undefined;
+
   const productViaQualityData: MhcReportProductViaQualityData = {
     status: hasQualityData ? (isQualityPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     sampleId: stageQuality?.sampleId || latestProductProcess?.lotPanel || undefined,
     viaDiameterUm: stageQuality?.viaDiameterUm ?? latestProductProcess?.laser1Via?.topWidthUm ?? undefined,
-    viaShape: stageQuality?.viaShape || 'Circular',
-    viaOffsetUm: stageQuality?.viaOffsetUm ?? 0.0,
-    padQuality: stageQuality?.padQuality || (latestProductProcess ? 'Clean recast / minimal ablation residue' : undefined),
-    visualVerification: stageQuality?.visualVerification || (latestProductProcess ? 'Via cut geometry verified within specification' : undefined),
+    viaShape: stageQuality?.viaShape || undefined,
+    viaOffsetUm: stageQuality?.viaOffsetUm !== undefined && stageQuality?.viaOffsetUm !== null ? stageQuality.viaOffsetUm : undefined,
+    padQuality: stageQuality?.padQuality || undefined,
+    visualVerification: stageQuality?.visualVerification || undefined,
     result: qualityResult,
     overallResult: latestProductProcess?.overallResult || (qualityResult === 'PASS' ? 'PASS' : qualityResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED'),
     beforeImages: stageQuality?.beforeImages || [],
     afterImages: stageQuality?.afterImages || [],
     notes: stageQuality?.notes || latestProductProcess?.engineerRemarks || undefined,
     engineerRemarks: latestProductProcess?.engineerRemarks || stageQuality?.notes || undefined,
-    laser1Via: latestProductProcess?.laser1Via,
-    laser2Via: latestProductProcess?.laser2Via,
+    laser1Via: resolvedLaser1Via,
+    laser2Via: resolvedLaser2Via,
     hasViaRecord: Boolean(latestProductProcess?.laser1Via || latestProductProcess?.laser2Via)
   };
 
