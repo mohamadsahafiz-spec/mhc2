@@ -236,10 +236,10 @@ export function buildMhcReportDocument(
   };
 
   const laserHoursSection: MhcReportSection<MhcReportLaserHoursData> = {
-    code: '05',
+    code: '04',
     title: 'Laser Hours',
-    displayOrder: 5,
-    isVisible: options?.sectionVisibilityOverrides?.['05'] ?? true,
+    displayOrder: 4,
+    isVisible: options?.sectionVisibilityOverrides?.['04'] ?? true,
     status: laserHoursDetails.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
     data: laserHoursData,
     summaryNote: laserHoursData.summaryText
@@ -403,10 +403,10 @@ export function buildMhcReportDocument(
   };
 
   const laserPowerSection: MhcReportSection<MhcReportLaserPowerData> = {
-    code: '06',
+    code: '05',
     title: 'Laser Power',
-    displayOrder: 6,
-    isVisible: options?.sectionVisibilityOverrides?.['06'] ?? true,
+    displayOrder: 5,
+    isVisible: options?.sectionVisibilityOverrides?.['05'] ?? true,
     status: powerItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
     data: laserPowerData,
     summaryNote: laserPowerData.comparisonNote
@@ -530,10 +530,10 @@ export function buildMhcReportDocument(
   };
 
   const beamProfileSection: MhcReportSection<MhcReportBeamProfileData> = {
-    code: '07',
+    code: '06',
     title: 'Beam Profile',
-    displayOrder: 7,
-    isVisible: options?.sectionVisibilityOverrides?.['07'] ?? true,
+    displayOrder: 6,
+    isVisible: options?.sectionVisibilityOverrides?.['06'] ?? true,
     status: (beamRecord || session.stage04_opticsBeam?.beamWaistMm || (session.stage04_opticsBeam?.images && session.stage04_opticsBeam.images.length > 0) || session.stage04_opticsBeam?.inspectionResult) ? 'COMPLETE' : (session.stage04_opticsBeam ? 'COMPLETE' : 'NOT_COLLECTED'),
     data: beamProfileData
   };
@@ -622,10 +622,10 @@ export function buildMhcReportDocument(
   };
 
   const focusOptimizationSection: MhcReportSection<MhcReportFocusOptimizationData> = {
-    code: '08',
+    code: '07',
     title: 'Focus Optimization',
-    displayOrder: 8,
-    isVisible: options?.sectionVisibilityOverrides?.['08'] ?? true,
+    displayOrder: 7,
+    isVisible: options?.sectionVisibilityOverrides?.['07'] ?? true,
     status: focusOptimizationData.status,
     data: focusOptimizationData
   };
@@ -844,10 +844,10 @@ export function buildMhcReportDocument(
   };
 
   const powerOffsetSection: MhcReportSection<MhcReportPowerOffsetData> = {
-    code: '09',
+    code: '08',
     title: 'Power Offset',
-    displayOrder: 9,
-    isVisible: options?.sectionVisibilityOverrides?.['09'] ?? true,
+    displayOrder: 8,
+    isVisible: options?.sectionVisibilityOverrides?.['08'] ?? true,
     status: powerOffsetData.status,
     data: powerOffsetData
   };
@@ -907,10 +907,10 @@ export function buildMhcReportDocument(
   };
 
   const stageCalibrationSection: MhcReportSection<MhcReportStageCalibrationData> = {
-    code: '10',
+    code: '09',
     title: 'Stage Calibration',
-    displayOrder: 10,
-    isVisible: options?.sectionVisibilityOverrides?.['10'] ?? true,
+    displayOrder: 9,
+    isVisible: options?.sectionVisibilityOverrides?.['09'] ?? true,
     status: hasAnyStage ? (stageOverallVerdict === 'PASS' ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: stageCalibrationData
   };
@@ -984,10 +984,10 @@ export function buildMhcReportDocument(
   };
 
   const agcSection: MhcReportSection<MhcReportAgcData> = {
-    code: '11',
+    code: '10',
     title: 'AGC / Scanner Calibration',
-    displayOrder: 11,
-    isVisible: options?.sectionVisibilityOverrides?.['11'] ?? true,
+    displayOrder: 10,
+    isVisible: options?.sectionVisibilityOverrides?.['10'] ?? true,
     status: hasAnyAgc ? (agcOverallVerdict === 'PASS' && !agcScannerAttention ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: agcData
   };
@@ -1046,10 +1046,10 @@ export function buildMhcReportDocument(
   const isTempPass = isCoolingPass && isStatsPass;
 
   const temperatureSection: MhcReportSection<MhcReportTemperatureData> = {
-    code: '12',
+    code: '11',
     title: 'Temperature Monitoring',
-    displayOrder: 12,
-    isVisible: options?.sectionVisibilityOverrides?.['12'] ?? true,
+    displayOrder: 11,
+    isVisible: options?.sectionVisibilityOverrides?.['11'] ?? true,
     status: hasTemp ? (isTempPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: temperatureData
   };
@@ -1079,33 +1079,6 @@ export function buildMhcReportDocument(
       : undefined
   );
 
-  const laserProductProfileData: MhcReportLaserProductProfileData = {
-    status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
-    laserId: derivedLaserId,
-    productName: latestProductProcess?.productName || stageProfile?.productName || undefined,
-    recipeProgram: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
-    recipeName: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
-    lotPanel: latestProductProcess?.lotPanel || undefined,
-    profileInfo: stageProfile?.profileInfo || undefined,
-    measurementInfo: stageProfile?.measurementInfo || undefined,
-    supportingEvidence: stageProfile?.supportingEvidence || undefined,
-    images: stageProfile?.images || [],
-    engineerRemarks: latestProductProcess?.engineerRemarks || stageProfile?.supportingEvidence || undefined,
-    phase1: latestProductProcess?.phase1,
-    phase2: latestProductProcess?.phase2,
-    hasProcessRecord: Boolean(latestProductProcess)
-  };
-
-  const laserProductProfileSection: MhcReportSection<MhcReportLaserProductProfileData> = {
-    code: '13',
-    title: 'Product Process & Via Quality',
-    displayOrder: 13,
-    isVisible: options?.sectionVisibilityOverrides?.['13'] ?? true,
-    status: hasProfileData ? 'COMPLETE' : 'NOT_COLLECTED',
-    data: laserProductProfileData
-  };
-
-  // 14 PRODUCT VIA QUALITY
   const stageQuality = session.stage06_productQuality;
   const hasQualityData = Boolean(
     stageQuality?.viaDiameterUm ||
@@ -1140,8 +1113,23 @@ export function buildMhcReportDocument(
       }
     : undefined;
 
-  const productViaQualityData: MhcReportProductViaQualityData = {
-    status: hasQualityData ? (isQualityPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
+  const laserProductProfileData: MhcReportLaserProductProfileData = {
+    status: (hasProfileData || hasQualityData) ? 'COMPLETE' : 'NOT_COLLECTED',
+    laserId: derivedLaserId,
+    productName: latestProductProcess?.productName || stageProfile?.productName || undefined,
+    recipeProgram: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
+    recipeName: latestProductProcess?.recipeName || stageProfile?.recipeProgram || undefined,
+    lotPanel: latestProductProcess?.lotPanel || undefined,
+    profileInfo: stageProfile?.profileInfo || undefined,
+    measurementInfo: stageProfile?.measurementInfo || undefined,
+    supportingEvidence: stageProfile?.supportingEvidence || undefined,
+    images: stageProfile?.images || [],
+    engineerRemarks: latestProductProcess?.engineerRemarks || stageProfile?.supportingEvidence || undefined,
+    phase1: latestProductProcess?.phase1,
+    phase2: latestProductProcess?.phase2,
+    hasProcessRecord: Boolean(latestProductProcess),
+
+    // Microvia Quality Data
     sampleId: stageQuality?.sampleId || latestProductProcess?.lotPanel || undefined,
     viaDiameterUm: stageQuality?.viaDiameterUm ?? latestProductProcess?.laser1Via?.topWidthUm ?? undefined,
     viaShape: stageQuality?.viaShape || undefined,
@@ -1150,22 +1138,19 @@ export function buildMhcReportDocument(
     visualVerification: stageQuality?.visualVerification || undefined,
     result: qualityResult,
     overallResult: latestProductProcess?.overallResult || (qualityResult === 'PASS' ? 'PASS' : qualityResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED'),
-    beforeImages: stageQuality?.beforeImages || [],
-    afterImages: stageQuality?.afterImages || [],
     notes: stageQuality?.notes || latestProductProcess?.engineerRemarks || undefined,
-    engineerRemarks: latestProductProcess?.engineerRemarks || stageQuality?.notes || undefined,
     laser1Via: resolvedLaser1Via,
     laser2Via: resolvedLaser2Via,
     hasViaRecord: Boolean(latestProductProcess?.laser1Via || latestProductProcess?.laser2Via)
   };
 
-  const productViaQualitySection: MhcReportSection<MhcReportProductViaQualityData> = {
-    code: '14',
-    title: 'Product Via Quality',
-    displayOrder: 14,
-    isVisible: options?.sectionVisibilityOverrides?.['14'] ?? true,
-    status: hasQualityData ? (isQualityPass ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
-    data: productViaQualityData
+  const laserProductProfileSection: MhcReportSection<MhcReportLaserProductProfileData> = {
+    code: '12',
+    title: 'Product Process & Via Quality',
+    displayOrder: 12,
+    isVisible: options?.sectionVisibilityOverrides?.['12'] ?? true,
+    status: (hasProfileData || hasQualityData) ? 'COMPLETE' : 'NOT_COLLECTED',
+    data: laserProductProfileData
   };
 
   // 15 FINDINGS
@@ -1201,30 +1186,15 @@ export function buildMhcReportDocument(
   };
 
   const findingsSection: MhcReportSection<MhcReportFindingsData> = {
-    code: '15',
+    code: '13',
     title: 'Findings',
-    displayOrder: 15,
-    isVisible: options?.sectionVisibilityOverrides?.['15'] ?? true,
+    displayOrder: 13,
+    isVisible: options?.sectionVisibilityOverrides?.['13'] ?? true,
     status: (Object.keys(inspFindingsMap).length > 0 || totalFindingsCount > 0 || session.stage08_engineerRemarks?.generalFindings || session.stage08_engineerRemarks?.observedIssues) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: findingsData
   };
 
-  // 16 CORRECTIVE ACTIONS (Deprecated / Removed from Full PDF)
-  const correctiveActionsData: MhcReportCorrectiveActionsData = {
-    actionsList: [],
-    generalCorrectiveActionsText: session.stage08_engineerRemarks?.correctiveActions || undefined
-  };
-
-  const correctiveActionsSection: MhcReportSection<MhcReportCorrectiveActionsData> = {
-    code: '16',
-    title: 'Corrective Actions',
-    displayOrder: 16,
-    isVisible: false,
-    status: 'NOT_COLLECTED',
-    data: correctiveActionsData
-  };
-
-  // 17 SPARE PARTS / RECOMMENDATIONS
+  // 14 SPARE PARTS / RECOMMENDATIONS
   const rawSparePartsList = (session.stage07_spareParts || []).map(sp => ({
     id: sp.id,
     partName: sp.partName,
@@ -1264,10 +1234,10 @@ export function buildMhcReportDocument(
   };
 
   const sparePartsSection: MhcReportSection<MhcReportSparePartsData> = {
-    code: '17',
+    code: '14',
     title: 'Spare Parts / Recommendations',
-    displayOrder: 17,
-    isVisible: options?.sectionVisibilityOverrides?.['17'] ?? true,
+    displayOrder: 14,
+    isVisible: options?.sectionVisibilityOverrides?.['14'] ?? true,
     status: (session.stage07_spareParts !== undefined || consumedParts.length > 0 || recordedRecommendedParts.length > 0 || rawSparePartsList.length > 0 || Boolean(session.stage08_engineerRemarks?.recommendations)) ? 'COMPLETE' : 'NOT_COLLECTED',
     data: sparePartsData
   };
@@ -1365,32 +1335,7 @@ export function buildMhcReportDocument(
     });
   });
 
-  const allEvidenceItems = [...inspectionEvidence, ...calibrationEvidence];
-
-  const evidenceData: MhcReportEvidenceData = {
-    totalEvidenceItems: allEvidenceItems.length,
-    inspectionEvidence,
-    calibrationEvidence,
-    items: allEvidenceItems
-  };
-
-  const evidenceSection: MhcReportSection<MhcReportEvidenceData> = {
-    code: '18',
-    title: 'Evidence',
-    displayOrder: 18,
-    isVisible: options?.sectionVisibilityOverrides?.['18'] ?? false,
-    status: allEvidenceItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
-    data: evidenceData,
-    evidenceReferences: allEvidenceItems.map(e => ({
-      id: e.id,
-      category: e.category,
-      title: e.title,
-      url: e.imageDataUrl,
-      notes: e.notes
-    }))
-  };
-
-  // 18 BUYOFF
+  // 15 BUYOFF & OFFICIAL APPROVALS
   const remarksData = session.stage08_engineerRemarks;
   const hasCustomerApproval = Boolean(
     (session as any).customerApproved || 
@@ -1432,10 +1377,10 @@ export function buildMhcReportDocument(
   };
 
   const buyoffSection: MhcReportSection<MhcReportBuyoffData> = {
-    code: '18',
+    code: '15',
     title: 'Buyoff & Approvals',
-    displayOrder: 18,
-    isVisible: options?.sectionVisibilityOverrides?.['18'] ?? true,
+    displayOrder: 15,
+    isVisible: options?.sectionVisibilityOverrides?.['15'] ?? true,
     status: hasCustomerApproval ? 'COMPLETE' : 'NEEDS_REVIEW',
     data: buyoffData
   };
@@ -1542,10 +1487,10 @@ export function buildMhcReportDocument(
     };
 
   const executiveSummarySection: MhcReportSection<MhcReportExecutiveSummaryData> = {
-    code: '04',
+    code: '03',
     title: 'Executive Summary',
-    displayOrder: 4,
-    isVisible: options?.sectionVisibilityOverrides?.['04'] ?? true,
+    displayOrder: 3,
+    isVisible: options?.sectionVisibilityOverrides?.['03'] ?? true,
     status: 'COMPLETE',
     data: executiveSummaryData,
     findings: keyFindingsList
@@ -1555,25 +1500,22 @@ export function buildMhcReportDocument(
   const sectionsMap: MhcReportSectionMap = {
     '01': coverSection,
     '02': null as any, // assigned below
-    '03': machineInfoSection,
-    '04': executiveSummarySection,
-    '05': laserHoursSection,
-    '06': laserPowerSection,
-    '07': beamProfileSection,
-    '08': focusOptimizationSection,
-    '09': powerOffsetSection,
-    '10': stageCalibrationSection,
-    '11': agcSection,
-    '12': temperatureSection,
-    '13': laserProductProfileSection,
-    '14': productViaQualitySection,
-    '15': findingsSection,
-    '16': correctiveActionsSection,
-    '17': sparePartsSection,
-    '18': buyoffSection
+    '03': executiveSummarySection,
+    '04': laserHoursSection,
+    '05': laserPowerSection,
+    '06': beamProfileSection,
+    '07': focusOptimizationSection,
+    '08': powerOffsetSection,
+    '09': stageCalibrationSection,
+    '10': agcSection,
+    '11': temperatureSection,
+    '12': laserProductProfileSection,
+    '13': findingsSection,
+    '14': sparePartsSection,
+    '15': buyoffSection
   };
 
-  // GENERATE INDEX (02) - DYNAMICALLY REFLECTS ACTUAL RENDERED SECTIONS (§01, §04–§13, §15, §17–§18)
+  // GENERATE INDEX (02) - DYNAMICALLY REFLECTS ACTUAL RENDERED SECTIONS (§01–§15)
   const orderedSectionsList: MhcReportSection[] = [
     coverSection,
     executiveSummarySection,
@@ -1595,19 +1537,19 @@ export function buildMhcReportDocument(
     switch (code) {
       case '01': return 1;
       case '02': return 2;
+      case '03': return 3;
       case '04': return 3;
-      case '05': return 3;
-      case '06': return 4;
-      case '07': return 5;
+      case '05': return 4;
+      case '06': return 5;
+      case '07': return 6;
       case '08': return 6;
-      case '09': return 6;
+      case '09': return 7;
       case '10': return 7;
-      case '11': return 7;
-      case '12': return 8;
-      case '13': return 9;
+      case '11': return 8;
+      case '12': return 9;
+      case '13': return 10;
+      case '14': return 10;
       case '15': return 10;
-      case '17': return 10;
-      case '18': return 10;
       default: return 1;
     }
   };
@@ -1687,28 +1629,24 @@ function getSectionCategory(code: MhcReportSectionCode): string {
     case '01':
     case '02':
     case '03':
-    case '04':
       return 'Overview';
+    case '04':
     case '05':
     case '06':
     case '07':
     case '08':
-    case '09':
       return 'Laser Diagnostics';
+    case '09':
     case '10':
-    case '11':
       return 'Motion & Scanners';
-    case '12':
+    case '11':
       return 'Environment & Cooling';
+    case '12':
+      return 'Product Process';
     case '13':
     case '14':
-      return 'Product Process';
-    case '15':
-    case '16':
-    case '17':
       return 'Inspection & Findings';
-    case '18':
-    case '19':
+    case '15':
       return 'Signoff';
     default:
       return 'General';

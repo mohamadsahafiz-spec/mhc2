@@ -119,7 +119,6 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     sections['01']?.data?.productionLine ||
     sections['01']?.data?.lineName ||
     session.productionLineName ||
-    sections['03']?.data?.productionLine ||
     '—'
   );
   const [inspectionDate, setInspectionDate] = useState<string>(
@@ -129,7 +128,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     (session as any).machineNumber || sections['01']?.data?.machineNumber || ''
   );
   const [releaseStatus, setReleaseStatus] = useState<'APPROVED' | 'CONDITIONAL_RELEASE' | 'HALTED' | 'PENDING' | 'PASS' | 'WARNING' | 'FAIL'>(
-    (sections['18']?.data?.productionReleaseVerdict as any) || (sections['19']?.data?.productionReleaseVerdict as any) || 'PENDING'
+    (sections['15']?.data?.productionReleaseVerdict as any) || 'PENDING'
   );
 
   const totalPages = baseDoc.metadata.totalPagesCount || 10;
@@ -365,7 +364,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   };
 
   // Laser Lifecycle Items with Authoritative LaserEngine
-  const rawLaserHours = sections['05']?.data?.laserHours || [];
+  const rawLaserHours = sections['04']?.data?.laserHours || [];
   const laserLifecycleHeads = rawLaserHours.map((item, idx) => {
     const currentLaserHour = Number(item.currentLaserHour ?? item.verifiedHour ?? item.calculatedCurrentHour ?? item.recordedLaserHour ?? 0);
     const errorEolLimit = Number(item.errorEolLimit || item.criticalThreshold || 25000);
@@ -725,7 +724,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                 <div>
                   <span className="text-[10px] text-slate-500 font-mono block">ZONE</span>
-                  <strong className="text-slate-900 font-bold text-sm">{sections['01']?.data?.zone || sections['03']?.data?.zone || session.zone || '—'}</strong>
+                  <strong className="text-slate-900 font-bold text-sm">{sections['01']?.data?.zone || session.zone || '—'}</strong>
                 </div>
 
                 <div>
@@ -746,11 +745,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 <div className="col-span-2 pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-4 font-mono text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 block">BASELINE DATE</span>
-                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.baselineDate || sections['03']?.data?.baselineDate || '—'}</strong>
+                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.baselineDate || '—'}</strong>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">LAST MHC DATE</span>
-                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.lastMhcDate || sections['03']?.data?.lastMhcDate || inspectionDate}</strong>
+                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.lastMhcDate || inspectionDate}</strong>
                   </div>
                 </div>
               </div>
@@ -926,7 +925,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 3: EXECUTIVE SUMMARY (04) & LASER LIFECYCLE (05)
+              PAGE 3: EXECUTIVE SUMMARY (03) & LASER LIFECYCLE (04)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -939,11 +938,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-3 my-1 flex-1 min-h-0">
               
-              {/* SECTION 04: EXECUTIVE SUMMARY */}
+              {/* SECTION 03: EXECUTIVE SUMMARY */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
                   <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                    04 EXECUTIVE SUMMARY
+                    03 EXECUTIVE SUMMARY
                   </h2>
                   <span className="text-xs font-mono font-bold text-slate-400">
                     MHC EVALUATION
@@ -955,22 +954,22 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <div>
                       <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">MHC RESULT</span>
                       <strong className="text-slate-900 font-extrabold text-xs font-mono">
-                        {sections['04'].data.overallStatus === 'PASS'
-                          ? `PASS — ${sections['04'].data.readinessScore || 100}%`
-                          : sections['04'].data.overallStatus === 'CONDITIONAL_PASS'
-                          ? `CONDITIONAL PASS — ${sections['04'].data.readinessScore || 100}% (DISPOSITIONED FINDINGS)`
-                          : sections['04'].data.overallStatus === 'ACTION_REQUIRED'
-                          ? `ACTION REQUIRED — ${sections['04'].data.readinessScore || 0}%`
-                          : `FAIL — ${sections['04'].data.readinessScore || 0}%`}
+                        {sections['03'].data.overallStatus === 'PASS'
+                          ? `PASS — ${sections['03'].data.readinessScore || 100}%`
+                          : sections['03'].data.overallStatus === 'CONDITIONAL_PASS'
+                          ? `CONDITIONAL PASS — ${sections['03'].data.readinessScore || 100}% (DISPOSITIONED FINDINGS)`
+                          : sections['03'].data.overallStatus === 'ACTION_REQUIRED'
+                          ? `ACTION REQUIRED — ${sections['03'].data.readinessScore || 0}%`
+                          : `FAIL — ${sections['03'].data.readinessScore || 0}%`}
                       </strong>
                     </div>
                     <div>
-                      {renderStatusBadge(sections['04'].data.overallStatus)}
+                      {renderStatusBadge(sections['03'].data.overallStatus)}
                     </div>
                   </div>
 
                   <p className="text-slate-700 leading-snug font-sans text-xs">
-                    {sections['04'].data.summaryText}
+                    {sections['03'].data.summaryText}
                   </p>
 
                   {/* Major Pass/Fail Table */}
@@ -985,7 +984,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {sections['04'].data.majorPassFailResults.map((item, idx) => (
+                        {sections['03'].data.majorPassFailResults.map((item, idx) => (
                           <tr key={idx}>
                             <td className="py-1 font-bold text-slate-800">{item.component}</td>
                             <td className="py-1 text-slate-500 font-mono text-[10px]">{item.note}</td>
@@ -998,11 +997,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 05: LASER LIFECYCLE & USAGE TELEMETRY */}
+              {/* SECTION 04: LASER LIFECYCLE & USAGE TELEMETRY */}
               <div className="space-y-2 pt-0.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
                   <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                    05 LASER LIFECYCLE &amp; USAGE TELEMETRY
+                    04 LASER LIFECYCLE &amp; USAGE TELEMETRY
                   </h2>
                   <span className="text-xs font-mono font-bold text-cyan-800">
                     {laserLifecycleHeads.length} HEADS ANALYZED
@@ -1153,7 +1152,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 4: LASER POWER & BASELINE COMPARISON (06)
+              PAGE 4: LASER POWER & BASELINE COMPARISON (05)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -1166,12 +1165,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
-              {/* SECTION 06: LASER POWER */}
+              {/* SECTION 05: LASER POWER */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      06 LASER POWER &amp; BASELINE COMPARISON
+                      05 LASER POWER &amp; BASELINE COMPARISON
                     </h2>
                     <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                       Authoritative Optical Power Measurement &amp; Calibration Variance Analysis
@@ -1181,7 +1180,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded">
                       SPEC: 15.0W ± 10% (13.50–16.50 W)
                     </span>
-                    {renderStatusBadge(sections['06'].status)}
+                    {renderStatusBadge(sections['05'].status)}
                   </div>
                 </div>
 
@@ -1208,7 +1207,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5 text-xs">
-                  {sections['06'].data.heads.map(head => {
+                  {sections['05'].data.heads.map(head => {
                     const deltaVal = head.comparison.deltaWatts;
                     const deltaPct = head.comparison.deltaPercent;
                     const isNegative = deltaVal !== undefined && deltaVal !== null && deltaVal < 0;
@@ -1417,7 +1416,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 5: OPTICAL BEAM PROFILE & SPOT QUALITY (07) - DEDICATED FULL PAGE
+              PAGE 5: OPTICAL BEAM PROFILE & SPOT QUALITY (06) - DEDICATED FULL PAGE
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -1430,24 +1429,24 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-3 my-1.5 flex-1 min-h-0 flex flex-col justify-between">
               
-              {/* SECTION 07: OPTICAL BEAM PROFILE & SPOT QUALITY HEADER */}
+              {/* SECTION 06: OPTICAL BEAM PROFILE & SPOT QUALITY HEADER */}
               <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 shrink-0">
                 <div>
                   <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    07 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
+                    06 OPTICAL BEAM PROFILE &amp; SPOT QUALITY
                   </h2>
                   <p className="text-[11px] text-slate-500 font-mono mt-0.5">
                     Spatial Beam Distribution &amp; Multistage Aperture Quality Telemetry
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {renderStatusBadge(sections['07'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['07'].status)}
+                  {renderStatusBadge(sections['06'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['06'].status)}
                 </div>
               </div>
 
               {/* LASER HEAD 1 & LASER HEAD 2 PROMINENT SUMMARY BOXES */}
               <div className="space-y-3 flex-1 flex flex-col justify-between">
-                {sections['07'].data.heads.map((head) => {
+                {sections['06'].data.heads.map((head) => {
                   const isHead1 = head.headId === 'lh1';
                   const checkpoints = head.current.checkpoints || [];
                   
@@ -1699,7 +1698,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               <div className="space-y-2">
                 <div className="border-b-2 border-slate-900 pb-1">
                   <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    08 FOCUS OPTIMIZATION
+                    07 FOCUS OPTIMIZATION
                   </h2>
                   <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
                     Machining Focus Calibration &amp; Focal Sequence Verification
@@ -1713,32 +1712,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <div>
                         <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Date</span>
                         <strong className="font-mono text-slate-800 text-[11px] block mt-0.5">
-                          {sections['08'].data.heads?.[0]?.date || '—'}
+                          {sections['07'].data.heads?.[0]?.date || '—'}
                         </strong>
                       </div>
                       <div>
                         <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Adjustment Reason</span>
                         <strong className="text-slate-800 text-[10.5px] block mt-0.5">
-                          {sections['08'].data.heads?.[0]?.adjustmentReason || 'Laser source replacement'}
+                          {sections['07'].data.heads?.[0]?.adjustmentReason || 'Laser source replacement'}
                         </strong>
                       </div>
                       <div>
                         <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">BASELINE</span>
                         <strong className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold font-mono text-[10.5px] inline-block mt-0.5">
-                          {sections['08'].data.heads?.[0]?.baseline || '-0.300 mm'}
+                          {sections['07'].data.heads?.[0]?.baseline || '-0.300 mm'}
                         </strong>
                       </div>
                       <div>
                         <span className="text-[8.5px] font-sans uppercase font-bold text-slate-400 block">Evaluation</span>
                         <span className="text-slate-800 font-medium text-[10px] leading-tight block mt-0.5">
-                          {sections['08'].data.heads?.[0]?.evaluation || 'Optical focus verified across designated focal sequence.'}
+                          {sections['07'].data.heads?.[0]?.evaluation || 'Optical focus verified across designated focal sequence.'}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   {/* 2 & 3. Laser Head Evidence Cards (Laser Head 1 & Laser Head 2) */}
-                  {sections['08'].data.heads?.map((head, headIdx) => (
+                  {sections['07'].data.heads?.map((head, headIdx) => (
                     <div key={head.laserHeadId || headIdx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
                       {/* Laser Head Evidence Header */}
                       <div className="flex items-center justify-between border-b border-slate-200 pb-1">
@@ -1810,17 +1809,17 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   {/* 4. Additional Engineering Note */}
                   <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 flex items-start gap-1.5 text-[10px] text-amber-950 leading-tight">
                     <span className="font-bold text-amber-900 shrink-0">Note:</span>
-                    <span>{sections['08'].data.topViaImpactNote}</span>
+                    <span>{sections['07'].data.topViaImpactNote}</span>
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 09: POWER OFFSET & CALIBRATION */}
+              {/* SECTION 08: POWER OFFSET & CALIBRATION */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      09 POWER OFFSET &amp; CALIBRATION
+                      08 POWER OFFSET &amp; CALIBRATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
                       Power Offset &amp; Process Optimization
@@ -1835,15 +1834,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs">
                   {/* Product / Recipe context header if present */}
-                  {(sections['09'].data.productName || sections['09'].data.recipeName) && (
+                  {(sections['08'].data.productName || sections['08'].data.recipeName) && (
                     <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px]">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[8.5px] font-sans font-bold uppercase text-slate-400">Product Identity:</span>
-                        <span className="font-bold text-slate-800">{sections['09'].data.productName || '—'}</span>
+                        <span className="font-bold text-slate-800">{sections['08'].data.productName || '—'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[8.5px] font-sans font-bold uppercase text-slate-400">Recipe / Process:</span>
-                        <span className="font-mono font-bold text-slate-800">{sections['09'].data.recipeName || '—'}</span>
+                        <span className="font-mono font-bold text-slate-800">{sections['08'].data.recipeName || '—'}</span>
                       </div>
                     </div>
                   )}
@@ -1863,16 +1862,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="flex items-center gap-1">
                           <span className="text-[8.5px] font-sans font-bold text-slate-400 uppercase">Power Offset:</span>
                           <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded ${
-                            sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
-                              ? sections['09'].data.laser1.appliedOffsetPercent === 0
+                            sections['08'].data.laser1?.appliedOffsetPercent !== null && sections['08'].data.laser1?.appliedOffsetPercent !== undefined
+                              ? sections['08'].data.laser1.appliedOffsetPercent === 0
                                 ? 'text-slate-800 bg-slate-100'
-                                : sections['09'].data.laser1.appliedOffsetPercent < 0
+                                : sections['08'].data.laser1.appliedOffsetPercent < 0
                                   ? 'text-cyan-800 bg-cyan-50'
                                   : 'text-indigo-800 bg-indigo-50'
                               : 'text-slate-400 bg-slate-50'
                           }`}>
-                            {sections['09'].data.laser1?.appliedOffsetPercent !== null && sections['09'].data.laser1?.appliedOffsetPercent !== undefined
-                              ? `${sections['09'].data.laser1.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.appliedOffsetPercent.toFixed(1)}%`
+                            {sections['08'].data.laser1?.appliedOffsetPercent !== null && sections['08'].data.laser1?.appliedOffsetPercent !== undefined
+                              ? `${sections['08'].data.laser1.appliedOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser1.appliedOffsetPercent.toFixed(1)}%`
                               : '—'}
                           </span>
                         </div>
@@ -1886,16 +1885,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="flex items-center justify-between text-slate-600">
                             <span className="text-slate-500 text-[9px]">Recipe:</span>
                             <span className="font-mono font-semibold text-slate-800 text-[10px]">
-                              {sections['09'].data.laser1?.phase1RecipePowerWatts !== null && sections['09'].data.laser1?.phase1RecipePowerWatts !== undefined
-                                ? `${sections['09'].data.laser1.phase1RecipePowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser1?.phase1RecipePowerWatts !== null && sections['08'].data.laser1?.phase1RecipePowerWatts !== undefined
+                                ? `${sections['08'].data.laser1.phase1RecipePowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
                             <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
                             <span className="font-mono font-extrabold text-slate-950 text-[11px]">
-                              {sections['09'].data.laser1?.phase1AdjustedPowerWatts !== null && sections['09'].data.laser1?.phase1AdjustedPowerWatts !== undefined
-                                ? `${sections['09'].data.laser1.phase1AdjustedPowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser1?.phase1AdjustedPowerWatts !== null && sections['08'].data.laser1?.phase1AdjustedPowerWatts !== undefined
+                                ? `${sections['08'].data.laser1.phase1AdjustedPowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
@@ -1907,16 +1906,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="flex items-center justify-between text-slate-600">
                             <span className="text-slate-500 text-[9px]">Recipe:</span>
                             <span className="font-mono font-semibold text-slate-800 text-[10px]">
-                              {sections['09'].data.laser1?.phase2RecipePowerWatts !== null && sections['09'].data.laser1?.phase2RecipePowerWatts !== undefined
-                                ? `${sections['09'].data.laser1.phase2RecipePowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser1?.phase2RecipePowerWatts !== null && sections['08'].data.laser1?.phase2RecipePowerWatts !== undefined
+                                ? `${sections['08'].data.laser1.phase2RecipePowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
                             <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
                             <span className="font-mono font-extrabold text-slate-950 text-[11px]">
-                              {sections['09'].data.laser1?.phase2AdjustedPowerWatts !== null && sections['09'].data.laser1?.phase2AdjustedPowerWatts !== undefined
-                                ? `${sections['09'].data.laser1.phase2AdjustedPowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser1?.phase2AdjustedPowerWatts !== null && sections['08'].data.laser1?.phase2AdjustedPowerWatts !== undefined
+                                ? `${sections['08'].data.laser1.phase2AdjustedPowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
@@ -1930,15 +1929,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="font-mono text-slate-700">
                             <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
                             <span className="font-semibold">
-                              {sections['09'].data.laser1?.previousOffsetPercent !== null && sections['09'].data.laser1?.previousOffsetPercent !== undefined
-                                ? `${sections['09'].data.laser1.previousOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.previousOffsetPercent.toFixed(1)}%`
+                              {sections['08'].data.laser1?.previousOffsetPercent !== null && sections['08'].data.laser1?.previousOffsetPercent !== undefined
+                                ? `${sections['08'].data.laser1.previousOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser1.previousOffsetPercent.toFixed(1)}%`
                                 : '—'}
                             </span>
                             <span className="mx-1 text-slate-300">→</span>
                             <span className="text-slate-400 font-sans text-[8px]">Curr: </span>
                             <span className="font-bold text-slate-900">
-                              {sections['09'].data.laser1?.currentOffsetPercent !== null && sections['09'].data.laser1?.currentOffsetPercent !== undefined
-                                ? `${sections['09'].data.laser1.currentOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser1.currentOffsetPercent.toFixed(1)}%`
+                              {sections['08'].data.laser1?.currentOffsetPercent !== null && sections['08'].data.laser1?.currentOffsetPercent !== undefined
+                                ? `${sections['08'].data.laser1.currentOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser1.currentOffsetPercent.toFixed(1)}%`
                                 : '—'}
                             </span>
                           </div>
@@ -1947,7 +1946,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div>
                           <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
                           <p className="text-slate-700 font-medium mt-0.5 break-words whitespace-normal leading-snug">
-                            {sections['09'].data.laser1?.adjustmentReason || '—'}
+                            {sections['08'].data.laser1?.adjustmentReason || '—'}
                           </p>
                         </div>
                       </div>
@@ -1966,16 +1965,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="flex items-center gap-1">
                           <span className="text-[8.5px] font-sans font-bold text-slate-400 uppercase">Power Offset:</span>
                           <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded ${
-                            sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
-                              ? sections['09'].data.laser2.appliedOffsetPercent === 0
+                            sections['08'].data.laser2?.appliedOffsetPercent !== null && sections['08'].data.laser2?.appliedOffsetPercent !== undefined
+                              ? sections['08'].data.laser2.appliedOffsetPercent === 0
                                 ? 'text-slate-800 bg-slate-100'
-                                : sections['09'].data.laser2.appliedOffsetPercent < 0
+                                : sections['08'].data.laser2.appliedOffsetPercent < 0
                                   ? 'text-cyan-800 bg-cyan-50'
                                   : 'text-indigo-800 bg-indigo-50'
                               : 'text-slate-400 bg-slate-50'
                           }`}>
-                            {sections['09'].data.laser2?.appliedOffsetPercent !== null && sections['09'].data.laser2?.appliedOffsetPercent !== undefined
-                              ? `${sections['09'].data.laser2.appliedOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.appliedOffsetPercent.toFixed(1)}%`
+                            {sections['08'].data.laser2?.appliedOffsetPercent !== null && sections['08'].data.laser2?.appliedOffsetPercent !== undefined
+                              ? `${sections['08'].data.laser2.appliedOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser2.appliedOffsetPercent.toFixed(1)}%`
                               : '—'}
                           </span>
                         </div>
@@ -1989,16 +1988,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="flex items-center justify-between text-slate-600">
                             <span className="text-slate-500 text-[9px]">Recipe:</span>
                             <span className="font-mono font-semibold text-slate-800 text-[10px]">
-                              {sections['09'].data.laser2?.phase1RecipePowerWatts !== null && sections['09'].data.laser2?.phase1RecipePowerWatts !== undefined
-                                ? `${sections['09'].data.laser2.phase1RecipePowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser2?.phase1RecipePowerWatts !== null && sections['08'].data.laser2?.phase1RecipePowerWatts !== undefined
+                                ? `${sections['08'].data.laser2.phase1RecipePowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
                             <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
                             <span className="font-mono font-extrabold text-slate-950 text-[11px]">
-                              {sections['09'].data.laser2?.phase1AdjustedPowerWatts !== null && sections['09'].data.laser2?.phase1AdjustedPowerWatts !== undefined
-                                ? `${sections['09'].data.laser2.phase1AdjustedPowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser2?.phase1AdjustedPowerWatts !== null && sections['08'].data.laser2?.phase1AdjustedPowerWatts !== undefined
+                                ? `${sections['08'].data.laser2.phase1AdjustedPowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
@@ -2010,16 +2009,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="flex items-center justify-between text-slate-600">
                             <span className="text-slate-500 text-[9px]">Recipe:</span>
                             <span className="font-mono font-semibold text-slate-800 text-[10px]">
-                              {sections['09'].data.laser2?.phase2RecipePowerWatts !== null && sections['09'].data.laser2?.phase2RecipePowerWatts !== undefined
-                                ? `${sections['09'].data.laser2.phase2RecipePowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser2?.phase2RecipePowerWatts !== null && sections['08'].data.laser2?.phase2RecipePowerWatts !== undefined
+                                ? `${sections['08'].data.laser2.phase2RecipePowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/70">
                             <span className="font-bold text-slate-800 text-[9.5px]">Adjusted:</span>
                             <span className="font-mono font-extrabold text-slate-950 text-[11px]">
-                              {sections['09'].data.laser2?.phase2AdjustedPowerWatts !== null && sections['09'].data.laser2?.phase2AdjustedPowerWatts !== undefined
-                                ? `${sections['09'].data.laser2.phase2AdjustedPowerWatts.toFixed(2)} W`
+                              {sections['08'].data.laser2?.phase2AdjustedPowerWatts !== null && sections['08'].data.laser2?.phase2AdjustedPowerWatts !== undefined
+                                ? `${sections['08'].data.laser2.phase2AdjustedPowerWatts.toFixed(2)} W`
                                 : '—'}
                             </span>
                           </div>
@@ -2033,15 +2032,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="font-mono text-slate-700">
                             <span className="text-slate-400 font-sans text-[8px]">Prev: </span>
                             <span className="font-semibold">
-                              {sections['09'].data.laser2?.previousOffsetPercent !== null && sections['09'].data.laser2?.previousOffsetPercent !== undefined
-                                ? `${sections['09'].data.laser2.previousOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.previousOffsetPercent.toFixed(1)}%`
+                              {sections['08'].data.laser2?.previousOffsetPercent !== null && sections['08'].data.laser2?.previousOffsetPercent !== undefined
+                                ? `${sections['08'].data.laser2.previousOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser2.previousOffsetPercent.toFixed(1)}%`
                                 : '—'}
                             </span>
                             <span className="mx-1 text-slate-300">→</span>
                             <span className="text-slate-400 font-sans text-[8px]">Curr: </span>
                             <span className="font-bold text-slate-900">
-                              {sections['09'].data.laser2?.currentOffsetPercent !== null && sections['09'].data.laser2?.currentOffsetPercent !== undefined
-                                ? `${sections['09'].data.laser2.currentOffsetPercent > 0 ? '+' : ''}${sections['09'].data.laser2.currentOffsetPercent.toFixed(1)}%`
+                              {sections['08'].data.laser2?.currentOffsetPercent !== null && sections['08'].data.laser2?.currentOffsetPercent !== undefined
+                                ? `${sections['08'].data.laser2.currentOffsetPercent > 0 ? '+' : ''}${sections['08'].data.laser2.currentOffsetPercent.toFixed(1)}%`
                                 : '—'}
                             </span>
                           </div>
@@ -2050,7 +2049,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div>
                           <span className="text-[8px] uppercase font-bold text-slate-400 block">Adjustment Reason</span>
                           <p className="text-slate-700 font-medium mt-0.5 break-words whitespace-normal leading-snug">
-                            {sections['09'].data.laser2?.adjustmentReason || '—'}
+                            {sections['08'].data.laser2?.adjustmentReason || '—'}
                           </p>
                         </div>
                       </div>
@@ -2061,7 +2060,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 flex items-start gap-1.5 text-[10px] text-amber-950 leading-tight">
                     <span className="font-bold text-amber-900 shrink-0">Note:</span>
                     <span>
-                      {sections['09'].data.bottomViaImpactNote || 'Bottom via impact: Power offset primarily influences bottom via diameter (~90%), making it a key factor in bottom via diameter control.'}
+                      {sections['08'].data.bottomViaImpactNote || 'Bottom via impact: Power offset primarily influences bottom via diameter (~90%), making it a key factor in bottom via diameter control.'}
                     </span>
                   </div>
                 </div>
@@ -2078,7 +2077,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 7: MOTION & CALIBRATION (10 STAGE, 11 AGC)
+              PAGE 7: MOTION & CALIBRATION (09 STAGE, 10 AGC)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
@@ -2091,20 +2090,20 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 10: STAGE CALIBRATION */}
+              {/* SECTION 09: STAGE CALIBRATION */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      10 STAGE CALIBRATION (X/Y DEVIATION)
+                      09 STAGE CALIBRATION (X/Y DEVIATION)
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
                       Sub-Micron Motion Stage Positional Accuracy &amp; Cross-Axis Verification
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['10'].data.specToleranceUm ? sections['10'].data.specToleranceUm.toFixed(1) : '2.0'} μm</span>
-                    {renderStatusBadge(sections['10'].data.overallVerdict)}
+                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['09'].data.specToleranceUm ? sections['09'].data.specToleranceUm.toFixed(1) : '2.0'} μm</span>
+                    {renderStatusBadge(sections['09'].data.overallVerdict)}
                   </div>
                 </div>
 
@@ -2120,7 +2119,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                      {sections['10'].data.stages.map(stg => (
+                      {sections['09'].data.stages.map(stg => (
                         <tr key={stg.stageId}>
                           <td className="py-2.5 font-bold font-sans text-slate-800">{stg.stageName}</td>
                           <td className="py-2.5">
@@ -2143,9 +2142,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </table>
 
                   {/* Stage Inline Calibration Evidence */}
-                  {sections['10'].data.stages.some(s => s.evidenceImage) && (
+                  {sections['09'].data.stages.some(s => s.evidenceImage) && (
                     <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
-                      {sections['10'].data.stages.filter(s => s.evidenceImage).map(stg => (
+                      {sections['09'].data.stages.filter(s => s.evidenceImage).map(stg => (
                         <div key={stg.stageId} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
                           <img
                             src={ImageStore.resolveImage(stg.evidenceImage) || stg.evidenceImage}
@@ -2166,27 +2165,27 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed flex items-start gap-1">
                     <span className="font-bold text-slate-800 shrink-0">Calibration Record:</span>
                     <span>
-                      {sections['10'].data.notes || 
+                      {sections['09'].data.notes || 
                         'Stage positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* SECTION 11: AGC / SCANNER CALIBRATION */}
+              {/* SECTION 10: AGC / SCANNER CALIBRATION */}
               <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      11 AGC / SCANNER CALIBRATION
+                      10 AGC / SCANNER CALIBRATION
                     </h2>
                     <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
                       Galvo Scanner &amp; Automatic Grid Calibration Positional Verification
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['11'].data.specToleranceUm ? sections['11'].data.specToleranceUm.toFixed(1) : '3.0'} μm</span>
-                    {renderStatusBadge(sections['11'].data.overallVerdict)}
+                    <span className="text-xs font-mono font-bold text-cyan-800">TOLERANCE: ±{sections['10'].data.specToleranceUm ? sections['10'].data.specToleranceUm.toFixed(1) : '3.0'} μm</span>
+                    {renderStatusBadge(sections['10'].data.overallVerdict)}
                   </div>
                 </div>
 
@@ -2201,7 +2200,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                      {sections['11'].data.agcs.map(agc => (
+                      {sections['10'].data.agcs.map(agc => (
                         <tr key={agc.agcId}>
                           <td className="py-2.5 font-bold font-sans text-slate-800">{agc.agcName}</td>
                           <td className="py-2.5">
@@ -2221,9 +2220,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </table>
 
                   {/* AGC Inline Calibration Records */}
-                  {sections['11'].data.agcs.some(a => a.evidenceImage) && (
+                  {sections['10'].data.agcs.some(a => a.evidenceImage) && (
                     <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2">
-                      {sections['11'].data.agcs.filter(a => a.evidenceImage).map(agc => (
+                      {sections['10'].data.agcs.filter(a => a.evidenceImage).map(agc => (
                         <div key={agc.agcId} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
                           <img
                             src={ImageStore.resolveImage(agc.evidenceImage) || agc.evidenceImage}
@@ -2244,7 +2243,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs leading-relaxed flex items-start gap-1">
                     <span className="font-bold text-slate-800 shrink-0">Calibration Record:</span>
                     <span>
-                      {sections['11'].data.notes || 
+                      {sections['10'].data.notes || 
                         'AGC/scanner positional calibration completed across the full travel range, with X/Y deviation verified against the defined tolerance.'}
                     </span>
                   </div>
@@ -2280,21 +2279,21 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      12 TEMPERATURE &amp; THERMAL TELEMETRY
+                      11 TEMPERATURE &amp; THERMAL TELEMETRY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
                       Optics Markbox 6-Channel Air-Cooling &amp; Thermal Telemetry Monitoring
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['12'].status)}
+                    {renderStatusBadge(sections['11'].status)}
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 text-xs font-mono">
                   {(() => {
-                    const targetTemp = sections['12'].data.targetTempCelsius;
-                    const tempTol = sections['12'].data.tempToleranceCelsius;
+                    const targetTemp = sections['11'].data.targetTempCelsius;
+                    const tempTol = sections['11'].data.tempToleranceCelsius;
                     const hasSpec = targetTemp !== undefined && targetTemp !== null;
                     const minSpec = hasSpec && tempTol !== undefined && tempTol !== null ? targetTemp - tempTol : undefined;
                     const maxSpec = hasSpec && tempTol !== undefined && tempTol !== null ? targetTemp + tempTol : undefined;
@@ -2326,7 +2325,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
                           <div className="grid grid-cols-3 gap-2.5">
                             {(() => {
-                              const chStats = sections['12'].data.channelStats || {};
+                              const chStats = sections['11'].data.channelStats || {};
                               const markboxes = [
                                 { id: 1, title: 'MARKBOX 1', channels: [1, 4], desc: 'Optics Markbox 1 (CH1 + CH4)' },
                                 { id: 2, title: 'MARKBOX 2', channels: [2, 5], desc: 'Optics Markbox 2 (CH2 + CH5)' },
@@ -2380,41 +2379,41 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
 
                         {/* Telemetry Record Statistics & Matrix */}
-                        {sections['12'].data.hasValidTemperatureAnalysis && sections['12'].data.stats ? (
+                        {sections['11'].data.hasValidTemperatureAnalysis && sections['11'].data.stats ? (
                           <>
                             {/* Overall Telemetry Stats Header */}
                             <div className="pt-2 border-t border-slate-200 space-y-1.5">
                               <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
                                 <span>PERSISTED THERMAL TELEMETRY RECORD</span>
                                 <span className="text-cyan-800">
-                                  {sections['12'].data.temperatureRecordTitle || sections['12'].data.temperatureLogFileName || 'Authoritative Telemetry Log'}
-                                  {sections['12'].data.rawRecordsCount ? ` (${sections['12'].data.rawRecordsCount.toLocaleString()} DATA POINTS)` : ''}
+                                  {sections['11'].data.temperatureRecordTitle || sections['11'].data.temperatureLogFileName || 'Authoritative Telemetry Log'}
+                                  {sections['11'].data.rawRecordsCount ? ` (${sections['11'].data.rawRecordsCount.toLocaleString()} DATA POINTS)` : ''}
                                 </span>
                               </div>
                               <div className="grid grid-cols-4 gap-2 text-[10px]">
                                 <div className="p-2 rounded bg-white border border-slate-200">
                                   <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MIN TEMP</span>
-                                  <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min).toFixed(2)} °C</strong>
+                                  <strong className="text-slate-800 font-bold text-xs">{((sections['11'].data.stats as any).minTempCelsius ?? sections['11'].data.stats.min).toFixed(2)} °C</strong>
                                 </div>
                                 <div className="p-2 rounded bg-white border border-slate-200">
                                   <span className="text-slate-400 block font-sans text-[8px]">GLOBAL MAX TEMP</span>
-                                  <strong className="text-slate-800 font-bold text-xs">{((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max).toFixed(2)} °C</strong>
+                                  <strong className="text-slate-800 font-bold text-xs">{((sections['11'].data.stats as any).maxTempCelsius ?? sections['11'].data.stats.max).toFixed(2)} °C</strong>
                                 </div>
                                 <div className="p-2 rounded bg-cyan-50/60 border border-cyan-300">
                                   <span className="text-cyan-800 block font-sans font-bold text-[8px]">GLOBAL AVG TEMP</span>
-                                  <strong className="text-cyan-950 font-extrabold text-xs">{((sections['12'].data.stats as any).avgTempCelsius ?? sections['12'].data.stats.avg).toFixed(2)} °C</strong>
+                                  <strong className="text-cyan-950 font-extrabold text-xs">{((sections['11'].data.stats as any).avgTempCelsius ?? sections['11'].data.stats.avg).toFixed(2)} °C</strong>
                                 </div>
                                 <div className="p-2 rounded bg-white border border-slate-200">
                                   <span className="text-slate-400 block font-sans text-[8px]">TEMPERATURE RANGE</span>
                                   <strong className="text-slate-800 font-bold text-xs">
-                                    {(((sections['12'].data.stats as any).maxTempCelsius ?? sections['12'].data.stats.max) - ((sections['12'].data.stats as any).minTempCelsius ?? sections['12'].data.stats.min)).toFixed(2)} °C
+                                    {(((sections['11'].data.stats as any).maxTempCelsius ?? sections['11'].data.stats.max) - ((sections['11'].data.stats as any).minTempCelsius ?? sections['11'].data.stats.min)).toFixed(2)} °C
                                   </strong>
                                 </div>
                               </div>
                             </div>
 
                             {/* 6-Channel Telemetry Matrix Table */}
-                            {sections['12'].data.channelStats && Object.keys(sections['12'].data.channelStats).length > 0 && (
+                            {sections['11'].data.channelStats && Object.keys(sections['11'].data.channelStats).length > 0 && (
                               <div className="pt-2 border-t border-slate-200 space-y-1.5">
                                 <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
                                   <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
@@ -2432,7 +2431,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
-                                    {Object.entries(sections['12'].data.channelStats).map(([chNum, cStat]) => {
+                                    {Object.entries(sections['11'].data.channelStats).map(([chNum, cStat]) => {
                                       const chMapping: Record<string, string> = {
                                         '1': 'Markbox 1',
                                         '2': 'Markbox 2',
@@ -2466,7 +2465,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             )}
 
                             {/* Authoritative Multi-Channel Thermal Profile Graph */}
-                            {sections['12'].data.channelData && Object.keys(sections['12'].data.channelData).length > 0 && (
+                            {sections['11'].data.channelData && Object.keys(sections['11'].data.channelData).length > 0 && (
                               <div className="pt-2 border-t border-slate-200 space-y-1.5">
                                 <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
                                   <span className="font-bold text-slate-700 uppercase">AUTHORITATIVE MULTI-CHANNEL THERMAL PROFILE</span>
@@ -2474,8 +2473,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                 </div>
                                 <div className="w-full bg-white rounded-lg p-2.5 border border-slate-200">
                                   <TemperatureGraph
-                                    channelData={sections['12'].data.channelData as any}
-                                    stats={sections['12'].data.stats}
+                                    channelData={sections['11'].data.channelData as any}
+                                    stats={sections['11'].data.stats}
                                     preset="report"
                                     height={180}
                                     showLegend={true}
@@ -2501,9 +2500,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   })()}
 
                   {/* Engineer Observation / Notes */}
-                  {(sections['12'].data.engineerNote || sections['12'].data.notes) && (
+                  {(sections['11'].data.engineerNote || sections['11'].data.notes) && (
                     <div className="text-[10px] text-slate-600 font-sans border-t border-slate-200 pt-2">
-                      <span className="font-bold text-slate-800 font-mono">ENGINEER OBSERVATION:</span> {sections['12'].data.engineerNote || sections['12'].data.notes}
+                      <span className="font-bold text-slate-800 font-mono">ENGINEER OBSERVATION:</span> {sections['11'].data.engineerNote || sections['11'].data.notes}
                     </div>
                   )}
                 </div>
@@ -2520,40 +2519,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 9: PRODUCT PROCESS & VIA QUALITY (13)
+              PAGE 9: PRODUCT PROCESS & VIA QUALITY (12)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 13 — PRODUCT PROCESS &amp; VIA QUALITY</span>
+              <span>SECTION 12 — PRODUCT PROCESS &amp; VIA QUALITY</span>
             </div>
 
             {/* Content Body */}
             <div className="space-y-3.5 my-2 flex-1 min-h-0">
               
-              {/* SECTION 13: PRODUCT PROCESS & VIA QUALITY */}
+              {/* SECTION 12: PRODUCT PROCESS & VIA QUALITY */}
               <div className="space-y-3">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                      13 PRODUCT PROCESS &amp; VIA QUALITY
+                      12 PRODUCT PROCESS &amp; VIA QUALITY
                     </h2>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
                       Product Recipe Parameters &amp; Microvia Measurements
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(
-                      sections['13']?.status === 'COMPLETE' && (sections['14']?.status === 'COMPLETE' || !sections['14'] || sections['14'].status === 'NOT_COLLECTED')
-                        ? 'COMPLETE'
-                        : sections['13']?.status === 'NEEDS_REVIEW' || sections['14']?.status === 'NEEDS_REVIEW'
-                        ? 'NEEDS_REVIEW'
-                        : sections['13']?.status !== 'NOT_COLLECTED'
-                        ? sections['13'].status
-                        : (sections['14']?.status || 'NOT_COLLECTED')
-                    )}
+                    {renderStatusBadge(sections['12']?.status || 'NOT_COLLECTED')}
                   </div>
                 </div>
 
@@ -2565,19 +2556,19 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">PRODUCT</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.productName || (sections['14']?.data as any)?.productName || 'Not Recorded'}
+                        {sections['12'].data.productName || 'Not Recorded'}
                       </strong>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">RECIPE / PROGRAM</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.recipeProgram || sections['13'].data.recipeName || 'Not Recorded'}
+                        {sections['12'].data.recipeProgram || sections['12'].data.recipeName || 'Not Recorded'}
                       </strong>
                     </div>
                     <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
                       <span className="text-[9px] text-slate-400 block font-sans">LOT / PANEL IDENTIFIER</span>
                       <strong className="text-slate-800 text-xs block font-bold truncate">
-                        {sections['13'].data.lotPanel || sections['14']?.data?.sampleId || 'Not Recorded'}
+                        {sections['12'].data.lotPanel || sections['12'].data.sampleId || 'Not Recorded'}
                       </strong>
                     </div>
                   </div>
@@ -2602,37 +2593,37 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <tr>
                           <td className="py-1.5 text-left font-bold text-slate-800">Phase 1</td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase1?.powerWatts !== null && sections['13'].data.phase1?.powerWatts !== undefined ? `${sections['13'].data.phase1.powerWatts.toFixed(2)} W` : '-'}
+                            {sections['12'].data.phase1?.powerWatts !== null && sections['12'].data.phase1?.powerWatts !== undefined ? `${sections['12'].data.phase1.powerWatts.toFixed(2)} W` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase1?.frequencyKhz !== null && sections['13'].data.phase1?.frequencyKhz !== undefined ? `${sections['13'].data.phase1.frequencyKhz} kHz` : '-'}
+                            {sections['12'].data.phase1?.frequencyKhz !== null && sections['12'].data.phase1?.frequencyKhz !== undefined ? `${sections['12'].data.phase1.frequencyKhz} kHz` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase1?.shotCount !== null && sections['13'].data.phase1?.shotCount !== undefined ? `${sections['13'].data.phase1.shotCount} shots` : '-'}
+                            {sections['12'].data.phase1?.shotCount !== null && sections['12'].data.phase1?.shotCount !== undefined ? `${sections['12'].data.phase1.shotCount} shots` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase1?.maskMm !== null && sections['13'].data.phase1?.maskMm !== undefined ? `${sections['13'].data.phase1.maskMm} mm` : '-'}
+                            {sections['12'].data.phase1?.maskMm !== null && sections['12'].data.phase1?.maskMm !== undefined ? `${sections['12'].data.phase1.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
-                            {sections['13'].data.phase1?.defocusMm !== null && sections['13'].data.phase1?.defocusMm !== undefined ? `${sections['13'].data.phase1.defocusMm > 0 ? `+${sections['13'].data.phase1.defocusMm.toFixed(2)}` : sections['13'].data.phase1.defocusMm.toFixed(2)} mm` : '-'}
+                            {sections['12'].data.phase1?.defocusMm !== null && sections['12'].data.phase1?.defocusMm !== undefined ? `${sections['12'].data.phase1.defocusMm > 0 ? `+${sections['12'].data.phase1.defocusMm.toFixed(2)}` : sections['12'].data.phase1.defocusMm.toFixed(2)} mm` : '-'}
                           </td>
                         </tr>
                         <tr>
                           <td className="py-1.5 text-left font-bold text-slate-800">Phase 2</td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase2?.powerWatts !== null && sections['13'].data.phase2?.powerWatts !== undefined ? `${sections['13'].data.phase2.powerWatts.toFixed(2)} W` : '-'}
+                            {sections['12'].data.phase2?.powerWatts !== null && sections['12'].data.phase2?.powerWatts !== undefined ? `${sections['12'].data.phase2.powerWatts.toFixed(2)} W` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase2?.frequencyKhz !== null && sections['13'].data.phase2?.frequencyKhz !== undefined ? `${sections['13'].data.phase2.frequencyKhz} kHz` : '-'}
+                            {sections['12'].data.phase2?.frequencyKhz !== null && sections['12'].data.phase2?.frequencyKhz !== undefined ? `${sections['12'].data.phase2.frequencyKhz} kHz` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase2?.shotCount !== null && sections['13'].data.phase2?.shotCount !== undefined ? `${sections['13'].data.phase2.shotCount} shots` : '-'}
+                            {sections['12'].data.phase2?.shotCount !== null && sections['12'].data.phase2?.shotCount !== undefined ? `${sections['12'].data.phase2.shotCount} shots` : '-'}
                           </td>
                           <td className="py-1.5 text-right text-slate-700">
-                            {sections['13'].data.phase2?.maskMm !== null && sections['13'].data.phase2?.maskMm !== undefined ? `${sections['13'].data.phase2.maskMm} mm` : '-'}
+                            {sections['12'].data.phase2?.maskMm !== null && sections['12'].data.phase2?.maskMm !== undefined ? `${sections['12'].data.phase2.maskMm} mm` : '-'}
                           </td>
                           <td className="py-1.5 text-right font-semibold text-slate-800">
-                            {sections['13'].data.phase2?.defocusMm !== null && sections['13'].data.phase2?.defocusMm !== undefined ? `${sections['13'].data.phase2.defocusMm > 0 ? `+${sections['13'].data.phase2.defocusMm.toFixed(2)}` : sections['13'].data.phase2.defocusMm.toFixed(2)} mm` : '-'}
+                            {sections['12'].data.phase2?.defocusMm !== null && sections['12'].data.phase2?.defocusMm !== undefined ? `${sections['12'].data.phase2.defocusMm > 0 ? `+${sections['12'].data.phase2.defocusMm.toFixed(2)}` : sections['12'].data.phase2.defocusMm.toFixed(2)} mm` : '-'}
                           </td>
                         </tr>
                       </tbody>
@@ -2659,7 +2650,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </thead>
                           <tbody className="divide-y divide-slate-100 font-mono">
                             {(() => {
-                              const qData = sections['14']?.data;
+                              const qData = sections['12']?.data;
                               const lh1Top = qData?.laser1Via?.topWidthUm ?? (qData?.viaDiameterUm !== undefined ? qData.viaDiameterUm : null);
                               const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? null;
                               const lh1Taper = lh1Top !== null && lh1Bot !== null ? `${((lh1Bot / lh1Top) * 100).toFixed(1)}%` : '-';
@@ -2716,7 +2707,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           {(() => {
-                            const qData = sections['14']?.data;
+                            const qData = sections['12']?.data;
                             const l1Img = qData?.laser1Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser1Via.viaImageDataUrl) || qData.laser1Via.viaImageDataUrl) : undefined;
                             const l2Img = qData?.laser2Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser2Via.viaImageDataUrl) || qData.laser2Via.viaImageDataUrl) : undefined;
 
@@ -2769,7 +2760,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   {/* 4. Real Engineer Remarks */}
                   <div className="text-[10px] text-slate-600 font-sans leading-relaxed pt-2 border-t border-slate-200">
                     <strong>Engineer Remarks: </strong>
-                    {sections['13'].data.engineerRemarks || sections['14']?.data?.engineerRemarks || sections['14']?.data?.notes || '—'}
+                    {sections['12'].data.engineerRemarks || sections['12'].data.notes || '—'}
                   </div>
                 </div>
               </div>
@@ -2785,32 +2776,32 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 10: FINDINGS (15), PARTS & RECOMMENDATIONS (17), BUYOFF (18)
+              PAGE 10: FINDINGS (13), PARTS & RECOMMENDATIONS (14), BUYOFF (15)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 15, 17–18 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>SECTIONS 13–15 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
             </div>
 
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 15: FINDINGS & OBSERVATIONS */}
+              {/* SECTION 13: FINDINGS & OBSERVATIONS */}
               <div className="space-y-1.5">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      15 FINDINGS &amp; OBSERVATIONS
+                      13 FINDINGS &amp; OBSERVATIONS
                     </h2>
                     <span className="text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                      TOTAL RECORDED: {sections['15']?.data?.totalFindingsCount ?? 0}
+                      TOTAL RECORDED: {sections['13']?.data?.totalFindingsCount ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['15']?.status || 'NOT_COLLECTED')}
+                    {renderStatusBadge(sections['13']?.status || 'NOT_COLLECTED')}
                   </div>
                 </div>
 
@@ -2824,7 +2815,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       actionRecommendation?: string;
                     }> = [];
 
-                    (sections['15']?.data?.heads || []).forEach(h => {
+                    (sections['13']?.data?.heads || []).forEach(h => {
                       (h.findingsList || []).forEach(f => {
                         allFindings.push({
                           source: h.headName,
@@ -2862,9 +2853,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             </tbody>
                           </table>
 
-                          {sections['15']?.data?.generalFindingsNote && (
+                          {sections['13']?.data?.generalFindingsNote && (
                             <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
-                              <strong>General Observations: </strong>{sections['15'].data.generalFindingsNote}
+                              <strong>General Observations: </strong>{sections['13'].data.generalFindingsNote}
                             </div>
                           )}
                         </div>
@@ -2874,8 +2865,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     return (
                       <div className="flex items-center justify-between text-slate-500 py-0.5">
                         <span className="italic text-[11px]">
-                          {sections['15']?.data?.generalFindingsNote 
-                            ? `General Observations: ${sections['15'].data.generalFindingsNote}`
+                          {sections['13']?.data?.generalFindingsNote 
+                            ? `General Observations: ${sections['13'].data.generalFindingsNote}`
                             : '—'}
                         </span>
                         <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
@@ -2887,25 +2878,25 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 17: SPARE PARTS & RECOMMENDATIONS */}
+              {/* SECTION 14: SPARE PARTS & RECOMMENDATIONS */}
               <div className="space-y-1.5">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      17 SPARE PARTS &amp; RECOMMENDATIONS
+                      14 SPARE PARTS &amp; RECOMMENDATIONS
                     </h2>
-                    {sections['17']?.data?.followUpRequired !== undefined && (
+                    {sections['14']?.data?.followUpRequired !== undefined && (
                       <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                        sections['17'].data.followUpRequired 
+                        sections['14'].data.followUpRequired 
                           ? 'text-amber-800 bg-amber-50 border-amber-200' 
                           : 'text-slate-600 bg-slate-100 border-slate-200'
                       }`}>
-                        FOLLOW-UP: {sections['17'].data.followUpRequired ? 'REQUIRED' : 'NONE'}
+                        FOLLOW-UP: {sections['14'].data.followUpRequired ? 'REQUIRED' : 'NONE'}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['17']?.status || 'NOT_COLLECTED')}
+                    {renderStatusBadge(sections['14']?.status || 'NOT_COLLECTED')}
                   </div>
                 </div>
 
@@ -2916,8 +2907,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       ENGINEERING RECOMMENDATIONS &amp; FUTURE ACTION PLAN
                     </span>
                     <div className="bg-white p-2 rounded border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
-                      {sections['17']?.data?.engineerRecommendationsText || 
-                       (sections['17']?.data?.recommendations && sections['17'].data.recommendations.length > 0 ? sections['17'].data.recommendations.join(' • ') : null) || 
+                      {sections['14']?.data?.engineerRecommendationsText || 
+                       (sections['14']?.data?.recommendations && sections['14'].data.recommendations.length > 0 ? sections['14'].data.recommendations.join(' • ') : null) || 
                        '—'}
                     </div>
                   </div>
@@ -2929,7 +2920,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
                         CONSUMED PARTS (SERVICE EXECUTION)
                       </span>
-                      {sections['17']?.data?.consumedParts && sections['17'].data.consumedParts.length > 0 ? (
+                      {sections['14']?.data?.consumedParts && sections['14'].data.consumedParts.length > 0 ? (
                         <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
                           <thead>
                             <tr className="border-b border-slate-200 font-mono text-[8.5px] text-slate-400 bg-slate-50/70">
@@ -2940,7 +2931,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {sections['17'].data.consumedParts.map(sp => (
+                            {sections['14'].data.consumedParts.map(sp => (
                               <tr key={sp.id}>
                                 <td className="py-1 px-1.5 font-bold text-slate-800 text-[10px]">{sp.partName}</td>
                                 <td className="py-1 px-1.5 font-mono text-[10px]">{sp.quantity}</td>
@@ -2960,7 +2951,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
                         RECOMMENDED SPARE PARTS (PROCUREMENT / STOCK)
                       </span>
-                      {sections['17']?.data?.recommendedParts && sections['17'].data.recommendedParts.length > 0 ? (
+                      {sections['14']?.data?.recommendedParts && sections['14'].data.recommendedParts.length > 0 ? (
                         <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
                           <thead>
                             <tr className="border-b border-slate-200 font-mono text-[8.5px] text-slate-400 bg-slate-50/70">
@@ -2970,7 +2961,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {sections['17'].data.recommendedParts.map(rec => (
+                            {sections['14'].data.recommendedParts.map(rec => (
                               <tr key={rec.id}>
                                 <td className="py-1 px-1.5 font-bold text-slate-800 text-[10px]">{rec.partName}</td>
                                 <td className="py-1 px-1.5 font-mono text-[10px]">{rec.quantity || 1}</td>
@@ -2987,12 +2978,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 18: BUYOFF & OFFICIAL APPROVALS */}
+              {/* SECTION 15: BUYOFF & OFFICIAL APPROVALS */}
               <div className="space-y-1.5 pt-1">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      18 BUYOFF &amp; OFFICIAL APPROVALS
+                      15 BUYOFF &amp; OFFICIAL APPROVALS
                     </h2>
                     <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                       PRODUCTION RELEASE: {releaseStatus}
@@ -3011,7 +3002,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <div className="text-[11px]">
                         <span className="text-slate-400">Target Due Date: </span>
                         <strong className="text-cyan-300 font-mono text-xs">
-                          {sections['18']?.data?.nextMhcSchedule?.nextDueDate || 'Quarterly Cycle (90 Days)'}
+                          {sections['15']?.data?.nextMhcSchedule?.nextDueDate || 'Quarterly Cycle (90 Days)'}
                         </strong>
                       </div>
                     </div>
@@ -3033,13 +3024,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
                           <div className="space-y-0.5 pt-1">
                             <strong className="text-slate-900 text-xs block">{engineerName}</strong>
-                            <div className="text-[10px] text-slate-500">{sections['18']?.data?.engineerSignoff?.title || 'Senior Field Service Engineer'}</div>
-                            <div className="text-[9px] font-mono text-slate-500">Date: {sections['18']?.data?.engineerSignoff?.date || inspectionDate}</div>
+                            <div className="text-[10px] text-slate-500">{sections['15']?.data?.engineerSignoff?.title || 'Senior Field Service Engineer'}</div>
+                            <div className="text-[9px] font-mono text-slate-500">Date: {sections['15']?.data?.engineerSignoff?.date || inspectionDate}</div>
                           </div>
                         </div>
                         <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
-                          {sections['18']?.data?.engineerSignoff?.signatureDataUrl ? (
-                            <img src={sections['18'].data.engineerSignoff.signatureDataUrl} alt="Engineer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                          {sections['15']?.data?.engineerSignoff?.signatureDataUrl ? (
+                            <img src={sections['15'].data.engineerSignoff.signatureDataUrl} alt="Engineer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
                           ) : (
                             <span>[ COMPLETED &amp; SIGNED BY ENGINEER ]</span>
                           )}
@@ -3061,21 +3052,21 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           </div>
                           <div className="space-y-0.5 pt-1">
                             <strong className="text-slate-900 text-xs block">
-                              {sections['18']?.data?.customerSignoff?.name && sections['18'].data.customerSignoff.name !== 'Customer Representative' 
-                                ? sections['18'].data.customerSignoff.name 
+                              {sections['15']?.data?.customerSignoff?.name && sections['15'].data.customerSignoff.name !== 'Customer Representative' 
+                                ? sections['15'].data.customerSignoff.name 
                                 : (releaseStatus === 'APPROVED' ? 'Customer Representative' : 'Pending Customer Sign-off')}
                             </strong>
                             <div className="text-[10px] text-slate-500">
-                              {sections['18']?.data?.customerSignoff?.title || customerCompany}
+                              {sections['15']?.data?.customerSignoff?.title || customerCompany}
                             </div>
                             <div className="text-[9px] font-mono text-slate-500">
-                              Date: {sections['18']?.data?.customerSignoff?.date || '—'}
+                              Date: {sections['15']?.data?.customerSignoff?.date || '—'}
                             </div>
                           </div>
                         </div>
                         <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
-                          {sections['18']?.data?.customerSignoff?.signatureDataUrl ? (
-                            <img src={sections['18'].data.customerSignoff.signatureDataUrl} alt="Customer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                          {sections['15']?.data?.customerSignoff?.signatureDataUrl ? (
+                            <img src={sections['15'].data.customerSignoff.signatureDataUrl} alt="Customer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
                           ) : (
                             <span>{releaseStatus === 'APPROVED' ? '[ CUSTOMER APPROVED ]' : '[ PENDING CUSTOMER REVIEW & SIGN-OFF ]'}</span>
                           )}
@@ -3084,9 +3075,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                     </div>
 
-                    {sections['18']?.data?.customerSignoff?.comments && (
+                    {sections['15']?.data?.customerSignoff?.comments && (
                       <div className="mt-2 p-1.5 rounded bg-white border border-slate-200 text-[10px] text-slate-600">
-                        <strong>Customer Remarks: </strong>{sections['18'].data.customerSignoff.comments}
+                        <strong>Customer Remarks: </strong>{sections['15'].data.customerSignoff.comments}
                       </div>
                     )}
                   </div>

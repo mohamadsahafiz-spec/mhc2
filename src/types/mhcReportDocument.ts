@@ -16,25 +16,21 @@ import {
 } from './index';
 
 export type MhcReportSectionCode =
-  | '01' // Cover
-  | '02' // Index
-  | '03' // Machine Information
-  | '04' // Executive Summary
-  | '05' // Laser Hours
-  | '06' // Laser Power
-  | '07' // Beam Profile
-  | '08' // Focus Optimization
-  | '09' // Power Offset
-  | '10' // Stage Calibration
-  | '11' // AGC / Scanner Calibration
-  | '12' // Temperature Monitoring
-  | '13' // Laser / Product Profile
-  | '14' // Product Via Quality
-  | '15' // Findings
-  | '16' // Corrective Actions
-  | '17' // Spare Parts / Recommendations
-  | '18' // Buyoff & Sign-off
-  | '19'; // Backward-compatible alias if referenced
+  | '01' // Cover Page
+  | '02' // Table of Contents / Report Index
+  | '03' // Executive Summary (Old 04)
+  | '04' // Laser Hours & Lifecycle (Old 05)
+  | '05' // Laser Power & Baseline Comparison (Old 06)
+  | '06' // Optical Beam Profile & Spot Quality (Old 07)
+  | '07' // Focus Optimization (Old 08)
+  | '08' // Power Offset & Calibration (Old 09)
+  | '09' // Stage Calibration (Old 10)
+  | '10' // AGC / Scanner Calibration (Old 11)
+  | '11' // Temperature & Thermal Telemetry (Old 12)
+  | '12' // Product Process & Via Quality (Old 13)
+  | '13' // Findings & Observations (Old 15)
+  | '14' // Spare Parts & Recommendations (Old 17)
+  | '15'; // Buyoff & Official Approvals (Old 18)
 
 export type MhcReportSectionStatus =
   | 'COMPLETE'
@@ -441,7 +437,7 @@ export interface MhcReportTemperatureData {
   notes?: string;
 }
 
-// 13 Laser / Product Profile Data
+// 12 Laser / Product Process & Via Quality Data
 export interface MhcReportLaserProductProfileData {
   status: 'NOT_COLLECTED' | 'AVAILABLE' | 'COMPLETE' | 'NEEDS_REVIEW';
   laserId?: string;
@@ -469,6 +465,34 @@ export interface MhcReportLaserProductProfileData {
     defocusMm?: number | null;
   };
   hasProcessRecord?: boolean;
+
+  // Microvia Quality Fields
+  sampleId?: string;
+  viaDiameterUm?: number;
+  viaShape?: string;
+  viaOffsetUm?: number;
+  padQuality?: string;
+  visualVerification?: string;
+  result?: 'PASS' | 'ATTENTION' | 'FAIL' | 'NOT_COLLECTED';
+  overallResult?: 'PASS' | 'FAIL' | 'NOT_COLLECTED';
+  laser1Via?: {
+    topWidthUm?: number | null;
+    bottomWidthUm?: number | null;
+    topPass?: boolean;
+    bottomPass?: boolean;
+    overallPass?: boolean;
+    viaImageDataUrl?: string;
+  };
+  laser2Via?: {
+    topWidthUm?: number | null;
+    bottomWidthUm?: number | null;
+    topPass?: boolean;
+    bottomPass?: boolean;
+    overallPass?: boolean;
+    viaImageDataUrl?: string;
+  };
+  hasViaRecord?: boolean;
+  notes?: string;
 }
 
 // 14 Product Via Quality Data
@@ -632,23 +656,19 @@ export interface MhcReportBuyoffData {
 export interface MhcReportSectionMap {
   '01': MhcReportSection<MhcReportCoverData>;
   '02': MhcReportSection<MhcReportIndexData>;
-  '03': MhcReportSection<MhcReportMachineInfoData>;
-  '04': MhcReportSection<MhcReportExecutiveSummaryData>;
-  '05': MhcReportSection<MhcReportLaserHoursData>;
-  '06': MhcReportSection<MhcReportLaserPowerData>;
-  '07': MhcReportSection<MhcReportBeamProfileData>;
-  '08': MhcReportSection<MhcReportFocusOptimizationData>;
-  '09': MhcReportSection<MhcReportPowerOffsetData>;
-  '10': MhcReportSection<MhcReportStageCalibrationData>;
-  '11': MhcReportSection<MhcReportAgcData>;
-  '12': MhcReportSection<MhcReportTemperatureData>;
-  '13': MhcReportSection<MhcReportLaserProductProfileData>;
-  '14': MhcReportSection<MhcReportProductViaQualityData>;
-  '15': MhcReportSection<MhcReportFindingsData>;
-  '16': MhcReportSection<MhcReportCorrectiveActionsData>;
-  '17': MhcReportSection<MhcReportSparePartsData>;
-  '18': MhcReportSection<MhcReportBuyoffData>;
-  '19'?: MhcReportSection<MhcReportBuyoffData>;
+  '03': MhcReportSection<MhcReportExecutiveSummaryData>;
+  '04': MhcReportSection<MhcReportLaserHoursData>;
+  '05': MhcReportSection<MhcReportLaserPowerData>;
+  '06': MhcReportSection<MhcReportBeamProfileData>;
+  '07': MhcReportSection<MhcReportFocusOptimizationData>;
+  '08': MhcReportSection<MhcReportPowerOffsetData>;
+  '09': MhcReportSection<MhcReportStageCalibrationData>;
+  '10': MhcReportSection<MhcReportAgcData>;
+  '11': MhcReportSection<MhcReportTemperatureData>;
+  '12': MhcReportSection<MhcReportLaserProductProfileData>;
+  '13': MhcReportSection<MhcReportFindingsData>;
+  '14': MhcReportSection<MhcReportSparePartsData>;
+  '15': MhcReportSection<MhcReportBuyoffData>;
 }
 
 export interface MhcReportMetadata {

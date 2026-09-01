@@ -108,11 +108,11 @@ describe('AGC Signed Min/Max Telemetry & Persistence', () => {
     };
 
     const doc = buildMhcReportDocument(mockSession);
-    const section11 = doc.sections['11'];
-    expect(section11).toBeDefined();
-    expect(section11.data.overallVerdict).toBe('PASS');
+    const section10 = doc.sections['10'];
+    expect(section10).toBeDefined();
+    expect(section10.data.overallVerdict).toBe('PASS');
 
-    const mappedAgc1 = section11.data.agcs.find(a => a.agcId === 'agc1');
+    const mappedAgc1 = section10.data.agcs.find(a => a.agcId === 'agc1');
     expect(mappedAgc1).toBeDefined();
     expect(mappedAgc1?.xMinUm).toBe(-1.2);
     expect(mappedAgc1?.xMaxUm).toBe(1.1);

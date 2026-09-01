@@ -247,26 +247,23 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['01'].data.customerName).toBe('Acme PCB Corp');
     expect(doc.sections['01'].data.machineSerialNumber).toBe('SN-98765');
 
-    // Verify Laser Power without baseline
-    const powerSec = doc.sections['06'].data;
+    // Verify Laser Power without baseline (Section 05)
+    const powerSec = doc.sections['05'].data;
     expect(powerSec.hasPreviousBaseline).toBe(false);
     expect(powerSec.heads[0].comparison.statusText).toBe('No previous baseline');
     expect(powerSec.heads[0].current.measuredWatts).toBe(15.1);
 
-    // Verify Laser Hours
-    const hoursSec = doc.sections['05'].data;
+    // Verify Laser Hours (Section 04)
+    const hoursSec = doc.sections['04'].data;
     expect(hoursSec.laserHours.length).toBe(2);
-    expect(hoursSec.laserHours[0].verifiedHour).toBe(12500);
+    expect(hoursSec.laserHours[0].currentLaserHour).toBe(12500);
 
-    // Verify restored sections 08 & 09, 13 & 14 are populated and evaluated
-    expect(doc.sections['08'].status).toBe('NOT_COLLECTED');
-    expect(doc.sections['09'].status).toBe('COMPLETE');
-    expect(doc.sections['13'].status).toBe('COMPLETE');
-    expect(doc.sections['13'].data.productName).toBe('Flex Rigid Standard');
-    expect(doc.sections['13'].data.recipeProgram).toBe('REC-01');
-    expect(doc.sections['14'].status).toBe('COMPLETE');
-    expect(doc.sections['14'].data.sampleId).toBe('SMP-100');
-    expect(doc.sections['14'].data.viaDiameterUm).toBe(50);
+    // Verify sections 07 & 08, 12 populated and evaluated
+    expect(doc.sections['07'].status).toBe('NOT_COLLECTED');
+    expect(doc.sections['08'].status).toBe('COMPLETE');
+    expect(doc.sections['12'].status).toBe('COMPLETE');
+    expect(doc.sections['12'].data.productName).toBe('Flex Rigid Standard');
+    expect(doc.sections['12'].data.recipeProgram).toBe('REC-01');
   });
 
   it('should calculate previous/current comparison correctly when previousSession exists', () => {
@@ -301,8 +298,8 @@ describe('mhcReportEngine', () => {
 
     const doc = buildMhcReportDocument(currentSession, previousSession);
 
-    // Check power comparison
-    const powerHead1 = doc.sections['06'].data.heads[0];
+    // Check power comparison (Section 05)
+    const powerHead1 = doc.sections['05'].data.heads[0];
     expect(powerHead1.hasPreviousBaseline).toBe(true);
     expect(powerHead1.comparison.deltaWatts).toBeCloseTo(-0.4, 2);
     expect(powerHead1.comparison.statusText).toContain('-0.40 W');
@@ -315,8 +312,8 @@ describe('mhcReportEngine', () => {
     expect(mask50?.deltaWatts).toBeCloseTo(-0.1, 2);
     expect(mask50?.pass).toBe(true);
 
-    // Check beam comparison
-    const beamHead1 = doc.sections['07'].data.heads[0];
+    // Check beam comparison (Section 06)
+    const beamHead1 = doc.sections['06'].data.heads[0];
     expect(beamHead1.hasPreviousBaseline).toBe(true);
     expect(beamHead1.comparison.deltaBeamSizeMm).toBeCloseTo(-0.08, 3);
     expect(beamHead1.comparison.statusText).toContain('-0.080 mm');
@@ -366,21 +363,21 @@ describe('mhcReportEngine', () => {
 
     const doc = buildMhcReportDocument(session);
 
-    // Section 10 Stage Calibration
+    // Section 09 Stage Calibration
+    expect(doc.sections['09'].status).toBe('COMPLETE');
+    expect(doc.sections['09'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['09'].data.stages[0].verdict).toBe('PASS');
+    expect(doc.sections['09'].data.stages[1].verdict).toBe('UNANSWERED');
+
+    // Section 10 AGC Calibration
     expect(doc.sections['10'].status).toBe('COMPLETE');
     expect(doc.sections['10'].data.overallVerdict).toBe('PASS');
-    expect(doc.sections['10'].data.stages[0].verdict).toBe('PASS');
-    expect(doc.sections['10'].data.stages[1].verdict).toBe('UNANSWERED');
+    expect(doc.sections['10'].data.agcs[0].verdict).toBe('PASS');
+    expect(doc.sections['10'].data.agcs[1].verdict).toBe('UNANSWERED');
 
-    // Section 11 AGC Calibration
-    expect(doc.sections['11'].status).toBe('COMPLETE');
-    expect(doc.sections['11'].data.overallVerdict).toBe('PASS');
-    expect(doc.sections['11'].data.agcs[0].verdict).toBe('PASS');
-    expect(doc.sections['11'].data.agcs[1].verdict).toBe('UNANSWERED');
-
-    // Section 18 Buyoff & Approvals
-    expect(doc.sections['18'].code).toBe('18');
-    expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
+    // Section 15 Buyoff & Approvals
+    expect(doc.sections['15'].code).toBe('15');
+    expect(doc.sections['15'].title).toBe('Buyoff & Approvals');
   });
 
   it('should not inject ghost machine or thermal fallbacks when session data is missing', () => {
@@ -406,17 +403,16 @@ describe('mhcReportEngine', () => {
 
     // Cover page should not contain WD-44367 or WLVIA#3
     expect(doc.sections['01'].data.machineNumber).toBeUndefined();
-    expect(doc.sections['03'].data.machineNumber).toBeUndefined();
 
-    // Section 12 Thermal telemetry should not have fabricated 21.5 or 4.8 values
-    expect(doc.sections['12'].data.chillerTempCelsius).toBeUndefined();
-    expect(doc.sections['12'].data.chillerFlowLpm).toBeUndefined();
-    expect(doc.sections['12'].data.coolingResult).toBe('NOT_COLLECTED');
-    expect(doc.sections['12'].data.hasValidTemperatureAnalysis).toBe(false);
+    // Section 11 Thermal telemetry should not have fabricated 21.5 or 4.8 values
+    expect(doc.sections['11'].data.chillerTempCelsius).toBeUndefined();
+    expect(doc.sections['11'].data.chillerFlowLpm).toBeUndefined();
+    expect(doc.sections['11'].data.coolingResult).toBe('NOT_COLLECTED');
+    expect(doc.sections['11'].data.hasValidTemperatureAnalysis).toBe(false);
 
-    // Section 05 Laser hours should not have fabricated laser heads
-    expect(doc.sections['05'].data.laserHours.length).toBe(0);
-    expect(doc.sections['05'].status).toBe('NOT_COLLECTED');
+    // Section 04 Laser hours should not have fabricated laser heads
+    expect(doc.sections['04'].data.laserHours.length).toBe(0);
+    expect(doc.sections['04'].status).toBe('NOT_COLLECTED');
   });
 
   it('should preserve complete Laser Power breakdown (masks, source, optics) from powerRecord', () => {
@@ -453,7 +449,7 @@ describe('mhcReportEngine', () => {
     ];
 
     const doc = buildMhcReportDocument(session);
-    const head1Power = doc.sections['06'].data.heads[0];
+    const head1Power = doc.sections['05'].data.heads[0];
 
     expect(head1Power.current.laserSourceWatts).toBe(15.2);
     expect(head1Power.current.opticsTopHatWatts).toBe(14.8);
@@ -485,16 +481,16 @@ describe('mhcReportEngine', () => {
 
     const doc = buildMhcReportDocument(session);
 
-    // Section 10 verdict
-    expect(doc.sections['10'].data.overallVerdict).toBe('OUT_OF_SPEC');
-    expect(doc.sections['10'].status).toBe('NEEDS_REVIEW');
+    // Section 09 verdict
+    expect(doc.sections['09'].data.overallVerdict).toBe('OUT_OF_SPEC');
+    expect(doc.sections['09'].status).toBe('NEEDS_REVIEW');
 
     // Executive summary must NOT show unconditioned pure PASS
-    expect(doc.sections['04'].data.overallStatus).not.toBe('PASS');
-    expect(['CONDITIONAL_PASS', 'ACTION_REQUIRED', 'FAIL']).toContain(doc.sections['04'].data.overallStatus);
+    expect(doc.sections['03'].data.overallStatus).not.toBe('PASS');
+    expect(['CONDITIONAL_PASS', 'ACTION_REQUIRED', 'FAIL']).toContain(doc.sections['03'].data.overallStatus);
 
     // Major results table must accurately list Stage as FAIL
-    const stageResult = doc.sections['04'].data.majorPassFailResults.find(r => r.component === 'Stage Calibration');
+    const stageResult = doc.sections['03'].data.majorPassFailResults.find(r => r.component === 'Stage Calibration');
     expect(stageResult?.verdict).toBe('FAIL');
   });
 
@@ -551,124 +547,97 @@ describe('mhcReportEngine', () => {
 
     const doc = buildMhcReportDocument(session);
 
-    // Machine info
-    expect(doc.sections['03'].data.department).toBe('Microvia Drilling Dept');
-    expect(doc.sections['03'].data.productionLine).toBe('Line 04 - High Density');
-
     // Spare parts separation - only explicit recorded data, no regex/keyword inference
-    expect(doc.sections['17'].data.consumedParts.length).toBe(1);
-    expect(doc.sections['17'].data.consumedParts[0].partName).toBe('Air Filter Element');
-    expect(doc.sections['17'].data.recommendedParts.length).toBe(1);
-    expect(doc.sections['17'].data.recommendedParts[0].partName).toBe('Galvo Mirror Set');
+    expect(doc.sections['14'].data.consumedParts.length).toBe(1);
+    expect(doc.sections['14'].data.consumedParts[0].partName).toBe('Air Filter Element');
+    expect(doc.sections['14'].data.recommendedParts.length).toBe(1);
+    expect(doc.sections['14'].data.recommendedParts[0].partName).toBe('Galvo Mirror Set');
 
-    // Section 16 is deprecated/invisible
-    expect(doc.sections['16'].isVisible).toBe(false);
-    expect(doc.orderedSections.find(s => s.code === '16')).toBeUndefined();
+    // Buyoff section verification (§15)
+    expect(doc.sections['15'].code).toBe('15');
+    expect(doc.sections['15'].title).toBe('Buyoff & Approvals');
+    expect(doc.sections['15'].data.engineerSignoff.name).toBe('Jane Doe');
 
-    // Buyoff section verification (renumbered to §18)
-    expect(doc.sections['18'].code).toBe('18');
-    expect(doc.sections['18'].title).toBe('Buyoff & Approvals');
-    expect(doc.sections['18'].data.engineerSignoff.name).toBe('Jane Doe');
+    // §07 Focus Optimization data grounding
+    expect(doc.sections['07'].code).toBe('07');
+    expect(doc.sections['07'].data.heads.length).toBe(2);
+    expect(doc.sections['07'].data.heads[0].laserLabel).toBe('Laser Head 1');
+    expect(doc.sections['07'].data.heads[0].baseline).toBe('-0.300 mm');
+    expect(doc.sections['07'].data.heads[0].positions.length).toBe(7);
+    expect(doc.sections['07'].data.heads[0].positions[0].positionMm).toBe('+0.300 mm');
+    expect(doc.sections['07'].data.heads[0].positions[3].positionMm).toBe('0.000 mm');
+    expect(doc.sections['07'].data.heads[0].positions[6].positionMm).toBe('-0.300 mm');
+    expect(doc.sections['07'].data.heads[0].positions[6].isBaseline).toBe(true);
+    expect(doc.sections['07'].data.topViaImpactNote).toContain('Top via impact: Focus adjustment primarily affects top diameter (~90%)');
 
-    // §08 Focus Optimization data grounding
-    expect(doc.sections['08'].code).toBe('08');
-    expect(doc.sections['08'].data.heads.length).toBe(2);
-    expect(doc.sections['08'].data.heads[0].laserLabel).toBe('Laser Head 1');
-    expect(doc.sections['08'].data.heads[0].baseline).toBe('-0.300 mm');
-    expect(doc.sections['08'].data.heads[0].positions.length).toBe(7);
-    expect(doc.sections['08'].data.heads[0].positions[0].positionMm).toBe('+0.300 mm');
-    expect(doc.sections['08'].data.heads[0].positions[3].positionMm).toBe('0.000 mm');
-    expect(doc.sections['08'].data.heads[0].positions[6].positionMm).toBe('-0.300 mm');
-    expect(doc.sections['08'].data.heads[0].positions[6].isBaseline).toBe(true);
-    expect(doc.sections['08'].data.topViaImpactNote).toContain('Top via impact: Focus adjustment primarily affects top diameter (~90%)');
-
-    // §09 Power Offset & Calibration data grounding
+    // §09 Stage Calibration data grounding
     expect(doc.sections['09'].code).toBe('09');
-    expect(doc.sections['09'].data.head1NominalWatts).toBe(15.0);
-    expect(doc.sections['09'].data.head1MeasuredWatts).toBe(15.1);
-    expect(doc.sections['09'].data.head1PowerOffsetWatts).toBe(0.1);
-    expect(doc.sections['09'].data.head1OffsetPercent).toBe(0.7);
-    expect(doc.sections['09'].data.head2NominalWatts).toBe(15.0);
-    expect(doc.sections['09'].data.head2MeasuredWatts).toBe(14.9);
-    expect(doc.sections['09'].data.head2PowerOffsetWatts).toBe(-0.1);
-    expect(doc.sections['09'].data.head2OffsetPercent).toBe(-0.7);
+    expect(doc.sections['09'].data.specToleranceUm).toBe(2.0);
+    expect(doc.sections['09'].data.overallVerdict).toBe('PASS');
+    expect(doc.sections['09'].data.stages.length).toBe(2);
+    expect(doc.sections['09'].data.stages[0].stageName).toBe('Stage 1');
+    expect(doc.sections['09'].data.stages[0].xMinUm).toBe(-0.8);
+    expect(doc.sections['09'].data.stages[0].xMaxUm).toBe(0.9);
+    expect(doc.sections['09'].data.stages[0].yMinUm).toBe(-1.0);
+    expect(doc.sections['09'].data.stages[0].yMaxUm).toBe(1.1);
+    expect(doc.sections['09'].data.stages[0].maxAbsXUm).toBe(0.9);
+    expect(doc.sections['09'].data.stages[0].maxAbsYUm).toBe(1.1);
+    expect(doc.sections['09'].data.stages[0].overallMaxDevUm).toBe(1.1);
+    expect(doc.sections['09'].data.stages[0].verdict).toBe('PASS');
 
-    // §10 Stage Calibration data grounding
+    // §10 AGC / Scanner Calibration data grounding
     expect(doc.sections['10'].code).toBe('10');
-    expect(doc.sections['10'].data.specToleranceUm).toBe(2.0);
+    expect(doc.sections['10'].data.specToleranceUm).toBe(3.0);
     expect(doc.sections['10'].data.overallVerdict).toBe('PASS');
-    expect(doc.sections['10'].data.stages.length).toBe(2);
-    expect(doc.sections['10'].data.stages[0].stageName).toBe('Stage 1');
-    expect(doc.sections['10'].data.stages[0].xMinUm).toBe(-0.8);
-    expect(doc.sections['10'].data.stages[0].xMaxUm).toBe(0.9);
-    expect(doc.sections['10'].data.stages[0].yMinUm).toBe(-1.0);
-    expect(doc.sections['10'].data.stages[0].yMaxUm).toBe(1.1);
-    expect(doc.sections['10'].data.stages[0].maxAbsXUm).toBe(0.9);
-    expect(doc.sections['10'].data.stages[0].maxAbsYUm).toBe(1.1);
-    expect(doc.sections['10'].data.stages[0].overallMaxDevUm).toBe(1.1);
-    expect(doc.sections['10'].data.stages[0].verdict).toBe('PASS');
-
-    // §11 AGC / Scanner Calibration data grounding
-    expect(doc.sections['11'].code).toBe('11');
-    expect(doc.sections['11'].data.specToleranceUm).toBe(3.0);
-    expect(doc.sections['11'].data.overallVerdict).toBe('PASS');
-    expect(doc.sections['11'].data.agcs.length).toBe(2);
-    expect(doc.sections['11'].data.agcs[0].agcName).toBe('AGC 1');
-    expect(doc.sections['11'].data.agcs[0].xMinUm).toBe(-1.0);
-    expect(doc.sections['11'].data.agcs[0].xMaxUm).toBe(1.1);
-    expect(doc.sections['11'].data.agcs[0].yMinUm).toBe(-0.9);
-    expect(doc.sections['11'].data.agcs[0].yMaxUm).toBe(1.2);
-    expect(doc.sections['11'].data.agcs[0].maxAbsXUm).toBe(1.1);
-    expect(doc.sections['11'].data.agcs[0].maxAbsYUm).toBe(1.2);
-    expect(doc.sections['11'].data.agcs[0].overallMaxDevUm).toBe(1.2);
-    expect(doc.sections['11'].data.agcs[0].verdict).toBe('PASS');
-    expect(doc.sections['11'].data.agcs[1].agcName).toBe('AGC 2');
-    expect(doc.sections['11'].data.agcs[1].overallMaxDevUm).toBe(1.4);
-    expect(doc.sections['11'].data.agcs[1].verdict).toBe('PASS');
+    expect(doc.sections['10'].data.agcs.length).toBe(2);
+    expect(doc.sections['10'].data.agcs[0].agcName).toBe('AGC 1');
+    expect(doc.sections['10'].data.agcs[0].xMinUm).toBe(-1.0);
+    expect(doc.sections['10'].data.agcs[0].xMaxUm).toBe(1.1);
+    expect(doc.sections['10'].data.agcs[0].yMinUm).toBe(-0.9);
+    expect(doc.sections['10'].data.agcs[0].yMaxUm).toBe(1.2);
+    expect(doc.sections['10'].data.agcs[0].maxAbsXUm).toBe(1.1);
+    expect(doc.sections['10'].data.agcs[0].maxAbsYUm).toBe(1.2);
+    expect(doc.sections['10'].data.agcs[0].overallMaxDevUm).toBe(1.2);
+    expect(doc.sections['10'].data.agcs[0].verdict).toBe('PASS');
+    expect(doc.sections['10'].data.agcs[1].agcName).toBe('AGC 2');
+    expect(doc.sections['10'].data.agcs[1].overallMaxDevUm).toBe(1.4);
+    expect(doc.sections['10'].data.agcs[1].verdict).toBe('PASS');
   });
 
-  it('should enforce continuous active numbering with §18 as Buyoff & Sign-off without §16', () => {
+  it('should enforce continuous active numbering §01 to §15', () => {
     const session = createDummySession('SESS-SECTION-FLOW');
     const doc = buildMhcReportDocument(session);
 
-    // Continuous orderedSections without deprecated Section 16
+    // Continuous orderedSections 01 to 15
     const orderedCodes = doc.orderedSections.map(s => s.code);
     expect(orderedCodes).toEqual([
-      '01', '02', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '15', '17', '18'
+      '01', '02', '03', '04', '05', '06', '07', '08', '09',
+      '10', '11', '12', '13', '14', '15'
     ]);
-    expect(orderedCodes).not.toContain('03');
-    expect(orderedCodes).not.toContain('14');
-    expect(orderedCodes).not.toContain('16');
-    expect(orderedCodes).not.toContain('19');
 
     // Exactly 15 active rendered sections total
     expect(doc.orderedSections.length).toBe(15);
     expect(doc.metadata.totalSectionsCount).toBe(15);
 
-    // Index entries must be active rendered sections from 01 to 18 (excluding 02 TOC, 03, 14, 16)
+    // Index entries must be active rendered sections
     const indexCodes = doc.indexEntries.map(e => e.code);
     expect(indexCodes).toEqual([
-      '01', '04', '05', '06', '07', '08', '09', '10',
-      '11', '12', '13', '15', '17', '18'
+      '01', '03', '04', '05', '06', '07', '08', '09',
+      '10', '11', '12', '13', '14', '15'
     ]);
-    expect(indexCodes).not.toContain('03');
-    expect(indexCodes).not.toContain('14');
-    expect(indexCodes).not.toContain('16');
-    expect(indexCodes).not.toContain('19');
 
-    const entry17 = doc.indexEntries.find(e => e.code === '17');
-    const entry18 = doc.indexEntries.find(e => e.code === '18');
-    expect(entry17?.title).toBe('Spare Parts / Recommendations');
-    expect(entry17?.pageNumber).toBe(10);
-    expect(entry18?.title).toBe('Buyoff & Approvals');
-    expect(entry18?.pageNumber).toBe(10);
-    expect(entry18?.category).toBe('Signoff');
+    const entry14 = doc.indexEntries.find(e => e.code === '14');
+    const entry15 = doc.indexEntries.find(e => e.code === '15');
+    expect(entry14?.title).toBe('Spare Parts / Recommendations');
+    expect(entry14?.pageNumber).toBe(10);
+    expect(entry15?.title).toBe('Buyoff & Approvals');
+    expect(entry15?.pageNumber).toBe(10);
+    expect(entry15?.category).toBe('Signoff');
 
-    // Position of 17 immediately followed by 18 in indexEntries
-    const idx17 = indexCodes.indexOf('17');
-    const idx18 = indexCodes.indexOf('18');
-    expect(idx18).toBe(idx17 + 1);
+    // Position of 14 immediately followed by 15 in indexEntries
+    const idx14 = indexCodes.indexOf('14');
+    const idx15 = indexCodes.indexOf('15');
+    expect(idx15).toBe(idx14 + 1);
   });
 
   it('should maintain exact physical PDF pagination and TOC mappings for all active sections', () => {
@@ -681,19 +650,19 @@ describe('mhcReportEngine', () => {
     // Expected exact page numbers for each active section
     const expectedPageMap: Record<string, number> = {
       '01': 1,
+      '03': 3,
       '04': 3,
-      '05': 3,
-      '06': 4,
-      '07': 5,
+      '05': 4,
+      '06': 5,
+      '07': 6,
       '08': 6,
-      '09': 6,
+      '09': 7,
       '10': 7,
-      '11': 7,
-      '12': 8,
-      '13': 9,
-      '15': 10,
-      '17': 10,
-      '18': 10
+      '11': 8,
+      '12': 9,
+      '13': 10,
+      '14': 10,
+      '15': 10
     };
 
     // Check each index entry
@@ -701,27 +670,20 @@ describe('mhcReportEngine', () => {
       expect(entry.pageNumber).toBe(expectedPageMap[entry.code]);
     });
 
-    // Check that deleted sections 03, 14, 16 do not exist in indexEntries or orderedSections
-    const forbiddenCodes = ['03', '14', '16', '19'];
-    forbiddenCodes.forEach(code => {
-      expect(doc.indexEntries.some(e => e.code === code)).toBe(false);
-      expect(doc.orderedSections.some(s => s.code === code)).toBe(false);
-    });
-
     // Verify all pages from 1 to 10 are covered by the physical document flow
     const referencedPages = new Set(doc.indexEntries.map(e => e.pageNumber));
     expect(referencedPages.has(1)).toBe(true); // §01 Cover
-    expect(referencedPages.has(3)).toBe(true); // §04, §05 Exec Summary & Lifecycle
-    expect(referencedPages.has(4)).toBe(true); // §06 Power
-    expect(referencedPages.has(5)).toBe(true); // §07 Beam Profile
-    expect(referencedPages.has(6)).toBe(true); // §08, §09 Focus & Offset
-    expect(referencedPages.has(7)).toBe(true); // §10, §11 Stage & AGC
-    expect(referencedPages.has(8)).toBe(true); // §12 Temperature
-    expect(referencedPages.has(9)).toBe(true); // §13 Product Process & Via Quality
-    expect(referencedPages.has(10)).toBe(true); // §15, §17, §18 Findings, Parts, Buyoff
+    expect(referencedPages.has(3)).toBe(true); // §03, §04 Exec Summary & Lifecycle
+    expect(referencedPages.has(4)).toBe(true); // §05 Power
+    expect(referencedPages.has(5)).toBe(true); // §06 Beam Profile
+    expect(referencedPages.has(6)).toBe(true); // §07, §08 Focus & Offset
+    expect(referencedPages.has(7)).toBe(true); // §09, §10 Stage & AGC
+    expect(referencedPages.has(8)).toBe(true); // §11 Temperature
+    expect(referencedPages.has(9)).toBe(true); // §12 Product Process & Via Quality
+    expect(referencedPages.has(10)).toBe(true); // §13, §14, §15 Findings, Parts, Buyoff
   });
 
-  it('should authoritative carry typed session.productionLineName into §01 Cover and §03 Machine Info', () => {
+  it('should authoritative carry typed session.productionLineName into §01 Cover', () => {
     const session = createDummySession('SESS-PROD-LINE-01');
     session.productionLineName = 'Cleanroom Line A';
 
@@ -729,7 +691,6 @@ describe('mhcReportEngine', () => {
 
     expect(doc.sections['01'].data.productionLine).toBe('Cleanroom Line A');
     expect(doc.sections['01'].data.lineName).toBe('Cleanroom Line A');
-    expect(doc.sections['03'].data.productionLine).toBe('Cleanroom Line A');
   });
 
   it('should render neutral "—" when Production Line is unassigned without inventing "Davinci"', () => {
@@ -739,18 +700,16 @@ describe('mhcReportEngine', () => {
     const doc = buildMhcReportDocument(session);
 
     expect(doc.sections['01'].data.productionLine).toBe('—');
-    expect(doc.sections['03'].data.productionLine).toBe('—');
     expect(doc.sections['01'].data.productionLine).not.toBe('Davinci');
   });
 
-  it('should authoritative carry typed session.zone into §01 Cover and §03 Machine Info', () => {
+  it('should authoritative carry typed session.zone into §01 Cover', () => {
     const session = createDummySession('SESS-ZONE-01');
     session.zone = 'Zone C | Backend Processing';
 
     const doc = buildMhcReportDocument(session);
 
     expect(doc.sections['01'].data.zone).toBe('Zone C | Backend Processing');
-    expect(doc.sections['03'].data.zone).toBe('Zone C | Backend Processing');
   });
 
   it('should render neutral "—" when Zone is unassigned without hardcoded "B | Front of Line"', () => {
@@ -760,11 +719,10 @@ describe('mhcReportEngine', () => {
     const doc = buildMhcReportDocument(session);
 
     expect(doc.sections['01'].data.zone).toBe('—');
-    expect(doc.sections['03'].data.zone).toBe('—');
     expect(doc.sections['01'].data.zone).not.toBe('B | Front of Line');
   });
 
-  it('should format §04 Executive Summary narrative sentence using Zone when available', () => {
+  it('should format §03 Executive Summary narrative sentence using Zone when available', () => {
     const session = createDummySession('SESS-EXEC-ZONE');
     session.customerName = 'STMicroelectronics';
     session.plantName = 'P3';
@@ -772,15 +730,15 @@ describe('mhcReportEngine', () => {
 
     const doc = buildMhcReportDocument(session);
 
-    expect(doc.sections['04'].data.summaryText).toContain('at STMicroelectronics - Zone 4 - Photolithography Bay.');
-    expect(doc.sections['04'].data.summaryText).not.toContain('at STMicroelectronics - P3.');
+    expect(doc.sections['03'].data.summaryText).toContain('at STMicroelectronics - Zone 4 - Photolithography Bay.');
+    expect(doc.sections['03'].data.summaryText).not.toContain('at STMicroelectronics - P3.');
   });
 
-  it('should not fabricate missing specifications in §04 and use neutral fallback', () => {
+  it('should not fabricate missing specifications in §03 and use neutral fallback', () => {
     const session = createDummySession('SESS-EXEC-SPECS');
     const doc = buildMhcReportDocument(session);
 
-    const majorResults = doc.sections['04'].data.majorPassFailResults;
+    const majorResults = doc.sections['03'].data.majorPassFailResults;
     expect(majorResults.length).toBe(5);
 
     // Verify stage tolerance derives properly and doesn't use hardcoded text
@@ -791,7 +749,7 @@ describe('mhcReportEngine', () => {
     expect(agcRes?.note).toMatch(/^±\d+\.\d+ µm$/);
   });
 
-  it('should ground §09 Power Offset in Product Identity / Process Parameters from Machine Passport and compute resulting power', () => {
+  it('should ground §08 Power Offset in Product Identity / Process Parameters from Machine Passport and compute resulting power', () => {
     const session = createDummySession('SESS-POWER-OFFSET');
     (session as any).productProcessRecords = [
       {
@@ -823,70 +781,36 @@ describe('mhcReportEngine', () => {
       }
     ];
 
-    // Calibration evidence in session should NOT overwrite process power offset
-    session.stage03_laserPower = [
-      {
-        laserId: 'lh1',
-        referenceValueWatts: 15.0,
-        afterValueWatts: 14.0, // Different from -12%
-        powerRecord: {
-          id: 'rec-01',
-          date: '2026-08-30',
-          frequencyKhz: 50,
-          engineerRemarks: 'Laser replacement',
-          laserSource: { headA: 15.0, headB: 15.0, specText: '≥15W', passA: true, passB: true, minWatts: 14, maxWatts: 16 },
-          opticsTopHat: { headA: 13.2, headB: 14.0, specText: '≥12W', passA: true, passB: true, minWatts: 12, maxWatts: 16 },
-          workingZoneMasks: [],
-          overallResult: 'PASS'
-        }
-      } as any,
-      {
-        laserId: 'lh2',
-        referenceValueWatts: 15.0,
-        afterValueWatts: 14.5,
-        powerRecord: {
-          id: 'rec-02',
-          date: '2026-08-30',
-          frequencyKhz: 50,
-          laserSource: { headA: 15.0, headB: 15.0, specText: '≥15W', passA: true, passB: true, minWatts: 14, maxWatts: 16 },
-          opticsTopHat: { headA: 13.2, headB: 14.0, specText: '≥12W', passA: true, passB: true, minWatts: 12, maxWatts: 16 },
-          workingZoneMasks: [],
-          overallResult: 'PASS'
-        }
-      } as any
-    ];
-
     const doc = buildMhcReportDocument(session);
 
-    expect(doc.sections['09'].code).toBe('09');
-    expect(doc.sections['09'].data.productName).toBe('HDI Rigid-Flex Rev C');
-    expect(doc.sections['09'].data.recipeName).toBe('HDI_VIA_MICRO_50UM');
-    expect(doc.sections['09'].data.powerOffsetRangeText).toBe('−20% to +20%');
-    expect(doc.sections['09'].data.bottomViaImpactNote).toContain('Power offset primarily influences bottom via diameter');
+    expect(doc.sections['08'].code).toBe('08');
+    expect(doc.sections['08'].data.productName).toBe('HDI Rigid-Flex Rev C');
+    expect(doc.sections['08'].data.recipeName).toBe('HDI_VIA_MICRO_50UM');
+    expect(doc.sections['08'].data.powerOffsetRangeText).toBe('−20% to +20%');
+    expect(doc.sections['08'].data.bottomViaImpactNote).toContain('Power offset primarily influences bottom via diameter');
 
     // Laser Head 1 (LH1)
-    expect(doc.sections['09'].data.laser1.laserLabel).toBe('Laser Head 1 (LH1)');
-    expect(doc.sections['09'].data.laser1.phase1RecipePowerWatts).toBe(0.50);
-    expect(doc.sections['09'].data.laser1.phase1AdjustedPowerWatts).toBe(0.44);
-    expect(doc.sections['09'].data.laser1.phase2RecipePowerWatts).toBe(0.45);
-    expect(doc.sections['09'].data.laser1.phase2AdjustedPowerWatts).toBe(0.40);
-    expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBe(-12.0);
-    expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBe(-10.0);
-    expect(doc.sections['09'].data.laser1.currentOffsetPercent).toBe(-12.0);
-    expect(doc.sections['09'].data.laser1.adjustmentReason).toBe('Laser replacement');
+    expect(doc.sections['08'].data.laser1.laserLabel).toBe('Laser Head 1 (LH1)');
+    expect(doc.sections['08'].data.laser1.phase1RecipePowerWatts).toBe(0.50);
+    expect(doc.sections['08'].data.laser1.phase1AdjustedPowerWatts).toBe(0.44);
+    expect(doc.sections['08'].data.laser1.phase2RecipePowerWatts).toBe(0.45);
+    expect(doc.sections['08'].data.laser2.phase2AdjustedPowerWatts).toBe(0.46);
+    expect(doc.sections['08'].data.laser1.appliedOffsetPercent).toBe(-12.0);
+    expect(doc.sections['08'].data.laser1.previousOffsetPercent).toBe(-10.0);
+    expect(doc.sections['08'].data.laser1.currentOffsetPercent).toBe(-12.0);
+    expect(doc.sections['08'].data.laser1.adjustmentReason).toBe('Laser replacement');
 
     // Laser Head 2 (LH2)
-    expect(doc.sections['09'].data.laser2.laserLabel).toBe('Laser Head 2 (LH2)');
-    expect(doc.sections['09'].data.laser2.phase1RecipePowerWatts).toBe(0.50);
-    expect(doc.sections['09'].data.laser2.phase1AdjustedPowerWatts).toBe(0.51);
-    expect(doc.sections['09'].data.laser2.phase2RecipePowerWatts).toBe(0.45);
-    expect(doc.sections['09'].data.laser2.phase2AdjustedPowerWatts).toBe(0.46);
-    expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBe(2.0);
-    expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBe(-8.0);
-    expect(doc.sections['09'].data.laser2.currentOffsetPercent).toBe(2.0);
+    expect(doc.sections['08'].data.laser2.laserLabel).toBe('Laser Head 2 (LH2)');
+    expect(doc.sections['08'].data.laser2.phase1RecipePowerWatts).toBe(0.50);
+    expect(doc.sections['08'].data.laser2.phase1AdjustedPowerWatts).toBe(0.51);
+    expect(doc.sections['08'].data.laser2.phase2RecipePowerWatts).toBe(0.45);
+    expect(doc.sections['08'].data.laser2.appliedOffsetPercent).toBe(2.0);
+    expect(doc.sections['08'].data.laser2.previousOffsetPercent).toBe(-8.0);
+    expect(doc.sections['08'].data.laser2.currentOffsetPercent).toBe(2.0);
   });
 
-  it('should return null (rendering "—") for §09 Power Offset when no offset exists in Product & Process record', () => {
+  it('should return null (rendering "—") for §08 Power Offset when no offset exists in Product & Process record', () => {
     const session = createDummySession('SESS-NO-OFFSET');
     (session as any).productProcessRecords = [
       {
@@ -899,28 +823,18 @@ describe('mhcReportEngine', () => {
       }
     ];
 
-    // Even if stage03 has calibration power, it MUST NOT become the process power offset
-    session.stage03_laserPower = [
-      {
-        laserId: 'lh1',
-        referenceValueWatts: 15.0,
-        afterValueWatts: 14.0,
-        result: 'PASS'
-      } as any
-    ];
-
     const doc = buildMhcReportDocument(session);
-    expect(doc.sections['09'].data.laser1.appliedOffsetPercent).toBeNull();
-    expect(doc.sections['09'].data.laser1.resultingPowerWatts).toBeNull();
-    expect(doc.sections['09'].data.laser1.previousOffsetPercent).toBeNull();
-    expect(doc.sections['09'].data.laser1.adjustmentReason).toBeUndefined();
-    expect(doc.sections['09'].data.laser2.appliedOffsetPercent).toBeNull();
-    expect(doc.sections['09'].data.laser2.resultingPowerWatts).toBeNull();
-    expect(doc.sections['09'].data.laser2.previousOffsetPercent).toBeNull();
-    expect(doc.sections['09'].data.laser2.adjustmentReason).toBeUndefined();
+    expect(doc.sections['08'].data.laser1.appliedOffsetPercent).toBeNull();
+    expect(doc.sections['08'].data.laser1.resultingPowerWatts).toBeNull();
+    expect(doc.sections['08'].data.laser1.previousOffsetPercent).toBeNull();
+    expect(doc.sections['08'].data.laser1.adjustmentReason).toBeUndefined();
+    expect(doc.sections['08'].data.laser2.appliedOffsetPercent).toBeNull();
+    expect(doc.sections['08'].data.laser2.resultingPowerWatts).toBeNull();
+    expect(doc.sections['08'].data.laser2.previousOffsetPercent).toBeNull();
+    expect(doc.sections['08'].data.laser2.adjustmentReason).toBeUndefined();
   });
 
-  it('should reject verification results and test check activity notes from being used as §09 adjustment reason', () => {
+  it('should reject verification results and test check activity notes from being used as §08 adjustment reason', () => {
     const session = createDummySession('SESS-VERIFY-REJECT');
     (session as any).productProcessRecords = [
       {
@@ -935,29 +849,20 @@ describe('mhcReportEngine', () => {
       }
     ];
 
-    // Activity check completion notes that MUST NOT be used as reason
-    session.stage03_laserPower = [
-      {
-        laserId: 'lh1',
-        notes: 'WLVI#3 Power Check PASS (8/8 points passed)',
-        result: 'PASS'
-      } as any
-    ];
-
     const doc = buildMhcReportDocument(session);
-    expect(doc.sections['09'].data.laser1.adjustmentReason).toBeUndefined();
-    expect(doc.sections['09'].data.laser2.adjustmentReason).toBeUndefined();
-    expect(doc.sections['09'].data.adjustmentReason).toBeUndefined();
+    expect(doc.sections['08'].data.laser1.adjustmentReason).toBeUndefined();
+    expect(doc.sections['08'].data.laser2.adjustmentReason).toBeUndefined();
+    expect(doc.sections['08'].data.adjustmentReason).toBeUndefined();
 
     // Now supply genuine engineer remarks on the process record
     (session as any).productProcessRecords[0].engineerRemarks = 'New laser installed';
     const docWithRealReason = buildMhcReportDocument(session);
-    expect(docWithRealReason.sections['09'].data.laser1.adjustmentReason).toBe('New laser installed');
-    expect(docWithRealReason.sections['09'].data.laser2.adjustmentReason).toBe('New laser installed');
-    expect(docWithRealReason.sections['09'].data.adjustmentReason).toBe('New laser installed');
+    expect(docWithRealReason.sections['08'].data.laser1.adjustmentReason).toBe('New laser installed');
+    expect(docWithRealReason.sections['08'].data.laser2.adjustmentReason).toBe('New laser installed');
+    expect(docWithRealReason.sections['08'].data.adjustmentReason).toBe('New laser installed');
   });
 
-  it('should use machine passport temperatureCooling specs as authoritative for Section 12 and derive pass/fail accordingly', () => {
+  it('should use machine passport temperatureCooling specs as authoritative for Section 11 and derive pass/fail accordingly', () => {
     const session = createDummySession('SESS-TEMP-PASSPORT');
     session.mhcSpecs = {
       temperatureCooling: {
@@ -977,14 +882,14 @@ describe('mhcReportEngine', () => {
     };
 
     const doc = buildMhcReportDocument(session);
-    expect(doc.sections['12'].data.targetTempCelsius).toBe(24.5);
-    expect(doc.sections['12'].data.tempToleranceCelsius).toBe(0.5);
-    expect(doc.sections['12'].status).toBe('COMPLETE');
+    expect(doc.sections['11'].data.targetTempCelsius).toBe(24.5);
+    expect(doc.sections['11'].data.tempToleranceCelsius).toBe(0.5);
+    expect(doc.sections['11'].status).toBe('COMPLETE');
 
     // Out of spec test: avg 25.2 is outside [24.0, 25.0]
     session.temperatureEvidenceData.stats!.avg = 25.2;
     const docOutOfSpec = buildMhcReportDocument(session);
-    expect(docOutOfSpec.sections['12'].status).toBe('NEEDS_REVIEW');
+    expect(docOutOfSpec.sections['11'].status).toBe('NEEDS_REVIEW');
   });
 
   it('should leave targetTempCelsius and tempToleranceCelsius undefined when unconfigured in Machine Passport', () => {
@@ -1002,13 +907,13 @@ describe('mhcReportEngine', () => {
     };
 
     const doc = buildMhcReportDocument(session);
-    expect(doc.sections['12'].data.targetTempCelsius).toBeUndefined();
-    expect(doc.sections['12'].data.tempToleranceCelsius).toBeUndefined();
-    expect(doc.sections['12'].status).toBe('COMPLETE');
+    expect(doc.sections['11'].data.targetTempCelsius).toBeUndefined();
+    expect(doc.sections['11'].data.tempToleranceCelsius).toBeUndefined();
+    expect(doc.sections['11'].status).toBe('COMPLETE');
   });
 
-  it('should prioritize latestProductProcess for Section 13 Product and Recipe over stage02 placeholder values', () => {
-    const session = createDummySession('SESS-SECTION13-PRIORITY');
+  it('should prioritize latestProductProcess for Section 12 Product and Recipe over stage02 placeholder values', () => {
+    const session = createDummySession('SESS-SECTION12-PRIORITY');
     // Simulate stage02 initialized with default placeholder
     session.stage02_laserProfile = {
       productName: 'Standard Optical Profile',
@@ -1029,12 +934,12 @@ describe('mhcReportEngine', () => {
     };
 
     const doc = buildMhcReportDocument(session);
-    expect(doc.sections['13'].data.productName).toBe('PEZ');
-    expect(doc.sections['13'].data.recipeProgram).toBe('PEZ_PROD');
-    expect(doc.sections['13'].data.recipeName).toBe('PEZ_PROD');
-    expect(doc.sections['13'].data.lotPanel).toBe('LOT-999');
-    expect(doc.sections['13'].data.phase1?.powerWatts).toBe(0.50);
-    expect(doc.sections['13'].data.engineerRemarks).toBe('Nominal microvia verification passed.');
+    expect(doc.sections['12'].data.productName).toBe('PEZ');
+    expect(doc.sections['12'].data.recipeProgram).toBe('PEZ_PROD');
+    expect(doc.sections['12'].data.recipeName).toBe('PEZ_PROD');
+    expect(doc.sections['12'].data.lotPanel).toBe('LOT-999');
+    expect(doc.sections['12'].data.phase1?.powerWatts).toBe(0.50);
+    expect(doc.sections['12'].data.engineerRemarks).toBe('Nominal microvia verification passed.');
   });
 });
 
