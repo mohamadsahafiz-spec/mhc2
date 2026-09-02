@@ -119,112 +119,57 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
       return `${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    // 1. Downsample each active channel independently to lightweight display points
-    const channelDisplayData: Record<number, Array<{ tsMs: number; timeStr: string; val: number }>> = {};
-    const targetMax = preset === 'report' ? 120 : 400;
+    // 1. Collect all valid points from active channels into unified time records
+    const timeMap = new Map<number, Record<string, any>>();
 
     activeChannels.forEach((ch) => {
       const rawPts = (channelData as any)[ch] || (channelData as any)[`CH${ch}`];
       if (!rawPts || rawPts.length === 0) return;
 
-      const total = rawPts.length;
-      const factor = total > targetMax ? Math.ceil(total / targetMax) : 1;
+      for (let i = 0; i < rawPts.length; i++) {
+        const p = rawPts[i];
+        const tsMs = getMs(p);
+        if (isNaN(tsMs)) continue;
+        const val = getVal(p);
+        if (val < globalMin) globalMin = val;
+        if (val > globalMax) globalMax = val;
 
-      const sampled: Array<{ tsMs: number; timeStr: string; val: number }> = [];
-
-      if (factor === 1) {
-        for (let i = 0; i < total; i++) {
-          const p = rawPts[i];
-          const tsMs = getMs(p);
-          if (isNaN(tsMs)) continue;
-          const val = getVal(p);
-          sampled.push({ tsMs, timeStr: formatTime(tsMs), val });
-          if (val < globalMin) globalMin = val;
-          if (val > globalMax) globalMax = val;
-        }
-      } else {
-        // Min-Max bucket sampling to preserve peak/dip spikes & trend
-        for (let i = 0; i < total; i += factor) {
-          const end = Math.min(i + factor, total);
-          let minPt = rawPts[i];
-          let maxPt = rawPts[i];
-          let minIdx = i;
-          let maxIdx = i;
-
-          for (let j = i + 1; j < end; j++) {
-            const cur = rawPts[j];
-            const curVal = getVal(cur);
-            if (curVal < getVal(minPt)) {
-              minPt = cur;
-              minIdx = j;
-            }
-            if (curVal > getVal(maxPt)) {
-              maxPt = cur;
-              maxIdx = j;
-            }
-          }
-
-          const minValFound = getVal(minPt);
-          const maxValFound = getVal(maxPt);
-          if (minValFound < globalMin) globalMin = minValFound;
-          if (maxValFound > globalMax) globalMax = maxValFound;
-
-          if (minIdx <= maxIdx) {
-            const minMs = getMs(minPt);
-            if (!isNaN(minMs)) {
-              sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minValFound });
-            }
-            if (minIdx !== maxIdx) {
-              const maxMs = getMs(maxPt);
-              if (!isNaN(maxMs)) {
-                sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxValFound });
-              }
-            }
-          } else {
-            const maxMs = getMs(maxPt);
-            if (!isNaN(maxMs)) {
-              sampled.push({ tsMs: maxMs, timeStr: formatTime(maxMs), val: maxValFound });
-            }
-            if (minIdx !== maxIdx) {
-              const minMs = getMs(minPt);
-              if (!isNaN(minMs)) {
-                sampled.push({ tsMs: minMs, timeStr: formatTime(minMs), val: minValFound });
-              }
-            }
-          }
-        }
-      }
-
-      channelDisplayData[ch] = sampled;
-    });
-
-    // 2. Build combined timeMap for Recharts
-    const timeMap = new Map<number, Record<string, any>>();
-
-    activeChannels.forEach((ch) => {
-      const pts = channelDisplayData[ch];
-      if (!pts) return;
-
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i];
-        if (isNaN(p.tsMs)) continue;
-        let rec = timeMap.get(p.tsMs);
+        let rec = timeMap.get(tsMs);
         if (!rec) {
-          rec = { timeKey: p.tsMs, timeStr: p.timeStr };
-          timeMap.set(p.tsMs, rec);
+          rec = { timeKey: tsMs, timeStr: formatTime(tsMs) };
+          timeMap.set(tsMs, rec);
         }
-        rec[`CH${ch}`] = p.val;
+        rec[`CH${ch}`] = val;
       }
     });
 
     const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timeKey - b.timeKey);
 
+    // 2. Synchronously downsample along the shared timeline if total records exceed targetMax
+    const targetMax = preset === 'report' ? 120 : 400;
+    let finalData: Array<Record<string, any>> = sortedData;
+    const total = sortedData.length;
+
+    if (total > targetMax) {
+      const step = Math.ceil(total / targetMax);
+      const sampled: Array<Record<string, any>> = [];
+
+      for (let i = 0; i < total; i += step) {
+        sampled.push(sortedData[i]);
+      }
+      // Ensure the very last record is always included so the full timeline extent is represented
+      if (sampled[sampled.length - 1] !== sortedData[total - 1]) {
+        sampled.push(sortedData[total - 1]);
+      }
+      finalData = sampled;
+    }
+
     return {
-      chartData: sortedData,
+      chartData: finalData,
       minVal: globalMin === Infinity ? 0 : globalMin,
       maxVal: globalMax === -Infinity ? 50 : globalMax
     };
-  }, [channelData, activeChannels]);
+  }, [channelData, activeChannels, preset]);
 
   if (!chartData || chartData.length === 0) {
     return (
@@ -281,6 +226,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                     stroke={CHANNEL_COLORS[ch] || '#3b82f6'}
                     strokeWidth={1.5}
                     dot={false}
+                    connectNulls={true}
                     isAnimationActive={false}
                   />
                 );
@@ -311,6 +257,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                   stroke={CHANNEL_COLORS[ch] || '#38bdf8'}
                   strokeWidth={2}
                   dot={false}
+                  connectNulls={true}
                   isAnimationActive={false}
                 />
               ))}
@@ -449,6 +396,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                 strokeWidth={2}
                 dot={showDots ? { r: 1 } : false}
                 activeDot={{ r: 4 }}
+                connectNulls={true}
                 isAnimationActive={false}
               />
             ))}

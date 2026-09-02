@@ -44,6 +44,23 @@ describe('TemperatureEngine', () => {
     expect(stats?.range).toBe(6);
   });
 
+  it('resamples multi-channel data to synchronized time buckets', () => {
+    const raw: any[] = [];
+    const t0 = new Date('2026-08-01T10:00:00.000Z').getTime();
+    for (let i = 0; i < 60; i++) {
+      const cur = new Date(t0 + i * 1000);
+      for (let ch = 1; ch <= 6; ch++) {
+        raw.push({ ts: cur, ch, val: 20 + ch + (i % 3) * 0.1, rawVal: (20 + ch) * 10 });
+      }
+    }
+    const resampled = TemperatureEngine.resampleData(raw, 30);
+    expect(resampled[1].length).toBe(3);
+    expect(resampled[2].length).toBe(3);
+    expect(resampled[1][0].ts.getTime()).toBe(resampled[2][0].ts.getTime());
+    expect(resampled[1][1].ts.getTime()).toBe(resampled[2][1].ts.getTime());
+    expect(resampled[1][2].ts.getTime()).toBe(resampled[2][2].ts.getTime());
+  });
+
   it('filters deleted records cleanly without modifying remaining records', () => {
     const rec1 = { id: 'TR-1', title: 'Inspection 1' };
     const rec2 = { id: 'TR-2', title: 'Inspection 2' };
