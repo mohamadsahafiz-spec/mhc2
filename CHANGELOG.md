@@ -1,5 +1,25 @@
 # FSOS CHANGELOG
 
+## v1.2.8 — FULL PDF: Customer-Facing Readability & Contrast Enhancements (2026-09-02)
+
+### Full PDF Readability & Typography Enhancements
+- **Enhanced Document Readability & Visual Hierarchy**: Audited all 10 pages of the customer-facing Full PDF report and refined typography, table contrast, label hierarchy, and spacing.
+- **Improved Contrast on Critical Field Labels**: Replaced washed-out light gray labels (`text-slate-400` / `text-slate-300`) with high-contrast, readable slate tones (`text-slate-500` / `text-slate-600` / `font-bold`) across metadata headers, inspection passport blocks, table column headers, and telemetry summaries.
+- **Optimized Data Point Typography**: Upgraded microscopic data text (`text-[8px]` / `text-[9px]`) to clean `text-[10px]` / `text-[10.5px]` / `text-[11px]` across diagnostic tables (Laser Power, Optical Alignment, Beam Profile, Focus Optimization, Stage & AGC Calibration, Multi-Channel Thermal Telemetry, Product Process Parameters, Via Quality, Findings, and Spare Parts).
+- **Hardened Table Legibility & Alignment**: Elevated table headers across all sections to bold, discernible typography with shaded column backgrounds for effortless scanning at 100% A4 viewing and physical printing.
+- **Preserved Exact Content & Logic**: Maintained 100% of authoritative measurements, calculations, section numbers (§01–§15), 10-page structure, and sign-off blocks with zero data loss or layout breakage.
+
+## v1.2.7 — FULL PDF: Clarified Focus Optimization Date Context (2026-09-02)
+
+### Focus Optimization Date Disambiguation
+- **Contextual Date Clarification**: Clarified the customer-facing label and context in §08 Focus Optimization to clearly denote the Focus Adjustment Date as a distinct follow-up/adjustment activity rather than the general MHC inspection date.
+- **Authoritative Data Integrity**: Preserved the original recorded date value and all focus measurement telemetry.
+
+## v1.2.6 — FULL PDF: Standardized Via Terminology (2026-09-02)
+
+### Terminology Standardization
+- **Standardized "Via" Terminology**: Standardized customer-facing terminology in the Full PDF from "Microvia" to "Via" across relevant measured/inspected via feature sections while preserving all underlying data structures, calculations, and specifications.
+
 ## v1.2.3 — FSOS SYNC: Safe Local→D1 Reconciliation & Cross-Device Bootstrap (2026-08-24)
 
 ### Safe Local→D1 Reconciliation & Cross-Device Sync Bootstrap

@@ -989,5 +989,81 @@ describe('mhcReportEngine', () => {
     // Head 2 has authentic serial number: preserved exactly
     expect(doc.sections['04'].data.laserHours[1].serialNumber).toBe('COHR-DIAMOND-9941');
   });
+
+  it('should preserve Via Quality measurements, calculations, and specifications in Section 12', () => {
+    const session = createDummySession('SESS-VIA-QUALITY');
+    (session as any).productProcessRecord = {
+      id: 'pp-101',
+      productName: 'FC-BGA Substrate',
+      recipeName: 'RECIPE_50UM',
+      lotPanel: 'PANEL-2026-X',
+      phase1: { powerWatts: 0.65, frequencyKhz: 75, shotCount: 30, maskMm: 1.8, defocusMm: 0.05 },
+      phase2: { powerWatts: 0.55, frequencyKhz: 60, shotCount: 25, maskMm: 1.6, defocusMm: 0.05 },
+      viaSpec: {
+        topTargetUm: 50,
+        topToleranceUm: 5,
+        bottomTargetUm: 40,
+        bottomToleranceUm: 5,
+        minTaperPercent: 75,
+        maxTaperPercent: 95
+      },
+      laser1Via: {
+        topWidthUm: 51.2,
+        bottomWidthUm: 41.5,
+        topPass: true,
+        bottomPass: true,
+        overallPass: true
+      },
+      laser2Via: {
+        topWidthUm: 49.8,
+        bottomWidthUm: 39.7,
+        topPass: true,
+        bottomPass: true,
+        overallPass: true
+      },
+      overallResult: 'PASS',
+      engineerRemarks: 'Via drilling within specification limits.'
+    };
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['12'].title).toBe('Product Process & Via Quality');
+    expect(doc.sections['12'].data.viaSpec?.topTargetUm).toBe(50);
+    expect(doc.sections['12'].data.laser1Via?.topWidthUm).toBe(51.2);
+    expect(doc.sections['12'].data.laser2Via?.topWidthUm).toBe(49.8);
+    expect(doc.sections['12'].data.overallResult).toBe('PASS');
+  });
+
+  it('should preserve authoritative Focus Optimization date distinct from MHC inspection date', () => {
+    const session = createDummySession('SESS-FOCUS-DATE');
+    session.startDate = '2026-08-20';
+    session.completedDate = '2026-08-21';
+
+    // Prior focus adjustment baseline on an earlier maintenance date
+    (session as any).focusOptimizationRecord = {
+      id: 'FOC-HIST-001',
+      date: '2026-05-14', // Distinct earlier date
+      reason: 'LASER_REPLACEMENT',
+      engineer: 'Senior Specialist',
+      laser1: {
+        laserLabel: 'Laser Head 1',
+        positions: {
+          '-3': { positionMm: '-0.300 mm', isBaseline: true }
+        }
+      },
+      laser2: {
+        laserLabel: 'Laser Head 2',
+        positions: {
+          '-3': { positionMm: '-0.300 mm', isBaseline: true }
+        }
+      },
+      overallResult: 'Focus baseline verified post-swap.'
+    };
+
+    const doc = buildMhcReportDocument(session);
+    expect(doc.sections['07'].status).toBe('COMPLETE');
+    expect(doc.sections['07'].data.heads[0].date).toBe('2026-05-14');
+    expect(doc.sections['07'].data.heads[1].date).toBe('2026-05-14');
+    expect(doc.sections['01'].data.date).toBe('2026-08-21');
+  });
 });
 

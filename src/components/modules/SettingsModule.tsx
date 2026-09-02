@@ -14,6 +14,26 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.2.7',
+      date: '2026-09-02',
+      type: 'Focus Optimization Date Clarification & Inspection Integrity',
+      highlights: [
+        'CLARIFIED FOCUS ADJUSTMENT DATE: Updated customer-facing date label in Full PDF Section 07 to "Focus Adjustment Date" to clearly distinguish focus calibration/optical baseline activities from the general MHC inspection date.',
+        'AUTHORITATIVE DATE GROUNDING: Preserved authentic baseline date values from session and Machine Passport records without artificial value modification.',
+        'FULL MEASUREMENT PRESERVATION: Retained all 7-step focal sequence measurements, baseline indicators, dual-head records, and top via impact engineering notes.'
+      ]
+    },
+    {
+      version: 'v1.2.6',
+      date: '2026-09-02',
+      type: 'Full PDF Via Terminology Standardization & Quality Data Preservation',
+      highlights: [
+        'STANDARDIZED VIA TERMINOLOGY: Replaced all customer-facing "Microvia" occurrences in Full PDF Section 12 with "Via" ("Product Recipe Parameters & Via Measurements", "VIA DRILLING MEASUREMENTS & SPECIFICATION", "VIA CROSS-SECTION EVIDENCE", and image labels).',
+        'FULL SPECIFICATION PRESERVATION: Preserved all authoritative Via measurements, dual-head calculations, tolerances, acceptance criteria, and Machine Passport Via specifications.',
+        'REPORT INTEGRITY VERIFICATION: Confirmed exact terminology alignment across Section 12, Table of Contents, and report running headers.'
+      ]
+    },
+    {
       version: 'v1.2.5',
       date: '2026-08-24',
       type: 'Laser Terminology Standardization & Physical Head Identifier Alignment',
