@@ -553,6 +553,9 @@ export interface MHCLaserHourItem {
   runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL';
   customFields?: MHCCustomField[];
   // Phase 3A Autopilot Verification extensions
+  serialNumber?: string;
+  serialNo?: string;
+  aiRecommendation?: string;
   isVerified?: boolean;
   verifiedHour?: number;
   originalSourceHour?: number;

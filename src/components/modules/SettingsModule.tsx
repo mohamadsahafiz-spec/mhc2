@@ -14,6 +14,26 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   const changelog = [
     {
+      version: 'v1.2.5',
+      date: '2026-08-24',
+      type: 'Laser Terminology Standardization & Physical Head Identifier Alignment',
+      highlights: [
+        'STANDARDIZED LASER TERMINOLOGY: Unified physical laser head references to "Laser Head 1" / "Laser Head 2" (and compact "LH1" / "LH2") across all sections and summaries.',
+        'MACHINE VS LASER IDENTITY SEPARATION: Removed misleading machine serial number suffix patterns (MC230038-LH01/LH02) in favor of genuine laser serial numbers.',
+        'SYSTEM TERMINOLOGY INTEGRITY: Preserved "Laser" for subsystem contexts and unified Executive Summary inspection table to "Laser Power (Laser Head 1 & 2)".'
+      ]
+    },
+    {
+      version: 'v1.2.4',
+      date: '2026-08-24',
+      type: 'Full PDF Section Metadata Consistency & Running Header Synchronization',
+      highlights: [
+        'AUTHORITATIVE RUNNING HEADERS: Derived all Full PDF running headers from authoritative indexEntries section metadata via getPageRunningHeader.',
+        'STALE HEADER ELIMINATION: Fixed Page 8 running header from stale Section 12 to authoritative Section 11 (Temperature & Thermal Telemetry).',
+        'UNIFIED METADATA ALIGNMENT: Guaranteed perfect alignment across running headers, section headings, Table of Contents, and continuous numbering sequence.'
+      ]
+    },
+    {
       version: 'v1.2.3',
       date: '2026-08-24',
       type: 'FSOS Sync: Safe Local→D1 Reconciliation & Cross-Device Bootstrap',

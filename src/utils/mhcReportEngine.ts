@@ -175,7 +175,7 @@ export function buildMhcReportDocument(
     const verdict: 'PASS' | 'WARNING' | 'FAIL' = calcStatus === 'SAFE' ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
     const runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL' = calcStatus === 'SAFE' ? 'NORMAL' : calcStatus === 'WARNING' ? 'WARNING' : 'CRITICAL';
 
-    const serialNumber = (item as any).serialNumber || (item as any).serialNo || (session.machineSerialNumber ? `${session.machineSerialNumber}-LH0${idx + 1}` : undefined);
+    const serialNumber = (item as any).serialNumber || (item as any).serialNo || undefined;
 
     let aiRecommendation = '';
     if (lifeRemainingPercent >= 50) {
@@ -1479,7 +1479,7 @@ export function buildMhcReportDocument(
       summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${summaryLocation}.`,
       keyFindings: keyFindingsList,
       majorPassFailResults: [
-        { component: 'Laser Power (Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: powerSpec },
+        { component: 'Laser Power (Laser Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: powerSpec },
         { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: beamSpec },
         { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: stageSpec },
         { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: agcSpec },

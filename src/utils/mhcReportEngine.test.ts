@@ -941,5 +941,53 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['12'].data.phase1?.powerWatts).toBe(0.50);
     expect(doc.sections['12'].data.engineerRemarks).toBe('Nominal microvia verification passed.');
   });
+
+  it('should standardize physical laser head terminology and not construct misleading serial numbers from machineSerialNumber', () => {
+    const session = createDummySession('SESS-LASER-TERMINOLOGY');
+    session.machineSerialNumber = 'MC230038';
+    session.stage01_laserHours = [
+      {
+        laserId: 'lh1',
+        laserIdentifier: 'Laser 1', // Unstandardized input label
+        recordedLaserHour: 10000,
+        readingDate: '2026-08-10',
+        readingTime: '09:15',
+        calculatedCurrentHour: 10000,
+        warningThreshold: 18000,
+        criticalThreshold: 20000,
+        runtimeStatus: 'NORMAL',
+        isVerified: true
+      },
+      {
+        laserId: 'lh2',
+        laserIdentifier: 'LH-2', // Unstandardized input label
+        serialNumber: 'COHR-DIAMOND-9941', // Genuine laser serial number
+        recordedLaserHour: 8000,
+        readingDate: '2026-08-10',
+        readingTime: '09:15',
+        calculatedCurrentHour: 8000,
+        warningThreshold: 18000,
+        criticalThreshold: 20000,
+        runtimeStatus: 'NORMAL',
+        isVerified: true
+      }
+    ];
+
+    const doc = buildMhcReportDocument(session);
+
+    // Section 03 Executive Summary Major Results must use "Laser Power (Laser Head 1 & 2)"
+    const laserPowerResult = doc.sections['03'].data.majorPassFailResults.find(r => r.component.includes('Laser Power'));
+    expect(laserPowerResult?.component).toBe('Laser Power (Laser Head 1 & 2)');
+
+    // Section 04 Laser Hours heads must be standardized to "Laser Head 1" and "Laser Head 2"
+    expect(doc.sections['04'].data.laserHours[0].laserIdentifier).toBe('Laser Head 1');
+    expect(doc.sections['04'].data.laserHours[1].laserIdentifier).toBe('Laser Head 2');
+
+    // Head 1 has no serial number: must be undefined, NEVER fabricated as "MC230038-LH01"
+    expect(doc.sections['04'].data.laserHours[0].serialNumber).toBeUndefined();
+
+    // Head 2 has authentic serial number: preserved exactly
+    expect(doc.sections['04'].data.laserHours[1].serialNumber).toBe('COHR-DIAMOND-9941');
+  });
 });
 

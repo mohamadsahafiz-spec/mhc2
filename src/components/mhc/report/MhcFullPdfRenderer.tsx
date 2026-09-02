@@ -167,6 +167,38 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     }
   };
 
+  // Authoritative running header resolver deriving from authoritative indexEntries metadata
+  const getPageRunningHeader = (pageNum: number): string => {
+    const pageEntries = baseDoc.indexEntries.filter((e) => (e.pageNumber || 1) === pageNum);
+    if (pageEntries.length === 0) return '';
+    const startCode = pageEntries[0].code;
+    const endCode = pageEntries[pageEntries.length - 1].code;
+    const prefix = pageEntries.length > 1 ? `SECTIONS ${startCode}–${endCode}` : `SECTION ${startCode}`;
+
+    switch (pageNum) {
+      case 2:
+        return `${prefix} — TABLE OF CONTENTS`;
+      case 3:
+        return `${prefix} — EXECUTIVE SUMMARY & LASER LIFECYCLE`;
+      case 4:
+        return `${prefix} — LASER POWER & BASELINE COMPARISON`;
+      case 5:
+        return `${prefix} — OPTICAL BEAM PROFILE & SPOT QUALITY`;
+      case 6:
+        return `${prefix} — FOCUS OPTIMIZATION & POWER CALIBRATION OFFSETS`;
+      case 7:
+        return `${prefix} — STAGE, SCANNER & MOTION CALIBRATION`;
+      case 8:
+        return `${prefix} — TEMPERATURE & THERMAL TELEMETRY`;
+      case 9:
+        return `${prefix} — PRODUCT PROCESS & VIA QUALITY`;
+      case 10:
+        return `${prefix} — FINDINGS, RECOMMENDATIONS & BUYOFF`;
+      default:
+        return `${prefix} — ${getPageGroupTitle(pageNum).toUpperCase()}`;
+    }
+  };
+
   // Reference for printable document container
   const documentContainerRef = useRef<HTMLDivElement>(null);
 
@@ -382,7 +414,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     const calcStatus = LaserEngine.calculateLaserStatus(currentLaserHour, errorEolLimit, warningLimit);
     const verdict: 'PASS' | 'WARNING' | 'FAIL' = calcStatus === 'SAFE' ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
 
-    const serialNumber = item.serialNumber || (item as any).serialNo || `${metadata.machineSerialNumber}-LH0${idx + 1}`;
+    const serialNumber = item.serialNumber || (item as any).serialNo || undefined;
 
     const aiRecommendation = item.aiRecommendation || (
       lifeRemainingPercent >= 50
@@ -791,7 +823,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 02 — TABLE OF CONTENTS</span>
+              <span>{getPageRunningHeader(2)}</span>
             </div>
 
             {/* Content Body */}
@@ -932,7 +964,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>EXECUTIVE SUMMARY &amp; LASER LIFECYCLE</span>
+              <span>{getPageRunningHeader(3)}</span>
             </div>
 
             {/* Content Body */}
@@ -1023,9 +1055,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-900 text-xs font-sans">{head.laserIdentifier}</span>
-                            <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
-                              SN: {head.serialNumber}
-                            </span>
+                            {head.serialNumber ? (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
+                                SN: {head.serialNumber}
+                              </span>
+                            ) : null}
                           </div>
                           {renderStatusBadge(head.verdict)}
                         </div>
@@ -1159,7 +1193,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>LASER POWER &amp; BASELINE COMPARISON</span>
+              <span>{getPageRunningHeader(4)}</span>
             </div>
 
             {/* Content Body */}
@@ -1423,7 +1457,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>OPTICAL BEAM PROFILE &amp; SPOT QUALITY</span>
+              <span>{getPageRunningHeader(5)}</span>
             </div>
 
             {/* Content Body */}
@@ -1681,20 +1715,20 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 6: FOCUS OPTIMIZATION (08) & POWER OFFSET / CALIBRATION (09)
+              PAGE 6: FOCUS OPTIMIZATION (07) & POWER OFFSET / CALIBRATION (08)
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>FOCUS OPTIMIZATION &amp; POWER CALIBRATION OFFSETS</span>
+              <span>{getPageRunningHeader(6)}</span>
             </div>
 
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 08: FOCUS OPTIMIZATION */}
+              {/* SECTION 07: FOCUS OPTIMIZATION */}
               <div className="space-y-2">
                 <div className="border-b-2 border-slate-900 pb-1">
                   <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
@@ -2084,7 +2118,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>STAGE, SCANNER &amp; MOTION CALIBRATION</span>
+              <span>{getPageRunningHeader(7)}</span>
             </div>
 
             {/* Content Body */}
@@ -2261,20 +2295,20 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 8: TEMPERATURE & THERMAL TELEMETRY (12) - DEDICATED FULL PAGE
+              PAGE 8: TEMPERATURE & THERMAL TELEMETRY (11) - DEDICATED FULL PAGE
              ========================================================================= */}
           <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 12 — TEMPERATURE &amp; THERMAL TELEMETRY</span>
+              <span>{getPageRunningHeader(8)}</span>
             </div>
 
             {/* Content Body */}
             <div className="space-y-4 my-2 flex-1 min-h-0">
               
-              {/* SECTION 12: TEMPERATURE & THERMAL TELEMETRY */}
+              {/* SECTION 11: TEMPERATURE & THERMAL TELEMETRY */}
               <div className="space-y-3">
                 <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
                   <div>
@@ -2526,7 +2560,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTION 12 — PRODUCT PROCESS &amp; VIA QUALITY</span>
+              <span>{getPageRunningHeader(9)}</span>
             </div>
 
             {/* Content Body */}
@@ -2805,7 +2839,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
               <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>SECTIONS 13–15 — FINDINGS, RECOMMENDATIONS &amp; BUYOFF</span>
+              <span>{getPageRunningHeader(10)}</span>
             </div>
 
             {/* Content Body */}
