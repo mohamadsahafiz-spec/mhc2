@@ -2636,7 +2636,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       {/* Left: Dual-Head Microvia Table */}
                       <div className="col-span-7 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5 flex flex-col justify-between">
                         <div className="text-[9px] text-slate-500 font-bold uppercase font-mono">
-                          MICROVIA DRILLING MEASUREMENTS
+                          MICROVIA DRILLING MEASUREMENTS &amp; SPECIFICATION
                         </div>
                         <table className="w-full text-left text-[11px] border-collapse">
                           <thead>
@@ -2651,6 +2651,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <tbody className="divide-y divide-slate-100 font-mono">
                             {(() => {
                               const qData = sections['12']?.data;
+                              const viaSpec = qData?.viaSpec;
+                              const topSpecStr = viaSpec ? ProductProcessEngine.getFormattedTopSpec(viaSpec) : '—';
+                              const botSpecStr = viaSpec ? ProductProcessEngine.getFormattedBottomSpec(viaSpec) : '—';
+                              const taperSpecStr = viaSpec ? ProductProcessEngine.getFormattedTaperSpec(viaSpec) : '—';
+
                               const lh1Top = qData?.laser1Via?.topWidthUm ?? (qData?.viaDiameterUm !== undefined ? qData.viaDiameterUm : null);
                               const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? null;
                               const lh1Taper = lh1Top !== null && lh1Bot !== null ? `${((lh1Bot / lh1Top) * 100).toFixed(1)}%` : '-';
@@ -2663,6 +2668,23 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                               return (
                                 <>
+                                  <tr className="bg-slate-50/80 text-[10px] text-slate-500 font-mono">
+                                    <td className="py-1.5 font-bold text-slate-600 font-sans">
+                                      Acceptance Spec
+                                    </td>
+                                    <td className="py-1.5 text-center font-bold text-cyan-800">
+                                      {topSpecStr}
+                                    </td>
+                                    <td className="py-1.5 text-center font-bold text-cyan-800">
+                                      {botSpecStr}
+                                    </td>
+                                    <td className="py-1.5 text-center font-bold text-cyan-800">
+                                      {taperSpecStr}
+                                    </td>
+                                    <td className="py-1.5 text-right font-sans text-[9px] text-slate-400">
+                                      Engineering Spec
+                                    </td>
+                                  </tr>
                                   <tr>
                                     <td className="py-2 font-bold text-slate-800">Laser Head 1 (LH1)</td>
                                     <td className="py-2 text-center text-slate-700">

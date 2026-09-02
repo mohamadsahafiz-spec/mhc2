@@ -1129,6 +1129,9 @@ export function buildMhcReportDocument(
     phase2: latestProductProcess?.phase2,
     hasProcessRecord: Boolean(latestProductProcess),
 
+    // Authoritative Via Specification from Machine Passport Product & Process
+    viaSpec: latestProductProcess?.viaSpec || undefined,
+
     // Microvia Quality Data
     sampleId: stageQuality?.sampleId || latestProductProcess?.lotPanel || undefined,
     viaDiameterUm: stageQuality?.viaDiameterUm ?? latestProductProcess?.laser1Via?.topWidthUm ?? undefined,

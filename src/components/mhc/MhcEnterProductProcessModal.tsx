@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, Sliders, Layers, Zap } from 'lucide-react';
 import { Machine } from '../../types';
-import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
+import { ProductProcessRecord, ViaSpecification, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -38,6 +38,26 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
       : ''
   );
 
+  // Authoritative Via Specification State
+  const [topTarget, setTopTarget] = useState<string>(
+    latestRecord?.viaSpec?.topTargetUm !== undefined ? String(latestRecord.viaSpec.topTargetUm) : String(TOP_VIA_SPEC.target)
+  );
+  const [topTolerance, setTopTolerance] = useState<string>(
+    latestRecord?.viaSpec?.topToleranceUm !== undefined ? String(latestRecord.viaSpec.topToleranceUm) : String(TOP_VIA_SPEC.tolerance)
+  );
+  const [bottomTarget, setBottomTarget] = useState<string>(
+    latestRecord?.viaSpec?.bottomTargetUm !== undefined ? String(latestRecord.viaSpec.bottomTargetUm) : String(BOTTOM_VIA_SPEC.target)
+  );
+  const [bottomTolerance, setBottomTolerance] = useState<string>(
+    latestRecord?.viaSpec?.bottomToleranceUm !== undefined ? String(latestRecord.viaSpec.bottomToleranceUm) : String(BOTTOM_VIA_SPEC.tolerance)
+  );
+  const [minTaper, setMinTaper] = useState<string>(
+    latestRecord?.viaSpec?.minTaperPercent !== undefined ? String(latestRecord.viaSpec.minTaperPercent) : '40'
+  );
+  const [taperSpecText, setTaperSpecText] = useState<string>(
+    latestRecord?.viaSpec?.taperSpecText || '≥ 40%'
+  );
+
   // Phase 1
   const [p1Power, setP1Power] = useState<string>('');
   const [p1Freq, setP1Freq] = useState<string>('');
@@ -62,6 +82,31 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
   const [l2Bottom, setL2Bottom] = useState<string>('');
   const [l2Image, setL2Image] = useState<string | undefined>(undefined);
 
+  const applyPreset = (preset: 'std50' | 'hdi35' | 'fine25') => {
+    if (preset === 'std50') {
+      setTopTarget('51');
+      setTopTolerance('10');
+      setBottomTarget('23');
+      setBottomTolerance('10');
+      setMinTaper('40');
+      setTaperSpecText('≥ 40%');
+    } else if (preset === 'hdi35') {
+      setTopTarget('35');
+      setTopTolerance('5');
+      setBottomTarget('18');
+      setBottomTolerance('5');
+      setMinTaper('45');
+      setTaperSpecText('≥ 45%');
+    } else if (preset === 'fine25') {
+      setTopTarget('25');
+      setTopTolerance('4');
+      setBottomTarget('14');
+      setBottomTolerance('4');
+      setMinTaper('50');
+      setTaperSpecText('≥ 50%');
+    }
+  };
+
   const handleImageUpload = (laser: 1 | 2, file: File) => {
     if (!file) return;
     const reader = new FileReader();
@@ -76,6 +121,15 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
   };
 
   const handleSave = () => {
+    const viaSpecObj: ViaSpecification | undefined = topTarget !== '' && bottomTarget !== '' ? {
+      topTargetUm: parseFloat(topTarget),
+      topToleranceUm: parseFloat(topTolerance) || 0,
+      bottomTargetUm: parseFloat(bottomTarget),
+      bottomToleranceUm: parseFloat(bottomTolerance) || 0,
+      minTaperPercent: minTaper !== '' ? parseFloat(minTaper) : 40,
+      taperSpecText: taperSpecText.trim() || '≥ 40%'
+    } : undefined;
+
     const draft = {
       date: formDate,
       productName: formProduct,
@@ -84,6 +138,7 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
       engineerRemarks: formRemarks,
       laser1PowerOffsetPercent: l1Offset !== '' ? parseFloat(l1Offset) : null,
       laser2PowerOffsetPercent: l2Offset !== '' ? parseFloat(l2Offset) : null,
+      viaSpec: viaSpecObj,
       phase1: {
         powerWatts: parseFloat(p1Power) || null,
         frequencyKhz: parseFloat(p1Freq) || null,
@@ -277,6 +332,134 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
           </div>
         </div>
 
+        {/* Authoritative Via Acceptance Specification Configuration */}
+        <div className="p-4 rounded-xl border border-amber-900/40 bg-slate-950 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+            <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-amber-400" />
+              VIA ACCEPTANCE SPECIFICATION (AUTHORITATIVE)
+            </h4>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-slate-400">Presets:</span>
+              <button
+                type="button"
+                onClick={() => applyPreset('std50')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] border border-slate-700 font-mono"
+              >
+                Standard 50µm
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('hdi35')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] border border-slate-700 font-mono"
+              >
+                HDI 35µm
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('fine25')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] border border-slate-700 font-mono"
+              >
+                Fine 25µm
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Top Diameter Spec */}
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span className="font-bold text-slate-200 text-[11px] uppercase block border-b border-slate-800 pb-1">
+                TOP DIAMETER SPEC
+              </span>
+              <div className="grid grid-cols-2 gap-2 font-mono">
+                <div>
+                  <label className="block text-[10px] text-slate-400">Target (µm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={topTarget}
+                    onChange={(e) => setTopTarget(e.target.value)}
+                    placeholder="51"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400">Tol (± µm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={topTolerance}
+                    onChange={(e) => setTopTolerance(e.target.value)}
+                    placeholder="10"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Diameter Spec */}
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span className="font-bold text-slate-200 text-[11px] uppercase block border-b border-slate-800 pb-1">
+                BOTTOM DIAMETER SPEC
+              </span>
+              <div className="grid grid-cols-2 gap-2 font-mono">
+                <div>
+                  <label className="block text-[10px] text-slate-400">Target (µm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={bottomTarget}
+                    onChange={(e) => setBottomTarget(e.target.value)}
+                    placeholder="23"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400">Tol (± µm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={bottomTolerance}
+                    onChange={(e) => setBottomTolerance(e.target.value)}
+                    placeholder="10"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Taper Spec */}
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span className="font-bold text-slate-200 text-[11px] uppercase block border-b border-slate-800 pb-1">
+                TAPER SPEC
+              </span>
+              <div className="grid grid-cols-2 gap-2 font-mono">
+                <div>
+                  <label className="block text-[10px] text-slate-400">Min Ratio (%)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={minTaper}
+                    onChange={(e) => setMinTaper(e.target.value)}
+                    placeholder="40"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400">Spec Label</label>
+                  <input
+                    type="text"
+                    value={taperSpecText}
+                    onChange={(e) => setTaperSpecText(e.target.value)}
+                    placeholder="≥ 40%"
+                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Via Quality */}
         <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
           <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
@@ -319,12 +502,12 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
                 <div>
                   <label className="block text-[10px] text-slate-400">Top Width (µm)</label>
                   <input type="number" step="0.1" value={l1Top} onChange={(e) => setL1Top(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
-                  <span className="text-[9px] text-slate-500">Spec: {TOP_VIA_SPEC.target}±{TOP_VIA_SPEC.tolerance}µm</span>
+                  <span className="text-[9px] text-slate-500">Spec: {topTarget && topTolerance ? `${topTarget}±${topTolerance}µm` : `${TOP_VIA_SPEC.target}±${TOP_VIA_SPEC.tolerance}µm`}</span>
                 </div>
                 <div>
                   <label className="block text-[10px] text-slate-400">Bottom Width (µm)</label>
                   <input type="number" step="0.1" value={l1Bottom} onChange={(e) => setL1Bottom(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
-                  <span className="text-[9px] text-slate-500">Spec: {BOTTOM_VIA_SPEC.target}±{BOTTOM_VIA_SPEC.tolerance}µm</span>
+                  <span className="text-[9px] text-slate-500">Spec: {bottomTarget && bottomTolerance ? `${bottomTarget}±${bottomTolerance}µm` : `${BOTTOM_VIA_SPEC.target}±${BOTTOM_VIA_SPEC.tolerance}µm`}</span>
                 </div>
               </div>
             </div>
@@ -363,12 +546,12 @@ export const MhcEnterProductProcessModal: React.FC<MhcEnterProductProcessModalPr
                 <div>
                   <label className="block text-[10px] text-slate-400">Top Width (µm)</label>
                   <input type="number" step="0.1" value={l2Top} onChange={(e) => setL2Top(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
-                  <span className="text-[9px] text-slate-500">Spec: {TOP_VIA_SPEC.target}±{TOP_VIA_SPEC.tolerance}µm</span>
+                  <span className="text-[9px] text-slate-500">Spec: {topTarget && topTolerance ? `${topTarget}±${topTolerance}µm` : `${TOP_VIA_SPEC.target}±${TOP_VIA_SPEC.tolerance}µm`}</span>
                 </div>
                 <div>
                   <label className="block text-[10px] text-slate-400">Bottom Width (µm)</label>
                   <input type="number" step="0.1" value={l2Bottom} onChange={(e) => setL2Bottom(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100" />
-                  <span className="text-[9px] text-slate-500">Spec: {BOTTOM_VIA_SPEC.target}±{BOTTOM_VIA_SPEC.tolerance}µm</span>
+                  <span className="text-[9px] text-slate-500">Spec: {bottomTarget && bottomTolerance ? `${bottomTarget}±${bottomTolerance}µm` : `${BOTTOM_VIA_SPEC.target}±${BOTTOM_VIA_SPEC.tolerance}µm`}</span>
                 </div>
               </div>
             </div>

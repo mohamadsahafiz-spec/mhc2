@@ -6,6 +6,23 @@ export interface ProcessPhaseParams {
   defocusMm: number | null;
 }
 
+export interface ViaSpecification {
+  topTargetUm?: number | null;
+  topToleranceUm?: number | null;
+  topMinUm?: number | null;
+  topMaxUm?: number | null;
+
+  bottomTargetUm?: number | null;
+  bottomToleranceUm?: number | null;
+  bottomMinUm?: number | null;
+  bottomMaxUm?: number | null;
+
+  minTaperPercent?: number | null;
+  maxTaperPercent?: number | null;
+  taperSpecText?: string;
+  notes?: string;
+}
+
 export interface ViaQualityReading {
   viaImageDataUrl?: string;
   topWidthUm: number | null;
@@ -29,10 +46,14 @@ export interface ProductProcessRecord {
   phase1: ProcessPhaseParams;
   phase2: ProcessPhaseParams;
 
+  // Authoritative Via Acceptance Specification
+  viaSpec?: ViaSpecification;
+
   laser1Via: ViaQualityReading;
   laser2Via: ViaQualityReading;
 
   overallResult: 'PASS' | 'FAIL';
+  createdAt?: string;
 }
 
 export const TOP_VIA_SPEC = { target: 51, tolerance: 10, min: 41, max: 61 };

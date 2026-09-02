@@ -14,6 +14,7 @@ import {
   MHCTemperatureEvidenceData,
   MHCEvidenceItem
 } from './index';
+import { ViaSpecification } from './productProcess';
 
 export type MhcReportSectionCode =
   | '01' // Cover Page
@@ -465,6 +466,9 @@ export interface MhcReportLaserProductProfileData {
     defocusMm?: number | null;
   };
   hasProcessRecord?: boolean;
+
+  // Authoritative Via Specification
+  viaSpec?: ViaSpecification;
 
   // Microvia Quality Fields
   sampleId?: string;

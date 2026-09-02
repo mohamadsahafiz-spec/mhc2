@@ -1,19 +1,92 @@
-import { ProductProcessRecord, ViaQualityReading, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../types/productProcess';
+import { ProductProcessRecord, ViaQualityReading, ViaSpecification, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../types/productProcess';
 
 export class ProductProcessEngine {
-  static evalTopWidth(val: number | null): boolean {
+  static evalTopWidth(val: number | null, spec?: ViaSpecification | null): boolean {
     if (val === null || isNaN(val)) return false;
-    return val >= TOP_VIA_SPEC.min && val <= TOP_VIA_SPEC.max;
+    let min = TOP_VIA_SPEC.min;
+    let max = TOP_VIA_SPEC.max;
+    if (spec) {
+      if (spec.topMinUm !== undefined && spec.topMinUm !== null) {
+        min = spec.topMinUm;
+      } else if (spec.topTargetUm !== undefined && spec.topTargetUm !== null && spec.topToleranceUm !== undefined && spec.topToleranceUm !== null) {
+        min = spec.topTargetUm - spec.topToleranceUm;
+      }
+      if (spec.topMaxUm !== undefined && spec.topMaxUm !== null) {
+        max = spec.topMaxUm;
+      } else if (spec.topTargetUm !== undefined && spec.topTargetUm !== null && spec.topToleranceUm !== undefined && spec.topToleranceUm !== null) {
+        max = spec.topTargetUm + spec.topToleranceUm;
+      }
+    }
+    return val >= min && val <= max;
   }
 
-  static evalBottomWidth(val: number | null): boolean {
+  static evalBottomWidth(val: number | null, spec?: ViaSpecification | null): boolean {
     if (val === null || isNaN(val)) return false;
-    return val >= BOTTOM_VIA_SPEC.min && val <= BOTTOM_VIA_SPEC.max;
+    let min = BOTTOM_VIA_SPEC.min;
+    let max = BOTTOM_VIA_SPEC.max;
+    if (spec) {
+      if (spec.bottomMinUm !== undefined && spec.bottomMinUm !== null) {
+        min = spec.bottomMinUm;
+      } else if (spec.bottomTargetUm !== undefined && spec.bottomTargetUm !== null && spec.bottomToleranceUm !== undefined && spec.bottomToleranceUm !== null) {
+        min = spec.bottomTargetUm - spec.bottomToleranceUm;
+      }
+      if (spec.bottomMaxUm !== undefined && spec.bottomMaxUm !== null) {
+        max = spec.bottomMaxUm;
+      } else if (spec.bottomTargetUm !== undefined && spec.bottomTargetUm !== null && spec.bottomToleranceUm !== undefined && spec.bottomToleranceUm !== null) {
+        max = spec.bottomTargetUm + spec.bottomToleranceUm;
+      }
+    }
+    return val >= min && val <= max;
   }
 
-  static evaluateVia(topWidthUm: number | null, bottomWidthUm: number | null, imageDataUrl?: string): ViaQualityReading {
-    const topPass = this.evalTopWidth(topWidthUm);
-    const bottomPass = this.evalBottomWidth(bottomWidthUm);
+  static getFormattedTopSpec(spec?: ViaSpecification | null): string {
+    if (!spec) return `${TOP_VIA_SPEC.target}±${TOP_VIA_SPEC.tolerance} µm`;
+    if (spec.topTargetUm !== undefined && spec.topTargetUm !== null) {
+      if (spec.topToleranceUm !== undefined && spec.topToleranceUm !== null) {
+        return `${spec.topTargetUm}±${spec.topToleranceUm} µm`;
+      }
+      return `${spec.topTargetUm} µm`;
+    }
+    if (spec.topMinUm !== undefined && spec.topMinUm !== null && spec.topMaxUm !== undefined && spec.topMaxUm !== null) {
+      return `${spec.topMinUm}–${spec.topMaxUm} µm`;
+    }
+    return `${TOP_VIA_SPEC.target}±${TOP_VIA_SPEC.tolerance} µm`;
+  }
+
+  static getFormattedBottomSpec(spec?: ViaSpecification | null): string {
+    if (!spec) return `${BOTTOM_VIA_SPEC.target}±${BOTTOM_VIA_SPEC.tolerance} µm`;
+    if (spec.bottomTargetUm !== undefined && spec.bottomTargetUm !== null) {
+      if (spec.bottomToleranceUm !== undefined && spec.bottomToleranceUm !== null) {
+        return `${spec.bottomTargetUm}±${spec.bottomToleranceUm} µm`;
+      }
+      return `${spec.bottomTargetUm} µm`;
+    }
+    if (spec.bottomMinUm !== undefined && spec.bottomMinUm !== null && spec.bottomMaxUm !== undefined && spec.bottomMaxUm !== null) {
+      return `${spec.bottomMinUm}–${spec.bottomMaxUm} µm`;
+    }
+    return `${BOTTOM_VIA_SPEC.target}±${BOTTOM_VIA_SPEC.tolerance} µm`;
+  }
+
+  static getFormattedTaperSpec(spec?: ViaSpecification | null): string {
+    if (!spec) return '—';
+    if (spec.taperSpecText) return spec.taperSpecText;
+    if (spec.minTaperPercent !== undefined && spec.minTaperPercent !== null) {
+      if (spec.maxTaperPercent !== undefined && spec.maxTaperPercent !== null) {
+        return `${spec.minTaperPercent}%–${spec.maxTaperPercent}%`;
+      }
+      return `≥ ${spec.minTaperPercent}%`;
+    }
+    return '—';
+  }
+
+  static evaluateVia(
+    topWidthUm: number | null,
+    bottomWidthUm: number | null,
+    imageDataUrl?: string,
+    spec?: ViaSpecification | null
+  ): ViaQualityReading {
+    const topPass = this.evalTopWidth(topWidthUm, spec);
+    const bottomPass = this.evalBottomWidth(bottomWidthUm, spec);
     const overallPass = topPass && bottomPass;
 
     return {
@@ -35,20 +108,23 @@ export class ProductProcessEngine {
     engineerRemarks?: string;
     laser1PowerOffsetPercent?: number | null;
     laser2PowerOffsetPercent?: number | null;
+    viaSpec?: ViaSpecification;
     phase1?: { powerWatts?: number | null; frequencyKhz?: number | null; shotCount?: number | null; maskMm?: number | null; defocusMm?: number | null };
     phase2?: { powerWatts?: number | null; frequencyKhz?: number | null; shotCount?: number | null; maskMm?: number | null; defocusMm?: number | null };
-    laser1Via?: { topWidthUm?: number | null; bottomWidthUm?: number | null; viaImageDataUrl?: string };
-    laser2Via?: { topWidthUm?: number | null; bottomWidthUm?: number | null; viaImageDataUrl?: string };
+    laser1Via?: { topWidthUm?: number | null; bottomWidthUm?: number | null; viaImageDataUrl?: string; topPass?: boolean; bottomPass?: boolean; overallPass?: boolean };
+    laser2Via?: { topWidthUm?: number | null; bottomWidthUm?: number | null; viaImageDataUrl?: string; topPass?: boolean; bottomPass?: boolean; overallPass?: boolean };
+    overallResult?: 'PASS' | 'FAIL';
   }): ProductProcessRecord {
+    const spec = draft.viaSpec;
     const l1Top = draft.laser1Via?.topWidthUm ?? null;
     const l1Bottom = draft.laser1Via?.bottomWidthUm ?? null;
-    const l1 = this.evaluateVia(l1Top, l1Bottom, draft.laser1Via?.viaImageDataUrl);
+    const l1 = this.evaluateVia(l1Top, l1Bottom, draft.laser1Via?.viaImageDataUrl, spec);
 
     const l2Top = draft.laser2Via?.topWidthUm ?? null;
     const l2Bottom = draft.laser2Via?.bottomWidthUm ?? null;
-    const l2 = this.evaluateVia(l2Top, l2Bottom, draft.laser2Via?.viaImageDataUrl);
+    const l2 = this.evaluateVia(l2Top, l2Bottom, draft.laser2Via?.viaImageDataUrl, spec);
 
-    const overallResult = (l1.overallPass && l2.overallPass) ? 'PASS' : 'FAIL';
+    const overallResult = draft.overallResult || ((l1.overallPass && l2.overallPass) ? 'PASS' : 'FAIL');
 
     return {
       id: draft.id || `pp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -59,6 +135,7 @@ export class ProductProcessEngine {
       engineerRemarks: draft.engineerRemarks || '',
       laser1PowerOffsetPercent: draft.laser1PowerOffsetPercent !== undefined ? draft.laser1PowerOffsetPercent : null,
       laser2PowerOffsetPercent: draft.laser2PowerOffsetPercent !== undefined ? draft.laser2PowerOffsetPercent : null,
+      viaSpec: spec,
       phase1: {
         powerWatts: draft.phase1?.powerWatts ?? null,
         frequencyKhz: draft.phase1?.frequencyKhz ?? null,
