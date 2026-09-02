@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
   FileText, 
   Download, 
@@ -302,7 +302,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
         let canvas: HTMLCanvasElement | null = null;
         try {
           canvas = await html2canvas(pageEl, {
-            scale: 1.2, // ~120 DPI provides ultra-crisp typography with a lightweight memory footprint
+            scale: 2.0, // Task #12 approved: 2.0x scale (~192 DPI) for crisp engineering typography and vector clarity
             useCORS: true,
             allowTaint: false, // Prevents tainted canvas security exceptions
             logging: false,
@@ -320,7 +320,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           });
 
           lastFailingOperation = `CANVAS_TO_DATA_URL_PAGE_${i + 1}`;
-          const imgData = canvas.toDataURL('image/jpeg', 0.80);
+          const imgData = canvas.toDataURL('image/jpeg', 0.90); // Task #12 approved: 0.90 JPEG encoding
 
           lastFailingOperation = `JSPDF_ADD_PAGE_${i + 1}`;
           if (i > 0) {
@@ -539,6 +539,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
           {/* Primary Download PDF Action */}
           <button
+            id="btn-download-mhc-pdf"
             disabled={isGeneratingPdf}
             onClick={handleDownloadPdf}
             className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50"
