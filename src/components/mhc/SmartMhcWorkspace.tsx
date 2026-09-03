@@ -98,6 +98,9 @@ const MhcEnterLaserPowerModal: React.FC<{
   onSave: (record: LaserPowerCheckRecord) => void;
   isHistorical?: boolean;
 }> = ({ isOpen, onClose, machine, onSave, isHistorical }) => {
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
+
   const [date, setDate] = useState(getLocalDateString());
   const [freq, setFreq] = useState(50);
   const [remarks, setRemarks] = useState('');
@@ -179,229 +182,366 @@ const MhcEnterLaserPowerModal: React.FC<{
       isOpen={isOpen}
       onClose={onClose}
       title={isHistorical ? `Add Historical Laser Power Record — ${machine.model} (${machine.machineNumber})` : `Enter Laser Power Check — ${machine.model} (${machine.machineNumber})`}
-      maxWidth="max-w-3xl"
+      maxWidth="xl"
     >
-      <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-        {/* Form Header info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Check Date</label>
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-2.5">
+        {/* Form Header / Quick Setup */}
+        <div className={`p-2 rounded-xl border flex items-center justify-between gap-3 ${
+          isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 flex-1 min-w-[150px]">
+            <label className={`text-[11px] font-bold uppercase tracking-wider shrink-0 ${
+              isDark ? 'text-slate-400' : 'text-slate-600'
+            }`}>
+              Date
+            </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
+              className={`w-full border rounded-lg px-2.5 py-1 text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
+                isDark
+                  ? 'bg-slate-950 border-slate-700 text-slate-100 focus:border-amber-500 focus:ring-amber-500/30'
+                  : 'bg-white border-slate-300 text-slate-900 focus:border-amber-600 focus:ring-amber-600/20'
+              }`}
             />
           </div>
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Frequency (kHz)</label>
-            <input
-              type="number"
-              value={freq}
-              onChange={(e) => setFreq(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-            />
+
+          <div className="flex items-center gap-2 w-36 shrink-0">
+            <label className={`text-[11px] font-bold uppercase tracking-wider shrink-0 ${
+              isDark ? 'text-slate-400' : 'text-slate-600'
+            }`}>
+              Freq
+            </label>
+            <div className="relative w-full">
+              <input
+                type="number"
+                value={freq}
+                onChange={(e) => setFreq(Number(e.target.value))}
+                className={`w-full border rounded-lg pl-2.5 pr-7 py-1 text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
+                  isDark
+                    ? 'bg-slate-950 border-slate-700 text-slate-100 focus:border-amber-500 focus:ring-amber-500/30'
+                    : 'bg-white border-slate-300 text-slate-900 focus:border-amber-600 focus:ring-amber-600/20'
+                }`}
+              />
+              <span className={`absolute right-2 top-1 text-[10px] font-mono pointer-events-none ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                kHz
+              </span>
+            </div>
+          </div>
+
+          <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10.5px] font-mono shrink-0 ${
+            isDark ? 'bg-slate-950/60 border-slate-800 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-600'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span>Nominal: 15.0W</span>
           </div>
         </div>
 
-        {/* Laser Source */}
-        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3 text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-            <h4 className="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4" />
-              LASER SOURCE — External Meter
-            </h4>
-            <span className="text-[11px] text-slate-400">Spec: 15W ±10% (13.5–16.5W)</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-400 mb-1">Head A Measured W</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={lsHeadA}
-                  onChange={(e) => setLsHeadA(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-                />
-                <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
-                  currentFormParsed.laserSource.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                }`}>
-                  {currentFormParsed.laserSource.passA ? 'PASS' : 'FAIL'}
-                </span>
-              </div>
+        {/* External Power Meter: Laser Source & Optics Side-by-Side */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Laser Source */}
+          <div className={`p-2.5 rounded-xl border space-y-2 ${
+            isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                Laser Source
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">15W ±10%</span>
             </div>
 
-            <div>
-              <label className="block text-slate-400 mb-1">Head B Measured W</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={lsHeadB}
-                  onChange={(e) => setLsHeadB(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-                />
-                <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
-                  currentFormParsed.laserSource.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                }`}>
-                  {currentFormParsed.laserSource.passB ? 'PASS' : 'FAIL'}
-                </span>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    HEAD A
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                    currentFormParsed.laserSource.passA
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80'
+                      : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                  }`}>
+                    {currentFormParsed.laserSource.passA ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={lsHeadA}
+                    onChange={(e) => setLsHeadA(e.target.value)}
+                    placeholder="0.0"
+                    className={`w-full border rounded px-2 py-1 text-xs font-mono pr-5 focus:outline-none focus:ring-1 ${
+                      isDark
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-amber-500 focus:ring-amber-500/30'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-amber-600 focus:ring-amber-600/20'
+                    }`}
+                  />
+                  <span className="absolute right-1.5 top-1 text-[10px] text-slate-400 font-mono pointer-events-none">W</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    HEAD B
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                    currentFormParsed.laserSource.passB
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80'
+                      : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                    }`}>
+                    {currentFormParsed.laserSource.passB ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={lsHeadB}
+                    onChange={(e) => setLsHeadB(e.target.value)}
+                    placeholder="0.0"
+                    className={`w-full border rounded px-2 py-1 text-xs font-mono pr-5 focus:outline-none focus:ring-1 ${
+                      isDark
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-amber-500 focus:ring-amber-500/30'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-amber-600 focus:ring-amber-600/20'
+                    }`}
+                  />
+                  <span className="absolute right-1.5 top-1 text-[10px] text-slate-400 font-mono pointer-events-none">W</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Optics / Top Hat */}
+          <div className={`p-2.5 rounded-xl border space-y-2 ${
+            isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+              <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                Optics / Top Hat
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">15W ±10%</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    HEAD A
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                    currentFormParsed.opticsTopHat.passA
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80'
+                      : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                  }`}>
+                    {currentFormParsed.opticsTopHat.passA ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={optHeadA}
+                    onChange={(e) => setOptHeadA(e.target.value)}
+                    placeholder="0.0"
+                    className={`w-full border rounded px-2 py-1 text-xs font-mono pr-5 focus:outline-none focus:ring-1 ${
+                      isDark
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500 focus:ring-cyan-500/30'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-cyan-600/20'
+                    }`}
+                  />
+                  <span className="absolute right-1.5 top-1 text-[10px] text-slate-400 font-mono pointer-events-none">W</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    HEAD B
+                  </span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                    currentFormParsed.opticsTopHat.passB
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80'
+                      : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                  }`}>
+                    {currentFormParsed.opticsTopHat.passB ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={optHeadB}
+                    onChange={(e) => setOptHeadB(e.target.value)}
+                    placeholder="0.0"
+                    className={`w-full border rounded px-2 py-1 text-xs font-mono pr-5 focus:outline-none focus:ring-1 ${
+                      isDark
+                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500 focus:ring-cyan-500/30'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-cyan-600/20'
+                    }`}
+                  />
+                  <span className="absolute right-1.5 top-1 text-[10px] text-slate-400 font-mono pointer-events-none">W</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Optics / Top Hat */}
-        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3 text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-            <h4 className="font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Sliders className="w-4 h-4" />
-              AFTER TOP HAT / OPTICS — External Meter
-            </h4>
-            <span className="text-[11px] text-slate-400">Spec: 15W ±10% (13.5–16.5W)</span>
+        {/* Working Zone: Compact Measurement Grid */}
+        <div className={`rounded-xl border overflow-hidden ${
+          isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div className={`px-3 py-1.5 border-b flex items-center justify-between ${
+            isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-100/90 border-slate-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                isDark ? 'text-slate-200' : 'text-slate-800'
+              }`}>
+                Working Zone — Internal Meter Masks
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">Min Threshold Specs (6 Apertures)</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-400 mb-1">Head A Measured W</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={optHeadA}
-                  onChange={(e) => setOptHeadA(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-                />
-                <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
-                  currentFormParsed.opticsTopHat.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+          <div className="p-2">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className={`border-b text-[10px] font-bold uppercase tracking-wider ${
+                  isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-200 text-slate-500'
                 }`}>
-                  {currentFormParsed.opticsTopHat.passA ? 'PASS' : 'FAIL'}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-slate-400 mb-1">Head B Measured W</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={optHeadB}
-                  onChange={(e) => setOptHeadB(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-                />
-                <span className={`text-[10px] font-bold px-2 py-1 rounded shrink-0 ${
-                  currentFormParsed.opticsTopHat.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                }`}>
-                  {currentFormParsed.opticsTopHat.passB ? 'PASS' : 'FAIL'}
-                </span>
-              </div>
-            </div>
+                  <th className="py-1 px-2">Mask</th>
+                  <th className="py-1 px-2">Spec</th>
+                  <th className="py-1 px-2 text-right">
+                    <span className="inline-flex items-center gap-1 text-amber-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      Head A (W)
+                    </span>
+                  </th>
+                  <th className="py-1 px-2 text-right">
+                    <span className="inline-flex items-center gap-1 text-cyan-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                      Head B (W)
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${isDark ? 'divide-slate-800/50' : 'divide-slate-200/80'}`}>
+                {MASK_SPECS.map(s => {
+                  const parsedM = currentFormParsed.workingZoneMasks.find(m => m.maskSize === s.size);
+                  return (
+                    <tr key={s.size} className={`transition-colors ${isDark ? 'hover:bg-slate-900/40' : 'hover:bg-slate-100/60'}`}>
+                      <td className={`py-1 px-2 font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{s.size}</td>
+                      <td className="py-1 px-2 text-slate-400 text-[11px]">{s.specText}</td>
+                      <td className="py-1 px-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={maskInputs[s.size].headA}
+                            onChange={(e) => setMaskInputs(prev => ({
+                              ...prev,
+                              [s.size]: { ...prev[s.size], headA: e.target.value }
+                            }))}
+                            placeholder="0.0"
+                            className={`w-18 sm:w-20 border rounded px-2 py-0.5 text-xs font-mono text-right focus:outline-none focus:ring-1 ${
+                              isDark
+                                ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-amber-500 focus:ring-amber-500/30'
+                                : 'bg-white border-slate-300 text-slate-900 focus:border-amber-600 focus:ring-amber-600/20'
+                            }`}
+                          />
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 min-w-[34px] text-center font-mono ${
+                            parsedM?.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80' : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                          }`}>
+                            {parsedM?.passA ? 'PASS' : 'FAIL'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-1 px-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={maskInputs[s.size].headB}
+                            onChange={(e) => setMaskInputs(prev => ({
+                              ...prev,
+                              [s.size]: { ...prev[s.size], headB: e.target.value }
+                            }))}
+                            placeholder="0.0"
+                            className={`w-18 sm:w-20 border rounded px-2 py-0.5 text-xs font-mono text-right focus:outline-none focus:ring-1 ${
+                              isDark
+                                ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500 focus:ring-cyan-500/30'
+                                : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-cyan-600/20'
+                            }`}
+                          />
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 min-w-[34px] text-center font-mono ${
+                            parsedM?.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/80' : 'bg-rose-950 text-rose-400 border border-rose-800/80'
+                          }`}>
+                            {parsedM?.passB ? 'PASS' : 'FAIL'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Working Zone Mask Readings */}
-        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-3 text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-            <h4 className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="w-4 h-4" />
-              WORKING ZONE — Internal Power Meter Masks
-            </h4>
-            <span className="text-[11px] text-slate-400">Mask thresholds evaluation</span>
-          </div>
-
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
-                <th className="py-1.5 px-2">Mask</th>
-                <th className="py-1.5 px-2">Spec</th>
-                <th className="py-1.5 px-2">Head A (W)</th>
-                <th className="py-1.5 px-2">Head B (W)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {MASK_SPECS.map(s => {
-                const parsedM = currentFormParsed.workingZoneMasks.find(m => m.maskSize === s.size);
-                return (
-                  <tr key={s.size}>
-                    <td className="py-1.5 px-2 font-bold text-slate-200">{s.size}</td>
-                    <td className="py-1.5 px-2 text-slate-400">{s.specText}</td>
-                    <td className="py-1.5 px-2">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={maskInputs[s.size].headA}
-                          onChange={(e) => setMaskInputs(prev => ({
-                            ...prev,
-                            [s.size]: { ...prev[s.size], headA: e.target.value }
-                          }))}
-                          className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono"
-                        />
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          parsedM?.passA ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                        }`}>
-                          {parsedM?.passA ? 'PASS' : 'FAIL'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-1.5 px-2">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={maskInputs[s.size].headB}
-                          onChange={(e) => setMaskInputs(prev => ({
-                            ...prev,
-                            [s.size]: { ...prev[s.size], headB: e.target.value }
-                          }))}
-                          className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono"
-                        />
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                          parsedM?.passB ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                        }`}>
-                          {parsedM?.passB ? 'PASS' : 'FAIL'}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">Remarks</label>
+        {/* Remarks (Optional & Secondary) */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <label className={`text-[11px] font-medium shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Remarks <span className="text-slate-400 font-normal text-[10px]">(optional)</span>:
+          </label>
           <input
             type="text"
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
             placeholder="e.g. Power check conducted during preventive maintenance."
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100"
+            className={`w-full border rounded-lg px-2.5 py-1 text-xs transition-colors focus:outline-none ${
+              isDark
+                ? 'bg-slate-900/60 border-slate-800 text-slate-200 placeholder:text-slate-400 focus:border-slate-700'
+                : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-slate-400'
+            }`}
           />
         </div>
 
-        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+        {/* Real-time Verdict Bar & Save Actions */}
+        <div className={`pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-300">OVERALL VERDICT:</span>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              OVERALL VERDICT:
+            </span>
             <Badge variant={currentFormParsed.overallResult === 'PASS' ? 'success' : 'danger'}>
               {currentFormParsed.overallResult}
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onClose} className="text-xs py-1.5 px-3">
+            <Button variant="outline" type="button" onClick={onClose} className="text-xs py-1 px-3">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 px-4">
+            <Button
+              type="submit"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1 px-4 shadow-sm"
+            >
               Save & Link to MHC
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 };

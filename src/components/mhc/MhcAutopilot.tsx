@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { 
   Sparkles, 
   Bot, 
@@ -1009,7 +1009,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         {/* RIGHT COLUMN: FOCUSED AUTOPILOT STEPS */}
         <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col justify-between">
           
-          <AnimatePresence mode="wait">
+          <>
             
             {/* QUESTION STEP 1: WELCOME & OVERVIEW */}
             {currentStep === 'welcome' && (
@@ -2161,16 +2161,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               </motion.div>
             )}
 
-          </AnimatePresence>
+          </>
         </div>
 
       </div>
 
       {/* POST-PDF DOWNLOAD REVIEW & EXPLICIT COMPLETION MODAL */}
-      <AnimatePresence>
-        {showReviewCompletionModal && (
-          <div
-            id="modal-mhc-review-completion-backdrop"
+      {showReviewCompletionModal && (
+        <div
+          id="modal-mhc-review-completion-backdrop"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowReviewCompletionModal(false);
@@ -2298,13 +2297,11 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* DISCARD DRAFT SESSION CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {sessionToDiscard && (
-          <div
-            id="modal-mhc-discard-session-backdrop"
+      {sessionToDiscard && (
+        <div
+          id="modal-mhc-discard-session-backdrop"
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
             onClick={(e) => {
               if (e.target === e.currentTarget && !isDiscarding) {
@@ -2413,7 +2410,6 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 };
