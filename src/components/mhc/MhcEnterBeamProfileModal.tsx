@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, Sliders } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Sliders } from 'lucide-react';
 import { Machine } from '../../types';
 import {
   BeamCheckpointReading,
@@ -11,6 +11,8 @@ import { BeamProfileEngine } from '../../utils/beamProfileEngine';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { useTheme } from '../../context/ThemeContext';
+import { BeamProfileCheckpointCard } from './BeamProfileCheckpointCard';
 
 interface MhcEnterBeamProfileModalProps {
   isOpen: boolean;
@@ -25,8 +27,12 @@ export const MhcEnterBeamProfileModal: React.FC<MhcEnterBeamProfileModalProps> =
   machine,
   onSave
 }) => {
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
+
   const [formDate, setFormDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [formRemarks, setFormRemarks] = useState<string>('');
+  const [activeLaserFilter, setActiveLaserFilter] = useState<'ALL' | 'LASER_1' | 'LASER_2'>('ALL');
 
   const [formReadings, setFormReadings] = useState<Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>>(() => {
     const init: Partial<Record<CheckpointId, { diameterStr: string; imageDataUrl?: string }>> = {};
@@ -65,7 +71,7 @@ export const MhcEnterBeamProfileModal: React.FC<MhcEnterBeamProfileModalProps> =
     reader.readAsDataURL(file);
   };
 
-  const currentFormParsed = React.useMemo<BeamProfileCheckRecord>(() => {
+  const currentFormParsed = useMemo<BeamProfileCheckRecord>(() => {
     const draftReadings: Partial<Record<CheckpointId, BeamCheckpointReading>> = {};
     CHECKPOINT_SPECS.forEach(s => {
       const entry = formReadings[s.id];
@@ -73,7 +79,7 @@ export const MhcEnterBeamProfileModal: React.FC<MhcEnterBeamProfileModalProps> =
       const pass = BeamProfileEngine.evalSpec(parsedNum, s.minMm, s.maxMm);
       draftReadings[s.id] = {
         checkpointId: s.id,
-        measuredDiameterMm: isNaN(parsedNum as number) ? null : parsedNum,
+        measuredDiameterMm: parsedNum !== null && !isNaN(parsedNum) ? parsedNum : null,
         imageDataUrl: entry?.imageDataUrl,
         pass
       };
@@ -86,6 +92,19 @@ export const MhcEnterBeamProfileModal: React.FC<MhcEnterBeamProfileModalProps> =
     });
   }, [formDate, formRemarks, formReadings]);
 
+  const laser1Specs = useMemo(() => CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1'), []);
+  const laser2Specs = useMemo(() => CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2'), []);
+
+  const laser1PassedCount = useMemo(
+    () => laser1Specs.filter(s => currentFormParsed.readings[s.id]?.pass).length,
+    [laser1Specs, currentFormParsed.readings]
+  );
+  const laser2PassedCount = useMemo(
+    () => laser2Specs.filter(s => currentFormParsed.readings[s.id]?.pass).length,
+    [laser2Specs, currentFormParsed.readings]
+  );
+  const totalPassedCount = laser1PassedCount + laser2PassedCount;
+
   const handleSave = () => {
     const newRecord = BeamProfileEngine.evaluateRecord(currentFormParsed);
     onSave(newRecord);
@@ -96,215 +115,246 @@ export const MhcEnterBeamProfileModal: React.FC<MhcEnterBeamProfileModalProps> =
       isOpen={isOpen}
       onClose={onClose}
       title={`Enter New Beam Profile Check — ${machine.model} (${machine.machineNumber})`}
-      maxWidth="max-w-4xl"
+      maxWidth="4xl"
     >
-      <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 text-xs">
-        {/* Date Picker */}
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-          <label className="block font-semibold text-slate-300 mb-1">Check Date</label>
-          <input
-            type="date"
-            value={formDate}
-            onChange={(e) => setFormDate(e.target.value)}
-            className="w-full sm:w-64 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 font-mono"
-          />
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-2.5 max-h-[80vh] overflow-y-auto pr-1">
+        {/* Top Bar: Date, Quick Head Switcher, and Pass Stats */}
+        <div
+          className={`p-2 rounded-xl border flex flex-wrap items-center justify-between gap-2.5 ${
+            isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <label
+              className={`text-[11px] font-bold uppercase tracking-wider shrink-0 ${
+                isDark ? 'text-slate-400' : 'text-slate-600'
+              }`}
+            >
+              Date
+            </label>
+            <input
+              type="date"
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className={`border rounded-lg px-2.5 py-1 text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
+                isDark
+                  ? 'bg-slate-950 border-slate-700 text-slate-100 focus:border-cyan-500 focus:ring-cyan-500/30'
+                  : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-cyan-600/20'
+              }`}
+            />
+          </div>
+
+          {/* Quick Head Filter Tabs */}
+          <div className="flex items-center gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-slate-800 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setActiveLaserFilter('ALL')}
+              className={`px-2.5 py-0.5 rounded-md font-medium transition-colors ${
+                activeLaserFilter === 'ALL'
+                  ? 'bg-slate-800 text-slate-100 font-bold shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              All ({CHECKPOINT_SPECS.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLaserFilter('LASER_1')}
+              className={`px-2.5 py-0.5 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+                activeLaserFilter === 'LASER_1'
+                  ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30'
+                  : 'text-slate-400 hover:text-amber-400'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Laser 1 ({laser1PassedCount}/8)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLaserFilter('LASER_2')}
+              className={`px-2.5 py-0.5 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+                activeLaserFilter === 'LASER_2'
+                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-cyan-400'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+              Laser 2 ({laser2PassedCount}/8)
+            </button>
+          </div>
+
+          {/* Live Pass Tally Pill */}
+          <div
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono shrink-0 ${
+              isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+            }`}
+          >
+            <span className="text-slate-400">Status:</span>
+            <span
+              className={`font-bold ${
+                totalPassedCount === CHECKPOINT_SPECS.length ? 'text-emerald-400' : 'text-amber-400'
+              }`}
+            >
+              {totalPassedCount} / {CHECKPOINT_SPECS.length} Stations Passed
+            </span>
+          </div>
         </div>
 
         {/* LASER 1 SECTION */}
-        <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
-          <div className="border-b border-slate-800 pb-2">
-            <h4 className="font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
-              <Sliders className="w-4 h-4" />
-              LASER 1 (HEAD A) — BEAM CHECKPOINTS
-            </h4>
+        {(activeLaserFilter === 'ALL' || activeLaserFilter === 'LASER_1') && (
+          <div
+            className={`p-2.5 rounded-xl border space-y-2 ${
+              isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50/80 border-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  LASER HEAD 1 (HEAD A) — BEAM PROFILE CHECKPOINTS
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                  (6A Source • 6B Flat Top • 6C Masks)
+                </span>
+              </div>
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                  laser1PassedCount === 8
+                    ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80'
+                    : 'bg-amber-950/80 text-amber-400 border border-amber-800/80'
+                }`}
+              >
+                {laser1PassedCount} / 8 PASS
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {laser1Specs.map((s) => {
+                const entry = formReadings[s.id] || { diameterStr: '' };
+                const r = currentFormParsed.readings[s.id];
+                return (
+                  <BeamProfileCheckpointCard
+                    key={s.id}
+                    spec={s}
+                    reading={entry}
+                    pass={r?.pass ?? false}
+                    isDark={isDark}
+                    onDiameterChange={(val) => handleInputChange(s.id, 'diameterStr', val)}
+                    onImageUpload={(file) => handleImageFileUpload(s.id, file)}
+                    onImageRemove={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
+                  />
+                );
+              })}
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map(s => {
-              const entry = formReadings[s.id];
-              const parsedNum = entry?.diameterStr ? parseFloat(entry.diameterStr) : null;
-              const pass = BeamProfileEngine.evalSpec(parsedNum, s.minMm, s.maxMm);
-
-              return (
-                <div key={s.id} className="p-3 rounded-lg border border-slate-800 bg-slate-900/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-200">{s.stageLabel}</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                      pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                    }`}>
-                      {pass ? 'PASS' : 'FAIL'}
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400">Spec: {s.specText}</p>
-
-                  {/* Beam Image Box + Upload */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-14 h-14 rounded bg-slate-950 border border-slate-800 shrink-0 relative overflow-hidden flex items-center justify-center">
-                      {entry?.imageDataUrl ? (
-                        <img src={entry.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-6 h-6 text-slate-600" />
-                      )}
-                    </div>
-
-                    <div className="space-y-1 flex-1">
-                      <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded px-2 py-1 text-[10px] font-semibold flex items-center justify-center gap-1 w-full">
-                        <Upload className="w-3 h-3 text-cyan-400" />
-                        <span>Upload</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImageFileUpload(s.id, file);
-                          }}
-                        />
-                      </label>
-
-                      {entry?.imageDataUrl && (
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
-                          className="text-[9px] text-rose-400 hover:underline block text-center w-full"
-                        >
-                          Remove Image
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Diameter Input */}
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Diameter (mm)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={entry?.diameterStr || ''}
-                      onChange={(e) => handleInputChange(s.id, 'diameterStr', e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono text-xs"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* LASER 2 SECTION */}
-        <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 space-y-3">
-          <div className="border-b border-slate-800 pb-2">
-            <h4 className="font-bold text-cyan-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
-              <Sliders className="w-4 h-4" />
-              LASER 2 (HEAD B) — BEAM CHECKPOINTS
-            </h4>
+        {(activeLaserFilter === 'ALL' || activeLaserFilter === 'LASER_2') && (
+          <div
+            className={`p-2.5 rounded-xl border space-y-2 ${
+              isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50/80 border-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                  LASER HEAD 2 (HEAD B) — BEAM PROFILE CHECKPOINTS
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                  (7A Source • 7B Flat Top • 7C Masks)
+                </span>
+              </div>
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                  laser2PassedCount === 8
+                    ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80'
+                    : 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/80'
+                }`}
+              >
+                {laser2PassedCount} / 8 PASS
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {laser2Specs.map((s) => {
+                const entry = formReadings[s.id] || { diameterStr: '' };
+                const r = currentFormParsed.readings[s.id];
+                return (
+                  <BeamProfileCheckpointCard
+                    key={s.id}
+                    spec={s}
+                    reading={entry}
+                    pass={r?.pass ?? false}
+                    isDark={isDark}
+                    onDiameterChange={(val) => handleInputChange(s.id, 'diameterStr', val)}
+                    onImageUpload={(file) => handleImageFileUpload(s.id, file)}
+                    onImageRemove={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
+                  />
+                );
+              })}
+            </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map(s => {
-              const entry = formReadings[s.id];
-              const parsedNum = entry?.diameterStr ? parseFloat(entry.diameterStr) : null;
-              const pass = BeamProfileEngine.evalSpec(parsedNum, s.minMm, s.maxMm);
-
-              return (
-                <div key={s.id} className="p-3 rounded-lg border border-slate-800 bg-slate-900/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-200">{s.stageLabel}</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                      pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                    }`}>
-                      {pass ? 'PASS' : 'FAIL'}
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400">Spec: {s.specText}</p>
-
-                  {/* Beam Image Box + Upload */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-14 h-14 rounded bg-slate-950 border border-slate-800 shrink-0 relative overflow-hidden flex items-center justify-center">
-                      {entry?.imageDataUrl ? (
-                        <img src={entry.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-6 h-6 text-slate-600" />
-                      )}
-                    </div>
-
-                    <div className="space-y-1 flex-1">
-                      <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded px-2 py-1 text-[10px] font-semibold flex items-center justify-center gap-1 w-full">
-                        <Upload className="w-3 h-3 text-cyan-400" />
-                        <span>Upload</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImageFileUpload(s.id, file);
-                          }}
-                        />
-                      </label>
-
-                      {entry?.imageDataUrl && (
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
-                          className="text-[9px] text-rose-400 hover:underline block text-center w-full"
-                        >
-                          Remove Image
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Diameter Input */}
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Diameter (mm)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={entry?.diameterStr || ''}
-                      onChange={(e) => handleInputChange(s.id, 'diameterStr', e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono text-xs"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Remarks */}
-        <div>
-          <label className="block font-semibold text-slate-300 mb-1">Engineer Remarks</label>
+        {/* Engineer Remarks: Compact & Secondary */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <label
+            className={`text-[11px] font-medium shrink-0 ${
+              isDark ? 'text-slate-400' : 'text-slate-600'
+            }`}
+          >
+            Engineer Remarks <span className="text-[10px] font-normal text-slate-400">(optional)</span>:
+          </label>
           <input
             type="text"
             value={formRemarks}
             onChange={(e) => setFormRemarks(e.target.value)}
             placeholder="e.g. Beam profile images captured and specs validated."
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100"
+            className={`w-full border rounded-lg px-2.5 py-1 text-xs transition-colors focus:outline-none ${
+              isDark
+                ? 'bg-slate-900/60 border-slate-800 text-slate-200 placeholder:text-slate-400 focus:border-slate-700'
+                : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-slate-400'
+            }`}
           />
         </div>
 
-        {/* Footer & Save */}
-        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-300">OVERALL VERDICT:</span>
+        {/* Footer & Save Action */}
+        <div
+          className={`pt-2.5 border-t flex items-center justify-between ${
+            isDark ? 'border-slate-800' : 'border-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`text-[11px] font-bold uppercase tracking-wider ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}
+            >
+              OVERALL VERDICT:
+            </span>
             <Badge variant={currentFormParsed.overallResult === 'PASS' ? 'success' : 'danger'}>
               {currentFormParsed.overallResult}
             </Badge>
+            <span className="text-[11px] font-mono text-slate-400">
+              ({totalPassedCount} / {CHECKPOINT_SPECS.length} Stations Passed)
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onClose} className="text-xs py-1.5 px-3">
+            <Button variant="outline" type="button" onClick={onClose} className="text-xs py-1 px-3">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1.5 px-4">
+            <Button
+              type="submit"
+              className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs py-1 px-4 shadow-sm"
+            >
               Save Beam Check & Link to MHC
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 };

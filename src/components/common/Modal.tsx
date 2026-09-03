@@ -50,6 +50,8 @@ export const Modal: React.FC<ModalProps> = ({
     '6xl': 'max-w-6xl'
   };
 
+  const resolvedMaxWidth = maxWidthClasses[maxWidth as keyof typeof maxWidthClasses] || (typeof maxWidth === 'string' && maxWidth.startsWith('max-w-') ? maxWidth : maxWidthClasses['2xl']);
+
   return (
     <div
       id={id}
@@ -57,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidthClasses[maxWidth]} border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${
+        className={`w-full ${resolvedMaxWidth} border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${
           isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
         }`}
         onClick={(e) => e.stopPropagation()}

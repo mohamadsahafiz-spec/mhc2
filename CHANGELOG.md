@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v1.2.12 — BEAM PROFILE CHECK FORM UX: Compact Field-Service Data Entry Optimization (2026-09-03)
+
+### Beam Profile Check Form UX Optimization
+- **Compact Field-Service Layout**: Redesigned the "New Beam Profile Check" and "Edit Beam Profile Check" entry modal across `MhcEnterBeamProfileModal` and `MachineBeamProfileWorkspace` to eliminate full-screen stretching and excessive visual padding. Clamped container width cleanly to standard 4XL dialog bounds.
+- **High-Density Checkpoint Cards**: Replaced oversized 160px checkpoint cards with compact ~72px `BeamProfileCheckpointCard` components featuring inline code pills, stage titles, high-contrast monospace specs, and instant real-time PASS/FAIL badges.
+- **Optimized Select/Upload → Enter → Verify Flow**: Integrated square 40px image evidence boxes with single-click file selection, replace hover action, and one-click removal alongside comfortable numeric diameter inputs with inline `mm` suffix and smooth tab navigation.
+- **Laser Head 1 & 2 Separation & Filtering**: Maintained clear amber (Laser 1 / Head A) and cyan (Laser 2 / Head B) separation with stage groupings (6A/7A Source, 6B/7B Flat Top, 6C/7C Working Zone Masks), live per-head pass counters, and an intuitive quick-filter tab bar (`All Checkpoints`, `Laser 1`, `Laser 2`) for zero-scroll single-head entry.
+- **Secondary Remarks & Obvious Verdict Action**: Streamlined Engineer Remarks into a secondary single-line input and anchored a high-contrast footer verdict bar with clear overall result and prominent save action.
+- **100% Engineering Logic & Data Integrity Preserved**: Kept all 14 checkpoints, specifications, calculation formulas, validation logic, image storage mechanisms, persistence routines, and report exports completely intact.
+
 ## v1.2.10 — LASER LIFECYCLE: Authoritative Recommendation Engine & Status Alignment (2026-09-02)
 
 ### Laser Lifecycle Recommendation & Status Alignment
