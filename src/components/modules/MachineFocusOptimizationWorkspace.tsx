@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Crosshair,
   Plus,
@@ -78,7 +78,10 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     };
   }, [machine?.focusOptimizationRecords]);
 
-  const records = hydratedRecords.length > 0 ? hydratedRecords : (machine?.focusOptimizationRecords || []);
+  const records = useMemo(() => {
+    const base = hydratedRecords.length > 0 ? hydratedRecords : (machine?.focusOptimizationRecords || []);
+    return [...base].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [hydratedRecords, machine?.focusOptimizationRecords]);
   const latestRecord = records[0] || null;
 
   // Helper to safely resolve image data from ImageStore cache or direct base64/URL
@@ -183,6 +186,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     } else {
       updatedRecords = [draft, ...records];
     }
+    updatedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const updatedMachine: Machine = {
       ...machine,

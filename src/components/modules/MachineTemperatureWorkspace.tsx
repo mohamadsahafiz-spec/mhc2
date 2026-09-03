@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Thermometer,
   Upload,
@@ -225,9 +225,12 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     TempRawStore.saveRawRecords(recordId, analysisResult.rawRecords);
 
     const existingRecords = machine.temperatureRecords || [];
+    const updatedRecords = [newRecord, ...existingRecords].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
     const updatedMachine: Machine = {
       ...machine,
-      temperatureRecords: [newRecord, ...existingRecords]
+      temperatureRecords: updatedRecords
     };
 
     onUpdateMachine(updatedMachine);
@@ -281,7 +284,9 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
       createdAt: new Date().toISOString()
     };
 
-    const updatedReadings = [newReading, ...(machine.manualTemperatureReadings || [])];
+    const updatedReadings = [newReading, ...(machine.manualTemperatureReadings || [])].sort(
+      (a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime()
+    );
     const updatedMachine: Machine = {
       ...machine,
       manualTemperatureReadings: updatedReadings
@@ -307,8 +312,15 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     StorageService.saveMachines([updatedMachine, ...otherMachines]);
   };
 
-  const savedRecords = machine.temperatureRecords || [];
-  const manualReadings = machine.manualTemperatureReadings || [];
+  const savedRecords = useMemo(() => {
+    const list = machine.temperatureRecords || [];
+    return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [machine.temperatureRecords]);
+
+  const manualReadings = useMemo(() => {
+    const list = machine.manualTemperatureReadings || [];
+    return [...list].sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
+  }, [machine.manualTemperatureReadings]);
 
   return (
     <div className="space-y-6">

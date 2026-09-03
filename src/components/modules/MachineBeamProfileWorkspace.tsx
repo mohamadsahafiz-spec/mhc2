@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Aperture,
   Plus,
@@ -46,7 +46,10 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  const records = machine?.beamProfileRecords || [];
+  const records = useMemo(() => {
+    const raw = machine?.beamProfileRecords || [];
+    return [...raw].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [machine?.beamProfileRecords]);
   const latestRecord = records[0] || null;
 
   // Modal states
@@ -193,6 +196,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
     } else {
       updatedRecords = [evaluated, ...records];
     }
+    updatedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const updatedMachine: Machine = {
       ...machine,

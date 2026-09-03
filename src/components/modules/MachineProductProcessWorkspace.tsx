@@ -23,7 +23,10 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  const records = machine?.productProcessRecords || [];
+  const records = useMemo(() => {
+    const raw = machine?.productProcessRecords || [];
+    return [...raw].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [machine?.productProcessRecords]);
   const latestRecord = records[0] || null;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -292,6 +295,7 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
     } else {
       updatedRecords = [evaluated, ...records];
     }
+    updatedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const updatedMachine: Machine = {
       ...machine,

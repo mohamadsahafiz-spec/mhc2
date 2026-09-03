@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Zap,
   Plus,
@@ -42,7 +42,10 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  const records = machine?.laserPowerRecords || [];
+  const records = useMemo(() => {
+    const raw = machine?.laserPowerRecords || [];
+    return [...raw].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [machine?.laserPowerRecords]);
   const latestRecord = records[0] || null;
 
   // Modal states
@@ -198,6 +201,7 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
     } else {
       updatedRecords = [evaluated, ...records];
     }
+    updatedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const updatedMachine: Machine = {
       ...machine,

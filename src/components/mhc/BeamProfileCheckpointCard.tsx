@@ -9,7 +9,7 @@ interface BeamProfileCheckpointCardProps {
   isDark: boolean;
   onDiameterChange: (val: string) => void;
   onImageUpload: (file: File) => void;
-  onImageRemove: () => void;
+  onImageRemove?: () => void;
 }
 
 export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps> = ({
@@ -133,19 +133,6 @@ export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <RefreshCw className="w-3 h-3 text-cyan-300" />
               </div>
-              {/* Remove Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onImageRemove();
-                }}
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm z-10 transition-transform active:scale-95"
-                title="Remove image"
-              >
-                ×
-              </button>
             </div>
           ) : (
             <label

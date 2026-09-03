@@ -1,5 +1,24 @@
 # FSOS CHANGELOG
 
+## v1.2.17 — BATCH A: Standardize Machine Passport History Ordering (Newest → Oldest) (2026-09-03)
+
+### History Ordering Standardization
+- **Universal Newest → Oldest Presentation**: Standardized history lists across all 5 Machine Passport diagnostic modules so that the newest record is consistently presented first at the top of history tables and record lists:
+  - **Temperature Workspace**: Sorted `savedRecords` by `createdAt` descending and `manualReadings` by timestamp/createdAt descending; preserved IDB telemetry linkages and raw data caching.
+  - **Laser Power Workspace**: Sorted `laserPowerRecords` by `date` descending both in reactive `useMemo` display and on record save.
+  - **Beam Profile Workspace**: Sorted `beamProfileRecords` by `date` descending in reactive `useMemo` display and on record save, resolving the issue where older records displayed above newer ones.
+  - **Focus Optimization Workspace**: Sorted `focusOptimizationRecords` by `date` descending in reactive `useMemo` display and on record save. Preserved internal engineering focus-position sequences (`+0.300 mm` → `+0.200 mm` → `+0.100 mm` → `0.000 mm` → `-0.100 mm` → `-0.200 mm` → `-0.300 mm`) completely intact.
+  - **Product & Process Workspace**: Sorted `productProcessRecords` by `date` descending in reactive `useMemo` display and on record save.
+- **Automated Verification**: Added comprehensive unit test suite (`src/utils/historyOrdering.test.ts`) validating newest-first ordering across all five record types and verifying unchanged internal engineering sequences.
+
+
+## v1.2.16 — BEAM PROFILE CHECKPOINT UI: Redundant Image Remove Button Removal (2026-09-03)
+
+### Beam Profile Checkpoint UI Refinement
+- **Removed Redundant Remove Button**: Eliminated the redundant `×` button and its associated absolute positioning and styling from `BeamProfileCheckpointCard.tsx`, completely removing the clipped red/pink corner overlay artifact.
+- **Preserved Direct Replace Flow**: Kept the direct click-to-replace behavior on the thumbnail (`onClick` opening the native file picker), hover overlay indicator (`RefreshCw`), preview rendering, and upload storage handling 100% intact.
+- **Zero Regression**: Retained full compatibility with all checkpoint card states, specifications, and parent modal / workspace integrations.
+
 ## v1.2.15 — MACHINE PASSPORT NAVIGATION UX: Integrated Subsystem Sidebar & Responsive Command Navigation (2026-09-03)
 
 ### Machine Passport Navigation UX Redesign
