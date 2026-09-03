@@ -1,5 +1,11 @@
 # FSOS CHANGELOG
 
+## v1.2.18 — FOCUS OPTIMIZATION: Presentation Cleanup & Thumbnail Flicker Resolution (2026-09-03)
+
+### Focus Optimization Presentation & Stability Refinement
+- **Removed Presentation-Only µm Values**: Removed the redundant µm measurement values displayed beneath each wafer drill image in `MachineFocusOptimizationWorkspace.tsx` across both Laser 1 and Laser 2 grids, as well as in the detailed inspection modal. Position labels (+3, +2, +1, 0, -1, -2, -3) and BEST indicators remain fully intact.
+- **Resolved Intermittent Thumbnail Flicker**: Traced the root cause to background SyncEngine polls triggering reference changes on `machine.focusOptimizationRecords`, which caused `useEffect` to clobber `hydratedRecords` with sync-unhydrated IDB pointers and evict cached entries from the small 32-item memory LRU cache. Implemented `mergeHydratedRecords` to preserve already-hydrated images across updates and expanded `MAX_MEMORY_CACHE_ITEMS` in `ImageStore` to 128, ensuring completely stable rendering with zero flickering.
+
 ## v1.2.17 — BATCH A: Standardize Machine Passport History Ordering (Newest → Oldest) (2026-09-03)
 
 ### History Ordering Standardization

@@ -53,22 +53,69 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     return (machine?.focusOptimizationRecords || []).map(r => ImageStore.hydrateImagesSync(r));
   });
 
-  // Re-hydrate whenever machine records change or background IDB preloading completes
+  // Helper to preserve already-hydrated image data when new record arrays arrive
+  const mergeHydratedRecords = React.useCallback((
+    incoming: FocusOptimizationRecord[],
+    current: FocusOptimizationRecord[]
+  ): { merged: FocusOptimizationRecord[]; hasPendingIdb: boolean } => {
+    const currentMap = new Map(current.map(r => [r.id, r]));
+    let hasPendingIdb = false;
+
+    const merged = incoming.map(inc => {
+      const prev = currentMap.get(inc.id);
+      const syncHydrated = ImageStore.hydrateImagesSync(inc);
+      const copy: FocusOptimizationRecord = { ...syncHydrated };
+
+      if (copy.laser1?.positions) {
+        const positions: any = { ...copy.laser1.positions };
+        for (const pos of Object.keys(positions)) {
+          const currentUrl = positions[pos]?.imageDataUrl;
+          const prevUrl = prev?.laser1?.positions?.[pos]?.imageDataUrl;
+          if (currentUrl?.startsWith('idb:') && prevUrl && !prevUrl.startsWith('idb:')) {
+            positions[pos] = { ...positions[pos], imageDataUrl: prevUrl };
+          } else if (currentUrl?.startsWith('idb:')) {
+            hasPendingIdb = true;
+          }
+        }
+        copy.laser1 = { ...copy.laser1, positions };
+      }
+
+      if (copy.laser2?.positions) {
+        const positions: any = { ...copy.laser2.positions };
+        for (const pos of Object.keys(positions)) {
+          const currentUrl = positions[pos]?.imageDataUrl;
+          const prevUrl = prev?.laser2?.positions?.[pos]?.imageDataUrl;
+          if (currentUrl?.startsWith('idb:') && prevUrl && !prevUrl.startsWith('idb:')) {
+            positions[pos] = { ...positions[pos], imageDataUrl: prevUrl };
+          } else if (currentUrl?.startsWith('idb:')) {
+            hasPendingIdb = true;
+          }
+        }
+        copy.laser2 = { ...copy.laser2, positions };
+      }
+
+      return copy;
+    });
+
+    return { merged, hasPendingIdb };
+  }, []);
+
+  // Re-hydrate whenever machine records change or background IDB preloading completes without dropping hydrated images
   React.useEffect(() => {
     let isMounted = true;
     const rawRecs = machine?.focusOptimizationRecords || [];
-    const syncHydrated = rawRecs.map(r => ImageStore.hydrateImagesSync(r));
-    setHydratedRecords(syncHydrated);
 
-    const hasIdbPointer = rawRecs.some(r =>
-      Object.values(r.laser1?.positions || {}).some((p: any) => p?.imageDataUrl?.startsWith('idb:')) ||
-      Object.values(r.laser2?.positions || {}).some((p: any) => p?.imageDataUrl?.startsWith('idb:'))
-    );
+    let needsAsync = false;
+    setHydratedRecords(prev => {
+      const { merged, hasPendingIdb } = mergeHydratedRecords(rawRecs, prev);
+      needsAsync = hasPendingIdb;
+      return merged;
+    });
 
-    if (hasIdbPointer) {
+    if (needsAsync) {
       ImageStore.hydrateImagesAsync(rawRecs).then((asyncHydrated) => {
         if (isMounted && Array.isArray(asyncHydrated)) {
-          setHydratedRecords(asyncHydrated);
+          setHydratedRecords(prev => mergeHydratedRecords(asyncHydrated, prev).merged);
         }
       });
     }
@@ -76,7 +123,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     return () => {
       isMounted = false;
     };
-  }, [machine?.focusOptimizationRecords]);
+  }, [machine?.focusOptimizationRecords, mergeHydratedRecords]);
 
   const records = useMemo(() => {
     const base = hydratedRecords.length > 0 ? hydratedRecords : (machine?.focusOptimizationRecords || []);
@@ -403,10 +450,6 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                               <ImageIcon className="w-5 h-5 text-slate-600" />
                             )}
                           </div>
-
-                          <span className="text-[9px] font-mono text-slate-500 mt-1 block">
-                            {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
-                          </span>
                         </div>
                       );
                     })}
@@ -470,10 +513,6 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                               <ImageIcon className="w-5 h-5 text-slate-600" />
                             )}
                           </div>
-
-                          <span className="text-[9px] font-mono text-slate-500 mt-1 block">
-                            {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
-                          </span>
                         </div>
                       );
                     })}
@@ -770,9 +809,6 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                           <ImageIcon className="w-4 h-4 text-slate-600" />
                         )}
                       </div>
-                      <span className="text-[8px] font-mono text-slate-500 mt-1 block">
-                        {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
-                      </span>
                     </div>
                   );
                 })}
@@ -801,9 +837,6 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                           <ImageIcon className="w-4 h-4 text-slate-600" />
                         )}
                       </div>
-                      <span className="text-[8px] font-mono text-slate-500 mt-1 block">
-                        {item?.drillDiameterUm ? `${item.drillDiameterUm.toFixed(1)} µm` : 'Spot Check'}
-                      </span>
                     </div>
                   );
                 })}
