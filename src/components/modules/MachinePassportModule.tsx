@@ -1829,186 +1829,259 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             </div>
           </div>
 
-          {/* Machine Passport Sub-Category Grouped Navigation */}
-          <div className={`p-2 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
-            isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-100/80 border-slate-200 shadow-xs'
-          }`}>
-            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-              {/* Group 1: Fleet Health & Environment */}
-              <div className={`flex items-center gap-1.5 p-1 rounded-xl border ${
-                isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
-              }`}>
-                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-500 px-2 hidden md:inline">Health</span>
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('lifecycle')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'lifecycle'
-                      ? isDark
-                        ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/40 shadow-xs'
-                        : 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  Lifecycle & Health
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('temperature')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'temperature'
-                      ? isDark
-                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-xs'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Thermometer className="w-3.5 h-3.5 text-rose-400" />
-                  Temperature
-                  {((selectedMachine?.temperatureRecords?.length || 0) > 0 || (selectedMachine?.manualTemperatureReadings?.length || 0) > 0) && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isDark ? 'bg-rose-500/30 text-rose-300' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
-                    </span>
-                  )}
-                </button>
+          {/* Subsystem Navigation & Active Workspace Layout */}
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
+            {/* Left-Side Subsystem Navigation Panel */}
+            <nav
+              aria-label="Machine Passport Subsystem Navigation"
+              className={`w-full xl:w-64 2xl:w-72 shrink-0 xl:sticky xl:top-4 rounded-2xl border p-3.5 transition-all ${
+                isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
+              }`}
+            >
+              {/* Navigation Header */}
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-[#2B323A]">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${isDark ? 'bg-[#8B9DFF]/15 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'}`}>
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      Subsystems
+                    </h3>
+                    <p className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Passport Diagnostics
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border font-bold ${
+                  isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
+                }`}>
+                  {selectedMachine.machineNumber}
+                </span>
               </div>
 
-              {/* Group 2: Laser & Optics Diagnostics */}
-              <div className={`flex items-center gap-1.5 p-1 rounded-xl border ${
-                isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
-              }`}>
-                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-500 px-2 hidden md:inline">Optics & Laser</span>
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('laser_power')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'laser_power'
-                      ? isDark
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-xs'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  Laser Power
-                  {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isDark ? 'bg-amber-500/30 text-amber-300' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {selectedMachine.laserPowerRecords?.length}
-                    </span>
-                  )}
-                </button>
+              {/* Categorized Navigation Groups */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-3 xl:gap-3.5">
+                {/* Group 1: Health & Lifecycle */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/70" />
+                    Health & Lifecycle
+                  </div>
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('lifecycle')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'lifecycle'
+                          ? isDark
+                            ? 'bg-[#8B9DFF]/15 text-[#8B9DFF] border border-[#8B9DFF]/40 shadow-xs font-bold'
+                            : 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">Lifecycle & Health</span>
+                      </div>
+                      {passportSubTab === 'lifecycle' && (
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDark ? 'bg-[#8B9DFF]' : 'bg-indigo-600'}`} />
+                      )}
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('beam_profile')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'beam_profile'
-                      ? isDark
-                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-xs'
-                        : 'bg-cyan-50 text-cyan-800 border border-cyan-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Aperture className="w-3.5 h-3.5 text-cyan-400" />
-                  Beam Profile
-                  {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isDark ? 'bg-cyan-500/30 text-cyan-300' : 'bg-cyan-100 text-cyan-800'
-                    }`}>
-                      {selectedMachine.beamProfileRecords?.length}
-                    </span>
-                  )}
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('temperature')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'temperature'
+                          ? isDark
+                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/40 shadow-xs font-bold'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Thermometer className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span className="truncate">Temperature</span>
+                      </div>
+                      {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}>
+                          {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('focus_optimization')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'focus_optimization'
-                      ? isDark
-                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-xs'
-                        : 'bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Crosshair className="w-3.5 h-3.5 text-indigo-400" />
-                  Focus Optimization
-                  {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isDark ? 'bg-indigo-500/30 text-indigo-300' : 'bg-indigo-100 text-indigo-800'
-                    }`}>
-                      {selectedMachine.focusOptimizationRecords?.length}
-                    </span>
-                  )}
-                </button>
+                {/* Group 2: Optics & Laser */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/70" />
+                    Optics & Laser
+                  </div>
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('laser_power')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'laser_power'
+                          ? isDark
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 shadow-xs font-bold'
+                            : 'bg-amber-50 text-amber-800 border border-amber-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">Laser Power</span>
+                      </div>
+                      {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
+                          {selectedMachine.laserPowerRecords?.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('beam_profile')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'beam_profile'
+                          ? isDark
+                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 shadow-xs font-bold'
+                            : 'bg-cyan-50 text-cyan-800 border border-cyan-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Aperture className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span className="truncate">Beam Profile</span>
+                      </div>
+                      {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-cyan-100 text-cyan-800 border border-cyan-200'
+                        }`}>
+                          {selectedMachine.beamProfileRecords?.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('focus_optimization')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'focus_optimization'
+                          ? isDark
+                            ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40 shadow-xs font-bold'
+                            : 'bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Crosshair className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="truncate">Focus Optimization</span>
+                      </div>
+                      {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                        }`}>
+                          {selectedMachine.focusOptimizationRecords?.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Group 3: Operations & Parts */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
+                    Operations & Parts
+                  </div>
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('product_process')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'product_process'
+                          ? isDark
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-xs font-bold'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Layers className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">Product & Process</span>
+                      </div>
+                      {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          {selectedMachine.productProcessRecords?.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPassportSubTab('recommended_parts')}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
+                        passportSubTab === 'recommended_parts'
+                          ? isDark
+                            ? 'bg-purple-500/15 text-purple-300 border border-purple-500/40 shadow-xs font-bold'
+                            : 'bg-purple-50 text-purple-700 border border-purple-200 shadow-xs font-bold'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Package className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                        <span className="truncate">Recommended Items</span>
+                      </div>
+                      {passportSubTab === 'recommended_parts' && (
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDark ? 'bg-purple-400' : 'bg-purple-600'}`} />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Group 3: Operations & Parts */}
-              <div className={`flex items-center gap-1.5 p-1 rounded-xl border ${
-                isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
-              }`}>
-                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-500 px-2 hidden md:inline">Operations</span>
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('product_process')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'product_process'
-                      ? isDark
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-xs'
-                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                  Product & Process
-                  {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isDark ? 'bg-emerald-500/30 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      {selectedMachine.productProcessRecords?.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPassportSubTab('recommended_parts')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    passportSubTab === 'recommended_parts'
-                      ? isDark
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs'
-                        : 'bg-purple-50 text-purple-700 border border-purple-200 shadow-xs'
-                      : isDark
-                      ? 'text-slate-400 hover:text-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Package className="w-3.5 h-3.5 text-purple-400" />
-                  Recommended Items
-                </button>
+              {/* Navigation Footer: Health Status Indicator */}
+              <div className="mt-3.5 pt-3 border-t border-slate-200/80 dark:border-[#2B323A]/80 hidden xl:flex items-center justify-between text-[11px] font-mono">
+                <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Health Status</span>
+                <span className={`font-bold text-[10px] px-2 py-0.5 rounded border ${
+                  LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
+                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                    : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                }`}>
+                  {LaserEngine.getMachineHealthStatus(selectedMachine)}
+                </span>
               </div>
-            </div>
-          </div>
+            </nav>
 
-          {passportSubTab === 'lifecycle' ? (
+            {/* Active Subsystem Workspace Pane */}
+            <div className="flex-1 min-w-0 w-full">
+              {passportSubTab === 'lifecycle' ? (
             <div className="space-y-6">
           {/* Hardware & Installation Telemetry */}
           <div className={`grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 rounded-xl border ${
@@ -2376,6 +2449,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             onUpdateMachine={(updated) => onEditMachine?.(updated)}
           />
         )}
+            </div>
+          </div>
         </>
       )}
 

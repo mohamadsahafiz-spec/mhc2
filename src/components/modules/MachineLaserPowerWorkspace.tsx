@@ -406,20 +406,20 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
         </Card>
 
         {/* Card 4: Overall Calibration Summary */}
-        <Card title="Overall Power Health">
-          <div className="space-y-2 text-xs flex flex-col justify-between h-full pb-1">
+        <Card title="Overall Power Health" className="self-start h-fit">
+          <div className="space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-xs">Latest Date:</span>
-              <span className="font-bold font-mono text-slate-200">{latestRecord?.date || 'No Record'}</span>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Latest Date:</span>
+              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{latestRecord?.date || 'No Record'}</span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-xs">Frequency:</span>
-              <span className="font-bold font-mono text-slate-200">{latestRecord?.frequencyKhz || 50} kHz</span>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Frequency:</span>
+              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{latestRecord?.frequencyKhz || 50} kHz</span>
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-slate-800">
-              <span className="text-slate-400 text-xs">Overall Verdict:</span>
+            <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Verdict:</span>
               {latestRecord ? (
                 <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
                   {latestRecord.overallResult}

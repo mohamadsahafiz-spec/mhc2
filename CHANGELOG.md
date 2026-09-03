@@ -1,5 +1,29 @@
 # FSOS CHANGELOG
 
+## v1.2.15 — MACHINE PASSPORT NAVIGATION UX: Integrated Subsystem Sidebar & Responsive Command Navigation (2026-09-03)
+
+### Machine Passport Navigation UX Redesign
+- **Integrated Master-Detail Layout**: Replaced the isolated, floating horizontal sub-category pill bar with an integrated, sticky left-hand subsystem navigation panel positioned alongside the active workspace content (`xl:sticky xl:top-4 w-full xl:w-64 2xl:w-72 self-start`).
+- **Eliminated Dead Space & Awkward Composition**: Resolved the ~50% empty horizontal void of the previous bar. On desktop (>=1280px), navigation sits alongside the workspace, grounding the content and remaining accessible on scroll. On tablet and mobile (<1280px), navigation seamlessly transforms into a balanced 3-column banner card (`grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1`).
+- **Crystal-Clear Structural Hierarchy**: Unmistakably separated non-interactive category headers (`Health & Lifecycle`, `Optics & Laser`, `Operations & Parts` with subsystem color indicators) from interactive, full-width selectable diagnostic items with active highlights, indicators, and live telemetry record count badges.
+- **100% Functional Continuity**: Preserved all 7 destinations, icons, active state handlers, telemetry badge calculations, and underlying engineering logic without modifying any child workspace implementations.
+
+## v1.2.14 — MHC SUMMARY CARDS UX: Compact Self-Fitting Health & Record Summary Layout (2026-09-03)
+
+### MHC Summary Cards UX Optimization
+- **Eliminated Vertical Stretching**: Fixed shared summary-card layout behavior across "Overall Power Health" in `MachineLaserPowerWorkspace` and "Latest Record Info" in `MachineBeamProfileWorkspace` by applying `self-start h-fit` to fit their content naturally instead of stretching to match the height of adjacent multi-item telemetry cards.
+- **Removed Artificial Vertical Gaps**: Replaced `flex flex-col justify-between h-full` with comfortable `space-y-2.5` rhythmic row spacing and a refined divider line, preventing verdict badges from drifting to the bottom with empty dead space.
+- **Visual Alignment & Theme Polish**: Maintained top-edge grid alignment with neighboring measurement cards across desktop and responsive single-column layouts while ensuring dark and light mode contrast parity for labels, values, and status badges.
+- **100% Engineering Logic & Data Unchanged**: Kept all dates, frequencies, checkpoint counts, pass/fail indicators, calculations, and underlying records completely untouched.
+
+## v1.2.13 — PRODUCT / PROCESS / VIA CHECK FORM UX: Compact Inspection & Micro-Drilling Modal (2026-09-03)
+
+### Product / Process / Via Entry Modal UX Optimization
+- **Compact Field-Service Layout**: Streamlined the Product, Process & Via Check entry modal in `MhcEnterProductProcessModal` with clamped modal sizing and scannable visual hierarchy.
+- **Two-Column Process & Offset Matrix**: Compacted Phase 1/Phase 2 parameters and Laser Head 1/Laser Head 2 power offsets into side-by-side comparative inspection cards.
+- **Interactive Via Quality Inspection**: Built integrated micro-inspection entry cards with real-time pass/fail evaluation and visual tolerance indicators against authoritative via acceptance specifications.
+- **100% Data Integrity Preserved**: Fully preserved all calculations, validation gates, persistence routines, and report exports.
+
 ## v1.2.12 — BEAM PROFILE CHECK FORM UX: Compact Field-Service Data Entry Optimization (2026-09-03)
 
 ### Beam Profile Check Form UX Optimization
