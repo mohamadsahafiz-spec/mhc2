@@ -110,6 +110,37 @@ export function runLaserEngineParityTests(): { success: boolean; log: string[] }
   assert(recalResult.updatedMachine.lasers![0].baseLaserHour === 10005, 'Base laser hour updated to physical meter reading');
   assert(recalResult.updatedMachine.lasers![0].calibrationHistory!.length === 1, 'Calibration history entry recorded');
 
+  // 8. Lifecycle Recommendation Wording & Status Consistency
+  const rated = 25000;
+  const warn = 20000;
+  const testCases = [
+    { hr: 5000, expectedStatus: 'SAFE', mustInclude: ['Nominal tube health', 'below warning threshold'], mustNotInclude: ['Approaching warning threshold', 'Warning threshold reached/exceeded', 'lifespan reached'] },
+    { hr: 19000, expectedStatus: 'SAFE', mustInclude: ['Mid-to-late life phase', 'below warning threshold'], mustNotInclude: ['Approaching warning threshold', 'Warning threshold reached/exceeded', 'lifespan reached'] },
+    { hr: 20000, expectedStatus: 'WARNING', mustInclude: ['Warning threshold reached/exceeded', 'approaching rated EOL'], mustNotInclude: ['Approaching warning threshold', 'below warning threshold', 'lifespan reached'] },
+    { hr: 21688.9, expectedStatus: 'WARNING', mustInclude: ['Warning threshold reached/exceeded', 'approaching rated EOL'], mustNotInclude: ['Approaching warning threshold', 'below warning threshold'] },
+    { hr: 22375.7, expectedStatus: 'WARNING', mustInclude: ['Warning threshold reached/exceeded', 'approaching rated EOL'], mustNotInclude: ['Approaching warning threshold', 'below warning threshold'] },
+    { hr: 24000, expectedStatus: 'WARNING', mustInclude: ['Warning threshold reached/exceeded', 'approaching rated EOL'], mustNotInclude: ['Approaching warning threshold', 'below warning threshold'] },
+    { hr: 25000, expectedStatus: 'ALARM', mustInclude: ['Rated operating lifespan reached/exceeded', 'refurbishment or swap'], mustNotInclude: ['approaching', 'below warning threshold'] },
+    { hr: 26000, expectedStatus: 'ALARM', mustInclude: ['Rated operating lifespan reached/exceeded', 'refurbishment or swap'], mustNotInclude: ['approaching', 'below warning threshold'] }
+  ];
+
+  for (const tc of testCases) {
+    const status = LaserEngine.calculateLaserStatus(tc.hr, rated, warn);
+    assert(status === tc.expectedStatus, `LaserEngine status for ${tc.hr}h is ${tc.expectedStatus}`);
+    const rec = LaserEngine.calculateLaserLifecycleRecommendation({
+      currentHour: tc.hr,
+      ratedLife: rated,
+      warningLife: warn,
+      estimatedEolDate: '2026-12-31'
+    });
+    for (const inc of tc.mustInclude) {
+      assert(rec.includes(inc), `Recommendation for ${tc.hr}h (${status}) includes "${inc}"`);
+    }
+    for (const notInc of tc.mustNotInclude) {
+      assert(!rec.includes(notInc), `Recommendation for ${tc.hr}h (${status}) does NOT include "${notInc}"`);
+    }
+  }
+
   log.push(`\nParity Validation Result: ${passed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}`);
   return { success: passed, log };
 }

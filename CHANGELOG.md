@@ -1,5 +1,16 @@
 # FSOS CHANGELOG
 
+## v1.2.10 — LASER LIFECYCLE: Authoritative Recommendation Engine & Status Alignment (2026-09-02)
+
+### Laser Lifecycle Recommendation & Status Alignment
+- **Authoritative Recommendation Derivation**: Introduced `LaserEngine.calculateLaserLifecycleRecommendation()` as the single authoritative source of truth for customer-facing laser lifecycle advisories across the system, report engines, and Full PDF renders.
+- **Strict Status & Verdict Consistency**: Resolved semantic contradiction where lasers in WARNING status (e.g. 22,375.7 h > 20,000 h warning limit) displayed "Approaching warning threshold".
+  - **SAFE**: Describes operation below warning threshold and prescribes appropriate monitoring / routine scheduled MHC cycles based on remaining life capacity.
+  - **WARNING**: Explicitly states warning threshold reached/exceeded, approaching rated EOL, and prescribes replacement source procurement prior to projected EOL date.
+  - **ALARM**: Explicitly states rated operating lifespan reached/exceeded and recommends immediate laser source refurbishment or swap.
+- **Unified Architecture**: Replaced duplicated recommendation string logic across `mhcReportEngine.ts` and `MhcFullPdfRenderer.tsx` with the unified `LaserEngine` derivation path.
+- **Preserved Engineering Telemetry**: 100% preserved dynamic laser hour calculations, domain limits, runtime status badges, EOL projections, and all document layouts.
+
 ## v1.2.9 — FULL PDF: Production Scale 2.00 & JPEG 0.90 High-Fidelity Rendering (2026-09-02)
 
 ### Production PDF Quality Optimization

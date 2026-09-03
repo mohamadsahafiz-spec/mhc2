@@ -177,16 +177,14 @@ export function buildMhcReportDocument(
 
     const serialNumber = (item as any).serialNumber || (item as any).serialNo || undefined;
 
-    let aiRecommendation = '';
-    if (lifeRemainingPercent >= 50) {
-      aiRecommendation = `Nominal tube health (${lifeRemainingPercent.toFixed(1)}% remaining). No preventive intervention required. Continue routine scheduled MHC cycles.`;
-    } else if (lifeRemainingPercent >= 20) {
-      aiRecommendation = `Mid-to-late life phase (${lifeRemainingPercent.toFixed(1)}% remaining). Tube capacity is stable. Monitor optical power decay during regular service.`;
-    } else if (lifeRemainingPercent > 0) {
-      aiRecommendation = `Approaching warning threshold (${remainingHours.toLocaleString()} hrs remaining). Plan replacement source procurement prior to projected date (${estimatedEolDate}).`;
-    } else {
-      aiRecommendation = `Exceeded rated operating lifespan (${currentLaserHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`;
-    }
+    const aiRecommendation = LaserEngine.calculateLaserLifecycleRecommendation({
+      currentHour: currentLaserHour,
+      ratedLife: errorEolLimit,
+      warningLife: warningLimit,
+      remainingHours,
+      lifeRemainingPercent,
+      estimatedEolDate
+    });
 
     const laserIdentifier = resolveLaserHeadIdentifier(
       item.laserIdentifier || (item as any).name || (item as any).model,

@@ -416,15 +416,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
     const serialNumber = item.serialNumber || (item as any).serialNo || undefined;
 
-    const aiRecommendation = item.aiRecommendation || (
-      lifeRemainingPercent >= 50
-        ? `Nominal tube health (${lifeRemainingPercent.toFixed(1)}% remaining). No preventive intervention required. Continue routine scheduled MHC cycles.`
-        : lifeRemainingPercent >= 20
-        ? `Mid-to-late life phase (${lifeRemainingPercent.toFixed(1)}% remaining). Tube capacity is stable. Monitor optical power decay during regular service.`
-        : lifeRemainingPercent > 0
-        ? `Approaching warning threshold (${remainingHours.toLocaleString()} hrs remaining). Plan replacement source procurement prior to projected date (${estimatedEolDate}).`
-        : `Exceeded rated operating lifespan (${currentLaserHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`
-    );
+    const aiRecommendation = item.aiRecommendation || LaserEngine.calculateLaserLifecycleRecommendation({
+      currentHour: currentLaserHour,
+      ratedLife: errorEolLimit,
+      warningLife: warningLimit,
+      remainingHours,
+      lifeRemainingPercent,
+      estimatedEolDate
+    });
 
     const laserIdentifier = resolveLaserHeadIdentifier(
       item.laserIdentifier || (item as any).name || (item as any).model,
@@ -1163,11 +1162,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <div key={head.laserId} className="flex items-start gap-1.5">
                         <span className="font-bold text-slate-900 font-mono text-[10.5px] shrink-0">{head.laserIdentifier}:</span>
                         <span className="text-slate-800 text-[10.5px] leading-snug">
-                          {head.aiRecommendation || (head.lifeRemainingPercent >= 50
-                            ? `Nominal tube health (${head.lifeRemainingPercent.toFixed(1)}% remaining, ${head.remainingHours.toLocaleString()} hrs). No preventive action required at this cycle.`
-                            : head.lifeRemainingPercent >= 20
-                            ? `Mid-to-late life stage (${head.lifeRemainingPercent.toFixed(1)}% remaining). Continue routine power stability monitoring.`
-                            : `Approaching warning threshold. Schedule optical source replacement before ${head.estimatedEolDate}.`)}
+                          {head.aiRecommendation || LaserEngine.calculateLaserLifecycleRecommendation({
+                            currentHour: head.currentLaserHour,
+                            ratedLife: head.errorEolLimit,
+                            warningLife: head.warningLimit,
+                            remainingHours: head.remainingHours,
+                            lifeRemainingPercent: head.lifeRemainingPercent,
+                            estimatedEolDate: head.estimatedEolDate
+                          })}
                         </span>
                       </div>
                     ))}

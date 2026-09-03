@@ -489,6 +489,57 @@ export const LaserEngine = {
   },
 
   /**
+   * Authoritative derivation of laser lifecycle recommendation wording.
+   * Primary decision source is LaserEngine status (SAFE / WARNING / ALARM) to guarantee
+   * zero semantic contradiction between status badges, engineering thresholds, and recommendation text.
+   *
+   * - SAFE: Below warning threshold; describes operating below warning threshold and appropriate monitoring.
+   * - WARNING: Explicitly states warning threshold reached/exceeded, approaching rated EOL, and replacement planning.
+   * - ALARM: Explicitly states rated EOL reached/exceeded and recommends refurbishment or swap.
+   */
+  calculateLaserLifecycleRecommendation(params: {
+    currentHour: number;
+    ratedLife: number;
+    warningLife?: number;
+    remainingHours?: number;
+    lifeRemainingPercent?: number;
+    estimatedEolDate?: string;
+  }): string {
+    const currentHour = Number(params.currentHour) || 0;
+    const ratedLife = Number(params.ratedLife) || 25000;
+    const warningLife = Number(params.warningLife) || Math.floor(ratedLife * 0.8);
+
+    // Primary decision source: authoritative LaserEngine status
+    const status = this.calculateLaserStatus(currentHour, ratedLife, warningLife);
+    const remainingHours = params.remainingHours !== undefined
+      ? Number(params.remainingHours)
+      : this.calculateRemainingHours(currentHour, ratedLife);
+    const lifeRemainingPercent = params.lifeRemainingPercent !== undefined
+      ? Number(params.lifeRemainingPercent)
+      : this.calculateLifeRemainingPercent(remainingHours, ratedLife);
+    const estimatedEolDate = params.estimatedEolDate || this.calculateEstimatedEndOfLifeDate(currentHour, ratedLife);
+    const eolTargetText = estimatedEolDate && estimatedEolDate !== 'EXCEEDED' && estimatedEolDate !== 'N/A'
+      ? ` prior to projected date (${estimatedEolDate})`
+      : '';
+
+    switch (status) {
+      case 'ALARM':
+        return `Rated operating lifespan reached/exceeded (${currentHour.toLocaleString()} hrs). Immediate laser source refurbishment or swap recommended.`;
+
+      case 'WARNING':
+        return `Warning threshold reached/exceeded; approaching rated EOL (${remainingHours.toLocaleString()} hrs remaining). Plan replacement source procurement${eolTargetText}.`;
+
+      case 'SAFE':
+      default:
+        if (lifeRemainingPercent >= 50) {
+          return `Nominal tube health (${lifeRemainingPercent.toFixed(1)}% remaining). Operating below warning threshold; no preventive intervention required. Continue routine scheduled MHC cycles.`;
+        } else {
+          return `Mid-to-late life phase (${lifeRemainingPercent.toFixed(1)}% remaining). Operating below warning threshold with stable tube capacity. Monitor optical power decay during regular service.`;
+        }
+    }
+  },
+
+  /**
    * Calculate deviation between actual machine hour meter reading and estimated hour.
    * Deviation = Actual Hour - Estimated Hour
    */
