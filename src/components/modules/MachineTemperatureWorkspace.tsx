@@ -701,65 +701,97 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             {savedRecords.map((rec) => (
               <div
                 key={rec.id}
-                className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
-                  isDark ? 'bg-[#14171A] border-[#2B323A] hover:bg-[#1A1D21]' : 'bg-slate-50 border-slate-200 hover:bg-white'
+                className={`p-4 rounded-xl border transition-all ${
+                  isDark ? 'bg-[#14171A] border-[#2B323A] hover:border-slate-700' : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
                 }`}
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                      {rec.title}
-                    </span>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-200 border-slate-300 text-slate-700'}`}>
-                      {rec.rawRecordsCount.toLocaleString()} pts
-                    </span>
-                  </div>
-                  <div className={`flex items-center gap-3 text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    <span>Date: {new Date(rec.createdAt).toLocaleString()}</span>
-                    <span>•</span>
-                    <span>Interval: {rec.intervalSec}s</span>
-                    <span>•</span>
-                    <span>Files: {rec.sourceFileNames.join(', ')}</span>
-                  </div>
-                </div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* ZONE 1 & 2: PRIMARY IDENTITY + SECONDARY METADATA */}
+                  <div className="space-y-1.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-sm font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                        {rec.title}
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 ${
+                        isDark ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-200/80 border-slate-300 text-slate-700'
+                      }`}>
+                        {rec.rawRecordsCount.toLocaleString()} pts
+                      </span>
+                    </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="grid grid-cols-4 gap-2 text-center font-mono text-xs">
-                    <div className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700/60">
-                      <span className="text-[9px] text-slate-400 block">MIN</span>
-                      <strong className="text-sky-400">{rec.stats.min}°C</strong>
+                    <div className={`flex items-center gap-2 text-xs flex-wrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 opacity-70" />
+                        {new Date(rec.createdAt).toLocaleString()}
+                      </span>
+                      <span>•</span>
+                      <span className="font-mono">
+                        {rec.intervalSec}s interval
+                      </span>
                     </div>
-                    <div className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700/60">
-                      <span className="text-[9px] text-slate-400 block">MAX</span>
-                      <strong className="text-rose-400">{rec.stats.max}°C</strong>
-                    </div>
-                    <div className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700/60">
-                      <span className="text-[9px] text-slate-400 block">AVG</span>
-                      <strong className="text-emerald-400">{rec.stats.avg}°C</strong>
-                    </div>
-                    <div className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700/60">
-                      <span className="text-[9px] text-slate-400 block">RANGE</span>
-                      <strong className="text-amber-400">{rec.stats.range}°C</strong>
+
+                    {/* Secondary metadata: files subtly styled so they don't visually compete */}
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] pt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'} truncate`}
+                      title={rec.sourceFileNames.join(', ')}
+                    >
+                      <FileText className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                      <span className="truncate">
+                        Source: {rec.sourceFileNames.join(', ')}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedRecordForDetail(rec)}
-                      className="text-xs"
-                    >
-                      View Graph
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestDeleteSavedRecord(rec)}
-                      className="p-2 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                      title="Delete record"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  {/* ZONE 3 & 4: STATISTICS & ACTIONS */}
+                  <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+                    {/* Core statistics: clear, prominent metrics */}
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center font-mono">
+                      <div className={`px-2.5 py-1.5 rounded-lg border ${
+                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                      }`}>
+                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MIN</span>
+                        <strong className="text-xs sm:text-sm font-bold text-sky-500 dark:text-sky-400">{rec.stats.min}°C</strong>
+                      </div>
+                      <div className={`px-2.5 py-1.5 rounded-lg border ${
+                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                      }`}>
+                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MAX</span>
+                        <strong className="text-xs sm:text-sm font-bold text-rose-500 dark:text-rose-400">{rec.stats.max}°C</strong>
+                      </div>
+                      <div className={`px-2.5 py-1.5 rounded-lg border ${
+                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                      }`}>
+                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>AVG</span>
+                        <strong className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400">{rec.stats.avg}°C</strong>
+                      </div>
+                      <div className={`px-2.5 py-1.5 rounded-lg border ${
+                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                      }`}>
+                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>RANGE</span>
+                        <strong className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400">{rec.stats.range}°C</strong>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 border-l pl-3 border-slate-700/40 dark:border-slate-800">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedRecordForDetail(rec)}
+                        className="text-xs flex items-center gap-1 py-1.5"
+                      >
+                        <BarChart2 className="w-3.5 h-3.5" />
+                        <span>View Graph</span>
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleRequestDeleteSavedRecord(rec)}
+                        className="p-2 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
+                        title="Delete record"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

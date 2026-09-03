@@ -271,47 +271,63 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Card 1: Laser Source */}
         <Card title="Laser Source (External Meter)">
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
-              <span>Spec: 15W ±10% (13.5–16.5W)</span>
-              <span className="font-mono">{latestRecord?.frequencyKhz || 50} kHz</span>
+          <div className="space-y-2.5 text-xs">
+            <div className={`flex items-center justify-between text-[11px] pb-1.5 border-b ${
+              isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'
+            }`}>
+              <span className="font-medium">Spec: 15W ±10% (13.5–16.5W)</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/40 border border-slate-700/40">
+                {latestRecord?.frequencyKhz || 50} kHz
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {latestRecord?.laserSource.headA !== null && latestRecord?.laserSource.headA !== undefined
-                      ? `${latestRecord.laserSource.headA} W`
-                      : '—'}
+            <div className="grid grid-cols-2 gap-2">
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 1 (A)
                   </span>
                   {latestRecord && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      latestRecord.laserSource.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      latestRecord.laserSource.passA
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {latestRecord.laserSource.passA ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {latestRecord?.laserSource.headA !== null && latestRecord?.laserSource.headA !== undefined
+                    ? `${latestRecord.laserSource.headA} W`
+                    : '—'}
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {latestRecord?.laserSource.headB !== null && latestRecord?.laserSource.headB !== undefined
-                      ? `${latestRecord.laserSource.headB} W`
-                      : '—'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 2 (B)
                   </span>
                   {latestRecord && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      latestRecord.laserSource.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      latestRecord.laserSource.passB
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {latestRecord.laserSource.passB ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {latestRecord?.laserSource.headB !== null && latestRecord?.laserSource.headB !== undefined
+                    ? `${latestRecord.laserSource.headB} W`
+                    : '—'}
+                </span>
               </div>
             </div>
           </div>
@@ -319,47 +335,63 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
 
         {/* Card 2: After Top Hat / Optics */}
         <Card title="After Top Hat / Optics">
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
-              <span>Spec: 15W ±10% (13.5–16.5W)</span>
-              <span className="font-mono">External Meter</span>
+          <div className="space-y-2.5 text-xs">
+            <div className={`flex items-center justify-between text-[11px] pb-1.5 border-b ${
+              isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'
+            }`}>
+              <span className="font-medium">Spec: 15W ±10% (13.5–16.5W)</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/40 border border-slate-700/40">
+                External Meter
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {latestRecord?.opticsTopHat.headA !== null && latestRecord?.opticsTopHat.headA !== undefined
-                      ? `${latestRecord.opticsTopHat.headA} W`
-                      : '—'}
+            <div className="grid grid-cols-2 gap-2">
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 1 (A)
                   </span>
                   {latestRecord && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      latestRecord.opticsTopHat.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      latestRecord.opticsTopHat.passA
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {latestRecord.opticsTopHat.passA ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {latestRecord?.opticsTopHat.headA !== null && latestRecord?.opticsTopHat.headA !== undefined
+                    ? `${latestRecord.opticsTopHat.headA} W`
+                    : '—'}
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {latestRecord?.opticsTopHat.headB !== null && latestRecord?.opticsTopHat.headB !== undefined
-                      ? `${latestRecord.opticsTopHat.headB} W`
-                      : '—'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 2 (B)
                   </span>
                   {latestRecord && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      latestRecord.opticsTopHat.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      latestRecord.opticsTopHat.passB
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {latestRecord.opticsTopHat.passB ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {latestRecord?.opticsTopHat.headB !== null && latestRecord?.opticsTopHat.headB !== undefined
+                    ? `${latestRecord.opticsTopHat.headB} W`
+                    : '—'}
+                </span>
               </div>
             </div>
           </div>
@@ -367,70 +399,118 @@ export const MachineLaserPowerWorkspace: React.FC<MachineLaserPowerWorkspaceProp
 
         {/* Card 3: Working Zone (Mask 1.3mm) */}
         <Card title="Working Zone (1.3mm Mask)">
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800">
-              <span>Spec: ≥1.0 W</span>
-              <span className="font-mono">Internal Meter</span>
+          <div className="space-y-2.5 text-xs">
+            <div className={`flex items-center justify-between text-[11px] pb-1.5 border-b ${
+              isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'
+            }`}>
+              <span className="font-medium">Spec: ≥1.0 W</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/40 border border-slate-700/40">
+                Internal Meter
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD A</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {mask13?.headA !== null && mask13?.headA !== undefined ? `${mask13.headA} W` : '—'}
+            <div className="grid grid-cols-2 gap-2">
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 1 (A)
                   </span>
                   {mask13 && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      mask13.passA ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      mask13.passA
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {mask13.passA ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {mask13?.headA !== null && mask13?.headA !== undefined ? `${mask13.headA} W` : '—'}
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">HEAD B</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {mask13?.headB !== null && mask13?.headB !== undefined ? `${mask13.headB} W` : '—'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    HEAD 2 (B)
                   </span>
                   {mask13 && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                      mask13.passB ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-rose-950/80 text-rose-400 border border-rose-800'
+                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                      mask13.passB
+                        ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
                     }`}>
                       {mask13.passB ? 'PASS' : 'FAIL'}
                     </span>
                   )}
                 </div>
+                <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {mask13?.headB !== null && mask13?.headB !== undefined ? `${mask13.headB} W` : '—'}
+                </span>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Card 4: Overall Calibration Summary */}
-        <Card title="Overall Power Health" className="self-start h-fit">
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Latest Date:</span>
-              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{latestRecord?.date || 'No Record'}</span>
+        {/* Card 4: Overall Calibration Summary (Distinct from individual measurements) */}
+        <Card
+          title={
+            <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400">
+              <Activity className="w-4 h-4" />
+              <span>Overall Power Health</span>
             </div>
-
-            <div className="flex items-center justify-between">
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Frequency:</span>
-              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{latestRecord?.frequencyKhz || 50} kHz</span>
-            </div>
-
-            <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Verdict:</span>
-              {latestRecord ? (
-                <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
-                  {latestRecord.overallResult}
-                </Badge>
-              ) : (
-                <span className="text-slate-500 italic">No Checks</span>
+          }
+          className={`self-start h-fit border-amber-500/25 ${isDark ? 'bg-[#181c22]' : 'bg-amber-500/[0.02]'}`}
+        >
+          <div className="space-y-3 text-xs">
+            {/* Verdict Hero Display */}
+            <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+              latestRecord
+                ? latestRecord.overallResult === 'PASS'
+                  ? isDark ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                  : isDark ? 'bg-rose-950/40 border-rose-800/80 text-rose-300' : 'bg-rose-50 border-rose-300 text-rose-800'
+                : isDark ? 'bg-slate-900/60 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+            }`}>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-75">Health Verdict</span>
+                <span className="text-sm font-bold font-mono">
+                  {latestRecord?.overallResult || 'NO CHECKS'}
+                </span>
+              </div>
+              {latestRecord && (
+                latestRecord.overallResult === 'PASS' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+                )
               )}
+            </div>
+
+            {/* Subordinated metadata fields */}
+            <div className="space-y-1.5 pt-0.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className={`text-[11px] flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <Calendar className="w-3.5 h-3.5 opacity-70" />
+                  Latest Date:
+                </span>
+                <span className={`font-semibold font-mono text-[11px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  {latestRecord?.date || 'No Record'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Frequency:
+                </span>
+                <span className={`font-semibold font-mono text-[11px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  {latestRecord?.frequencyKhz || 50} kHz
+                </span>
+              </div>
             </div>
           </div>
         </Card>

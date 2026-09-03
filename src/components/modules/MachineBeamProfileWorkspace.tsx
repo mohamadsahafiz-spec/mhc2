@@ -277,36 +277,68 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Card 1: Laser 1 Source & Top Hat */}
         <Card title="Laser 1 (Head A) Source / Top Hat">
-          <div className="space-y-2 text-xs">
+          <div className="space-y-2.5 text-xs">
             <div className="grid grid-cols-2 gap-2">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">6A — SOURCE</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec6A?.measuredDiameterMm !== null && rec6A?.measuredDiameterMm !== undefined ? `${rec6A.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec6A && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec6A.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec6A.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      6A — SOURCE
                     </span>
-                  )}
+                    {rec6A && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec6A.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec6A.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec6A?.measuredDiameterMm !== null && rec6A?.measuredDiameterMm !== undefined
+                      ? `${rec6A.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">3.5mm ±10%</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: 3.5mm ±10%
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">6B — TOP HAT</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec6B?.measuredDiameterMm !== null && rec6B?.measuredDiameterMm !== undefined ? `${rec6B.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec6B && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec6B.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec6B.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      6B — TOP HAT
                     </span>
-                  )}
+                    {rec6B && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec6B.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec6B.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec6B?.measuredDiameterMm !== null && rec6B?.measuredDiameterMm !== undefined
+                      ? `${rec6B.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">4.2mm ±5%</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: 4.2mm ±5%
+                </span>
               </div>
             </div>
           </div>
@@ -314,36 +346,68 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 
         {/* Card 2: Laser 2 Source & Top Hat */}
         <Card title="Laser 2 (Head B) Source / Top Hat">
-          <div className="space-y-2 text-xs">
+          <div className="space-y-2.5 text-xs">
             <div className="grid grid-cols-2 gap-2">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">7A — SOURCE</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec7A?.measuredDiameterMm !== null && rec7A?.measuredDiameterMm !== undefined ? `${rec7A.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec7A && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec7A.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec7A.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      7A — SOURCE
                     </span>
-                  )}
+                    {rec7A && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec7A.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec7A.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec7A?.measuredDiameterMm !== null && rec7A?.measuredDiameterMm !== undefined
+                      ? `${rec7A.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">3.5mm ±10%</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: 3.5mm ±10%
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">7B — TOP HAT</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec7B?.measuredDiameterMm !== null && rec7B?.measuredDiameterMm !== undefined ? `${rec7B.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec7B && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec7B.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec7B.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      7B — TOP HAT
                     </span>
-                  )}
+                    {rec7B && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec7B.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec7B.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec7B?.measuredDiameterMm !== null && rec7B?.measuredDiameterMm !== undefined
+                      ? `${rec7B.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">4.2mm ±5%</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: 4.2mm ±5%
+                </span>
               </div>
             </div>
           </div>
@@ -351,62 +415,109 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 
         {/* Card 3: Mask 1.3mm Checkpoints */}
         <Card title="Working Zone 1.3mm Masks">
-          <div className="space-y-2 text-xs">
+          <div className="space-y-2.5 text-xs">
             <div className="grid grid-cols-2 gap-2">
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">6C / 1.3mm</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec6C13?.measuredDiameterMm !== null && rec6C13?.measuredDiameterMm !== undefined ? `${rec6C13.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec6C13 && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec6C13.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec6C13.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      LASER 1 (6C)
                     </span>
-                  )}
+                    {rec6C13 && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec6C13.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec6C13.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec6C13?.measuredDiameterMm !== null && rec6C13?.measuredDiameterMm !== undefined
+                      ? `${rec6C13.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">≥1.3mm</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: ≥1.3mm
+                </span>
               </div>
 
-              <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] text-slate-500 font-bold block">7C / 1.3mm</span>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-sm font-bold font-mono text-slate-200">
-                    {rec7C13?.measuredDiameterMm !== null && rec7C13?.measuredDiameterMm !== undefined ? `${rec7C13.measuredDiameterMm} mm` : '—'}
-                  </span>
-                  {rec7C13 && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${rec7C13.pass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
-                      {rec7C13.pass ? 'PASS' : 'FAIL'}
+              <div className={`p-2.5 rounded-lg border flex flex-col justify-between ${
+                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-2xs'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      LASER 2 (7C)
                     </span>
-                  )}
+                    {rec7C13 && (
+                      <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                        rec7C13.pass
+                          ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : isDark ? 'bg-rose-950/80 text-rose-400 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-300'
+                      }`}>
+                        {rec7C13.pass ? 'PASS' : 'FAIL'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    {rec7C13?.measuredDiameterMm !== null && rec7C13?.measuredDiameterMm !== undefined
+                      ? `${rec7C13.measuredDiameterMm} mm`
+                      : '—'}
+                  </span>
                 </div>
-                <span className="text-[9px] text-slate-500 block mt-1">≥1.3mm</span>
+                <span className={`text-[9px] font-medium block mt-1.5 pt-1 border-t ${
+                  isDark ? 'border-slate-800/80 text-slate-500' : 'border-slate-200 text-slate-500'
+                }`}>
+                  Spec: ≥1.3mm
+                </span>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Card 4: Record Summary */}
-        <Card title="Latest Record Info" className="self-start h-fit">
+        {/* Card 4: Record Summary (Clearly secondary to engineering measurements) */}
+        <Card
+          title={
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Info className="w-4 h-4 opacity-75" />
+              <span>Latest Record Info</span>
+            </div>
+          }
+          className={`self-start h-fit border-dashed ${isDark ? 'bg-[#16191D]/80 border-slate-800' : 'bg-slate-50/70 border-slate-300/80'}`}
+        >
           <div className="space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Latest Date:</span>
-              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{latestRecord?.date || 'No Record'}</span>
+              <span className={`text-[11px] flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <Calendar className="w-3.5 h-3.5 opacity-70" />
+                Latest Date:
+              </span>
+              <span className={`font-semibold font-mono text-[11px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                {latestRecord?.date || 'No Record'}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Checkpoints:</span>
-              <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>16 Items (6A-6C & 7A-7C)</span>
+              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Checkpoints:</span>
+              <span className={`font-semibold font-mono text-[11px] ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                16 Checkpoints
+              </span>
             </div>
 
             <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Verdict:</span>
+              <span className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Overall Verdict:</span>
               {latestRecord ? (
-                <Badge variant={latestRecord.overallResult === 'PASS' ? 'success' : 'danger'}>
+                <Badge variant={latestRecord.overallResult === 'PASS' ? 'emerald' : 'rose'}>
                   {latestRecord.overallResult}
                 </Badge>
               ) : (
-                <span className="text-slate-500 italic">No Checks</span>
+                <span className="text-slate-500 italic text-[11px]">No Checks</span>
               )}
             </div>
           </div>

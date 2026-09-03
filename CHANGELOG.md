@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v1.2.19 — BATCH B: Improve Information Hierarchy (Temperature, Laser Power, Beam Profile) (2026-09-03)
+
+### Information Hierarchy & Readability Improvements
+- **Temperature History**: Reorganized temperature history record rows into four distinct, scannable zones:
+  - *Primary Identity*: Prominent title and point count badge.
+  - *Subordinated Metadata*: Date, timestamp, sampling interval, and truncated secondary source file names styled with subtle contrast so they no longer visually compete with core results.
+  - *Core Engineering Statistics*: High-contrast numeric badges for MIN, MAX, AVG, and RANGE metrics with thematic color accents and dark/light mode balance.
+  - *Dedicated Action Zone*: Partitioned "View Graph" button and delete action separated by subtle visual boundary.
+- **Laser Power**:
+  - *Head 1 / Head 2 Contrast*: Redesigned measurement cells with prominent numeric readings, distinct head identity labels (`HEAD 1 (A)` / `HEAD 2 (B)`), and immediate PASS/FAIL badges with high-contrast background and border styling for both dark and light themes.
+  - *Distinct Overall Power Health*: Framed the Overall Power Health card as a dedicated health overview panel with a prominent verdict display and subordinate inspection metadata.
+- **Beam Profile**:
+  - *Telemetry Measurements Hierarchy*: Restructured checkpoint summary cards with clear laser head labels, high-visibility measured diameter values (`mm`), instant PASS/FAIL status indicators, and subtle specification targets.
+  - *Subordinated Latest Record Info*: Styled the record info card as a compact secondary metadata reference that no longer competes with primary optical telemetry data.
+- **Verification & Integrity**: All underlying data schemas, calculations, interactions, and report structures remain 100% preserved.
+
 ## v1.2.18 — FOCUS OPTIMIZATION: Presentation Cleanup & Thumbnail Flicker Resolution (2026-09-03)
 
 ### Focus Optimization Presentation & Stability Refinement
