@@ -29,6 +29,7 @@ import {
 import { BeamProfileEngine } from '../../../utils/beamProfileEngine';
 import { StorageService } from '../../../utils/persistence';
 import { ImageStore } from '../../../utils/imageStore';
+import { createDefaultAutopilotProgress } from '../../../utils/mhcAutopilotBrain';
 
 export interface MhcLaserBeamActivityProps {
   session: MHCSession;
@@ -295,11 +296,6 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       return;
     }
 
-    if (hasFailures || !isOverallPass) {
-      if (showNotification) showNotification('⚠ Cannot complete: Some beam diameter measurements are OUT OF SPEC.');
-      return;
-    }
-
     // Build draft readings map
     const draftReadings: Partial<Record<CheckpointId, BeamCheckpointReading>> = {};
     CHECKPOINT_SPECS.forEach(s => {
@@ -318,10 +314,20 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       date: new Date().toISOString().split('T')[0],
       readings: draftReadings as Record<CheckpointId, BeamCheckpointReading>,
       engineerRemarks,
-      overallResult: 'PASS'
+      overallResult: isOverallPass ? 'PASS' : 'FAIL'
     };
 
     const evaluatedRecord = BeamProfileEngine.evaluateRecord(draftRecord);
+
+    const beamStatus: 'COMPLETED' | 'NEEDS_REVIEW' = isOverallPass ? 'COMPLETED' : 'NEEDS_REVIEW';
+    const currentProgress = session.autopilotProgress || createDefaultAutopilotProgress();
+    const activityStatuses = { ...currentProgress.activityStatuses };
+    activityStatuses['02_beam'] = beamStatus;
+    activityStatuses['03_beam'] = beamStatus;
+
+    if (activityStatuses['02_findings'] === 'LOCKED' || activityStatuses['02_findings'] === 'UPCOMING') {
+      activityStatuses['02_findings'] = 'IN_PROGRESS';
+    }
 
     // Update MHCSession
     const updatedSession: MHCSession = {
@@ -329,10 +335,18 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       stage02_laserProfile: {
         ...session.stage02_laserProfile,
         profileInfo: `Beam Profile & Mode Check Complete (${evalHead1.passCount + evalHead2.passCount}/16 stations passed)`,
-        notes: engineerRemarks || 'Beam profile and mode measurements verified across both laser heads.',
+        notes: engineerRemarks || (isOverallPass 
+          ? 'Beam profile and mode measurements verified across both laser heads.' 
+          : `Beam profile check completed with ${16 - (evalHead1.passCount + evalHead2.passCount)} out-of-spec station(s) (NEEDS REVIEW).`),
         beamProfileRecord: evaluatedRecord
       },
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      autopilotProgress: {
+        ...currentProgress,
+        currentActivityCode: '02_findings',
+        activityStatuses,
+        lastActiveTimestamp: new Date().toISOString()
+      }
     };
 
     onUpdateSession(updatedSession);
@@ -354,7 +368,11 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
     }
 
     if (showNotification) {
-      showNotification('✓ Authoritative Beam Profile Record saved & Journey Rail advanced!');
+      if (isOverallPass) {
+        showNotification('✓ Authoritative Beam Profile Record saved (PASS) & Journey Rail advanced!');
+      } else {
+        showNotification(`⚠ Beam Profile Record saved with ${16 - (evalHead1.passCount + evalHead2.passCount)} out-of-spec station(s) (NEEDS REVIEW) & Journey Rail advanced.`);
+      }
     }
 
     // Complete activity in Journey Rail with updated session
@@ -875,12 +893,16 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       <div className={`p-5 rounded-2xl border space-y-4 ${
         isOverallPass
           ? isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
+          : hasFailures && isOverallComplete
+          ? isDark ? 'bg-amber-950/30 border-amber-500/40' : 'bg-amber-50 border-amber-300'
           : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className={`w-5 h-5 ${isOverallPass ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <ShieldCheck className={`w-5 h-5 ${
+                isOverallPass ? 'text-emerald-400' : hasFailures && isOverallComplete ? 'text-amber-400' : 'text-slate-400'
+              }`} />
               <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
                 Beam Profile Completion Gate
               </h4>
@@ -888,8 +910,10 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
             <p className="text-xs text-slate-400">
               {isOverallPass 
                 ? 'All 16 beam diameter measurements satisfy specifications. Ready to record authoritative session data and advance Journey Rail.' 
+                : hasFailures && isOverallComplete
+                ? 'Out-of-spec measurement points detected. You may proceed to record findings (NEEDS REVIEW) and advance Journey Rail.'
                 : hasFailures
-                ? 'Out-of-spec measurement points detected. Please correct or re-measure failing stations before completing.'
+                ? 'Out-of-spec measurement points detected. Please complete all 16 stations across both heads to advance.'
                 : 'Please complete all 16 beam diameter stations across Laser Head 1 and Laser Head 2.'}
             </p>
           </div>
@@ -906,16 +930,24 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
         {!isReadOnly && (
           <div className="pt-2 flex justify-end">
             <button
-              disabled={!isOverallPass || !isOverallComplete}
+              disabled={!isOverallComplete}
               onClick={handleSaveAndComplete}
               className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
-                isOverallPass && isOverallComplete
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                isOverallComplete
+                  ? isOverallPass
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Complete Beam Profile Activity & Advance Journey Rail</span>
+              <span>
+                {isOverallPass
+                  ? 'Complete Beam Profile Activity & Advance Journey Rail'
+                  : hasFailures && isOverallComplete
+                  ? 'Record Out-of-Spec Findings (NEEDS REVIEW) & Advance Journey Rail'
+                  : 'Complete All 16 Stations to Advance'}
+              </span>
             </button>
           </div>
         )}
