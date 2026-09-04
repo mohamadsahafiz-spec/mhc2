@@ -111,15 +111,18 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
       }
 
       const stats = TemperatureEngine.calculateGlobalStats(downsampledChannelData);
-      const recordId = `TR-${Date.now()}`;
+      const existingSessionRecordId = session.temperatureEvidenceData?.temperatureRecordId;
+      const recordId = existingSessionRecordId || `TR-${Date.now()}`;
       const title = fileArray.map(f => f.name).join(', ');
+
+      const existingRecord = (machine.temperatureRecords || []).find(r => r.id === recordId);
 
       // 3. Create SavedTemperatureRecord
       const newRecord: SavedTemperatureRecord = {
         id: recordId,
         machineId: machine.id,
         title,
-        createdAt: new Date().toISOString(),
+        createdAt: existingRecord?.createdAt || new Date().toISOString(),
         sourceFileNames: fileArray.map(f => f.name),
         rawRecordsCount: analysisResult.rawRecords.length,
         intervalSec: 10,
@@ -134,13 +137,16 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
       TempRawStore.saveRawRecords(recordId, analysisResult.rawRecords);
 
       // 5. Update Machine records
-      const updatedRecords = [newRecord, ...(machine.temperatureRecords || [])];
+      const existingRecords = (machine.temperatureRecords || []).filter(r => r.id !== recordId);
+      const updatedRecords = [newRecord, ...existingRecords];
       const updatedMachine = { ...machine, temperatureRecords: updatedRecords };
 
       if (onUpdateMachine) {
         onUpdateMachine(updatedMachine);
       }
-      StorageService.saveMachines([updatedMachine, ...StorageService.getMachines().filter(m => m.id !== machine.id)]);
+      const allMachines = StorageService.getMachines();
+      const otherMachines = allMachines.filter(m => m.id !== machine.id);
+      StorageService.saveMachines([updatedMachine, ...otherMachines]);
 
       // 6. Attach to session
       attachRecordToSession(newRecord);

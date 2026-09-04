@@ -138,7 +138,7 @@ export interface MhcReportExecutiveSummaryData {
   keyFindings: string[];
   majorPassFailResults: Array<{
     component: string;
-    verdict: 'PASS' | 'WARNING' | 'FAIL' | 'UNANSWERED' | 'NOT_COLLECTED';
+    verdict: 'PASS' | 'WARNING' | 'FAIL' | 'UNANSWERED' | 'NOT_COLLECTED' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'OUT_OF_SPEC';
     note: string;
   }>;
   replacementRecommendations: string[];
@@ -188,7 +188,10 @@ export interface MhcPowerComparisonItem {
     measuredWatts: number;
     stabilityPercent: number;
     measurementDate: string;
-    verdict: 'PASS' | 'WARNING' | 'FAIL';
+    verdict: 'PASS' | 'WARNING' | 'FAIL' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'OUT_OF_SPEC';
+    rawMeasurementVerdict?: 'PASS' | 'FAIL' | 'OUT_OF_SPEC';
+    engineerDisposition?: string;
+    dispositionRationale?: string;
     notes?: string;
     // Complete authoritative measurement breakdown
     laserSourceWatts?: number | null;
@@ -224,6 +227,9 @@ export interface MhcReportLaserPowerData {
   hasPreviousBaseline: boolean;
   comparisonNote: string;
   heads: MhcPowerComparisonItem[];
+  rawResult?: 'PASS' | 'FAIL' | 'OUT_OF_SPEC';
+  engineerDisposition?: string;
+  dispositionRationale?: string;
 }
 
 // 07 Beam Profile Comparison Item
@@ -240,6 +246,9 @@ export interface MhcBeamProfileComparisonItem {
     m2Value?: number;
     modeQuality?: string;
     overallResult?: string;
+    rawMeasurementVerdict?: 'PASS' | 'FAIL' | 'OUT_OF_SPEC';
+    engineerDisposition?: string;
+    dispositionRationale?: string;
     notes?: string;
     // Complete authoritative checkpoint readings
     checkpoints?: Array<{
@@ -271,6 +280,9 @@ export interface MhcReportBeamProfileData {
   comparisonNote: string;
   measurementStation: string;
   heads: MhcBeamProfileComparisonItem[];
+  rawResult?: 'PASS' | 'FAIL' | 'OUT_OF_SPEC';
+  engineerDisposition?: string;
+  dispositionRationale?: string;
 }
 
 // 08 Focus Optimization
@@ -300,6 +312,10 @@ export interface MhcReportFocusOptimizationData {
   topViaImpactNote: string;
   heads: MhcFocusLaserHeadRecord[];
   notes?: string;
+  executionState?: 'PERFORMED' | 'NOT_REQUIRED' | 'NOT_COLLECTED';
+  isHistoricalReference?: boolean;
+  historicalRecordDate?: string;
+  skippedReason?: string;
 }
 
 // 09 Power Offset
@@ -496,6 +512,7 @@ export interface MhcReportLaserProductProfileData {
     viaImageDataUrl?: string;
   };
   hasViaRecord?: boolean;
+  isCurrentMhcVia?: boolean;
   notes?: string;
 }
 

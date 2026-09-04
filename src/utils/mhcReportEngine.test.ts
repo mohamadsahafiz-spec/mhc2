@@ -1065,5 +1065,51 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['07'].data.heads[1].date).toBe('2026-05-14');
     expect(doc.sections['01'].data.date).toBe('2026-08-21');
   });
+
+  it('should inherit product/recipe from Machine Passport but distinguish current-MHC Via data when session has not collected Vias', () => {
+    const session = createDummySession('SESS-NO-CURRENT-VIA');
+    session.machineId = 'MC-TEST-001';
+    session.productProcessRecord = undefined;
+    session.productProcessRecords = [];
+
+    const mockMachine: any = {
+      id: 'MC-TEST-001',
+      model: 'EO-MICRO-5000',
+      serialNumber: 'MC230038',
+      productProcessRecords: [
+        {
+          id: 'PP-HISTORICAL-PASSPORT',
+          date: '2026-01-10',
+          productName: 'PASSPORT-SUBSTRATE-V1',
+          recipeName: 'PASSPORT-RECIPE-A',
+          lotPanel: 'LOT-HISTORICAL',
+          phase1: { powerWatts: 0.50, frequencyKhz: 50, shotCount: 20, maskMm: 1.5, defocusMm: 0 },
+          phase2: { powerWatts: 0.40, frequencyKhz: 50, shotCount: 15, maskMm: 1.2, defocusMm: 0 },
+          viaSpec: { topTargetUm: 50, topToleranceUm: 5, bottomTargetUm: 25, bottomToleranceUm: 5 },
+          laser1Via: { topWidthUm: 49.5, bottomWidthUm: 24.8, topPass: true, bottomPass: true, overallPass: true },
+          laser2Via: { topWidthUm: 50.2, bottomWidthUm: 25.1, topPass: true, bottomPass: true, overallPass: true },
+          overallResult: 'PASS',
+          engineerRemarks: 'Old passport baseline'
+        }
+      ]
+    };
+
+    const doc = buildMhcReportDocument(session, undefined, { machines: [mockMachine] });
+
+    // Section 12 product & recipe are inherited from Passport baseline
+    expect(doc.sections['12'].data.productName).toBe('PASSPORT-SUBSTRATE-V1');
+    expect(doc.sections['12'].data.recipeName).toBe('PASSPORT-RECIPE-A');
+    expect(doc.sections['12'].data.hasProcessRecord).toBe(true);
+
+    // Section 12 via measurements must NOT claim historical passport readings as current MHC
+    expect(doc.sections['12'].data.laser1Via).toBeUndefined();
+    expect(doc.sections['12'].data.laser2Via).toBeUndefined();
+    expect(doc.sections['12'].data.hasViaRecord).toBe(false);
+    expect(doc.sections['12'].data.isCurrentMhcVia).toBe(false);
+
+    // Machine passport record is pristine and unmutated
+    expect(mockMachine.productProcessRecords[0].id).toBe('PP-HISTORICAL-PASSPORT');
+    expect(mockMachine.productProcessRecords[0].productName).toBe('PASSPORT-SUBSTRATE-V1');
+  });
 });
 

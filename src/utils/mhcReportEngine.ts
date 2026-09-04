@@ -34,7 +34,7 @@ import {
   MhcReportEvidenceItem,
   MhcReportBuyoffData
 } from '../types';
-import { auditMhcSession } from './mhcAutopilotBrain';
+import { auditMhcSession, getActivityDisposition } from './mhcAutopilotBrain';
 import { LaserEngine } from './laserEngine';
 import { ImageStore } from './imageStore';
 import { StorageService } from './persistence';
@@ -360,6 +360,10 @@ export function buildMhcReportDocument(
     const currentMeasurementDate = session.completedDate || session.startDate || coverData.date;
     const prevMeasurementDate = previousSession?.completedDate || previousSession?.startDate || 'Previous MHC';
 
+    const rawHeadVerdict: 'PASS' | 'FAIL' | 'OUT_OF_SPEC' = curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'OUT_OF_SPEC' : (currMeasuredWatts > 0 ? 'PASS' : 'OUT_OF_SPEC');
+    const powerDisp = getActivityDisposition(session, '02_power');
+    const headVerdict = powerDisp?.verdict ? (powerDisp.verdict as any) : (rawHeadVerdict === 'OUT_OF_SPEC' ? 'FAIL' : rawHeadVerdict);
+
     return {
       headId,
       headName: resolvedHeadName,
@@ -371,7 +375,10 @@ export function buildMhcReportDocument(
         measuredWatts: currMeasuredWatts,
         stabilityPercent: curr?.stabilityPercent || 0,
         measurementDate: currentMeasurementDate,
-        verdict: curr?.result === 'PASS' ? 'PASS' : curr?.result === 'FAIL' ? 'FAIL' : (currMeasuredWatts > 0 ? 'PASS' : 'WARNING'),
+        verdict: headVerdict,
+        rawMeasurementVerdict: rawHeadVerdict,
+        engineerDisposition: powerDisp?.verdict,
+        dispositionRationale: powerDisp?.rationale || powerDisp?.engineerNote,
         notes: curr?.notes,
         laserSourceWatts,
         opticsTopHatWatts,
@@ -394,10 +401,16 @@ export function buildMhcReportDocument(
     };
   });
 
+  const powerDisp = getActivityDisposition(session, '02_power');
+  const rawPowerPass = headsPowerComparison.every(h => h.current.rawMeasurementVerdict === 'PASS');
+
   const laserPowerData: MhcReportLaserPowerData = {
     hasPreviousBaseline: hasPreviousPower,
     comparisonNote: hasPreviousPower ? 'Compared against previous maintenance baseline session.' : 'No previous baseline recorded in session history.',
-    heads: headsPowerComparison
+    heads: headsPowerComparison,
+    rawResult: rawPowerPass ? 'PASS' : 'OUT_OF_SPEC',
+    engineerDisposition: powerDisp?.verdict,
+    dispositionRationale: powerDisp?.rationale || powerDisp?.engineerNote
   };
 
   const laserPowerSection: MhcReportSection<MhcReportLaserPowerData> = {
@@ -405,7 +418,7 @@ export function buildMhcReportDocument(
     title: 'Laser Power',
     displayOrder: 5,
     isVisible: options?.sectionVisibilityOverrides?.['05'] ?? true,
-    status: powerItems.length > 0 ? 'COMPLETE' : 'NOT_COLLECTED',
+    status: powerItems.length > 0 ? (rawPowerPass || powerDisp ? 'COMPLETE' : 'NEEDS_REVIEW') : 'NOT_COLLECTED',
     data: laserPowerData,
     summaryNote: laserPowerData.comparisonNote
   };
@@ -494,6 +507,10 @@ export function buildMhcReportDocument(
     const headSerial = isHead1 ? (matchedMachine?.laserHeads?.[0]?.serialNumber || laserHoursDetails[0]?.serialNumber) : (matchedMachine?.laserHeads?.[1]?.serialNumber || laserHoursDetails[1]?.serialNumber);
     const resolvedHeadName = headName + (headSerial ? ` (${headSerial})` : '');
 
+    const rawCheckpointsPass = checkpointsList.every(cp => cp.pass);
+    const rawHeadVerdict: 'PASS' | 'FAIL' | 'OUT_OF_SPEC' = rawCheckpointsPass ? 'PASS' : 'OUT_OF_SPEC';
+    const beamDisp = getActivityDisposition(session, '02_beam');
+
     return {
       headId,
       headName: resolvedHeadName,
@@ -502,7 +519,10 @@ export function buildMhcReportDocument(
       measurementStation: 'Standard Beam Profiler',
       current: {
         beamSizeMm: currDiameter || undefined,
-        overallResult: beamRecord?.overallResult || 'PASS',
+        overallResult: beamDisp?.verdict || (rawHeadVerdict === 'PASS' ? 'PASS' : 'FAIL'),
+        rawMeasurementVerdict: rawHeadVerdict,
+        engineerDisposition: beamDisp?.verdict,
+        dispositionRationale: beamDisp?.rationale || beamDisp?.engineerNote,
         notes: beamRecord?.engineerRemarks,
         checkpoints: checkpointsList
       },
@@ -520,11 +540,17 @@ export function buildMhcReportDocument(
     };
   });
 
+  const beamDisp = getActivityDisposition(session, '02_beam');
+  const rawBeamPass = beamHeadsComparison.every(h => h.current.rawMeasurementVerdict === 'PASS') && (beamRecord?.overallResult !== 'FAIL');
+
   const beamProfileData: MhcReportBeamProfileData = {
     hasPreviousBaseline: hasPreviousBeam,
     comparisonNote: hasPreviousBeam ? 'Beam profile spatial distribution evaluated against previous baseline.' : 'No previous baseline available for beam profile comparison.',
     measurementStation: 'Integrated Profiler',
-    heads: beamHeadsComparison
+    heads: beamHeadsComparison,
+    rawResult: rawBeamPass ? 'PASS' : 'OUT_OF_SPEC',
+    engineerDisposition: beamDisp?.verdict,
+    dispositionRationale: beamDisp?.rationale || beamDisp?.engineerNote
   };
 
   const beamProfileSection: MhcReportSection<MhcReportBeamProfileData> = {
@@ -532,7 +558,9 @@ export function buildMhcReportDocument(
     title: 'Beam Profile',
     displayOrder: 6,
     isVisible: options?.sectionVisibilityOverrides?.['06'] ?? true,
-    status: (beamRecord || session.stage04_opticsBeam?.beamWaistMm || (session.stage04_opticsBeam?.images && session.stage04_opticsBeam.images.length > 0) || session.stage04_opticsBeam?.inspectionResult) ? 'COMPLETE' : (session.stage04_opticsBeam ? 'COMPLETE' : 'NOT_COLLECTED'),
+    status: (beamRecord || session.stage04_opticsBeam?.beamWaistMm || (session.stage04_opticsBeam?.images && session.stage04_opticsBeam.images.length > 0) || session.stage04_opticsBeam?.inspectionResult)
+      ? (rawBeamPass || beamDisp ? 'COMPLETE' : 'NEEDS_REVIEW')
+      : (session.stage04_opticsBeam ? 'COMPLETE' : 'NOT_COLLECTED'),
     data: beamProfileData
   };
 
@@ -542,7 +570,19 @@ export function buildMhcReportDocument(
     || (session as any).focusOptimizationRecords?.[0]
     || null;
   const passportFocusRecord = matchedMachine?.focusOptimizationRecords?.[0] || null;
-  const activeFocusRecord = explicitSessionFocusRecord || passportFocusRecord;
+
+  // Determine execution state: explicit choice takes precedence
+  const isExplicitNotRequired = session.focusExecutionState === 'NOT_REQUIRED' || (
+    session.focusExecutionState === undefined && !explicitSessionFocusRecord && Boolean(session.focusSkippedReason)
+  );
+  const isExplicitPerformed = session.focusExecutionState === 'PERFORMED' || (
+    session.focusExecutionState === undefined && Boolean(explicitSessionFocusRecord)
+  );
+
+  const isFocusPerformed = isExplicitPerformed && Boolean(explicitSessionFocusRecord);
+  const isFocusNotRequired = isExplicitNotRequired;
+  const isHistoricalReference = !isFocusPerformed && Boolean(passportFocusRecord);
+  const activeFocusRecord = isFocusPerformed ? explicitSessionFocusRecord : passportFocusRecord;
 
   const TOP_VIA_IMPACT_NOTE = 'Top via impact: Focus adjustment primarily affects top diameter (~90%), significantly influencing top via.';
 
@@ -594,13 +634,21 @@ export function buildMhcReportDocument(
 
     const headLabel = (headEvidence?.laserLabel === 'Laser 1' ? 'Laser Head 1' : headEvidence?.laserLabel === 'Laser 2' ? 'Laser Head 2' : headEvidence?.laserLabel) || defaultLabel;
 
+    const recordDate = isHistoricalReference
+      ? (passportFocusRecord?.date || 'Historical')
+      : (hydrated.date || sessionDate || '—');
+
+    const evaluationText = isHistoricalReference
+      ? `Historical Reference (${passportFocusRecord?.date || 'Passport'}) — Not performed during this MHC.`
+      : (hydrated.serviceRecord || hydrated.overallResult || 'Optical focus verified across designated focal sequence.');
+
     return {
       laserHeadId: headId,
       laserLabel: headLabel,
-      date: hydrated.date || sessionDate || '—',
+      date: recordDate,
       adjustmentReason: adjustmentReasonStr,
       baseline: '-0.300 mm',
-      evaluation: hydrated.serviceRecord || hydrated.overallResult || 'Optical focus verified across designated focal sequence.',
+      evaluation: evaluationText,
       reason: adjustmentReasonStr,
       positions
     };
@@ -611,12 +659,32 @@ export function buildMhcReportDocument(
     buildHeadRecord('laser2', 'Laser Head 2', hydrated.laser2)
   ];
 
+  const executionState: 'PERFORMED' | 'NOT_REQUIRED' | 'NOT_COLLECTED' = isFocusPerformed
+    ? 'PERFORMED'
+    : isFocusNotRequired
+      ? 'NOT_REQUIRED'
+      : activeFocusRecord
+        ? (isHistoricalReference ? 'NOT_REQUIRED' : 'PERFORMED')
+        : 'NOT_COLLECTED';
+
+  const sectionStatus = (isFocusPerformed || isFocusNotRequired)
+    ? 'COMPLETE'
+    : activeFocusRecord
+      ? 'COMPLETE'
+      : 'NOT_COLLECTED';
+
   focusOptimizationData = {
-    status: activeFocusRecord ? 'COMPLETE' : 'NOT_COLLECTED',
-    hasRecord: !!activeFocusRecord,
+    status: sectionStatus,
+    hasRecord: Boolean(activeFocusRecord),
+    executionState,
+    isHistoricalReference,
+    historicalRecordDate: isHistoricalReference ? passportFocusRecord?.date : undefined,
+    skippedReason: session.focusSkippedReason || (isFocusNotRequired ? 'Focus optimization not required for current MHC service.' : undefined),
     topViaImpactNote: TOP_VIA_IMPACT_NOTE,
     heads,
-    notes: hydrated.serviceRecord || `Authoritative focus optimization record dated ${hydrated.date}.`
+    notes: isHistoricalReference
+      ? `Historical passport baseline from ${passportFocusRecord?.date}. Focus optimization was not performed during this MHC session${session.focusSkippedReason ? ` (${session.focusSkippedReason})` : ''}.`
+      : (hydrated.serviceRecord || `Authoritative focus optimization record dated ${hydrated.date || sessionDate}.`)
   };
 
   const focusOptimizationSection: MhcReportSection<MhcReportFocusOptimizationData> = {
@@ -630,7 +698,9 @@ export function buildMhcReportDocument(
 
   // 09 POWER OFFSET & CALIBRATION
   // Authoritative Machine Passport Product Identity / Process Parameters
-  const latestProductProcess = (session as any).productProcessRecord || (session as any).productProcessRecords?.[0] || matchedMachine?.productProcessRecords?.[0];
+  const sessionProductProcess = (session as any).productProcessRecord || (session as any).productProcessRecords?.[0];
+  const passportProductProcess = matchedMachine?.productProcessRecords?.[0];
+  const latestProductProcess = sessionProductProcess || passportProductProcess;
   const prevProductProcess = (session as any).productProcessRecords?.[1] || matchedMachine?.productProcessRecords?.[1] || (previousSession as any)?.productProcessRecord || (previousSession as any)?.productProcessRecords?.[0];
 
   const p1RecipePower = (latestProductProcess?.phase1?.powerWatts !== undefined && latestProductProcess?.phase1?.powerWatts !== null)
@@ -1064,9 +1134,14 @@ export function buildMhcReportDocument(
     latestProductProcess?.recipeName
   );
 
+  // Distinguish current-MHC Via data from historical Passport data
+  const currentMhcLaser1Via = sessionProductProcess?.laser1Via;
+  const currentMhcLaser2Via = sessionProductProcess?.laser2Via;
+  const hasCurrentMhcVia = Boolean(currentMhcLaser1Via || currentMhcLaser2Via);
+
   // Derive laser allocation strictly from recorded data without defaulting blindly to 'lh1'
-  const hasL1Via = Boolean(latestProductProcess?.laser1Via);
-  const hasL2Via = Boolean(latestProductProcess?.laser2Via);
+  const hasL1Via = Boolean(currentMhcLaser1Via);
+  const hasL2Via = Boolean(currentMhcLaser2Via);
   const derivedLaserId = stageProfile?.laserId || (
     hasL1Via && hasL2Via
       ? 'both'
@@ -1085,28 +1160,28 @@ export function buildMhcReportDocument(
     stageQuality?.visualVerification ||
     stageQuality?.padQuality ||
     stageQuality?.notes ||
-    latestProductProcess?.laser1Via ||
-    latestProductProcess?.laser2Via
+    currentMhcLaser1Via ||
+    currentMhcLaser2Via
   );
 
-  const qualityResult = stageQuality?.result || (latestProductProcess ? (latestProductProcess.overallResult === 'PASS' ? 'PASS' : 'FAIL') : 'NOT_COLLECTED');
+  const qualityResult = stageQuality?.result || (sessionProductProcess ? (sessionProductProcess.overallResult === 'PASS' ? 'PASS' : 'FAIL') : 'NOT_COLLECTED');
   const isQualityPass = qualityResult === 'PASS';
 
   // Hydrate via microscope image URLs from ImageStore if stored as IDB keys
-  const resolvedLaser1Via = latestProductProcess?.laser1Via
+  const resolvedLaser1Via = currentMhcLaser1Via
     ? {
-        ...latestProductProcess.laser1Via,
-        viaImageDataUrl: latestProductProcess.laser1Via.viaImageDataUrl
-          ? ImageStore.resolveImage(latestProductProcess.laser1Via.viaImageDataUrl) || latestProductProcess.laser1Via.viaImageDataUrl
+        ...currentMhcLaser1Via,
+        viaImageDataUrl: currentMhcLaser1Via.viaImageDataUrl
+          ? ImageStore.resolveImage(currentMhcLaser1Via.viaImageDataUrl) || currentMhcLaser1Via.viaImageDataUrl
           : undefined
       }
     : undefined;
 
-  const resolvedLaser2Via = latestProductProcess?.laser2Via
+  const resolvedLaser2Via = currentMhcLaser2Via
     ? {
-        ...latestProductProcess.laser2Via,
-        viaImageDataUrl: latestProductProcess.laser2Via.viaImageDataUrl
-          ? ImageStore.resolveImage(latestProductProcess.laser2Via.viaImageDataUrl) || latestProductProcess.laser2Via.viaImageDataUrl
+        ...currentMhcLaser2Via,
+        viaImageDataUrl: currentMhcLaser2Via.viaImageDataUrl
+          ? ImageStore.resolveImage(currentMhcLaser2Via.viaImageDataUrl) || currentMhcLaser2Via.viaImageDataUrl
           : undefined
       }
     : undefined;
@@ -1131,18 +1206,19 @@ export function buildMhcReportDocument(
     viaSpec: latestProductProcess?.viaSpec || undefined,
 
     // Microvia Quality Data
-    sampleId: stageQuality?.sampleId || latestProductProcess?.lotPanel || undefined,
-    viaDiameterUm: stageQuality?.viaDiameterUm ?? latestProductProcess?.laser1Via?.topWidthUm ?? undefined,
+    sampleId: stageQuality?.sampleId || sessionProductProcess?.lotPanel || latestProductProcess?.lotPanel || undefined,
+    viaDiameterUm: stageQuality?.viaDiameterUm ?? currentMhcLaser1Via?.topWidthUm ?? undefined,
     viaShape: stageQuality?.viaShape || undefined,
     viaOffsetUm: stageQuality?.viaOffsetUm !== undefined && stageQuality?.viaOffsetUm !== null ? stageQuality.viaOffsetUm : undefined,
     padQuality: stageQuality?.padQuality || undefined,
     visualVerification: stageQuality?.visualVerification || undefined,
     result: qualityResult,
-    overallResult: latestProductProcess?.overallResult || (qualityResult === 'PASS' ? 'PASS' : qualityResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED'),
-    notes: stageQuality?.notes || latestProductProcess?.engineerRemarks || undefined,
+    overallResult: sessionProductProcess?.overallResult || (qualityResult === 'PASS' ? 'PASS' : qualityResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED'),
+    notes: stageQuality?.notes || sessionProductProcess?.engineerRemarks || latestProductProcess?.engineerRemarks || undefined,
     laser1Via: resolvedLaser1Via,
     laser2Via: resolvedLaser2Via,
-    hasViaRecord: Boolean(latestProductProcess?.laser1Via || latestProductProcess?.laser2Via)
+    hasViaRecord: Boolean(currentMhcLaser1Via || currentMhcLaser2Via),
+    isCurrentMhcVia: Boolean(hasCurrentMhcVia || stageQuality?.viaDiameterUm)
   };
 
   const laserProductProfileSection: MhcReportSection<MhcReportLaserProductProfileData> = {
@@ -1401,12 +1477,25 @@ export function buildMhcReportDocument(
     keyFindingsList.push('All core laser power, optical beam profile, stage alignment, and scanner parameters meet specification standards.');
   }
 
+  const rawPowerFail = laserPowerData.rawResult === 'OUT_OF_SPEC' || laserPowerData.rawResult === 'FAIL';
+  const rawBeamFail = beamProfileData.rawResult === 'OUT_OF_SPEC' || beamProfileData.rawResult === 'FAIL';
+
   const hasOutOfSpecOrFindings = (
     stageOverallVerdict === 'OUT_OF_SPEC' ||
     agcOverallVerdict === 'OUT_OF_SPEC' ||
-    laserPowerData.heads.some(h => (h.current.verdict as string) === 'FAIL' || (h.current.verdict as string) === 'OUT_OF_SPEC') ||
+    rawPowerFail ||
+    rawBeamFail ||
     temperatureData.coolingResult === 'FAIL' ||
     totalFindingsCount > 0
+  );
+
+  const hasUnresolvedBlockers = sessionAudit.blockers.length > 0;
+  const hasExplicitFail = (
+    laserPowerData.engineerDisposition === 'FAIL' ||
+    beamProfileData.engineerDisposition === 'FAIL' ||
+    stageOverallVerdict === 'OUT_OF_SPEC' ||
+    agcOverallVerdict === 'OUT_OF_SPEC' ||
+    temperatureData.coolingResult === 'FAIL'
   );
 
   const calculatedOverallStatus: 'PASS' | 'CONDITIONAL_PASS' | 'WARNING' | 'ACTION_REQUIRED' | 'FAIL' = 
@@ -1415,7 +1504,7 @@ export function buildMhcReportDocument(
     ((session as any).customerApprovalStatus === 'HALTED' ? 'FAIL' : undefined) ||
     (sessionAudit.isReadyForReport
       ? (hasOutOfSpecOrFindings ? 'CONDITIONAL_PASS' : 'PASS')
-      : (sessionAudit.blockers.length > 0 ? 'ACTION_REQUIRED' : 'FAIL'));
+      : (hasUnresolvedBlockers ? 'ACTION_REQUIRED' : (hasExplicitFail ? 'FAIL' : 'WARNING')));
 
     const effectiveMhcSpecs = session.mhcSpecs || matchedMachine?.mhcSpecs;
 
@@ -1471,14 +1560,77 @@ export function buildMhcReportDocument(
 
     const summaryLocation = zone && zone !== '—' ? zone : (coverData.plantName || '—');
 
+    // 1. Laser Power Verdict & Note
+    const isPowerRawPass = laserPowerData.rawResult === 'PASS';
+    let laserPowerVerdict: 'PASS' | 'WARNING' | 'FAIL' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'NOT_COLLECTED' = 'NOT_COLLECTED';
+    let laserPowerNote = powerSpec;
+
+    if (laserPowerData.heads.length > 0) {
+      if (isPowerRawPass) {
+        laserPowerVerdict = 'PASS';
+      } else {
+        if (laserPowerData.engineerDisposition === 'ACCEPTED_DEVIATION') {
+          laserPowerVerdict = 'ACCEPTED_DEVIATION';
+          laserPowerNote = `${powerSpec} (Raw: OUT OF SPEC • Disp: ACCEPTED DEVIATION)`;
+        } else if (laserPowerData.engineerDisposition === 'CONDITIONAL_PASS') {
+          laserPowerVerdict = 'CONDITIONAL_PASS';
+          laserPowerNote = `${powerSpec} (Raw: OUT OF SPEC • Disp: CONDITIONAL PASS)`;
+        } else if (laserPowerData.engineerDisposition === 'WARNING') {
+          laserPowerVerdict = 'WARNING';
+          laserPowerNote = `${powerSpec} (Raw: OUT OF SPEC • Disp: WARNING)`;
+        } else if (laserPowerData.engineerDisposition === 'PASS') {
+          laserPowerVerdict = 'PASS';
+          laserPowerNote = `${powerSpec} (Raw: OUT OF SPEC • Disp: PASS)`;
+        } else if (laserPowerData.engineerDisposition === 'FAIL') {
+          laserPowerVerdict = 'FAIL';
+          laserPowerNote = `${powerSpec} (Raw: OUT OF SPEC • Disp: FAIL)`;
+        } else {
+          laserPowerVerdict = 'FAIL';
+          laserPowerNote = `${powerSpec} (OUT OF SPEC)`;
+        }
+      }
+    }
+
+    // 2. Beam Profile Verdict & Note
+    const hasBeamData = Boolean(beamRecord || session.stage04_opticsBeam);
+    const isBeamRawPass = beamProfileData.rawResult === 'PASS';
+    let beamProfileVerdict: 'PASS' | 'WARNING' | 'FAIL' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'NOT_COLLECTED' = 'NOT_COLLECTED';
+    let beamProfileNote = beamSpec;
+
+    if (hasBeamData) {
+      if (isBeamRawPass) {
+        beamProfileVerdict = 'PASS';
+      } else {
+        if (beamProfileData.engineerDisposition === 'ACCEPTED_DEVIATION') {
+          beamProfileVerdict = 'ACCEPTED_DEVIATION';
+          beamProfileNote = `${beamSpec} (Raw: OUT OF SPEC • Disp: ACCEPTED DEVIATION)`;
+        } else if (beamProfileData.engineerDisposition === 'CONDITIONAL_PASS') {
+          beamProfileVerdict = 'CONDITIONAL_PASS';
+          beamProfileNote = `${beamSpec} (Raw: OUT OF SPEC • Disp: CONDITIONAL PASS)`;
+        } else if (beamProfileData.engineerDisposition === 'WARNING') {
+          beamProfileVerdict = 'WARNING';
+          beamProfileNote = `${beamSpec} (Raw: OUT OF SPEC • Disp: WARNING)`;
+        } else if (beamProfileData.engineerDisposition === 'PASS') {
+          beamProfileVerdict = 'PASS';
+          beamProfileNote = `${beamSpec} (Raw: OUT OF SPEC • Disp: PASS)`;
+        } else if (beamProfileData.engineerDisposition === 'FAIL') {
+          beamProfileVerdict = 'FAIL';
+          beamProfileNote = `${beamSpec} (Raw: OUT OF SPEC • Disp: FAIL)`;
+        } else {
+          beamProfileVerdict = 'FAIL';
+          beamProfileNote = `${beamSpec} (OUT OF SPEC)`;
+        }
+      }
+    }
+
     const executiveSummaryData: MhcReportExecutiveSummaryData = {
       overallStatus: calculatedOverallStatus,
       readinessScore: sessionAudit.readinessScore,
       summaryText: `Routine Maintenance & Health Check (MHC) completed for ${coverData.machineName} (${coverData.machineSerialNumber}) at ${coverData.customerName} - ${summaryLocation}.`,
       keyFindings: keyFindingsList,
       majorPassFailResults: [
-        { component: 'Laser Power (Laser Head 1 & 2)', verdict: laserPowerData.heads.every(h => h.current.verdict === 'PASS') ? 'PASS' : 'WARNING', note: powerSpec },
-        { component: 'Beam Profile / Mode', verdict: beamProfileSection.status === 'COMPLETE' ? 'PASS' : 'WARNING', note: beamSpec },
+        { component: 'Laser Power (Laser Head 1 & 2)', verdict: laserPowerVerdict, note: laserPowerNote },
+        { component: 'Beam Profile / Mode', verdict: beamProfileVerdict, note: beamProfileNote },
         { component: 'Stage Calibration', verdict: stageOverallVerdict === 'PASS' ? 'PASS' : stageOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: stageSpec },
         { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: agcSpec },
         { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: tempSpec }

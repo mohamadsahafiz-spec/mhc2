@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { 
   Sparkles, 
@@ -164,10 +164,12 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
       followUpRequired: false,
       productionReleaseVerdict: 'APPROVED'
     },
-    productProcessRecords: machine.productProcessRecords || [],
-    productProcessRecord: machine.productProcessRecords?.[0],
-    focusOptimizationRecords: machine.focusOptimizationRecords || [],
-    focusOptimizationRecord: machine.focusOptimizationRecords?.[0]
+    productProcessRecords: [],
+    productProcessRecord: undefined,
+    focusOptimizationRecords: [],
+    focusOptimizationRecord: undefined,
+    focusExecutionState: undefined,
+    focusSkippedReason: undefined
   };
 }
 
@@ -337,12 +339,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
   // Sync state if selectedMachine changes externally
   useEffect(() => {
-    if (selectedMachine && selectedMachine.id !== localSelectedMachine?.id) {
+    if (selectedMachine) {
       setLocalSelectedMachine(selectedMachine);
       const match = customers.find(c => c.id === selectedMachine.customerId || c.name === selectedMachine.customerName);
       if (match) setSelectedCustomer(match);
     }
-  }, [selectedMachine]);
+  }, [selectedMachine, customers]);
+
+  const handleUpdateMachine = useCallback((updated: Machine) => {
+    setLocalSelectedMachine(updated);
+    if (onUpdateMachine) {
+      onUpdateMachine(updated);
+    }
+  }, [onUpdateMachine]);
 
   // Filtered customers
   const filteredCustomers = useMemo(() => {
@@ -1775,6 +1784,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     machine={localSelectedMachine}
                     isReadOnly={isReadOnlyMode}
                     onUpdateSession={onUpdateSession}
+                    onUpdateMachine={handleUpdateMachine}
                     onCompleteActivity={handleCompleteCurrentActivity}
                     isDark={isDark}
                     showNotification={showNotification}
@@ -1785,6 +1795,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     machine={localSelectedMachine}
                     isReadOnly={isReadOnlyMode}
                     onUpdateSession={onUpdateSession}
+                    onUpdateMachine={handleUpdateMachine}
                     onCompleteActivity={handleCompleteCurrentActivity}
                     isDark={isDark}
                     showNotification={showNotification}
@@ -1795,6 +1806,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     machine={localSelectedMachine}
                     isReadOnly={isReadOnlyMode}
                     onUpdateSession={onUpdateSession}
+                    onUpdateMachine={handleUpdateMachine}
                     onCompleteActivity={handleCompleteCurrentActivity}
                     isDark={isDark}
                     showNotification={showNotification}
@@ -1839,7 +1851,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     machine={localSelectedMachine}
                     isReadOnly={isReadOnlyMode}
                     onUpdateSession={onUpdateSession}
-                    onUpdateMachine={onUpdateMachine}
+                    onUpdateMachine={handleUpdateMachine}
                     onCompleteActivity={handleCompleteCurrentActivity}
                     onSwitchToCanvas={onSwitchToCanvas}
                     isDark={isDark}

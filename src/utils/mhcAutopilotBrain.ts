@@ -473,6 +473,19 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
     const st = statuses['02_beam'];
     const isDisp = isActivityDispositioned(session, '02_beam');
     const beamRecord = session.stage02_laserProfile?.beamProfileRecord;
+    const hasFail = beamRecord?.overallResult === 'FAIL';
+
+    if (hasFail) {
+      return {
+        status: 'NEEDS_REVIEW',
+        statusSymbol: '⚠',
+        detail: isDisp 
+          ? 'Beam profile out of specification (Reviewed & Acknowledged)' 
+          : 'Beam profile out of specification on one or more stations',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Beam profile contains out-of-spec measurement points.'
+      };
+    }
     if (st === 'COMPLETED' || beamRecord?.overallResult === 'PASS') {
       return {
         status: 'COMPLETE',
@@ -482,15 +495,15 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
         blockerReason: null
       };
     }
-    if (st === 'NEEDS_REVIEW' || beamRecord?.overallResult === 'FAIL') {
+    if (st === 'NEEDS_REVIEW') {
       return {
         status: 'NEEDS_REVIEW',
         statusSymbol: '⚠',
         detail: isDisp 
-          ? 'Beam profile out of specification (Reviewed & Acknowledged)' 
+          ? 'Beam profile flagged for review (Reviewed & Acknowledged)' 
           : 'Beam profile flagged for review',
         isBlocker: !isDisp,
-        blockerReason: isDisp ? null : 'Beam profile contains out-of-spec measurement points.'
+        blockerReason: isDisp ? null : 'Beam profile contains items requiring review.'
       };
     }
     if (st === 'LOCKED') {
@@ -668,6 +681,19 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
     const st = statuses['03_focus'];
     const isDisp = isActivityDispositioned(session, '03_focus');
     const focusRec = session.focusOptimizationRecord || session.focusOptimizationRecords?.[0];
+
+    if (session.focusExecutionState === 'NOT_REQUIRED' && st === 'COMPLETED') {
+      return {
+        status: 'COMPLETE',
+        statusSymbol: '✓',
+        detail: session.focusSkippedReason
+          ? `Focus not required (${session.focusSkippedReason})`
+          : 'Focus optimization not required / skipped',
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
+
     if (focusRec && (focusRec.overallResult === 'PASS' || focusRec.overallResult === 'COMPLETED' || focusRec.overallResult === 'VERIFIED') && st === 'COMPLETED') {
       return {
         status: 'COMPLETE',

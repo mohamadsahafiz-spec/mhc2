@@ -11,7 +11,11 @@ import {
   Save,
   Check,
   RotateCcw,
-  Zap
+  Zap,
+  AlertCircle,
+  Calendar,
+  History,
+  FileText
 } from 'lucide-react';
 import { Machine, MHCSession } from '../../../types';
 import {
@@ -55,7 +59,31 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
   showNotification,
   activeCode = '03_focus'
 }) => {
-  // Determine active initial record
+  // Machine passport historical record (read-only reference)
+  const historicalPassportRecord = useMemo<FocusOptimizationRecord | null>(() => {
+    if (machine?.focusOptimizationRecords && machine.focusOptimizationRecords.length > 0) {
+      return ImageStore.hydrateImagesSync(machine.focusOptimizationRecords[0]);
+    }
+    return null;
+  }, [machine]);
+
+  // Explicit Execution State: 'PERFORMED' vs 'NOT_REQUIRED'
+  const [executionState, setExecutionState] = useState<'PERFORMED' | 'NOT_REQUIRED'>(() => {
+    if (session.focusExecutionState) {
+      return session.focusExecutionState;
+    }
+    if (session.focusSkippedReason) {
+      return 'NOT_REQUIRED';
+    }
+    return 'PERFORMED';
+  });
+
+  const [skippedReason, setSkippedReason] = useState<string>(
+    session.focusSkippedReason || ''
+  );
+  const [skippedReasonError, setSkippedReasonError] = useState<string | null>(null);
+
+  // Initial draft record for PERFORMED state (does NOT clone historical passport records into session)
   const initialRecord = useMemo<FocusOptimizationRecord>(() => {
     if (session.focusOptimizationRecord) {
       return ImageStore.hydrateImagesSync(session.focusOptimizationRecord);
@@ -63,15 +91,11 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
     if (session.focusOptimizationRecords && session.focusOptimizationRecords.length > 0) {
       return ImageStore.hydrateImagesSync(session.focusOptimizationRecords[0]);
     }
-    if (machine?.focusOptimizationRecords && machine.focusOptimizationRecords.length > 0) {
-      const cloned = { ...machine.focusOptimizationRecords[0], id: `FO-AUTOPILOT-${Date.now()}` };
-      return ImageStore.hydrateImagesSync(cloned);
-    }
     return FocusOptimizationEngine.createDefaultRecord(
       session.startDate || getLocalDateString(),
       session.engineerName || 'Lead Field Engineer'
     );
-  }, [session, machine]);
+  }, [session]);
 
   const [record, setRecord] = useState<FocusOptimizationRecord>(initialRecord);
   const [activeHead, setActiveHead] = useState<'laser1' | 'laser2'>('laser1');
@@ -86,6 +110,15 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       setRecord(ImageStore.hydrateImagesSync(session.focusOptimizationRecord));
     }
   }, [session.focusOptimizationRecord]);
+
+  useEffect(() => {
+    if (session.focusExecutionState) {
+      setExecutionState(session.focusExecutionState);
+    }
+    if (session.focusSkippedReason !== undefined) {
+      setSkippedReason(session.focusSkippedReason);
+    }
+  }, [session.focusExecutionState, session.focusSkippedReason]);
 
   const activeEvidence: LaserFocusEvidence = useMemo(() => {
     return activeHead === 'laser1' ? record.laser1 : record.laser2;
@@ -194,17 +227,73 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
 
   // Save Record Draft to Session
   const handleSaveDraft = () => {
-    const updated: MHCSession = {
-      ...session,
-      focusOptimizationRecord: record,
-      focusOptimizationRecords: [record]
-    };
-    onUpdateSession(updated);
-    if (showNotification) showNotification('Focus Optimization draft saved.');
+    if (executionState === 'NOT_REQUIRED') {
+      const updated: MHCSession = {
+        ...session,
+        focusExecutionState: 'NOT_REQUIRED',
+        focusSkippedReason: skippedReason.trim(),
+        focusOptimizationRecord: undefined,
+        focusOptimizationRecords: []
+      };
+      onUpdateSession(updated);
+      if (showNotification) showNotification('Focus Optimization status saved as Not Required.');
+    } else {
+      const updated: MHCSession = {
+        ...session,
+        focusExecutionState: 'PERFORMED',
+        focusSkippedReason: undefined,
+        focusOptimizationRecord: record,
+        focusOptimizationRecords: [record]
+      };
+      onUpdateSession(updated);
+      if (showNotification) showNotification('Focus Optimization draft saved.');
+    }
   };
 
-  // Complete Activity 03 Focus Optimization
-  const handleComplete = () => {
+  // Complete Activity 03 Focus Optimization as NOT REQUIRED / SKIPPED
+  const handleCompleteNotRequired = () => {
+    const trimmed = skippedReason.trim();
+    if (!trimmed) {
+      setSkippedReasonError('Please provide a reason why Focus Optimization was not required.');
+      if (showNotification) {
+        showNotification('Reason is required to complete Focus Optimization as Not Required.');
+      }
+      return;
+    }
+    setSkippedReasonError(null);
+
+    const updatedSession: MHCSession = {
+      ...session,
+      focusExecutionState: 'NOT_REQUIRED',
+      focusSkippedReason: trimmed,
+      focusOptimizationRecord: undefined,
+      focusOptimizationRecords: []
+    };
+
+    let sessionWithProgress = updatedSession;
+    if (session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED') {
+      sessionWithProgress = flagDownstreamNeedsReview(sessionWithProgress, activeCode);
+    }
+
+    const noteToPersist = `Focus not required / skipped: ${trimmed}`;
+    sessionWithProgress = advanceAutopilotActivity(
+      sessionWithProgress,
+      activeCode,
+      'COMPLETED',
+      noteToPersist
+    );
+
+    onUpdateSession(sessionWithProgress);
+
+    if (showNotification) {
+      showNotification('Activity 03 Focus Optimization COMPLETED (Not Required) ✓ Advanced to Day 3 AGC Calibration.');
+    }
+
+    onCompleteActivity(sessionWithProgress, activeCode, 'COMPLETED');
+  };
+
+  // Complete Activity 03 Focus Optimization as PERFORMED
+  const handleCompletePerformed = () => {
     const l1Best = record.laser1?.selectedBestFocusPosition;
     const l2Best = record.laser2?.selectedBestFocusPosition;
 
@@ -222,6 +311,8 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
 
     let updatedSession: MHCSession = {
       ...session,
+      focusExecutionState: 'PERFORMED',
+      focusSkippedReason: undefined,
       focusOptimizationRecord: completedRecord,
       focusOptimizationRecords: [completedRecord]
     };
@@ -265,9 +356,15 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
               OPTICAL ALIGNMENT
             </Badge>
             {isCurrentCompleted && (
-              <Badge variant="success" className="text-xs flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> VERIFIED
-              </Badge>
+              executionState === 'NOT_REQUIRED' ? (
+                <Badge variant="warning" className="text-xs flex items-center gap-1 font-mono">
+                  <ShieldCheck className="w-3 h-3" /> NOT REQUIRED
+                </Badge>
+              ) : (
+                <Badge variant="success" className="text-xs flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> VERIFIED
+                </Badge>
+              )
             )}
           </div>
           <h2 className="text-xl font-bold tracking-tight mt-1 text-slate-900 dark:text-white flex items-center gap-2">
@@ -279,44 +376,266 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           </p>
         </div>
 
-        {/* Dual Laser Head Selector */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 self-start md:self-auto">
+        {/* Dual Laser Head Selector (visible in Performed mode) */}
+        {executionState === 'PERFORMED' && (
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => setActiveHead('laser1')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+                activeHead === 'laser1'
+                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Laser Head 1
+              {record.laser1?.selectedBestFocusPosition && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                  {record.laser1.selectedBestFocusPosition}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveHead('laser2')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+                activeHead === 'laser2'
+                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Laser Head 2
+              {record.laser2?.selectedBestFocusPosition && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                  {record.laser2.selectedBestFocusPosition}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Activity Execution State Selection */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+        <div>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+            Focus Optimization Disposition for Current MHC
+          </span>
+          <span className="text-[11px] text-slate-500">
+            {executionState === 'PERFORMED'
+              ? 'Wafer drill focal calibration executed during this maintenance service.'
+              : 'Focus is nominal; wafer drill calibration skipped for this maintenance service.'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-slate-200/80 dark:bg-slate-900/60 shrink-0">
           <button
             type="button"
-            onClick={() => setActiveHead('laser1')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
-              activeHead === 'laser1'
-                ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
+            onClick={() => {
+              if (isReadOnly) return;
+              setExecutionState('PERFORMED');
+            }}
+            disabled={isReadOnly}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              executionState === 'PERFORMED'
+                ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <Zap className="w-3.5 h-3.5" />
-            Laser Head 1
-            {record.laser1?.selectedBestFocusPosition && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                {record.laser1.selectedBestFocusPosition}
-              </span>
-            )}
+            <Crosshair className="w-3.5 h-3.5" />
+            <span>1. Performed This MHC</span>
           </button>
           <button
             type="button"
-            onClick={() => setActiveHead('laser2')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
-              activeHead === 'laser2'
-                ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
+            onClick={() => {
+              if (isReadOnly) return;
+              setExecutionState('NOT_REQUIRED');
+            }}
+            disabled={isReadOnly}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              executionState === 'NOT_REQUIRED'
+                ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <Zap className="w-3.5 h-3.5" />
-            Laser Head 2
-            {record.laser2?.selectedBestFocusPosition && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                {record.laser2.selectedBestFocusPosition}
-              </span>
-            )}
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>2. Not Required / Skipped</span>
           </button>
         </div>
       </div>
+
+      {/* STATE 2: NOT REQUIRED / SKIPPED VIEW */}
+      {executionState === 'NOT_REQUIRED' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-slate-800 dark:text-slate-200 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Focus Optimization Not Required / Skipped for this MHC</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              The service engineer has determined that wafer drill focus sequence is not required for this MHC.
+              The historical baseline in Machine Passport will be preserved and cited in reports as reference data only.
+            </p>
+          </div>
+
+          {/* Reason / Justification Input */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-amber-500" />
+                <span>Reason / Justification for Skipping (Required)</span>
+              </label>
+              {skippedReasonError && (
+                <span className="text-[11px] font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {skippedReasonError}
+                </span>
+              )}
+            </div>
+
+            <textarea
+              rows={2}
+              value={skippedReason}
+              onChange={(e) => {
+                setSkippedReason(e.target.value);
+                if (skippedReasonError) setSkippedReasonError(null);
+              }}
+              disabled={isReadOnly}
+              placeholder="Provide reason for skipping focus calibration (e.g., optical train undisturbed, spot size nominal)..."
+              className={`w-full text-xs p-3 rounded-xl border bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                skippedReasonError
+                  ? 'border-rose-300 dark:border-rose-700 bg-rose-50/20'
+                  : 'border-slate-200 dark:border-slate-700'
+              }`}
+            />
+
+            {/* Quick Reason Presets */}
+            {!isReadOnly && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Quick Presets:</span>
+                {[
+                  'Routine maintenance — beam alignment nominal',
+                  'Optical path undisturbed; laser source not replaced',
+                  'Focus stability verified nominal via test spot',
+                  'Customer instructed: wafer drill sequence skipped'
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setSkippedReason(preset);
+                      if (skippedReasonError) setSkippedReasonError(null);
+                    }}
+                    className="text-[10.5px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-900 dark:hover:bg-amber-900/40 dark:hover:text-amber-200 border border-slate-200 dark:border-slate-700 transition-colors"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Historical Baseline Reference Card */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Historical Baseline Reference (Machine Passport)
+                </span>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
+                REFERENCE ONLY • NOT PERFORMED THIS MHC
+              </Badge>
+            </div>
+
+            {historicalPassportRecord ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Baseline Date</span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                    {historicalPassportRecord.date}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Baseline Value</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                    -0.300 mm
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Optimal Focus (L1)</span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                    {historicalPassportRecord.laser1?.selectedBestFocusPosition || '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Optimal Focus (L2)</span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                    {historicalPassportRecord.laser2?.selectedBestFocusPosition || '—'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic">
+                No prior Focus Optimization historical records found in Machine Passport.
+              </p>
+            )}
+          </div>
+
+          {/* Action Footer for Not Required */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <span>Status: Focus Optimization will be documented as <strong className="text-amber-700 dark:text-amber-400">NOT REQUIRED</strong> for this MHC.</span>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isReadOnly}
+                className="flex-1 sm:flex-none text-xs flex items-center justify-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save Draft
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleCompleteNotRequired}
+                disabled={isReadOnly}
+                className="flex-1 sm:flex-none text-xs bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Complete Activity (Not Required)
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STATE 1: PERFORMED VIEW */}
+      {executionState === 'PERFORMED' && (
+        <div className="space-y-6">
+          {/* Baseline Reference Header Banner */}
+          {historicalPassportRecord && (
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40 text-xs">
+              <div className="flex items-center gap-2 text-sky-900 dark:text-sky-300">
+                <Info className="w-4 h-4 text-sky-500 shrink-0" />
+                <span>
+                  Passport Baseline Reference: <strong>L1: {historicalPassportRecord.laser1?.selectedBestFocusPosition || '—'}</strong>, <strong>L2: {historicalPassportRecord.laser2?.selectedBestFocusPosition || '—'}</strong> ({historicalPassportRecord.date})
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-sky-700 dark:text-sky-400 font-semibold">
+                Baseline: -0.300 mm
+              </span>
+            </div>
+          )}
 
       {/* Specification & Parameters Bar */}
       <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
@@ -506,7 +825,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           <Button
             variant="primary"
             size="sm"
-            onClick={handleComplete}
+            onClick={handleCompletePerformed}
             disabled={isReadOnly}
             className="flex-1 sm:flex-none text-xs bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center gap-1.5"
           >
@@ -515,6 +834,8 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           </Button>
         </div>
       </div>
+    </div>
+  )}
 
       {/* Full-size Image Preview Modal */}
       {previewImage && (

@@ -71,14 +71,17 @@ function getStorage<T>(key: string, defaultValue: T): T {
   try {
     if (typeof localStorage === 'undefined') return defaultValue;
     const saved = localStorage.getItem(key);
-    if (saved) {
-      return JSON.parse(saved);
+    if (!saved || saved === 'undefined' || saved === 'null' || saved === '[object Object]' || saved.trim() === '') {
+      return defaultValue;
     }
+    const parsed = JSON.parse(saved);
+    return parsed !== undefined && parsed !== null ? parsed : defaultValue;
   } catch (e: any) {
-    console.error(`Error reading ${key} from localStorage:`, e?.message || e);
-    // If heap is exhausted, clear transient queues to relieve pressure
+    console.warn(`[StorageService] Corrupted localStorage entry for "${key}", resetting to default:`, e?.message || e);
+    // Purge corrupted key from localStorage so it doesn't repeatedly throw on future reads
     if (typeof localStorage !== 'undefined') {
       try {
+        localStorage.removeItem(key);
         localStorage.removeItem('fsos_sync_queue');
       } catch (_) {}
     }
@@ -114,7 +117,7 @@ export function safeJsonStringify(value: any, space?: number): string {
       return JSON.stringify(value, getCircularReplacer(), space);
     } catch (innerErr) {
       console.warn('[Persistence] safeJsonStringify error:', innerErr);
-      return '{}';
+      return Array.isArray(value) ? '[]' : '{}';
     }
   }
 }
@@ -419,13 +422,18 @@ export const StorageService = {
   },
 
   getMachines: (): Machine[] => {
-    const raw = getStorage<Machine[]>(KEYS.MACHINES, []);
-    if (!raw || !Array.isArray(raw) || raw.length === 0) {
+    try {
+      const raw = getStorage<Machine[]>(KEYS.MACHINES, []);
+      if (!raw || !Array.isArray(raw) || raw.length === 0) {
+        return [];
+      }
+      const sanitized = raw.filter(Boolean).map(sanitizeMachine);
+      const hydrated = sanitized.map(m => ImageStore.hydrateImagesSync(m));
+      return LaserEngine.normalizeMachines(hydrated) as unknown as Machine[];
+    } catch (err: any) {
+      console.warn('[StorageService] Error loading machines:', err?.message || err);
       return [];
     }
-    const sanitized = raw.map(sanitizeMachine);
-    const hydrated = sanitized.map(m => ImageStore.hydrateImagesSync(m));
-    return LaserEngine.normalizeMachines(hydrated) as unknown as Machine[];
   },
   saveMachines: (data: Machine[]) => {
     const processedMachines = data.map(m => {

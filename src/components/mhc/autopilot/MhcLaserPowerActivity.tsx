@@ -16,10 +16,10 @@ import {
   ShieldCheck,
   RotateCcw
 } from 'lucide-react';
-import { Machine, MHCSession, MHCLaserPowerItem } from '../../../types';
+import { Machine, MHCSession, MHCLaserPowerItem, MHCEngineerDispositionVerdict } from '../../../types';
 import { LaserPowerCheckRecord, MASK_SPECS, MaskSize } from '../../../types/laserPower';
 import { LaserPowerEngine } from '../../../utils/laserPowerEngine';
-import { createDefaultAutopilotProgress } from '../../../utils/mhcAutopilotBrain';
+import { createDefaultAutopilotProgress, getActivityDisposition, dispositionAutopilotActivity } from '../../../utils/mhcAutopilotBrain';
 import { StorageService } from '../../../utils/persistence';
 
 export interface MhcLaserPowerActivityProps {
@@ -79,9 +79,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
 
   // 2. RETRIEVE MOST RELEVANT HISTORICAL PREVIOUS BASELINE RECORD
   const previousRecord = useMemo<LaserPowerCheckRecord | null>(() => {
-    // Search machine.laserPowerRecords
+    const currentSessionRecordId = session.stage03_laserPower?.[0]?.powerRecord?.id;
+    // Search machine.laserPowerRecords, excluding current session's own inspection record
     const machineRecords = (machine?.laserPowerRecords || [])
-      .filter(r => r.date)
+      .filter(r => r.date && (!currentSessionRecordId || r.id !== currentSessionRecordId))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     if (machineRecords.length > 0) {
@@ -148,6 +149,31 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
   const [engineerRemarks, setEngineerRemarks] = useState<string>(
     session.stage03_laserPower?.[0]?.notes || ''
   );
+
+  const existingPowerDisp = getActivityDisposition(session, '02_power');
+  const [selectedDisposition, setSelectedDisposition] = useState<MHCEngineerDispositionVerdict>(() => {
+    if (existingPowerDisp?.verdict) return existingPowerDisp.verdict;
+    return 'PASS';
+  });
+  const [userInteractedDisposition, setUserInteractedDisposition] = useState<boolean>(Boolean(existingPowerDisp?.verdict));
+
+  // Stable Engineering Record Identity
+  const [recordId, setRecordId] = useState<string | undefined>(
+    () => session.stage03_laserPower?.[0]?.powerRecord?.id
+  );
+  const [recordDate, setRecordDate] = useState<string | undefined>(
+    () => session.stage03_laserPower?.[0]?.powerRecord?.date
+  );
+
+  useEffect(() => {
+    const existingRec = session.stage03_laserPower?.[0]?.powerRecord;
+    if (existingRec?.id) {
+      setRecordId(existingRec.id);
+    }
+    if (existingRec?.date) {
+      setRecordDate(existingRec.date);
+    }
+  }, [session.stage03_laserPower]);
 
   useEffect(() => {
     setHeadAInputs(initialValues.valsA.map(v => (v !== null ? String(v) : '')));
@@ -331,6 +357,14 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     return list;
   }, [evalSummaryA, evalSummaryB]);
 
+  useEffect(() => {
+    if (!userInteractedDisposition && !existingPowerDisp?.verdict) {
+      if (isOverallComplete) {
+        setSelectedDisposition(isOverallPass ? 'PASS' : 'ACCEPTED_DEVIATION');
+      }
+    }
+  }, [isOverallComplete, isOverallPass, userInteractedDisposition, existingPowerDisp]);
+
   // HANDLE COMPLETION & AUTHORITATIVE PERSISTENCE
   const handleSaveAndComplete = () => {
     if (isReadOnly) return;
@@ -340,9 +374,13 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       return;
     }
 
-    // Construct draft record
+    const activeRecordId = recordId || session.stage03_laserPower?.[0]?.powerRecord?.id;
+    const activeRecordDate = recordDate || session.stage03_laserPower?.[0]?.powerRecord?.date || new Date().toISOString().split('T')[0];
+
+    // Construct draft record with stable identity
     const draftRecord: Partial<LaserPowerCheckRecord> = {
-      date: new Date().toISOString().split('T')[0],
+      ...(activeRecordId ? { id: activeRecordId } : {}),
+      date: activeRecordDate,
       frequencyKhz: 50,
       engineerRemarks,
       laserSource: {
@@ -379,6 +417,8 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     };
 
     const evaluatedRecord = LaserPowerEngine.evaluateRecord(draftRecord);
+    setRecordId(evaluatedRecord.id);
+    setRecordDate(evaluatedRecord.date);
 
     // Build MHCLaserPowerItem array for session.stage03_laserPower
     const updatedStage03Power: MHCLaserPowerItem[] = laserHeads.map((lh, idx) => {
@@ -401,20 +441,19 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       };
     });
 
-    const statusHeadA = evalSummaryA.isAllPass ? 'COMPLETED' : 'NEEDS_REVIEW';
-    const statusHeadB = evalSummaryB.isAllPass ? 'COMPLETED' : 'NEEDS_REVIEW';
+    const statusActivity: 'COMPLETED' | 'NEEDS_REVIEW' = (selectedDisposition === 'PASS' || selectedDisposition === 'ACCEPTED_DEVIATION') ? 'COMPLETED' : 'NEEDS_REVIEW';
 
     const currentProgress = session.autopilotProgress || createDefaultAutopilotProgress();
     const activityStatuses = { ...currentProgress.activityStatuses };
-    activityStatuses['02_power'] = statusHeadA;
-    activityStatuses['03_power'] = statusHeadB;
+    activityStatuses['02_power'] = statusActivity;
+    activityStatuses['03_power'] = statusActivity;
 
     if (activityStatuses['02_beam'] === 'LOCKED' || activityStatuses['02_beam'] === 'UPCOMING') {
       activityStatuses['02_beam'] = 'IN_PROGRESS';
     }
 
     // Update MHCSession
-    const updatedSession: MHCSession = {
+    let updatedSession: MHCSession = {
       ...session,
       stage03_laserPower: updatedStage03Power,
       lastUpdated: new Date().toISOString(),
@@ -425,6 +464,15 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         lastActiveTimestamp: new Date().toISOString()
       }
     };
+
+    updatedSession = dispositionAutopilotActivity(
+      updatedSession,
+      '02_power',
+      engineerRemarks || (isOverallPass ? 'Laser power verified within nominal specifications.' : `Laser power disposition: ${selectedDisposition}`),
+      session.engineerName || 'Field Service Engineer',
+      engineerRemarks || (isOverallPass ? 'Within specification limits' : `Engineering disposition: ${selectedDisposition}`),
+      selectedDisposition
+    );
 
     onUpdateSession(updatedSession);
 
@@ -445,10 +493,12 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
     }
 
     if (showNotification) {
-      if (isOverallPass) {
+      if (selectedDisposition === 'PASS') {
         showNotification('✓ Authoritative Laser Power Record saved (PASS) & Journey Rail advanced!');
+      } else if (selectedDisposition === 'ACCEPTED_DEVIATION') {
+        showNotification('✓ Laser Power Record saved with ACCEPTED DEVIATION & Journey Rail advanced!');
       } else {
-        showNotification(`⚠ Laser Power Record saved with ${allFailingPoints.length} out-of-spec point(s) (NEEDS REVIEW) & Journey Rail advanced.`);
+        showNotification(`⚠ Laser Power Record saved with ${selectedDisposition} (NEEDS REVIEW) & Journey Rail advanced.`);
       }
     }
 
@@ -834,6 +884,107 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         />
       </div>
 
+      {/* ENGINEER ACTIVITY DISPOSITION */}
+      <div className={`p-4 rounded-2xl border space-y-3 ${
+        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
+      }`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+              Engineer Activity Disposition
+            </span>
+            <span className="text-[10px] text-slate-400 font-sans">
+              (Raw Measurement: <strong className={hasFailures ? 'text-rose-400' : 'text-emerald-400'}>{hasFailures ? 'OUT OF SPEC' : 'PASS'}</strong>)
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400">
+            Field Engineer Qualitative &amp; Usability Assessment
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDisposition('PASS');
+              setUserInteractedDisposition(true);
+            }}
+            disabled={isReadOnly}
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              selectedDisposition === 'PASS'
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/50 shadow-md shadow-emerald-950/40'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold font-mono">PASS</span>
+              {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+            </div>
+            <span className="text-[10px] text-slate-400 mt-1">Within Spec / Verified</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDisposition('ACCEPTED_DEVIATION');
+              setUserInteractedDisposition(true);
+            }}
+            disabled={isReadOnly}
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              selectedDisposition === 'ACCEPTED_DEVIATION'
+                ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/50 shadow-md shadow-blue-950/40'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
+              {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-blue-400" />}
+            </div>
+            <span className="text-[10px] text-slate-400 mt-1">Accept Usable Power Drift</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDisposition('CONDITIONAL_PASS');
+              setUserInteractedDisposition(true);
+            }}
+            disabled={isReadOnly}
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              selectedDisposition === 'CONDITIONAL_PASS'
+                ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-md shadow-amber-950/40'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold font-mono">CONDITIONAL PASS</span>
+              {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+            </div>
+            <span className="text-[10px] text-slate-400 mt-1">Monitor power at next cycle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDisposition('FAIL');
+              setUserInteractedDisposition(true);
+            }}
+            disabled={isReadOnly}
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+              selectedDisposition === 'FAIL'
+                ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/50 shadow-md shadow-rose-950/40'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold font-mono">FAIL</span>
+              {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
+            </div>
+            <span className="text-[10px] text-slate-400 mt-1">Optical intervention required</span>
+          </button>
+        </div>
+      </div>
+
       {/* COMPLETION GATE & ACTION BUTTON */}
       <div className={`p-5 rounded-2xl border space-y-4 ${
         isOverallPass
@@ -854,7 +1005,7 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               {isOverallPass 
                 ? 'All 16 measurement points satisfy specifications. Ready to record authoritative session data and advance Journey Rail.' 
                 : hasFailures && isOverallComplete
-                ? 'Out-of-spec measurement point(s) recorded. Activity will advance as NEEDS REVIEW with full diagnostic evidence preserved.'
+                ? `Activity will advance with Engineer Disposition: ${selectedDisposition.replace('_', ' ')}. Raw measurement findings preserved in session.`
                 : 'Please complete all 16 measurement points for Laser Head 1 and Laser Head 2 to advance.'}
             </p>
           </div>
@@ -893,18 +1044,20 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               onClick={handleSaveAndComplete}
               className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
                 isOverallComplete
-                  ? isOverallPass
+                  ? selectedDisposition === 'PASS'
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
-                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
+                    : selectedDisposition === 'ACCEPTED_DEVIATION'
+                    ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20 hover:scale-[1.02] cursor-pointer'
+                    : selectedDisposition === 'CONDITIONAL_PASS'
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
+                    : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20 hover:scale-[1.02] cursor-pointer'
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
               <span>
-                {isOverallPass 
-                  ? 'Complete Laser Power Activity & Advance Journey Rail' 
-                  : hasFailures && isOverallComplete 
-                  ? 'Record Out-of-Spec Findings (NEEDS REVIEW) & Advance Journey Rail' 
+                {isOverallComplete
+                  ? `Complete Laser Power Activity (Disposition: ${selectedDisposition}) & Advance`
                   : 'Complete All 16 Points to Advance'}
               </span>
             </button>

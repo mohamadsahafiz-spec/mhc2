@@ -279,6 +279,13 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             <span className="leading-none">{label || status}</span>
           </span>
         );
+      case 'ACCEPTED_DEVIATION':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-blue-100 text-blue-800 border border-blue-300 leading-none">
+            <CheckCircle2 className="w-3 h-3 text-blue-600 shrink-0" />
+            <span className="leading-none">{label || 'ACCEPTED DEVIATION'}</span>
+          </span>
+        );
       case 'PENDING':
       case 'PENDING_APPROVAL':
       case 'PENDING_REVIEW':
@@ -1293,7 +1300,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded">
                       SPEC: 15.0W ± 10% (13.50–16.50 W)
                     </span>
-                    {renderStatusBadge(sections['05'].status)}
+                    {renderStatusBadge(sections['05'].data.engineerDisposition || sections['05'].status)}
                   </div>
                 </div>
 
@@ -1346,8 +1353,29 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               SPEC: 15.00 W ± 10% (13.50–16.50 W)
                             </span>
                           </div>
-                          {renderStatusBadge(head.current.verdict)}
+                          <div className="flex items-center gap-1.5">
+                            {head.current.rawMeasurementVerdict && head.current.rawMeasurementVerdict !== 'PASS' && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300">
+                                RAW: OUT OF SPEC
+                              </span>
+                            )}
+                            {head.current.engineerDisposition ? (
+                              <span className="flex items-center gap-1">
+                                <span className="text-[9px] font-mono text-slate-500 font-bold">ENG:</span>
+                                {renderStatusBadge(head.current.engineerDisposition)}
+                              </span>
+                            ) : (
+                              renderStatusBadge(head.current.verdict)
+                            )}
+                          </div>
                         </div>
+
+                        {head.current.dispositionRationale && (
+                          <div className="px-2 py-1 rounded bg-amber-50/80 border border-amber-200/80 text-[10px] text-amber-900 flex items-start gap-1.5 font-mono">
+                            <span className="font-bold text-[9px] uppercase tracking-wide shrink-0">Engineer Disposition:</span>
+                            <span className="italic font-sans">{head.current.dispositionRationale}</span>
+                          </div>
+                        )}
 
                         {/* Visual 3-Way Comparison: Previous VS Current ➔ Variation */}
                         <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-stretch font-mono text-[11px]">
@@ -1553,7 +1581,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {renderStatusBadge(sections['06'].data.heads.every(h => h.current.overallResult === 'PASS') ? 'PASS' : sections['06'].status)}
+                  {renderStatusBadge(sections['06'].data.engineerDisposition || (sections['06'].data.rawResult === 'PASS' ? 'PASS' : sections['06'].status))}
                 </div>
               </div>
 
@@ -1609,9 +1637,30 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               {head.comparison.statusText !== 'No previous baseline' ? head.comparison.statusText : '+0.000 mm (0.0%)'}
                             </span>
                           </div>
-                          {head.current.overallResult ? renderStatusBadge(head.current.overallResult) : renderStatusBadge('PASS')}
+                          <div className="flex items-center gap-1.5">
+                            {head.current.rawMeasurementVerdict && head.current.rawMeasurementVerdict !== 'PASS' && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300">
+                                RAW: OUT OF SPEC
+                              </span>
+                            )}
+                            {head.current.engineerDisposition ? (
+                              <span className="flex items-center gap-1">
+                                <span className="text-[9px] font-mono text-slate-500 font-bold">ENG:</span>
+                                {renderStatusBadge(head.current.engineerDisposition)}
+                              </span>
+                            ) : (
+                              renderStatusBadge(head.current.overallResult || 'PASS')
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {head.current.dispositionRationale && (
+                        <div className="px-2 py-1 my-1 rounded bg-amber-50/80 border border-amber-200/80 text-[10px] text-amber-900 flex items-start gap-1.5 font-mono">
+                          <span className="font-bold text-[9px] uppercase tracking-wide shrink-0">Engineer Disposition:</span>
+                          <span className="italic font-sans">{head.current.dispositionRationale}</span>
+                        </div>
+                      )}
 
                       {/* 2. PRIMARY MEASUREMENTS: LASER SOURCE & FLAT TOP */}
                       <div className="grid grid-cols-2 gap-3 my-2">
@@ -1809,21 +1858,59 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               
               {/* SECTION 07: FOCUS OPTIMIZATION */}
               <div className="space-y-2">
-                <div className="border-b-2 border-slate-900 pb-1">
-                  <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-                    07 FOCUS OPTIMIZATION
-                  </h2>
-                  <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
-                    Machining Focus Calibration &amp; Focal Sequence Verification
-                  </p>
+                <div className="border-b-2 border-slate-900 pb-1 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                      07 FOCUS OPTIMIZATION
+                    </h2>
+                    <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                      Machining Focus Calibration &amp; Focal Sequence Verification
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {sections['07'].data.executionState === 'NOT_REQUIRED' ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold tracking-wide uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                        NOT PERFORMED THIS MHC • HISTORICAL REFERENCE
+                      </span>
+                    ) : sections['07'].data.executionState === 'PERFORMED' ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        PERFORMED THIS MHC
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="space-y-2.5 text-xs">
+                  {/* Notice if Focus was not required / skipped for this MHC */}
+                  {sections['07'].data.executionState === 'NOT_REQUIRED' && (
+                    <div className="p-2 rounded-lg bg-amber-50/80 border border-amber-200 text-[10.5px] text-amber-950 flex items-start justify-between gap-3">
+                      <div>
+                        <span className="font-bold text-amber-900 uppercase text-[9px] block">MHC Activity Disposition</span>
+                        <p className="font-medium mt-0.5">
+                          Focus Optimization was <strong>NOT REQUIRED / SKIPPED</strong> for this service.
+                        </p>
+                        {sections['07'].data.skippedReason && (
+                          <p className="text-[10px] text-amber-800 mt-0.5 italic">
+                            Reason / Remark: &ldquo;{sections['07'].data.skippedReason}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[8.5px] uppercase font-bold text-slate-500 block">Baseline Reference</span>
+                        <span className="font-mono text-[10px] font-bold text-slate-800">
+                          {sections['07'].data.historicalRecordDate ? `Passport (${sections['07'].data.historicalRecordDate})` : 'Passport Baseline'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* 1. Shared Focus Adjustment Record */}
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                     <div className="grid grid-cols-4 gap-3 text-[10.5px] items-center">
                       <div>
-                        <span className="text-[9px] font-sans uppercase font-bold text-slate-500 block">Focus Adjustment Date</span>
+                        <span className="text-[9px] font-sans uppercase font-bold text-slate-500 block">
+                          {sections['07'].data.isHistoricalReference ? 'Passport Record Date (Reference)' : 'Focus Adjustment Date'}
+                        </span>
                         <strong className="font-mono text-slate-900 text-[11px] block mt-0.5 font-bold">
                           {sections['07'].data.heads?.[0]?.date || '—'}
                         </strong>
@@ -1843,7 +1930,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                       <div>
                         <span className="text-[9px] font-sans uppercase font-bold text-slate-500 block">Evaluation</span>
                         <span className="text-slate-800 font-medium text-[10.5px] leading-tight block mt-0.5">
-                          {sections['07'].data.heads?.[0]?.evaluation || 'Optical focus verified across designated focal sequence.'}
+                          {sections['07'].data.heads?.[0]?.evaluation || (sections['07'].data.isHistoricalReference ? 'Historical baseline preserved — not adjusted this MHC.' : 'Optical focus verified across designated focal sequence.')}
                         </span>
                       </div>
                     </div>
@@ -1859,6 +1946,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <span className="font-extrabold text-slate-900 text-xs tracking-tight uppercase">
                             {head.laserLabel}
                           </span>
+                          {sections['07'].data.isHistoricalReference && (
+                            <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase">
+                              Historical Reference
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 font-mono text-[10px]">
                           <span className="text-slate-500 font-sans uppercase text-[8.5px] font-bold">BASELINE:</span>

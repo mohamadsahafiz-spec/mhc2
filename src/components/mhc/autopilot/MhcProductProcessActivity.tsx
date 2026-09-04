@@ -68,19 +68,44 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
 }) => {
   // Determine initial authoritative record
   const initialRecord = useMemo<ProductProcessRecord>(() => {
+    const passportRecord = machine?.productProcessRecords?.[0];
+    const sessionRecordId = `PP-SESSION-${session.id || Date.now()}`;
+
     if (session.productProcessRecord) {
-      return ImageStore.hydrateImagesSync(session.productProcessRecord);
+      // Guard against direct passport reference aliasing from legacy sessions
+      const isDirectPassportRef = passportRecord && session.productProcessRecord.id === passportRecord.id;
+      if (!isDirectPassportRef) {
+        return ImageStore.hydrateImagesSync(session.productProcessRecord);
+      }
+      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(session.productProcessRecord));
+      cloned.id = sessionRecordId;
+      cloned.date = session.startDate || getLocalDateString();
+      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
     }
+
     if (session.productProcessRecords && session.productProcessRecords.length > 0) {
-      return ImageStore.hydrateImagesSync(session.productProcessRecords[0]);
+      const isDirectPassportRef = passportRecord && session.productProcessRecords[0].id === passportRecord.id;
+      if (!isDirectPassportRef) {
+        return ImageStore.hydrateImagesSync(session.productProcessRecords[0]);
+      }
+      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(session.productProcessRecords[0]));
+      cloned.id = sessionRecordId;
+      cloned.date = session.startDate || getLocalDateString();
+      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
     }
-    if (machine?.productProcessRecords && machine.productProcessRecords.length > 0) {
-      const cloned = { ...machine.productProcessRecords[0], id: `PP-AUTOPILOT-${Date.now()}` };
-      return ImageStore.hydrateImagesSync(cloned);
+
+    if (passportRecord) {
+      // Deep clone Machine Passport record to seed Product/Recipe/Process info without mutating Passport
+      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(passportRecord));
+      cloned.id = sessionRecordId;
+      cloned.date = session.startDate || getLocalDateString();
+      cloned.createdAt = new Date().toISOString();
+      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
     }
+
     // Default baseline record with Standard 50µm specs
     const base: ProductProcessRecord = {
-      id: `PP-${Date.now()}`,
+      id: sessionRecordId,
       date: session.startDate || getLocalDateString(),
       productName: session.stage02_laserProfile?.productName || machine?.model || 'STANDARD DUMMY WAFER',
       recipeName: session.stage02_laserProfile?.recipeProgram || 'MHC-VIA-RECIPE-01',
@@ -276,7 +301,19 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     const updated: MHCSession = {
       ...session,
       productProcessRecord: evaluatedRecord,
-      productProcessRecords: [evaluatedRecord]
+      productProcessRecords: [evaluatedRecord],
+      stage02_laserProfile: {
+        ...(session.stage02_laserProfile || { laserId: 'lh1', profileInfo: '', measurementInfo: '', supportingEvidence: '', images: [] }),
+        productName: evaluatedRecord.productName || session.stage02_laserProfile?.productName || '',
+        recipeProgram: evaluatedRecord.recipeName || session.stage02_laserProfile?.recipeProgram || ''
+      },
+      stage06_productQuality: {
+        ...(session.stage06_productQuality || { sampleId: '', viaDiameterUm: 0, viaShape: 'CIRCULAR', viaOffsetUm: 0, padQuality: 'EXCELLENT', visualVerification: 'CLEAN', beforeInspectionNotes: '', afterInspectionNotes: '', beforeImages: [], afterImages: [], notes: '' }),
+        sampleId: evaluatedRecord.lotPanel || session.stage06_productQuality?.sampleId || '',
+        viaDiameterUm: evaluatedRecord.laser1Via?.topWidthUm ?? session.stage06_productQuality?.viaDiameterUm ?? 50,
+        result: evaluatedRecord.overallResult,
+        notes: evaluatedRecord.engineerRemarks || session.stage06_productQuality?.notes || ''
+      }
     };
     onUpdateSession(updated);
     if (showNotification) showNotification('Product & Process / Via draft saved.');
@@ -300,7 +337,19 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     let updatedSession: MHCSession = {
       ...session,
       productProcessRecord: evaluatedRecord,
-      productProcessRecords: [evaluatedRecord]
+      productProcessRecords: [evaluatedRecord],
+      stage02_laserProfile: {
+        ...(session.stage02_laserProfile || { laserId: 'lh1', profileInfo: '', measurementInfo: '', supportingEvidence: '', images: [] }),
+        productName: evaluatedRecord.productName || session.stage02_laserProfile?.productName || '',
+        recipeProgram: evaluatedRecord.recipeName || session.stage02_laserProfile?.recipeProgram || ''
+      },
+      stage06_productQuality: {
+        ...(session.stage06_productQuality || { sampleId: '', viaDiameterUm: 0, viaShape: 'CIRCULAR', viaOffsetUm: 0, padQuality: 'EXCELLENT', visualVerification: 'CLEAN', beforeInspectionNotes: '', afterInspectionNotes: '', beforeImages: [], afterImages: [], notes: '' }),
+        sampleId: evaluatedRecord.lotPanel || session.stage06_productQuality?.sampleId || '',
+        viaDiameterUm: evaluatedRecord.laser1Via?.topWidthUm ?? session.stage06_productQuality?.viaDiameterUm ?? 50,
+        result: evaluatedRecord.overallResult,
+        notes: evaluatedRecord.engineerRemarks || session.stage06_productQuality?.notes || ''
+      }
     };
 
     if (session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED') {
