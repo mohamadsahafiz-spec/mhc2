@@ -8,6 +8,7 @@ import {
 
 export interface WorkflowActivity {
   code: string;
+  displayCode?: string;
   title: string;
   day: 'DAY 1' | 'DAY 2' | 'DAY 3' | 'DAY 4';
   parentCode?: string;
@@ -19,12 +20,14 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
   {
     day: 'DAY 1',
     code: '01',
+    displayCode: '01',
     title: 'Laser Hours',
     subItems: []
   },
   {
     day: 'DAY 1',
     code: '02',
+    displayCode: '02',
     title: 'Laser System Calibration',
     subItems: [
       { code: '02_power', title: 'Laser Power (Laser 1 & 2)' },
@@ -34,7 +37,17 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
   },
   {
     day: 'DAY 2',
+    code: '03',
+    displayCode: '03',
+    title: 'Focus Optimization',
+    subItems: [
+      { code: '03_focus', title: 'Focus Optimization (Laser 1 & 2)' }
+    ]
+  },
+  {
+    day: 'DAY 2',
     code: '04',
+    displayCode: '04',
     title: 'Stage Calibration',
     subItems: [
       { code: '04_stage1', title: 'Stage 1' },
@@ -42,16 +55,9 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
     ]
   },
   {
-    day: 'DAY 2',
-    code: '03',
-    title: 'Focus Optimization',
-    subItems: [
-      { code: '03_focus', title: 'Focus Optimization (Laser 1 & 2)' }
-    ]
-  },
-  {
     day: 'DAY 3',
     code: '05',
+    displayCode: '05',
     title: 'AGC',
     subItems: [
       { code: '05_agc1', title: 'AGC 1' },
@@ -61,40 +67,79 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
   {
     day: 'DAY 3',
     code: '06',
+    displayCode: '06',
     title: 'Temperature & Evidence',
     subItems: []
   },
   {
     day: 'DAY 3',
     code: '06_via',
-    title: 'Product & Process / Via Quality',
+    displayCode: '07',
+    title: 'Product & Process / Via',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '07',
+    displayCode: '08',
     title: 'Recommendations & Spare Parts',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '08',
+    displayCode: '09',
     title: 'MHC Readiness Review',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '09',
+    displayCode: '10',
     title: 'Report Generation',
     subItems: []
   },
   {
     day: 'DAY 4',
     code: '10',
+    displayCode: '11',
     title: 'Buyoff / Complete',
     subItems: []
   }
 ];
+
+export function getActivityDisplayCode(code: string): string {
+  const item = MHC_WORKFLOW_SCHEDULE.find(a => a.code === code);
+  if (item?.displayCode) return item.displayCode;
+  const parent = MHC_WORKFLOW_SCHEDULE.find(a => a.subItems?.some(s => s.code === code));
+  if (parent?.displayCode) return parent.displayCode;
+
+  const fallbackMap: Record<string, string> = {
+    '01': '01',
+    '02': '02',
+    '02_power': '02',
+    '02_beam': '02',
+    '02_findings': '02',
+    '03': '03',
+    '03_focus': '03',
+    '04': '04',
+    '04_stage1': '04',
+    '04_stage2': '04',
+    '05': '05',
+    '05_agc1': '05',
+    '05_agc2': '05',
+    '06': '06',
+    '06_via': '07',
+    '07': '08',
+    '08': '09',
+    '08_review': '09',
+    '09': '10',
+    '09_report': '10',
+    '10': '11',
+    '10_buyoff': '11'
+  };
+  return fallbackMap[code] || code;
+}
 
 // Flat list of all atomic actionable activity codes in sequential order
 export const ACTIONABLE_ACTIVITIES: { code: string; title: string; day: 'DAY 1' | 'DAY 2' | 'DAY 3' | 'DAY 4'; parentCode?: string }[] = [
@@ -108,7 +153,7 @@ export const ACTIONABLE_ACTIVITIES: { code: string; title: string; day: 'DAY 1' 
   { code: '05_agc1', title: 'AGC — AGC 1', day: 'DAY 3', parentCode: '05' },
   { code: '05_agc2', title: 'AGC — AGC 2', day: 'DAY 3', parentCode: '05' },
   { code: '06', title: 'Temperature & Evidence', day: 'DAY 3' },
-  { code: '06_via', title: 'Product & Process / Via Quality', day: 'DAY 3' },
+  { code: '06_via', title: 'Product & Process / Via', day: 'DAY 3' },
   { code: '07', title: 'Recommendations & Spare Parts', day: 'DAY 4' },
   { code: '08', title: 'MHC Readiness Review', day: 'DAY 4' },
   { code: '09', title: 'Report Generation', day: 'DAY 4' },
@@ -810,8 +855,8 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
     };
   });
 
-  // Product & Process / Via Quality (06_via)
-  addItem('06_via', 'Product & Process / Via Quality', 'DAY 3', () => {
+  // Product & Process / Via (06_via)
+  addItem('06_via', 'Product & Process / Via', 'DAY 3', () => {
     const st = statuses['06_via'];
     const isDisp = isActivityDispositioned(session, '06_via');
     const procRec = session.productProcessRecord || session.productProcessRecords?.[0];

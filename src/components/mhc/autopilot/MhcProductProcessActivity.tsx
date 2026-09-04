@@ -325,8 +325,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     if (showNotification) {
       showNotification(
         isFail
-          ? 'Activity 06_via Product & Process FLAGGED FOR REVIEW ⚠ Advanced to Day 4 Recommendations.'
-          : 'Activity 06_via Product & Process COMPLETED ✓ Advanced to Day 4 Recommendations.'
+          ? 'Activity Product & Process / Via FLAGGED FOR REVIEW ⚠ Advanced to Day 4 Recommendations.'
+          : 'Activity Product & Process / Via COMPLETED ✓ Advanced to Day 4 Recommendations.'
       );
     }
 
@@ -363,7 +363,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           </div>
           <h2 className="text-xl font-bold tracking-tight mt-1 text-slate-900 dark:text-white flex items-center gap-2">
             <FileCheck className="w-5 h-5 text-emerald-500" />
-            Product & Process / Via Quality
+            Product & Process / Via
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Machining parameters, power offsets, and via drill cross-section geometry check for Laser 1 and Laser 2.

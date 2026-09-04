@@ -33,6 +33,7 @@ import { useTheme } from '../../context/ThemeContext';
 import {
   MHC_WORKFLOW_SCHEDULE,
   ACTIONABLE_ACTIVITIES,
+  getActivityDisplayCode,
   createDefaultAutopilotProgress,
   getParentActivityStatus,
   computeAutopilotReadiness,
@@ -751,7 +752,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
     {
       id: 'session_active' as SetupStep,
       title: 'MHC Journey Rail',
-      subtext: `Day ${progress.currentDay.replace('DAY ', '')} — ${progress.currentActivityCode}`,
+      subtext: `Day ${progress.currentDay.replace('DAY ', '')} — ${getActivityDisplayCode(progress.currentActivityCode)}`,
       status: currentStep === 'session_active' ? 'current' : 'upcoming'
     }
   ];
@@ -913,7 +914,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                                 {actStatus === 'UPCOMING' && <span className="text-slate-400">○</span>}
                                 {actStatus === 'LOCKED' && <span className="text-slate-600">🔒</span>}
                               </span>
-                              <span className="font-mono text-[10px] text-cyan-400/90 font-bold">{dayGroup.code}</span>
+                              <span className="font-mono text-[10px] text-cyan-400/90 font-bold">
+                                {dayGroup.displayCode || getActivityDisplayCode(dayGroup.code)}
+                              </span>
                               <span className="truncate font-medium">{dayGroup.title}</span>
                             </div>
                             <span className="text-[9px] font-mono text-slate-500 shrink-0">{dayGroup.day}</span>
@@ -2069,7 +2072,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                          {currentActionableItem.day} • {currentActionableItem.code}
+                          {currentActionableItem.day} • {getActivityDisplayCode(currentActionableItem.code)}
                         </span>
                         <h3 className="font-bold text-sm sm:text-base text-slate-100">
                           {currentActionableItem.title}
