@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Machine, MHCRecord, MHCSession, NavigationTab } from '../../types';
 import { StorageService } from '../../utils/persistence';
-import { ImageStore } from '../../utils/imageStore';
+import { ImageStore, mergeSessionsPreservingImages } from '../../utils/imageStore';
 import { Card } from '../common/Card';
 import { Cpu, Activity } from 'lucide-react';
 
@@ -52,6 +52,34 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     (s) => s.machineId === selectedMachineId && s.completionStatus !== 'COMPLETED'
   ) || mhcSessions.find((s) => s.machineId === selectedMachineId);
 
+  // 1. Targeted hydration of activeSession images independently of cloud sync
+  useEffect(() => {
+    if (!activeSession) return;
+    const sessionKeys = ImageStore.collectIdbKeys(activeSession);
+    if (sessionKeys.length === 0) return;
+
+    ImageStore.hydrateKeysAsync(sessionKeys).then(() => {
+      setMhcSessions(prev => {
+        return prev.map(s => {
+          if (s.id === activeSession.id) {
+            return ImageStore.hydrateImagesSync(s);
+          }
+          return s;
+        });
+      });
+    }).catch(err => {
+      console.warn('[MachineHealthCheckModule] Error hydrating active session images:', err);
+    });
+  }, [activeSession?.id, selectedMachineId]);
+
+  // 2. Reactive listener for asynchronous ImageStore hydration
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setMhcSessions(prev => prev.map(s => ImageStore.hydrateImagesSync(s)));
+    });
+    return unsub;
+  }, []);
+
   // 3. View Mode: 'mhc_autopilot' | 'smart_workspace' | 'mhc_history'
   const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'smart_workspace' | 'mhc_history'>('mhc_autopilot');
 
@@ -74,8 +102,9 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     const updatedList = exists 
       ? mhcSessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
       : [updatedSession, ...mhcSessions];
-    setMhcSessions(updatedList);
-    StorageService.saveMhcSessions(updatedList);
+    const preservedList = mergeSessionsPreservingImages(updatedList, mhcSessions);
+    setMhcSessions(preservedList);
+    StorageService.saveMhcSessions(preservedList);
   };
 
   // Safe Discard / Delete Draft Session helper

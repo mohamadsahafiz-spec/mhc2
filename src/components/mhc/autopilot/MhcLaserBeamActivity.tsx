@@ -28,6 +28,7 @@ import {
 } from '../../../types/beamProfile';
 import { BeamProfileEngine } from '../../../utils/beamProfileEngine';
 import { StorageService } from '../../../utils/persistence';
+import { ImageStore } from '../../../utils/imageStore';
 
 export interface MhcLaserBeamActivityProps {
   session: MHCSession;
@@ -134,7 +135,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       if (existingRecord && existingRecord.readings && existingRecord.readings[s.id]) {
         const r = existingRecord.readings[s.id];
         vals[s.id] = r.measuredDiameterMm ?? null;
-        imgs[s.id] = r.imageDataUrl;
+        imgs[s.id] = ImageStore.resolveImage(r.imageDataUrl) || (r.imageDataUrl?.startsWith('idb:') ? undefined : r.imageDataUrl);
       } else {
         vals[s.id] = null;
         imgs[s.id] = undefined;

@@ -128,9 +128,11 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
   // Helper to resolve image URI from memory or ImageStore IDB cache
   const resolveImage = (imgSrc?: string | null): string | undefined => {
     if (!imgSrc) return undefined;
+    if (imgSrc.startsWith('data:') || imgSrc.startsWith('http:') || imgSrc.startsWith('blob:') || imgSrc.startsWith('<svg')) {
+      return imgSrc;
+    }
     if (imgSrc.startsWith('idb:')) {
-      const cached = ImageStore.getCachedImage(imgSrc);
-      return cached || imgSrc;
+      return ImageStore.resolveImage(imgSrc);
     }
     return imgSrc;
   };
@@ -892,21 +894,30 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                     ) : null}
 
                     {/* Evidence Image */}
-                    {item.evidenceImage && (
-                      <div className="pt-1 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewImageModal(resolveImage(item.evidenceImage) || item.evidenceImage!)}
-                          className="relative group rounded overflow-hidden border border-cyan-500/40 w-10 h-10 shrink-0 cursor-pointer"
-                        >
-                          <img src={resolveImage(item.evidenceImage) || item.evidenceImage} alt="Evidence" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Maximize2 className="w-3.5 h-3.5 text-cyan-300" />
-                          </div>
-                        </button>
-                        <span className="text-[10px] font-mono text-cyan-400">Evidence Image Attached</span>
-                      </div>
-                    )}
+                    {item.evidenceImage && (() => {
+                      const resolved = resolveImage(item.evidenceImage);
+                      return (
+                        <div className="pt-1 flex items-center gap-2">
+                          {resolved ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImageModal(resolved)}
+                              className="relative group rounded overflow-hidden border border-cyan-500/40 w-10 h-10 shrink-0 cursor-pointer"
+                            >
+                              <img src={resolved} alt="Evidence" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Maximize2 className="w-3.5 h-3.5 text-cyan-300" />
+                              </div>
+                            </button>
+                          ) : (
+                            <div className="w-10 h-10 rounded border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-500 text-[9px] text-center font-mono">
+                              Loading
+                            </div>
+                          )}
+                          <span className="text-[10px] font-mono text-cyan-400">Evidence Image Attached</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

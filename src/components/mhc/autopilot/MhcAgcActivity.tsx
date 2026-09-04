@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Machine, MHCSession, MHCAgcResult, MHCAgcIndexItem } from '../../../types';
 import { advanceAutopilotActivity, flagDownstreamNeedsReview, dispositionAutopilotActivity } from '../../../utils/mhcAutopilotBrain';
+import { ImageStore } from '../../../utils/imageStore';
 
 export interface MhcAgcActivityProps {
   session: MHCSession;
@@ -74,7 +75,9 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       setIndexYInputs(rec.indices.map(idx => (idx.yUm !== null && idx.yUm !== undefined ? String(idx.yUm) : '')));
       setIndexNotes(rec.indices.map(idx => idx.engineerNote || ''));
       setOverallNote(rec.engineerNote || '');
-      setEvidenceImage(rec.evidenceImage || '');
+      const rawImg = rec.evidenceImage || '';
+      const resolvedImg = ImageStore.resolveImage(rawImg) || (rawImg.startsWith('idb:') ? '' : rawImg);
+      setEvidenceImage(resolvedImg);
       if (rec.engineerDisposition) {
         setSelectedDisposition(rec.engineerDisposition);
       } else if (rec.verdict === 'PASS') {

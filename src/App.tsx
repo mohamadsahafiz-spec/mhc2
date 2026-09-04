@@ -24,7 +24,7 @@ import {
   UserSession
 } from './types';
 import { StorageService } from './utils/persistence';
-import { ImageStore } from './utils/imageStore';
+import { ImageStore, mergeMachinesPreservingImages } from './utils/imageStore';
 import { SyncEngine } from './utils/syncEngine';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Sidebar } from './components/layout/Sidebar';
@@ -108,25 +108,31 @@ function AppLayout() {
 
   // Load state from StorageService & IDB on mount
   useEffect(() => {
-    // Preload IDB images and refresh synced machine/customer state
-    ImageStore.preloadAllImagesFromIDB().then(() => {
+    // 1. Targeted startup image hydration (runs independently of SyncEngine!)
+    ImageStore.hydrateAppState().then(() => {
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
-      setMachines(rec.machines);
+      setMachines(prev => mergeMachinesPreservingImages(rec.machines, prev));
       setCustomers(rec.customers);
     }).catch(err => {
-      console.warn('[App] Error preloading images from IDB:', err);
+      console.warn('[App] Error during startup image hydration:', err);
     });
 
-    // Subscribe to SyncEngine remote updates to synchronize React UI
+    // 2. Reactive listener for asynchronous ImageStore hydration
+    const unsubscribeImageStore = ImageStore.subscribe(() => {
+      const loadedMachines = StorageService.getMachines();
+      setMachines(prev => mergeMachinesPreservingImages(loadedMachines, prev));
+    });
+
+    // 3. Subscribe to SyncEngine remote updates to synchronize React UI without clobbering images
     const unsubscribeSync = SyncEngine.subscribe((state) => {
       if (state.status === 'synced') {
         try {
           const curCusts = StorageService.getCustomers();
           const curMachines = StorageService.getMachines();
           const rec = StorageService.reconcileCustomerIdentities(curMachines, curCusts);
-          setMachines(rec.machines);
+          setMachines(prev => mergeMachinesPreservingImages(rec.machines, prev));
           setCustomers(rec.customers);
           setMhcRecords(StorageService.getMhcRecords());
           setPlants(StorageService.getPlants());
@@ -141,6 +147,7 @@ function AppLayout() {
     });
 
     return () => {
+      unsubscribeImageStore();
       unsubscribeSync();
     };
   }, []);

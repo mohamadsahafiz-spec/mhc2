@@ -9,6 +9,21 @@ const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
 const MAX_MEMORY_CACHE_ITEMS = 128; // LRU cache limit sized to accommodate multi-head sequence inspections without thrashing
 
+// Reactive listeners for asynchronous image hydration
+type ImageStoreListener = (hydratedKeys: string[]) => void;
+const listeners = new Set<ImageStoreListener>();
+
+function notifyListeners(keys: string[]) {
+  if (keys.length === 0 || listeners.size === 0) return;
+  listeners.forEach(fn => {
+    try {
+      fn(keys);
+    } catch (err) {
+      console.warn('[ImageStore] Error in listener callback:', err);
+    }
+  });
+}
+
 function setMemoryCache(key: string, val: string) {
   if (imageMemoryCache.has(key)) {
     imageMemoryCache.delete(key);
@@ -120,8 +135,22 @@ export const ImageStore = {
       persistedInIdbKeys.delete(id);
     }
 
+    notifyListeners([id]);
     pendingIdbWrites.set(id, dataUrl);
     scheduleBatchFlush();
+  },
+
+  saveImageInMemoryOnly(id: string, dataUrl: string): void {
+    if (!id || !dataUrl) return;
+    setMemoryCache(id, dataUrl);
+    notifyListeners([id]);
+  },
+
+  subscribe(listener: ImageStoreListener): () => void {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 
   async getImage(id: string): Promise<string | null> {
@@ -140,6 +169,7 @@ export const ImageStore = {
           if (val) {
             setMemoryCache(id, val);
             persistedInIdbKeys.add(id);
+            notifyListeners([id]);
           }
           resolve(val);
         };
@@ -329,56 +359,147 @@ export const ImageStore = {
     return data;
   },
 
+  // Collect all IDB image keys referenced within an object or tree
+  collectIdbKeys(data: unknown, activeAncestors = new Set<object>()): string[] {
+    const keys = new Set<string>();
+
+    function scan(val: unknown) {
+      if (!val) return;
+      if (typeof val === 'string') {
+        if (val.startsWith('idb:')) {
+          keys.add(val);
+        }
+        return;
+      }
+      if (typeof val === 'object') {
+        if (val instanceof Date) return;
+        if (activeAncestors.has(val)) return;
+        activeAncestors.add(val);
+        try {
+          if (Array.isArray(val)) {
+            for (let i = 0; i < val.length; i++) {
+              scan(val[i]);
+            }
+          } else {
+            const objKeys = Object.keys(val as Record<string, unknown>);
+            for (let i = 0; i < objKeys.length; i++) {
+              scan((val as any)[objKeys[i]]);
+            }
+          }
+        } finally {
+          activeAncestors.delete(val);
+        }
+      }
+    }
+
+    scan(data);
+    return Array.from(keys);
+  },
+
+  // Batch hydrate an array of IDB keys into memory cache in a single IDB transaction
+  async hydrateKeysAsync(keys: string[]): Promise<Map<string, string>> {
+    const resolved = new Map<string, string>();
+    const missingKeys: string[] = [];
+
+    for (const key of keys) {
+      if (!key || !key.startsWith('idb:')) continue;
+      if (imageMemoryCache.has(key)) {
+        resolved.set(key, imageMemoryCache.get(key)!);
+      } else {
+        missingKeys.push(key);
+      }
+    }
+
+    if (missingKeys.length === 0) {
+      return resolved;
+    }
+
+    try {
+      const db = await openDB();
+      const newlyHydrated: string[] = [];
+
+      await new Promise<void>((resolve) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        let completed = 0;
+
+        for (const key of missingKeys) {
+          const req = store.get(key);
+          req.onsuccess = () => {
+            const val = req.result;
+            if (val) {
+              setMemoryCache(key, val);
+              persistedInIdbKeys.add(key);
+              resolved.set(key, val);
+              newlyHydrated.push(key);
+            }
+            completed++;
+            if (completed === missingKeys.length) resolve();
+          };
+          req.onerror = () => {
+            completed++;
+            if (completed === missingKeys.length) resolve();
+          };
+        }
+      });
+
+      if (newlyHydrated.length > 0) {
+        notifyListeners(newlyHydrated);
+      }
+    } catch (err) {
+      console.warn('[ImageStore] Error batch hydrating keys from IndexedDB:', err);
+    }
+
+    return resolved;
+  },
+
+  // Targeted startup hydration for active machines and recent/draft MHC sessions
+  async hydrateAppState(): Promise<void> {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const machinesRaw = localStorage.getItem('fsos_machines');
+      const sessionsRaw = localStorage.getItem('fsos_mhc_sessions');
+
+      const keysToHydrate: string[] = [];
+      if (machinesRaw) {
+        try {
+          const parsedMachines = JSON.parse(machinesRaw);
+          keysToHydrate.push(...this.collectIdbKeys(parsedMachines));
+        } catch {}
+      }
+      if (sessionsRaw) {
+        try {
+          const parsedSessions = JSON.parse(sessionsRaw);
+          const sessionsArray = Array.isArray(parsedSessions) ? parsedSessions : [];
+          // Hydrate the 5 most recent sessions and any non-completed draft session
+          const activeSessions = sessionsArray.filter((s: any, idx: number) =>
+            s.completionStatus !== 'COMPLETED' || idx < 5
+          );
+          keysToHydrate.push(...this.collectIdbKeys(activeSessions));
+        } catch {}
+      }
+
+      if (keysToHydrate.length > 0) {
+        await this.hydrateKeysAsync(Array.from(new Set(keysToHydrate)));
+      }
+    } catch (err) {
+      console.warn('[ImageStore] Error during hydrateAppState:', err);
+    }
+  },
+
   // Asynchronously hydrate object replacing "idb:..." with actual base64/SVG strings from IDB if missing from cache
   async hydrateImagesAsync<T>(data: T, activeAncestors = new Set<object>()): Promise<T> {
     if (!data) return data;
     if (data instanceof Date) return data;
 
-    if (typeof data === 'string') {
-      if (data.startsWith('idb:')) {
-        const cached = imageMemoryCache.get(data);
-        if (cached) return cached as unknown as T;
-        const fetched = await this.getImage(data);
-        return (fetched || data) as unknown as T;
-      }
-      return data;
+    // Collect all IDB keys upfront and batch load them in a single transaction
+    const keys = this.collectIdbKeys(data);
+    if (keys.length > 0) {
+      await this.hydrateKeysAsync(keys);
     }
 
-    if (typeof data === 'object') {
-      if (activeAncestors.has(data as object)) {
-        return undefined as unknown as T;
-      }
-      activeAncestors.add(data as object);
-
-      try {
-        if (Array.isArray(data)) {
-          let hasChanges = false;
-          const mapped = await Promise.all(
-            data.map(async item => {
-              const res = await this.hydrateImagesAsync(item, activeAncestors);
-              if (res !== item) hasChanges = true;
-              return res;
-            })
-          );
-          return (hasChanges ? mapped : data) as unknown as T;
-        }
-
-        let hasChanges = false;
-        const result: any = {};
-        const keys = Object.keys(data as any);
-        for (const key of keys) {
-          const val = (data as any)[key];
-          const res = await this.hydrateImagesAsync(val, activeAncestors);
-          if (res !== val) hasChanges = true;
-          result[key] = res;
-        }
-        return (hasChanges ? result : data) as T;
-      } finally {
-        activeAncestors.delete(data as object);
-      }
-    }
-
-    return data;
+    // Now run synchronous hydration since all keys are now in imageMemoryCache
+    return this.hydrateImagesSync(data, activeAncestors);
   },
 
   async preloadAllImagesFromIDB(): Promise<void> {
@@ -401,6 +522,8 @@ export const ImageStore = {
         };
         req.onerror = () => reject(req.error);
       });
+      // Also perform targeted startup hydration for active app state
+      await this.hydrateAppState();
     } catch (err) {
       console.warn('[ImageStore] Error preloading images from IndexedDB:', err);
     }
@@ -424,3 +547,72 @@ export const ImageStore = {
     }
   }
 };
+
+/**
+ * Universal helper that prevents subsequent sync / state updates from clobbering
+ * already-hydrated base64 or external URLs with unresolved "idb:..." pointers.
+ */
+export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncestors = new Set<object>()): T {
+  if (!incoming || !existing) return incoming;
+  if (typeof incoming === 'string') {
+    // If incoming is an idb: pointer, but existing already has a resolved data URL / URL, preserve the resolved URL!
+    if (incoming.startsWith('idb:') && typeof existing === 'string' && (existing.startsWith('data:') || existing.startsWith('http:') || existing.startsWith('https:') || existing.startsWith('<svg') || existing.startsWith('blob:'))) {
+      ImageStore.saveImageInMemoryOnly(incoming, existing);
+      return existing as unknown as T;
+    }
+    return incoming;
+  }
+  if (typeof incoming === 'object' && typeof existing === 'object') {
+    if (incoming instanceof Date || existing instanceof Date) return incoming;
+    if (activeAncestors.has(incoming as object)) return incoming;
+    activeAncestors.add(incoming as object);
+
+    try {
+      if (Array.isArray(incoming) && Array.isArray(existing)) {
+        return incoming.map((item, idx) => {
+          if (idx < existing.length) {
+            return preserveHydratedImages(item, existing[idx], activeAncestors);
+          }
+          return item;
+        }) as unknown as T;
+      }
+
+      const result: any = { ...incoming };
+      for (const key of Object.keys(incoming as any)) {
+        if (key in (existing as any)) {
+          result[key] = preserveHydratedImages((incoming as any)[key], (existing as any)[key], activeAncestors);
+        }
+      }
+      return result;
+    } finally {
+      activeAncestors.delete(incoming as object);
+    }
+  }
+  return incoming;
+}
+
+/**
+ * Merges updated machine records while preserving already-hydrated image payloads.
+ */
+export function mergeMachinesPreservingImages<M extends { id: string }>(incoming: M[], existing: M[]): M[] {
+  if (!existing || existing.length === 0) return incoming;
+  const existingMap = new Map(existing.map(m => [m.id, m]));
+  return incoming.map(inc => {
+    const prev = existingMap.get(inc.id);
+    if (!prev) return inc;
+    return preserveHydratedImages(inc, prev);
+  });
+}
+
+/**
+ * Merges updated MHC sessions while preserving already-hydrated image payloads.
+ */
+export function mergeSessionsPreservingImages<S extends { id: string }>(incoming: S[], existing: S[]): S[] {
+  if (!existing || existing.length === 0) return incoming;
+  const existingMap = new Map(existing.map(s => [s.id, s]));
+  return incoming.map(inc => {
+    const prev = existingMap.get(inc.id);
+    if (!prev) return inc;
+    return preserveHydratedImages(inc, prev);
+  });
+}

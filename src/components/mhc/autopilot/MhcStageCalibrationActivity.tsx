@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Machine, MHCSession, MHCStageCalibrationResult } from '../../../types';
 import { advanceAutopilotActivity, flagDownstreamNeedsReview, dispositionAutopilotActivity } from '../../../utils/mhcAutopilotBrain';
+import { ImageStore } from '../../../utils/imageStore';
 
 export interface MhcStageCalibrationActivityProps {
   session: MHCSession;
@@ -86,7 +87,9 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
       setYMinStr(rec.yMinUm !== null && rec.yMinUm !== undefined ? String(rec.yMinUm) : '');
       setYMaxStr(rec.yMaxUm !== null && rec.yMaxUm !== undefined ? String(rec.yMaxUm) : '');
       setEngineerNote(rec.engineerNote || '');
-      setEvidenceImage(rec.evidenceImage || '');
+      const rawImg = rec.evidenceImage || '';
+      const resolvedImg = ImageStore.resolveImage(rawImg) || (rawImg.startsWith('idb:') ? '' : rawImg);
+      setEvidenceImage(resolvedImg);
       if (rec.engineerDisposition) {
         setSelectedDisposition(rec.engineerDisposition);
       } else if (rec.verdict === 'PASS') {

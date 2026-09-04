@@ -84,6 +84,40 @@ function resolveLaserHeadIdentifier(
   return trimmed;
 }
 
+// Helper to ensure all images in the container are fully resolved and decoded before html2canvas capture
+async function waitForImagesReady(containerEl: HTMLElement, timeoutMs = 5000): Promise<void> {
+  const imgs = Array.from(containerEl.querySelectorAll('img'));
+  const pending = imgs.map(img => {
+    // If src contains unresolved idb: prefix, resolve directly from cache
+    if (img.src && img.src.includes('idb:')) {
+      const match = img.src.match(/idb:[^\s"')]+/);
+      if (match) {
+        const resolved = ImageStore.resolveImage(match[0]);
+        if (resolved) {
+          img.src = resolved;
+        }
+      }
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      return Promise.resolve();
+    }
+    return new Promise<void>(resolve => {
+      const onDone = () => {
+        img.removeEventListener('load', onDone);
+        img.removeEventListener('error', onDone);
+        resolve();
+      };
+      img.addEventListener('load', onDone);
+      img.addEventListener('error', onDone);
+    });
+  });
+
+  await Promise.race([
+    Promise.all(pending),
+    new Promise(resolve => setTimeout(resolve, timeoutMs))
+  ]);
+}
+
 export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   session,
   previousSession,
@@ -94,7 +128,37 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   onPdfGenerated
 }) => {
   // Construct or use passed document
-  const baseDoc: MhcReportDocument = reportDocument || buildMhcReportDocument(session, previousSession);
+  const initialDoc: MhcReportDocument = useMemo(() => {
+    return reportDocument || buildMhcReportDocument(session, previousSession);
+  }, [reportDocument, session, previousSession]);
+
+  const [baseDoc, setBaseDoc] = useState<MhcReportDocument>(() => {
+    return ImageStore.hydrateImagesSync(initialDoc);
+  });
+
+  // Targeted async hydration on mount and whenever initialDoc changes
+  useEffect(() => {
+    let active = true;
+    ImageStore.hydrateImagesAsync(initialDoc).then(hydrated => {
+      if (active) {
+        setBaseDoc(hydrated);
+      }
+    }).catch(err => {
+      console.warn('[MhcFullPdfRenderer] Async hydration error:', err);
+    });
+    return () => {
+      active = false;
+    };
+  }, [initialDoc]);
+
+  // Reactive listener for ImageStore background completions
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setBaseDoc(prev => ImageStore.hydrateImagesSync(prev));
+    });
+    return unsub;
+  }, []);
+
   const metadata = baseDoc.metadata;
   const sections = baseDoc.sections;
 
@@ -262,7 +326,15 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   const handleDownloadPdf = async () => {
     if (!documentContainerRef.current) return;
     setIsGeneratingPdf(true);
-    setDownloadProgress('Preparing report pages...');
+    setDownloadProgress('Verifying report image readiness...');
+
+    // 1. Ensure all document images are hydrated from IDB into memory
+    try {
+      const fullyHydrated = await ImageStore.hydrateImagesAsync(baseDoc);
+      setBaseDoc(fullyHydrated);
+    } catch (err) {
+      console.warn('[MhcFullPdfRenderer] Pre-capture image hydration error:', err);
+    }
 
     const container = documentContainerRef.current;
     const originalTransform = container.style.transform;
@@ -271,6 +343,10 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     // Temporarily reset zoom transform for true 1:1 coordinate calculation
     container.style.transform = 'none';
     container.style.transformOrigin = 'initial';
+
+    // 2. Wait for all DOM image elements to be completely resolved and decoded
+    setDownloadProgress('Decoding image assets...');
+    await waitForImagesReady(container, 5000);
 
     let lastFailingOperation = 'INIT';
     let currentProcessingPage = 0;

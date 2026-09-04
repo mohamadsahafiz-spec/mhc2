@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Upload, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-react';
 import { ViaSpecification, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
+import { ImageStore } from '../../utils/imageStore';
 
 interface ViaQualityInspectionCardProps {
   laser: 1 | 2;
@@ -123,44 +124,53 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
               isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-300'
             }`}
           >
-            {imageDataUrl ? (
-              <>
-                <img
-                  src={imageDataUrl}
-                  alt={`${title} Via`}
-                  className="w-full h-full object-cover"
-                />
-                {/* Overlay on hover to replace or remove */}
-                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-[9px] text-cyan-300 font-bold hover:underline"
-                    title="Replace image"
-                  >
-                    Replace
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onImageRemove}
-                    className="text-[9px] text-rose-400 hover:underline"
-                    title="Remove image"
-                  >
-                    Clear
-                  </button>
+            {(() => {
+              const displaySrc = imageDataUrl?.startsWith('idb:') 
+                ? ImageStore.resolveImage(imageDataUrl) 
+                : imageDataUrl;
+              return displaySrc ? (
+                <>
+                  <img
+                    src={displaySrc}
+                    alt={`${title} Via`}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Overlay on hover to replace or remove */}
+                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-[9px] text-cyan-300 font-bold hover:underline"
+                      title="Replace image"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onImageRemove}
+                      className="text-[9px] text-rose-400 hover:underline"
+                      title="Remove image"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </>
+              ) : imageDataUrl?.startsWith('idb:') ? (
+                <div className="w-full h-full flex items-center justify-center text-slate-500 text-[8px] font-mono">
+                  Loading
                 </div>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-cyan-400 transition-colors"
-                title="Upload micro-inspection image"
-              >
-                <ImageIcon className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Add Pic</span>
-              </button>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-cyan-400 transition-colors"
+                  title="Upload micro-inspection image"
+                >
+                  <ImageIcon className="w-4 h-4 mb-0.5" />
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Add Pic</span>
+                </button>
+              );
+            })()}
             <input
               ref={fileInputRef}
               type="file"
