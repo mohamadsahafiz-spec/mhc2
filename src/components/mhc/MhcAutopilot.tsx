@@ -46,8 +46,10 @@ import { MhcLaserPowerActivity } from './autopilot/MhcLaserPowerActivity';
 import { MhcLaserBeamActivity } from './autopilot/MhcLaserBeamActivity';
 import { MhcLaserInspectionActivity } from './autopilot/MhcLaserInspectionActivity';
 import { MhcStageCalibrationActivity } from './autopilot/MhcStageCalibrationActivity';
+import { MhcFocusOptimizationActivity } from './autopilot/MhcFocusOptimizationActivity';
 import { MhcAgcActivity } from './autopilot/MhcAgcActivity';
 import { MhcTemperatureEvidenceActivity } from './autopilot/MhcTemperatureEvidenceActivity';
+import { MhcProductProcessActivity } from './autopilot/MhcProductProcessActivity';
 import { MhcRecommendationsSparePartsActivity } from './autopilot/MhcRecommendationsSparePartsActivity';
 import { MhcReadinessReviewActivity } from './autopilot/MhcReadinessReviewActivity';
 import { MhcFullPdfRenderer } from './report/MhcFullPdfRenderer';
@@ -162,7 +164,9 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
       productionReleaseVerdict: 'APPROVED'
     },
     productProcessRecords: machine.productProcessRecords || [],
-    productProcessRecord: machine.productProcessRecords?.[0]
+    productProcessRecord: machine.productProcessRecords?.[0],
+    focusOptimizationRecords: machine.focusOptimizationRecords || [],
+    focusOptimizationRecord: machine.focusOptimizationRecords?.[0]
   };
 }
 
@@ -1804,6 +1808,17 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     showNotification={showNotification}
                     activeCode={progress.currentActivityCode}
                   />
+                ) : (progress.currentActivityCode === '03_focus' || progress.currentActivityCode === '03') ? (
+                  <MhcFocusOptimizationActivity
+                    session={effectiveSession!}
+                    machine={localSelectedMachine}
+                    isReadOnly={isReadOnlyMode}
+                    onUpdateSession={onUpdateSession}
+                    onCompleteActivity={handleCompleteCurrentActivity}
+                    isDark={isDark}
+                    showNotification={showNotification}
+                    activeCode={progress.currentActivityCode}
+                  />
                 ) : (progress.currentActivityCode === '05_agc1' || progress.currentActivityCode === '05_agc2' || progress.currentActivityCode === '05') ? (
                   <MhcAgcActivity
                     session={effectiveSession!}
@@ -1824,6 +1839,17 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     onUpdateMachine={onUpdateMachine}
                     onCompleteActivity={handleCompleteCurrentActivity}
                     onSwitchToCanvas={onSwitchToCanvas}
+                    isDark={isDark}
+                    showNotification={showNotification}
+                    activeCode={progress.currentActivityCode}
+                  />
+                ) : (progress.currentActivityCode === '06_via' || progress.currentActivityCode === '06_process') ? (
+                  <MhcProductProcessActivity
+                    session={effectiveSession!}
+                    machine={localSelectedMachine}
+                    isReadOnly={isReadOnlyMode}
+                    onUpdateSession={onUpdateSession}
+                    onCompleteActivity={handleCompleteCurrentActivity}
                     isDark={isDark}
                     showNotification={showNotification}
                     activeCode={progress.currentActivityCode}

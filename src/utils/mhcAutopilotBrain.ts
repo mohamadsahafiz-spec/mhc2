@@ -42,6 +42,14 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
     ]
   },
   {
+    day: 'DAY 2',
+    code: '03',
+    title: 'Focus Optimization',
+    subItems: [
+      { code: '03_focus', title: 'Focus Optimization (Laser 1 & 2)' }
+    ]
+  },
+  {
     day: 'DAY 3',
     code: '05',
     title: 'AGC',
@@ -54,6 +62,12 @@ export const MHC_WORKFLOW_SCHEDULE: WorkflowActivity[] = [
     day: 'DAY 3',
     code: '06',
     title: 'Temperature & Evidence',
+    subItems: []
+  },
+  {
+    day: 'DAY 3',
+    code: '06_via',
+    title: 'Product & Process / Via Quality',
     subItems: []
   },
   {
@@ -90,9 +104,11 @@ export const ACTIONABLE_ACTIVITIES: { code: string; title: string; day: 'DAY 1' 
   { code: '02_findings', title: 'Laser Optics & Head Inspection', day: 'DAY 1', parentCode: '02' },
   { code: '04_stage1', title: 'Stage Calibration — Stage 1', day: 'DAY 2', parentCode: '04' },
   { code: '04_stage2', title: 'Stage Calibration — Stage 2', day: 'DAY 2', parentCode: '04' },
+  { code: '03_focus', title: 'Focus Optimization (Laser 1 & 2)', day: 'DAY 2', parentCode: '03' },
   { code: '05_agc1', title: 'AGC — AGC 1', day: 'DAY 3', parentCode: '05' },
   { code: '05_agc2', title: 'AGC — AGC 2', day: 'DAY 3', parentCode: '05' },
   { code: '06', title: 'Temperature & Evidence', day: 'DAY 3' },
+  { code: '06_via', title: 'Product & Process / Via Quality', day: 'DAY 3' },
   { code: '07', title: 'Recommendations & Spare Parts', day: 'DAY 4' },
   { code: '08', title: 'MHC Readiness Review', day: 'DAY 4' },
   { code: '09', title: 'Report Generation', day: 'DAY 4' },
@@ -111,9 +127,11 @@ export function createDefaultAutopilotProgress(): MHCAutopilotSessionProgress {
   // Day 2-4 initially locked
   activityStatuses['04_stage1'] = 'LOCKED';
   activityStatuses['04_stage2'] = 'LOCKED';
+  activityStatuses['03_focus'] = 'LOCKED';
   activityStatuses['05_agc1'] = 'LOCKED';
   activityStatuses['05_agc2'] = 'LOCKED';
   activityStatuses['06'] = 'LOCKED';
+  activityStatuses['06_via'] = 'LOCKED';
   activityStatuses['07'] = 'LOCKED';
   activityStatuses['08'] = 'LOCKED';
   activityStatuses['09'] = 'LOCKED';
@@ -600,6 +618,56 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
     };
   });
 
+  // Focus Optimization (03_focus)
+  addItem('03_focus', 'Focus Optimization', 'DAY 2', () => {
+    const st = statuses['03_focus'];
+    const isDisp = isActivityDispositioned(session, '03_focus');
+    const focusRec = session.focusOptimizationRecord || session.focusOptimizationRecords?.[0];
+    if (focusRec && (focusRec.overallResult === 'PASS' || focusRec.overallResult === 'COMPLETED' || focusRec.overallResult === 'VERIFIED') && st === 'COMPLETED') {
+      return {
+        status: 'COMPLETE',
+        statusSymbol: '✓',
+        detail: `Focus verified (Best: L1 ${focusRec.laser1?.selectedBestFocusPosition || '0'} / L2 ${focusRec.laser2?.selectedBestFocusPosition || '0'})`,
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
+    if (st === 'COMPLETED') {
+      return {
+        status: 'COMPLETE',
+        statusSymbol: '✓',
+        detail: 'Focus optimization completed',
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
+    if (st === 'NEEDS_REVIEW') {
+      return {
+        status: 'NEEDS_REVIEW',
+        statusSymbol: '⚠',
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Focus optimization requires review.'
+      };
+    }
+    if (st === 'LOCKED') {
+      return {
+        status: 'LOCKED',
+        statusSymbol: '🔒',
+        detail: 'Activity locked',
+        isBlocker: true,
+        blockerReason: 'Focus optimization is locked and incomplete.'
+      };
+    }
+    return {
+      status: 'INCOMPLETE',
+      statusSymbol: '○',
+      detail: 'Focus optimization missing',
+      isBlocker: true,
+      blockerReason: 'Focus optimization is incomplete.'
+    };
+  });
+
   // 10. AGC 1 (05_agc1)
   addItem('05_agc1', 'AGC 1', 'DAY 3', () => {
     const st = statuses['05_agc1'];
@@ -739,6 +807,65 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
       detail: 'Temperature analysis missing',
       isBlocker: true,
       blockerReason: 'Machine temperature telemetry log analysis is missing.'
+    };
+  });
+
+  // Product & Process / Via Quality (06_via)
+  addItem('06_via', 'Product & Process / Via Quality', 'DAY 3', () => {
+    const st = statuses['06_via'];
+    const isDisp = isActivityDispositioned(session, '06_via');
+    const procRec = session.productProcessRecord || session.productProcessRecords?.[0];
+    if (procRec && procRec.overallResult === 'FAIL') {
+      return {
+        status: 'NEEDS_REVIEW',
+        statusSymbol: '⚠',
+        detail: isDisp ? 'Via quality out of spec (Reviewed & Acknowledged)' : 'Via quality out of specification',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Product & Process via quality is out of specification.'
+      };
+    }
+    if (procRec && procRec.overallResult === 'PASS' && st === 'COMPLETED') {
+      return {
+        status: 'COMPLETE',
+        statusSymbol: '✓',
+        detail: `Via quality verified (Top: L1 ${procRec.laser1Via?.topWidthUm ?? '—'}µm / L2 ${procRec.laser2Via?.topWidthUm ?? '—'}µm)`,
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
+    if (st === 'COMPLETED') {
+      return {
+        status: 'COMPLETE',
+        statusSymbol: '✓',
+        detail: 'Product & Process verified',
+        isBlocker: false,
+        blockerReason: null
+      };
+    }
+    if (st === 'NEEDS_REVIEW') {
+      return {
+        status: 'NEEDS_REVIEW',
+        statusSymbol: '⚠',
+        detail: isDisp ? 'Flagged for review (Reviewed & Acknowledged)' : 'Flagged for review',
+        isBlocker: !isDisp,
+        blockerReason: isDisp ? null : 'Product & Process requires review.'
+      };
+    }
+    if (st === 'LOCKED') {
+      return {
+        status: 'LOCKED',
+        statusSymbol: '🔒',
+        detail: 'Activity locked',
+        isBlocker: true,
+        blockerReason: 'Product & Process is locked and incomplete.'
+      };
+    }
+    return {
+      status: 'INCOMPLETE',
+      statusSymbol: '○',
+      detail: 'Product & Process missing',
+      isBlocker: true,
+      blockerReason: 'Product & Process is incomplete.'
     };
   });
 
