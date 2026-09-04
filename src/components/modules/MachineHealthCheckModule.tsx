@@ -99,10 +99,10 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
   // Update session state helper
   const handleUpdateSession = (updatedSession: MHCSession) => {
     const exists = mhcSessions.some(s => s.id === updatedSession.id);
-    const updatedList = exists 
+    const updatedList: MHCSession[] = exists 
       ? mhcSessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
       : [updatedSession, ...mhcSessions];
-    const preservedList = mergeSessionsPreservingImages(updatedList, mhcSessions);
+    const preservedList: MHCSession[] = mergeSessionsPreservingImages<MHCSession>(updatedList, mhcSessions);
     setMhcSessions(preservedList);
     StorageService.saveMhcSessions(preservedList);
   };

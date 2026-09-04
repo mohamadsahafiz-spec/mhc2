@@ -2544,7 +2544,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
-                                    {Object.entries(sections['11'].data.channelStats).map(([chNum, cStat]) => {
+                                    {Object.entries(sections['11'].data.channelStats).map(([chNum, rawStat]) => {
+                                      const cStat = rawStat as { min: number; max: number; avg: number };
                                       const chMapping: Record<string, string> = {
                                         '1': 'Markbox 1',
                                         '2': 'Markbox 2',
