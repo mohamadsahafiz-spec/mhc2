@@ -44,8 +44,14 @@ function createMockSession(id: string = 'SESS-REC-TEST-01'): MHCSession {
 
 describe('Recommended Items: Custom Registration & Passport Separation', () => {
   beforeEach(() => {
-    // Reset or ensure catalog has baseline state
-    localStorage.clear();
+    // Reset or ensure catalog has baseline state with in-memory localStorage mock
+    const store = new Map<string, string>();
+    (globalThis as any).localStorage = {
+      getItem: (key: string) => store.get(key) || null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+      clear: () => store.clear()
+    };
   });
 
   it('1. Allows creating a custom recommendation without requiring a Passport record', () => {

@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v1.3.0 — FSOS / GITHUB RECONCILIATION & CONTINUITY (2026-09-05)
+
+### Repository & Version State Synchronization
+- **Full FSOS ↔ GitHub State Reconciliation**: Reconciled all file structures, version definitions (`v1.3.0`), and change history between FSOS and GitHub main (`mohamadsahafiz-spec/mhc2`). Verified exact SHA/content parity across all tracked repository files.
+- **Evidence-Based Historical Gap Resolution**: Formally resolved the apparent `v1.2.11` gap from verified Git history (commit `d13d238`), documenting the Laser Power check form UX optimization and modal cleanup completed on 2026-09-03.
+- **Authoritative Version Unification**: Synchronized all authoritative application version sources (`src/constants/version.ts`, `package.json`, `metadata.json`, `wrangler.toml`) to `v1.3.0` (`CFW-20260905-1530`).
+
+### Autopilot Progression & Stability Enhancements
+- **Activity Display Codes & Navigation**: Added standardized `displayCode` definitions to workflow schemas for clean identification in autopilot progression and process notifications.
+- **Fail Disposition Flow**: Allowed completion of optical activities with failing measurements by tagging them as `NEEDS_REVIEW` instead of halting the diagnostic workflow.
+- **State & Record Integrity**: Synchronized machine state with customer selection, excluded active session records from baseline lookups to avoid self-referencing, and preserved original timestamps during updates.
+- **Robust ImageStore Hydration**: Debounced ImageStore hydration to prevent re-render thrashing and stabilized IndexedDB pointer resolution across application startup.
+- **Recommendation & Spare Parts Flexibility**: Added source selection toggle (`Existing Passport Item` vs `Custom Item`) for recommended spare parts with optional part numbers for custom field items, fully integrated into report data pipelines and verified with automated test suites.
+
 ## v1.2.19 — BATCH B: Improve Information Hierarchy (Temperature, Laser Power, Beam Profile) (2026-09-03)
 
 ### Information Hierarchy & Readability Improvements
@@ -74,6 +88,14 @@
 - **Laser Head 1 & 2 Separation & Filtering**: Maintained clear amber (Laser 1 / Head A) and cyan (Laser 2 / Head B) separation with stage groupings (6A/7A Source, 6B/7B Flat Top, 6C/7C Working Zone Masks), live per-head pass counters, and an intuitive quick-filter tab bar (`All Checkpoints`, `Laser 1`, `Laser 2`) for zero-scroll single-head entry.
 - **Secondary Remarks & Obvious Verdict Action**: Streamlined Engineer Remarks into a secondary single-line input and anchored a high-contrast footer verdict bar with clear overall result and prominent save action.
 - **100% Engineering Logic & Data Integrity Preserved**: Kept all 14 checkpoints, specifications, calculation formulas, validation logic, image storage mechanisms, persistence routines, and report exports completely intact.
+
+## v1.2.11 — LASER POWER CHECK FORM UX: Compact Field-Service Data Entry Optimization & Modal Cleanup (2026-09-03)
+
+### Laser Power Check Form UX Optimization
+- **Compact Field-Service Layout**: Streamlined the Laser Power check modal in `MachineLaserPowerWorkspace.tsx` and `SmartMhcWorkspace.tsx` (`MhcEnterLaserPowerModal`) with clamped modal bounds (`maxWidth="xl"`), eliminating excessive viewport stretching.
+- **Theme-Aware High-Density Forms**: Refactored measurement input grids for Laser Head 1 and Laser Head 2 with theme-aware background cards, clear numeric badges, and responsive tab indexing.
+- **Modal Lifecycle Stability**: Removed redundant and competing `AnimatePresence` wrappers across `MhcAutopilot.tsx` and laser power dialogs to prevent DOM thrashing and ensure clean modal mount/unmount transitions.
+- **Preserved Engineering Calculations**: Retained all tolerance rules (15.0W ± 10%), baseline variation calculations, pass/fail thresholds, and IDB persistence pathways intact.
 
 ## v1.2.10 — LASER LIFECYCLE: Authoritative Recommendation Engine & Status Alignment (2026-09-02)
 

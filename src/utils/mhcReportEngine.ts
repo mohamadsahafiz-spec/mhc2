@@ -1308,6 +1308,7 @@ export function buildMhcReportDocument(
       category: sp.category,
       quantity: sp.quantity,
       reason: sp.reason,
+      action: 'RECOMMENDED',
       notes: sp.notes,
       sourceType: sp.sourceType,
       catalogPartId: sp.catalogPartId,

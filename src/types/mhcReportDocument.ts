@@ -623,6 +623,7 @@ export interface MhcReportSparePartsData {
     category?: string;
     quantity?: number;
     reason: string;
+    action?: 'RECOMMENDED';
     sourceFinding?: string;
     notes?: string;
     sourceType?: 'PASSPORT_CATALOG' | 'CUSTOM';
