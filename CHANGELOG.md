@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v1.4.5 — MACHINE CARD DISPLAY HIERARCHY (2026-09-05)
+
+### Machine Passport UI & Presentation Hierarchy
+- **Visual Identifier Hierarchy Alignment**: Swapped the visual hierarchy of the machine card in Machine Passport so that the canonical machine number/ID (`WLVIA#1`, `WLVIA#2`, `WLVIA#002`, `WLVIA#3`, `WLVIA#4`, `WLVIA#5`) serves as the primary visual identifier in prominent bold typography at the top left.
+- **Secondary Model Subtext**: Positioned the machine model (`BMD250WM` / `BMD302W`) as secondary subtext immediately below the primary machine number.
+- **Operational Status & Plant Health Retention**: Maintained continuous visibility of the machine status badge (`OPERATIONAL`) alongside the top-level machine number, and preserved plant location (`P3`) and health status (`PASS`) in their respective footer positions.
+- **Authoritative Version Synchronization**: Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.5`.
+
 ## v1.4.4 — UPPER MACHINE CARD IDENTITY NORMALIZATION & SYNCHRONIZATION (2026-09-05)
 
 ### Machine Identity & Normalization Integrity

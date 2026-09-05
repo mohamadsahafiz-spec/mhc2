@@ -1473,15 +1473,15 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                         : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h4 className={`text-sm font-bold font-mono tracking-tight truncate ${
                         isSelected
-                          ? isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border-[#8B9DFF]/40' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200'
+                          ? isDark ? 'text-white' : 'text-slate-900'
+                          : isDark ? 'text-slate-100' : 'text-slate-900'
                       }`}>
                         {m.machineNumber || m.machineNo || m.id}
-                      </span>
+                      </h4>
                       <Badge
                         variant={
                           m.status === 'OPERATIONAL'
@@ -1498,7 +1498,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                     </div>
 
                     {/* Machine 3-Dot Action Menu */}
-                    <div className="relative z-10">
+                    <div className="relative z-10 shrink-0">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1598,13 +1598,13 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                     </div>
                   </div>
 
-                  <h4 className={`text-xs font-bold truncate ${
+                  <p className={`text-xs font-medium truncate ${
                     isSelected
-                      ? isDark ? 'text-white' : 'text-slate-900'
-                      : isDark ? 'text-slate-300' : 'text-slate-800'
+                      ? isDark ? 'text-slate-300' : 'text-slate-600'
+                      : isDark ? 'text-slate-400' : 'text-slate-500'
                   }`}>
                     {m.model}
-                  </h4>
+                  </p>
 
                   <div className={`flex items-center justify-between mt-2.5 pt-2 border-t text-[11px] font-mono ${
                     isDark ? 'border-[#2B323A]/60' : 'border-slate-200'
