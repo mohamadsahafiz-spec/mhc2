@@ -89,6 +89,9 @@ For stateful workflows, verify the complete lifecycle when relevant:
 
 Immediate display is not proof of persistence. Verify PASS, FAIL/NEEDS_REVIEW, incomplete states, navigation/revisit, reload, and downstream consumers where applicable.
 
+### Authoritative Backup Precedence
+When external backups or datasets are designated authoritative, import and hydration operations must enforce authoritative machine identity and laser-head topology. Stale local secondary heads or corrupted names must not survive merge. Non-conflicting operational records (e.g. maintenance and temperature logs) are preserved.
+
 ## Workflow Integrity
 
 Recording a legitimate out-of-specification or degraded measurement is not automatically equivalent to blocking workflow progression. Whether FAIL blocks progression must come from actual engineering requirements and system contracts, not assumption.

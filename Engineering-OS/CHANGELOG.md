@@ -1,3 +1,15 @@
+# Engineering-OS Changelog
+
+## v1.10.0 — Authoritative Backup Topology & Identity Precedence
+
+### Added
+- Authoritative Data Precedence principle (Principle 22): When an external machine backup or dataset is explicitly established as authoritative, import/hydration/merge operations must strictly enforce authoritative machine identity and laser-head topology over stale local state.
+- Stale topology elimination rule: 1-head authoritative machines must never retain stale secondary heads, and 2-head authoritative machines must retain exactly their authoritative physical heads upon merge.
+- Physical identity matching rule: Machine/head matching must never use `machineNumber` or generic display names as loose substitutes for physical head identity.
+
+### Changed
+- Upgraded Engineering-OS active version from **v1.9.0** to **v1.10.0**.
+
 ## v1.9.0 — Canonical Repository & Continuity Cleanup
 
 ### Changed

@@ -1335,20 +1335,28 @@ export const LaserEngine = {
       }
 
       if (existingMatchKey) {
-        // MATCHED -> MERGE DUPLICATE SAFELY
+        // MATCHED -> AUTHORITATIVE BACKUP WINS FOR IDENTITY & LASER TOPOLOGY
         existingMatchedCount++;
         const targetFsosMachine = resultMap.get(existingMatchKey)!;
-        const targetLasers: any[] = [...(targetFsosMachine.lasers || [])];
+        const existingLasers: any[] = Array.isArray(targetFsosMachine.lasers) 
+          ? targetFsosMachine.lasers 
+          : (Array.isArray(targetFsosMachine.laserHeads) ? targetFsosMachine.laserHeads : []);
 
-        rawLasers.forEach((impL: any) => {
-          const exLIdx = targetLasers.findIndex(
-            (tl: any) => tl.id === impL.id || 
-              (tl.serialNo && impL.serialNo && tl.serialNo.trim().toLowerCase() === impL.serialNo.trim().toLowerCase()) ||
-              (tl.name && impL.name && tl.name.trim().toLowerCase() === impL.name.trim().toLowerCase())
-          );
+        // Authoritative laser topology: map strictly from rawLasers
+        const targetLasers = rawLasers.map((impL: any, impIdx: number) => {
+          // Find matching existing laser head by physical ID or physical serialNo (never generic name/machineNo)
+          const exL = existingLasers.find((tl: any) => {
+            if (impL.id && tl.id && tl.id === impL.id) return true;
+            if (impL.serialNo && tl.serialNo &&
+                impL.serialNo.trim().toLowerCase() === tl.serialNo.trim().toLowerCase() &&
+                impL.serialNo.trim().toLowerCase() !== 'sn-0000-l1' &&
+                impL.serialNo.trim().toLowerCase() !== 'sn-unknown-l1') {
+              return true;
+            }
+            return false;
+          });
 
-          if (exLIdx >= 0) {
-            const exL = targetLasers[exLIdx];
+          if (exL) {
             const mergedCalHist = [...(exL.calibrationHistory || [])];
             (impL.calibrationHistory || []).forEach((ch: any) => {
               const duplicate = mergedCalHist.some(
@@ -1359,32 +1367,65 @@ export const LaserEngine = {
               }
             });
 
-            targetLasers[exLIdx] = {
-              ...exL,
-              name: impL.name || exL.name,
-              serialNo: impL.serialNo || exL.serialNo,
-              baseLaserHour: impL.baseLaserHour !== null && impL.baseLaserHour !== undefined ? impL.baseLaserHour : exL.baseLaserHour,
+            return {
+              ...impL,
+              id: impL.id || exL.id || `${normalizedRaw.id}-L${impIdx + 1}`,
+              name: impL.name || exL.name || `Laser Head ${impIdx + 1}`,
+              serialNo: impL.serialNo || exL.serialNo || `${normalizedRaw.serialNo}-L${impIdx + 1}`,
+              baseLaserHour: (impL.baseLaserHour !== null && impL.baseLaserHour !== undefined) ? impL.baseLaserHour : exL.baseLaserHour,
               baseTimestamp: impL.baseTimestamp || exL.baseTimestamp,
-              ratedLife: impL.ratedLife || exL.ratedLife,
-              warningLife: impL.warningLife || exL.warningLife,
-              contingencyCeiling: impL.contingencyCeiling || exL.contingencyCeiling,
+              ratedLife: Number(impL.ratedLife) || Number(exL.ratedLife) || 25000,
+              warningLife: Number(impL.warningLife) || Number(exL.warningLife) || 20000,
+              contingencyCeiling: Number(impL.contingencyCeiling) || Number(exL.contingencyCeiling) || 28000,
+              runtimeState: impL.runtimeState || exL.runtimeState,
+              lastRecalibrationDate: impL.lastRecalibrationDate || exL.lastRecalibrationDate,
               calibrationHistory: mergedCalHist
             };
-          } else {
-            targetLasers.push(impL);
           }
+
+          return {
+            ...impL,
+            id: impL.id || `${normalizedRaw.id}-L${impIdx + 1}`,
+            name: impL.name || `Laser Head ${impIdx + 1}`,
+            serialNo: impL.serialNo || `${normalizedRaw.serialNo}-L${impIdx + 1}`,
+            ratedLife: Number(impL.ratedLife) || 25000,
+            warningLife: Number(impL.warningLife) || 20000,
+            contingencyCeiling: Number(impL.contingencyCeiling) || 28000,
+            calibrationHistory: Array.isArray(impL.calibrationHistory) ? impL.calibrationHistory : []
+          };
         });
+
+        const authoritativeMachineNumber = normalizedRaw.machineNumber || normalizedRaw.machineNo || targetFsosMachine.machineNumber || targetFsosMachine.machineNo;
 
         const mergedMachine = {
           ...targetFsosMachine,
+          // Authoritative machine identity strictly wins:
+          id: normalizedRaw.id || targetFsosMachine.id,
+          machineNo: authoritativeMachineNumber,
+          machineNumber: authoritativeMachineNumber,
+          machineName: normalizedRaw.machineName || targetFsosMachine.machineName || ('Wafer Driller ' + (normalizedRaw.model || targetFsosMachine.model || 'BMD302W')),
           model: normalizedRaw.model || targetFsosMachine.model,
-          serialNo: targetFsosMachine.serialNo || normalizedRaw.serialNo,
+          serialNo: normalizedRaw.serialNo || targetFsosMachine.serialNo,
+          manufacturer: normalizedRaw.manufacturer || targetFsosMachine.manufacturer,
+          plantName: normalizedRaw.plantName || targetFsosMachine.plantName,
+          customerName: normalizedRaw.customerName || targetFsosMachine.customerName,
+          customerId: normalizedRaw.customerId || targetFsosMachine.customerId,
+          status: normalizedRaw.status || targetFsosMachine.status,
+          healthScore: typeof normalizedRaw.healthScore === 'number' ? normalizedRaw.healthScore : targetFsosMachine.healthScore,
+          mhcSpecs: normalizedRaw.mhcSpecs || (targetFsosMachine as any).mhcSpecs,
           lasers: targetLasers,
           laserHeads: targetLasers,
+          // Preserve FSOS operational records:
+          maintenanceHistory: Array.isArray(targetFsosMachine.maintenanceHistory) ? targetFsosMachine.maintenanceHistory : [],
+          productProcessRecords: Array.isArray(targetFsosMachine.productProcessRecords) ? targetFsosMachine.productProcessRecords : [],
+          temperatureRecords: (targetFsosMachine as any).temperatureRecords || [],
           lastUpdated: new Date().toISOString()
         };
 
-        resultMap.set(existingMatchKey, mergedMachine);
+        if (existingMatchKey !== mergedMachine.id) {
+          resultMap.delete(existingMatchKey);
+        }
+        resultMap.set(mergedMachine.id, mergedMachine);
         importedMachineList.push(mergedMachine);
       } else {
         // NEW MACHINE RECORD
@@ -1401,7 +1442,9 @@ export const LaserEngine = {
         const newFsosMachine = {
           ...normalizedRaw,
           id: normalizedRaw.id || `mch-imp-${Date.now()}-${idx}`,
-          machineNumber: normalizedRaw.machineNo || normalizedRaw.machineNumber || `MCH-IMP-0${idx + 1}`,
+          machineNumber: normalizedRaw.machineNumber || normalizedRaw.machineNo || `MCH-IMP-0${idx + 1}`,
+          machineNo: normalizedRaw.machineNo || normalizedRaw.machineNumber || `MCH-IMP-0${idx + 1}`,
+          machineName: normalizedRaw.machineName || ('Wafer Driller ' + (normalizedRaw.model || 'BMD302W')),
           plantName: normalizedRaw.plantName || matchedCust?.site || 'Primary Cleanroom',
           customerName: assignedCustName,
           customerId: assignedCustId,
@@ -1416,7 +1459,8 @@ export const LaserEngine = {
           laserModel: normalizedRaw.laserModel || (normalizedRaw.lasers?.[0]?.name || normalizedRaw.model || 'Laser System'),
           lasers: normalizedRaw.lasers || [],
           laserHeads: normalizedRaw.lasers || [],
-          consumables: normalizedRaw.consumables || []
+          consumables: normalizedRaw.consumables || [],
+          mhcSpecs: normalizedRaw.mhcSpecs
         };
 
         resultMap.set(newFsosMachine.id, newFsosMachine);

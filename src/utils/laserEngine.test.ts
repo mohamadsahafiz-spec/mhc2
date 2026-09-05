@@ -9,6 +9,273 @@ describe('LaserEngine', () => {
     const res = runLaserEngineParityTests();
     expect(res.success).toBe(true);
   });
+
+  describe('Authoritative Backup Topology & Identity Precedence (Scenarios A-E)', () => {
+    it('Scenario A: existing corrupted machine identity + correct backup -> correct identity', () => {
+      const corruptedExisting = [
+        {
+          id: 'WD-19926',
+          machineNo: 'WLVIA#RND',
+          machineNumber: 'WLVIA#RND',
+          serialNo: 'MC230023',
+          model: 'UNKNOWN',
+          lasers: [
+            { id: 'WD-19926-L1', serialNo: 'MC230023-L1', baseLaserHour: 1000 }
+          ]
+        }
+      ];
+
+      const backupJson = JSON.stringify({
+        machines: [
+          {
+            id: 'WD-19926',
+            machineNumber: 'WLVIA#2',
+            model: 'BMD250WM',
+            serialNo: 'MC230023',
+            lasers: [
+              { id: 'WD-19926-L1', name: 'Laser Head 1', serialNo: 'MC230023-L1', baseLaserHour: 1200 },
+              { id: 'WD-19926-L3868', name: 'Laser Head 2', serialNo: 'MC230023-L3868', baseLaserHour: 800 }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(backupJson, corruptedExisting, []);
+      expect(res.mappedMachines.length).toBe(1);
+      const m = res.mappedMachines[0];
+      expect(m.machineNumber).toBe('WLVIA#2');
+      expect(m.machineNo).toBe('WLVIA#2');
+      expect(m.model).toBe('BMD250WM');
+      expect(m.serialNo).toBe('MC230023');
+      expect(m.lasers.length).toBe(2);
+    });
+
+    it('Scenario B: existing 2-head stale machine + authoritative 1-head backup -> exactly 1 head', () => {
+      const staleExisting = [
+        {
+          id: 'WD-81810',
+          machineNumber: 'WLVIA#002',
+          serialNo: 'MC240005',
+          lasers: [
+            { id: 'WD-81810-L1', name: 'Laser Head 1', serialNo: 'MC240005-L1', baseLaserHour: 5000 },
+            { id: 'WD-81810-L2-STALE', name: 'Stale Phantom Head', serialNo: 'MC240005-L2', baseLaserHour: 9999 }
+          ]
+        }
+      ];
+
+      const backupJson = JSON.stringify({
+        machines: [
+          {
+            id: 'WD-81810',
+            machineNumber: 'WLVIA#002',
+            model: 'BMD250WM',
+            serialNo: 'MC240005',
+            lasers: [
+              { id: 'WD-81810-L1', name: 'Laser Head 1', serialNo: 'MC240005-L1', baseLaserHour: 5100 }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(backupJson, staleExisting, []);
+      expect(res.mappedMachines.length).toBe(1);
+      const m = res.mappedMachines[0];
+      expect(m.lasers.length).toBe(1);
+      expect(m.lasers[0].id).toBe('WD-81810-L1');
+      expect(m.lasers[0].baseLaserHour).toBe(5100);
+      expect(m.lasers.some((l: any) => l.id === 'WD-81810-L2-STALE')).toBe(false);
+    });
+
+    it('Scenario C: existing 1-head machine + authoritative 2-head backup -> exactly 2 heads', () => {
+      const singleHeadExisting = [
+        {
+          id: 'WD-77972',
+          machineNumber: 'WLVIA#1',
+          serialNo: 'MC23006',
+          lasers: [
+            { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 8000 }
+          ]
+        }
+      ];
+
+      const backupJson = JSON.stringify({
+        machines: [
+          {
+            id: 'WD-77972',
+            machineNumber: 'WLVIA#1',
+            model: 'BMD250WM',
+            serialNo: 'MC23006',
+            lasers: [
+              { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 8200 },
+              { id: 'WD-77972-L9491', name: 'Laser Head 2', serialNo: 'MC23006-L9491', baseLaserHour: 4100 }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(backupJson, singleHeadExisting, []);
+      expect(res.mappedMachines.length).toBe(1);
+      const m = res.mappedMachines[0];
+      expect(m.lasers.length).toBe(2);
+      expect(m.lasers[0].id).toBe('WD-77972-L1');
+      expect(m.lasers[1].id).toBe('WD-77972-L9491');
+    });
+
+    it('Scenario D: correct existing machine + same backup -> no duplicate heads and deduplicated cal history', () => {
+      const existing = [
+        {
+          id: 'WD-44367',
+          machineNumber: 'WLVIA#3',
+          serialNo: 'MC230038',
+          lasers: [
+            {
+              id: 'WD-44367-L1',
+              name: 'Laser Head 1',
+              serialNo: 'MC230038-L1',
+              baseLaserHour: 15000,
+              calibrationHistory: [
+                { date: '2026-01-01', actualHour: 15000, estimatedHour: 14990, difference: 10, reason: 'Check', rating: 'Excellent' }
+              ]
+            },
+            {
+              id: 'WD-44367-L6293',
+              name: 'Laser Head 2',
+              serialNo: 'MC230038-L6293',
+              baseLaserHour: 12000,
+              calibrationHistory: []
+            }
+          ]
+        }
+      ];
+
+      const backupJson = JSON.stringify({
+        machines: [
+          {
+            id: 'WD-44367',
+            machineNumber: 'WLVIA#3',
+            model: 'BMD302W',
+            serialNo: 'MC230038',
+            lasers: [
+              {
+                id: 'WD-44367-L1',
+                name: 'Laser Head 1',
+                serialNo: 'MC230038-L1',
+                baseLaserHour: 15500,
+                calibrationHistory: [
+                  { date: '2026-01-01', actualHour: 15000, estimatedHour: 14990, difference: 10, reason: 'Check', rating: 'Excellent' },
+                  { date: '2026-02-01', actualHour: 15500, estimatedHour: 15495, difference: 5, reason: 'Monthly', rating: 'Excellent' }
+                ]
+              },
+              {
+                id: 'WD-44367-L6293',
+                name: 'Laser Head 2',
+                serialNo: 'MC230038-L6293',
+                baseLaserHour: 12500,
+                calibrationHistory: []
+              }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(backupJson, existing, []);
+      expect(res.mappedMachines.length).toBe(1);
+      const m = res.mappedMachines[0];
+      expect(m.lasers.length).toBe(2);
+      expect(m.lasers[0].calibrationHistory.length).toBe(2);
+      expect(m.lasers[0].baseLaserHour).toBe(15500);
+    });
+
+    it('Scenario E: all six supplied backup records survive import with correct identity, model, and head count', () => {
+      const sixMachinesBackup = {
+        version: '0.9.0',
+        machines: [
+          {
+            id: 'WD-77972',
+            machineNumber: 'WLVIA#1',
+            model: 'BMD250WM',
+            serialNo: 'MC23006',
+            lasers: [
+              { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 10000 },
+              { id: 'WD-77972-L9491', name: 'Laser Head 2', serialNo: 'MC23006-L9491', baseLaserHour: 9500 }
+            ]
+          },
+          {
+            id: 'WD-19926',
+            machineNumber: 'WLVIA#2',
+            model: 'BMD250WM',
+            serialNo: 'MC230023',
+            lasers: [
+              { id: 'WD-19926-L1', name: 'Laser Head 1', serialNo: 'MC230023-L1', baseLaserHour: 11000 },
+              { id: 'WD-19926-L3868', name: 'Laser Head 2', serialNo: 'MC230023-L3868', baseLaserHour: 10500 }
+            ]
+          },
+          {
+            id: 'WD-81810',
+            machineNumber: 'WLVIA#002',
+            model: 'BMD250WM',
+            serialNo: 'MC240005',
+            lasers: [
+              { id: 'WD-81810-L1', name: 'Laser Head 1', serialNo: 'MC240005-L1', baseLaserHour: 4000 }
+            ]
+          },
+          {
+            id: 'WD-44367',
+            machineNumber: 'WLVIA#3',
+            model: 'BMD302W',
+            serialNo: 'MC230038',
+            lasers: [
+              { id: 'WD-44367-L1', name: 'Laser Head 1', serialNo: 'MC230038-L1', baseLaserHour: 13000 },
+              { id: 'WD-44367-L6293', name: 'Laser Head 2', serialNo: 'MC230038-L6293', baseLaserHour: 12800 }
+            ]
+          },
+          {
+            id: 'WD-35189',
+            machineNumber: 'WLVIA#4',
+            model: 'BMD302W',
+            serialNo: 'MC230039',
+            lasers: [
+              { id: 'WD-35189-L1', name: 'Laser Head 1', serialNo: 'MC230039-L1', baseLaserHour: 14000 },
+              { id: 'WD-35189-L7801', name: 'Laser Head 2', serialNo: 'MC230039-L7801', baseLaserHour: 13900 }
+            ]
+          },
+          {
+            id: 'WD-70784',
+            machineNumber: 'WLVIA#5',
+            model: 'BMD250WM',
+            serialNo: 'MC250005',
+            lasers: [
+              { id: 'WD-70784-L1', name: 'Laser Head 1', serialNo: 'MC250005-L1', baseLaserHour: 3000 },
+              { id: 'WD-70784-L8145', name: 'Laser Head 2', serialNo: 'MC250005-L8145', baseLaserHour: 2900 }
+            ]
+          }
+        ]
+      };
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(sixMachinesBackup), [], []);
+      expect(res.machinesFound).toBe(6);
+      expect(res.mappedMachines.length).toBe(6);
+
+      const byNo = new Map(res.mappedMachines.map((m: any) => [m.machineNumber, m]));
+      expect(byNo.get('WLVIA#1')?.model).toBe('BMD250WM');
+      expect(byNo.get('WLVIA#1')?.lasers.length).toBe(2);
+
+      expect(byNo.get('WLVIA#2')?.model).toBe('BMD250WM');
+      expect(byNo.get('WLVIA#2')?.lasers.length).toBe(2);
+
+      expect(byNo.get('WLVIA#002')?.model).toBe('BMD250WM');
+      expect(byNo.get('WLVIA#002')?.lasers.length).toBe(1);
+
+      expect(byNo.get('WLVIA#3')?.model).toBe('BMD302W');
+      expect(byNo.get('WLVIA#3')?.lasers.length).toBe(2);
+
+      expect(byNo.get('WLVIA#4')?.model).toBe('BMD302W');
+      expect(byNo.get('WLVIA#4')?.lasers.length).toBe(2);
+
+      expect(byNo.get('WLVIA#5')?.model).toBe('BMD250WM');
+      expect(byNo.get('WLVIA#5')?.lasers.length).toBe(2);
+    });
+  });
 });
 
 export function runLaserEngineParityTests(): { success: boolean; log: string[] } {

@@ -107,6 +107,10 @@ A legitimate degraded or out-of-spec result should be recordable and reviewable.
 
 When frustration is high, slow the decision process, clarify facts and uncertainty, protect existing work, and avoid consequential changes until the safest action is clear.
 
+### 22 — Authoritative Data Precedence
+
+When an external machine backup or external dataset is explicitly established as authoritative, import/hydration/merge must not silently preserve conflicting machine identity or laser-head topology from stale local state. Authoritative identity and physical topology must strictly win, while non-conflicting operational and historical records are preserved.
+
 ## Engineering Maxim
 
 Optimize for total lifetime cost: engineering time + operational risk + infrastructure cost + future migration cost.
