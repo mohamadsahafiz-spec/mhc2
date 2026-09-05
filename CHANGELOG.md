@@ -1,5 +1,34 @@
 # FSOS CHANGELOG
 
+## v1.4.1 — ENGINEERING-OS STEWARDSHIP ROLE UPDATE (2026-09-05)
+
+### Engineering-OS Governance & Implementation Role Alignment
+- **Governance vs. Implementation Role Clarification**: Updated Engineering-OS governance (`Atlas-Constitution.md`, `Engineering-OS/README.md`, `Engineering-Lessons-EL-005.md`) to explicitly reflect the repository workflow:
+  - **Atlas**: Functions as the exclusive Engineering-OS governance authority (reviews evidence, determines governance specifications, prepares/approves changes, and protects constitutional integrity).
+  - **Mikasa**: Functions as the implementation owner (applies approved Engineering-OS changes inside the repository under `Engineering-OS/`, verifies changes, and reports what was changed).
+  - **Founder**: Retains absolute authority and approval for material governance decisions.
+- **Authoritative Version Synchronization**: Synchronized all version configurations across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.1`.
+
+## v1.4.0 — ENGINEERING-OS INTO FSOS REPOSITORY (2026-09-05)
+
+### Repository Consolidation & Governance Integration
+- **Engineering-OS System Integration**: Consolidated the entire Engineering-OS governance framework directly into the canonical FSOS repository under `Engineering-OS/`, eliminating the requirement for a separate Engineering-OS repository for standard FSOS development and governance.
+- **Canonical Structure Preservation**: Fully migrated all 49 active Engineering-OS files and directories intact:
+  - `00-Core/`: Constitutional governance (`Atlas-Constitution.md`), CTO checklists, prompt standards, and decision frameworks.
+  - `01-Templates/`: Standard engineering templates for sprints, architecture reviews, refactoring, migrations, and releases.
+  - `02-Projects/`: Project-specific architectures, roadmap, and state records (`FSOS/`).
+  - `03-Knowledge/`: Comprehensive technical knowledge base cards (Cloudflare Workers, D1, KV, SQLite, React, Electron, Tauri).
+  - `04-Archive/`: Complete historical sprint archives, amendment records, and retrospective logs.
+- **Root Conflict Resolution & Non-Destructive Separation**: Preserved existing FSOS application code, build assets, and release documentation in the repository root while cleanly anchoring Engineering-OS governance under `/Engineering-OS/` with its dedicated README, CHANGELOG, and metadata.
+- **Authoritative Version Synchronization**: Synchronized all version configurations across `src/constants/version.ts`, `package.json`, `metadata.json`, `wrangler.toml`, and root `README.md` to `v1.4.0`.
+
+## v1.3.2 — CHANGELOG PARITY NORMALIZATION (2026-09-05)
+
+### Changelog Representation & Parity Normalization
+- **Authoritative Changelog Parity**: Synchronized and normalized the representation across all 120 historical releases between the root `CHANGELOG.md` and the in-app Changelog parser (`src/utils/changelogParser.ts`), ensuring 100% exact parity with zero data loss or missing releases.
+- **Harmonized Historical Formatting**: Normalized representation for releases `v1.2.7`, `v1.2.6`, `v1.2.3`, `v1.2.2`, `v1.2.1`, `v1.1.21`, `v1.1.20`, `v1.1.19`, `v1.1.18`, `v1.1.17`, `v1.1.12`, `v1.0.15`, `v1.0.14`, `v1.0.1`, `v1.0.0`, and `v0.9.1` using authoritative Markdown headings and rich structured bullet points.
+- **Automated Parity Verification**: Expanded test suite in `src/utils/changelogParser.test.ts` to assert presence and structure across all 120 versions, guaranteeing zero duplicate releases and complete chronological ordering.
+
 ## v1.3.1 — IN-APP CHANGELOG SYNCHRONIZATION (2026-09-05)
 
 ### In-App Changelog Single Source of Truth

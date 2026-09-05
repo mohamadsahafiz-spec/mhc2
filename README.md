@@ -10,6 +10,18 @@ FSOS is a web-based engineering operating system designed for field service engi
 - **Automatic Cloud Sync**: Background synchronization between IndexedDB local storage and Cloudflare D1 cloud replica across devices (e.g., `HOME-PC` and `STM-LAPTOP`).
 - **Offline-First**: Full offline support with automatic queue resumption when online.
 
+## Repository Architecture & Engineering-OS Governance
+
+FSOS is a unified engineering repository containing both the application runtime and the authoritative **Engineering-OS** governance framework:
+- `src/`: FSOS application source code (React, TypeScript, Tailwind, Lucide).
+- `migrations/`: Cloudflare D1 SQL schema migrations.
+- `Engineering-OS/`: Authoritative engineering governance, decision templates, constitutional guidelines, project blueprints, and institutional knowledge base:
+  - `00-Core/`: Constitutional rules, CTO checklists, prompt standards, and decision workflows.
+  - `01-Templates/`: Sprint, architecture review, refactor, migration, and release templates.
+  - `02-Projects/`: Project specifications, architectures, and state tracking.
+  - `03-Knowledge/`: Technical knowledge cards (Cloudflare Workers, D1, KV, SQLite, React, etc.).
+  - `04-Archive/`: Historical records and sprint logs.
+
 ## Deployment to Cloudflare Workers
 
 1. **Build Application**:
