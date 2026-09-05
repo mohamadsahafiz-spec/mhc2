@@ -6,11 +6,36 @@ This is the mandatory standard for AI-assisted engineering prompts, especially A
 
 A prompt is an engineering specification. Its purpose is predictable execution, not maximum length.
 
-## Core Rule
+## Core Philosophy: Never Write the Minimum Prompt
 
+A prompt should not merely describe the desired outcome; a prompt should **engineer predictable execution** of the desired outcome.
+
+An enhanced prompt is always preferred over a minimal prompt. The goal is not shorter prompts or brevity at the expense of clarity, but higher-quality outcomes with predictable execution.
+
+### The Golden Rule
+**Every enhanced prompt should reduce interpretation and increase predictability.** The implementation agent should know exactly:
+- what to do;
+- what NOT to do;
+- how success is measured;
+- how failure is detected;
+- and what evidence proves completion.
+
+### Focus & Context
 **Focus on the current task. Preserve established context by reference; do not repeatedly restate it unless it affects the current work.**
 
 The best prompt contains everything required for correct execution and nothing that does not materially improve execution. Token efficiency applies to both prompt input and implementation-agent output.
+
+## 7-Level Enhancement Hierarchy
+
+Prompts should progress through each level whenever appropriate:
+
+1. **Level 1 — Objective**: Clear, unambiguous statement of the task and intended outcome.
+2. **Level 2 — Requirements**: Explicit scope and functional items to implement or inspect.
+3. **Level 3 — Constraints**: Strict boundaries, prohibitions, and out-of-scope declarations (what NOT to do).
+4. **Level 4 — Observable Acceptance Criteria**: Measurable, concrete conditions that define when the task is complete.
+5. **Level 5 — Failure Conditions**: Explicitly defined error states, disallowed shortcuts, and anti-patterns.
+6. **Level 6 — Verification Steps**: Concrete technical commands, tests, checks, or evidence required to prove completion.
+7. **Level 7 — Expected Reply Format**: Strict output template and token/word constraints for the implementation agent.
 
 ## Mandatory Structure
 
@@ -36,19 +61,34 @@ Sections may be omitted only when genuinely irrelevant.
 
 **Never send the first draft.**
 
-Before a Mikasa prompt is submitted, Atlas must perform an enhancement pass for:
+Every prompt is considered a draft until it has been reviewed for clarity, completeness, predictability, and failure prevention. Before a Mikasa prompt is submitted, Atlas must perform an enhancement pass.
 
+### Enhancement Checklist
+During enhancement, Atlas must inspect the prompt for:
 - ambiguity;
 - hidden assumptions;
-- loopholes;
+- loopholes or shortcuts the AI could take;
 - unintended scope;
 - missing evidence;
+- missing observable acceptance criteria;
 - missing failure conditions;
 - missing verification;
 - unnecessary repetition;
 - unnecessary token usage;
 - better architectural or implementation approaches.
 
+### Key Predictability Questions
+Ask before finalizing any prompt:
+- Is there ambiguity?
+- Can the AI satisfy this incorrectly?
+- What assumptions might it make?
+- What shortcuts could it take?
+- How would I verify success?
+- Can acceptance criteria be made observable?
+- Can failure conditions be explicitly defined?
+- Can unintended behavior be prevented?
+
+### Better-Approach Review
 Atlas must actively ask:
 
 > **Is there a better way to accomplish the Founder’s objective without increasing unnecessary complexity or scope?**
@@ -110,7 +150,6 @@ The implementation prompt must explicitly require synchronization and verificati
 A task must not be reported complete if the application version, root `CHANGELOG.md`, and in-app Changelog are inconsistent.
 
 If any version surface is unclear, unavailable, or conflicts with another source, Atlas must stop and resolve the uncertainty before issuing the implementation prompt.
-
 
 ## Existing-Repository Rule
 
@@ -227,6 +266,8 @@ Never treat a successful Pages deployment as evidence of a successful Workers de
 |---|---|---|
 | 1.1.0 | Superseded | Initial prompt standard. |
 | 1.2.0 | Superseded | Consolidated prompt enhancement rules, added <50-word Mikasa guidance, exact-file editing rules, cost constraints, and deployment verification. |
-| 1.3.0 | Active in v1.3.0 OS | Clarified enhanced-prompt workflow and compact production prompting. |
+| 1.3.0 | Superseded | Clarified enhanced-prompt workflow and compact production prompting. |
 | 1.4.0 | Superseded | Added mandatory better-approach review before a Mikasa prompt is submitted. |
-| 1.5.0 | Active | Added input/output token economy, 50-word ceiling clarification, and evidence-backed defect-prompt requirements. |
+| 1.5.0 | Superseded | Added input/output token economy, 50-word ceiling clarification, and evidence-backed defect-prompt requirements. |
+| 1.6.0 | Active | Consolidated Prompt Enhancement Principle 01 into Prompt Standard: 7-level Enhancement Hierarchy, Never Write the Minimum Prompt philosophy, Golden Rule, and predictability/failure-prevention gates. |
+

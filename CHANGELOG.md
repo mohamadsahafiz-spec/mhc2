@@ -1,5 +1,27 @@
 # FSOS CHANGELOG
 
+## v1.4.3 — PROMPT ENHANCEMENT GOVERNANCE CONSOLIDATION (2026-09-05)
+
+### Canonical Prompt Standard Unification
+- **Single Canonical Standard**: Consolidated all governance principles from standalone `Engineering-OS/00-Core/Prompt Enhancement Principle 01.md` into `Engineering-OS/00-Core/Prompt-Standard.md`, establishing a single authoritative document for prompt engineering.
+- **7-Level Enhancement Hierarchy Integrated**: Formalized the progressive prompt enhancement tiers (Level 1: Objective, Level 2: Requirements, Level 3: Constraints, Level 4: Observable Acceptance Criteria, Level 5: Failure Conditions, Level 6: Verification Steps, Level 7: Expected Reply Format).
+- **Core Predictability & Quality Principles Preserved**:
+  - Enforced "Never Write the Minimum Prompt" philosophy (engineering predictable execution over superficial brevity).
+  - Enforced the Golden Rule (reducing interpretation, defining what to do / what NOT to do, observable success criteria, failure detection, evidence proof).
+  - Embedded failure-prevention review questions and the Atlas enhancement gate directly into the prompt workflow.
+- **Authoritative Version Synchronization**: Synchronized all version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.3`.
+
+## v1.4.2 — ENGINEERING-OS DOCUMENTATION CLEANUP (2026-09-05)
+
+### Engineering-OS Tree Hygiene & Canonical Alignment
+- **Obsolete Duplicate Removal**: Deleted stale copy `Engineering-OS/00-Core/FSOS-Current-State.md` (historical v1.0.37 snapshot), eliminating duplicate confusion with project-specific state documentation.
+- **Canonical Structure Verified**: Confirmed retention and integrity of:
+  - `Engineering-OS/00-Core/Prompt Enhancement Principle 01.md` (Core governance principle).
+  - `Engineering-OS/02-Projects/FSOS/FSOS-Current-State.md` (Active canonical project state).
+  - `Engineering-OS/04-Archive/FSOS/FSOS-Current-State.md` (Archived historical state).
+- **Comprehensive Audit**: Inspected all 45 markdown files across `Engineering-OS/`, classifying active canonical, required project, and archive documentation with zero unverified deletions.
+- **Authoritative Version Synchronization**: Synchronized all version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.2`.
+
 ## v1.4.1 — ENGINEERING-OS STEWARDSHIP ROLE UPDATE (2026-09-05)
 
 ### Engineering-OS Governance & Implementation Role Alignment
