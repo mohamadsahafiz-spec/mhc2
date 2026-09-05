@@ -275,6 +275,54 @@ describe('LaserEngine', () => {
       expect(byNo.get('WLVIA#5')?.model).toBe('BMD250WM');
       expect(byNo.get('WLVIA#5')?.lasers.length).toBe(2);
     });
+
+    it('Scenario F: normalizeMachine synchronizes machineNumber, serialNumber, and laserHeads with machineNo, serialNo, and lasers', () => {
+      const machineWithLegacyFields = {
+        id: 'WD-19926',
+        machineNo: 'WLVIA#2',
+        machineNumber: 'WLVIA#RND', // Stale or corrupted field
+        serialNo: 'MC230023',
+        serialNumber: 'SN-OLD',
+        model: 'BMD250WM',
+        lasers: [
+          { id: 'WD-19926-L1', serialNo: 'MC230023-L1', baseLaserHour: 1000 }
+        ]
+      };
+
+      const normalized = LaserEngine.normalizeMachine(machineWithLegacyFields);
+      expect(normalized.machineNo).toBe('WLVIA#2');
+      expect(normalized.machineNumber).toBe('WLVIA#2');
+      expect(normalized.serialNo).toBe('MC230023');
+      expect(normalized.serialNumber).toBe('MC230023');
+      expect(normalized.model).toBe('BMD250WM');
+      expect(normalized.lasers.length).toBe(1);
+      expect(normalized.laserHeads?.length).toBe(1);
+    });
+
+    it('Scenario G: normalizeMachines sorts deterministically without swapping or disconnecting identities and metrics', () => {
+      const fleet = [
+        { id: 'WD-77972', machineNo: 'WLVIA#1', model: 'BMD250WM', lasers: [{ id: 'L1', baseLaserHour: 8000 }] },
+        { id: 'WD-19926', machineNo: 'WLVIA#2', model: 'BMD250WM', lasers: [{ id: 'L1', baseLaserHour: 11000 }] },
+        { id: 'WD-81810', machineNo: 'WLVIA#002', model: 'BMD250WM', lasers: [{ id: 'L1', baseLaserHour: 4000 }] },
+        { id: 'WD-44367', machineNo: 'WLVIA#3', model: 'BMD302W', lasers: [{ id: 'L1', baseLaserHour: 13000 }] },
+        { id: 'WD-35189', machineNo: 'WLVIA#4', model: 'BMD302W', lasers: [{ id: 'L1', baseLaserHour: 14000 }] },
+        { id: 'WD-70784', machineNo: 'WLVIA#5', model: 'BMD250WM', lasers: [{ id: 'L1', baseLaserHour: 3000 }] }
+      ];
+
+      const sorted = LaserEngine.normalizeMachines(fleet);
+      expect(sorted.length).toBe(6);
+      sorted.forEach(m => {
+        expect(m.machineNumber).toBe(m.machineNo);
+        expect(m.serialNumber).toBe(m.serialNo);
+      });
+      // WLVIA#3 must be BMD302W, WLVIA#4 must be BMD302W, WLVIA#2 must be BMD250WM
+      const m3 = sorted.find(m => m.machineNo === 'WLVIA#3');
+      expect(m3?.model).toBe('BMD302W');
+      const m4 = sorted.find(m => m.machineNo === 'WLVIA#4');
+      expect(m4?.model).toBe('BMD302W');
+      const m2 = sorted.find(m => m.machineNo === 'WLVIA#2');
+      expect(m2?.model).toBe('BMD250WM');
+    });
   });
 });
 

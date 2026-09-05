@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v1.4.4 — UPPER MACHINE CARD IDENTITY NORMALIZATION & SYNCHRONIZATION (2026-09-05)
+
+### Machine Identity & Normalization Integrity
+- **Canonical Machine Property Synchronization**: Resolved the upper machine-card identity mismatch root cause by ensuring `LaserEngine.normalizeMachine()` strictly synchronizes `machineNumber: machineNo`, `serialNumber: serialNo`, and `laserHeads: lasers`. Previously, `normalizeMachine` omitted `machineNumber`, allowing stale or un-synchronized `machineNumber` properties (e.g. `WLVIA#RND`) to pass through `{ ...m }` un-updated into UI components.
+- **Deterministic Machine Sorting**: Enhanced `LaserEngine.normalizeMachines()` with a secondary deterministic ID tie-breaker so sorting behaves predictably without swapping machine positions.
+- **Resilient UI Identity Fallbacks**: Updated `MachinePassportModule` upper cards and header badges to evaluate fallback expressions `{m.machineNumber || m.machineNo || m.id}` and `{m.serialNumber || m.serialNo}`, preventing undefined or stale identity states.
+- **Authoritative Version Synchronization**: Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.4`.
+
 ## v1.4.3 — PROMPT ENHANCEMENT GOVERNANCE CONSOLIDATION (2026-09-05)
 
 ### Canonical Prompt Standard Unification

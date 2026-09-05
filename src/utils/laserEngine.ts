@@ -96,10 +96,12 @@ export interface MachineDomain {
   laserModel?: string;
   consumables?: any[];
   serialNo?: string;
+  serialNumber?: string;
   manufacturer?: string;
   model?: string;
   department?: string;
   lasers?: LaserHeadDomain[];
+  laserHeads?: any[];
   maintenanceHistory?: MaintenanceRecord[];
   lastUpdated?: string;
   // Legacy backward compatibility fields
@@ -1079,7 +1081,9 @@ export const LaserEngine = {
     return normalized.sort((a, b) => {
       const nameA = a.machineNo || a.machineName || a.id || '';
       const nameB = b.machineNo || b.machineName || b.id || '';
-      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      const cmp = nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      if (cmp !== 0) return cmp;
+      return (a.id || '').localeCompare(b.id || '');
     });
   },
 
@@ -1234,12 +1238,15 @@ export const LaserEngine = {
       ...m,
       id,
       machineNo,
+      machineNumber: machineNo,
       machineName,
       serialNo,
+      serialNumber: serialNo,
       manufacturer,
       model,
       department,
       lasers,
+      laserHeads: lasers,
       maintenanceHistory: Array.isArray(m.maintenanceHistory) ? m.maintenanceHistory : [],
       productProcessRecords: Array.isArray(m.productProcessRecords)
         ? m.productProcessRecords

@@ -1480,7 +1480,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                           ? isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border-[#8B9DFF]/40' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                           : isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        {m.machineNumber}
+                        {m.machineNumber || m.machineNo || m.id}
                       </span>
                       <Badge
                         variant={
@@ -1716,7 +1716,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   <span className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold border tracking-wide ${
                     isDark ? 'bg-[#8ECDF7]/15 border-[#8ECDF7]/40 text-[#8ECDF7]' : 'bg-sky-50 border-sky-300 text-sky-800 font-bold'
                   }`}>
-                    {selectedMachine.machineNumber}
+                    {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
                   </span>
                   <Badge
                     variant={
@@ -1732,7 +1732,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   </Badge>
                   <span className={`text-xs font-mono flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                    SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-900'}>{selectedMachine.serialNumber}</strong>
+                    SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-900'}>{selectedMachine.serialNumber || selectedMachine.serialNo || 'N/A'}</strong>
                   </span>
                 </div>
 
