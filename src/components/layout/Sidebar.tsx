@@ -81,7 +81,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'MACHINE HEALTH CHECK',
       items: [
         { id: 'mhc_autopilot', label: '★ MHC Autopilot', icon: <Bot className="w-4 h-4 text-cyan-400" /> },
-        { id: 'mhc', label: 'Canvas / Workspace', icon: <Sparkles className="w-4 h-4 text-[#8B9DFF]" /> },
         { id: 'mhc_history', label: 'MHC History', icon: <History className="w-4 h-4 text-emerald-400" /> },
       ]
     },
@@ -121,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (group.key === 'daily_work') {
       allowedIds = ['start_page'];
     } else if (group.key === 'mhc_category') {
-      allowedIds = ['mhc_autopilot', 'mhc', 'mhc_history'];
+      allowedIds = ['mhc_autopilot', 'mhc_history'];
     } else if (group.key === 'service_execution') {
       allowedIds = ['machines'];
     } else if (group.key === 'operations') {

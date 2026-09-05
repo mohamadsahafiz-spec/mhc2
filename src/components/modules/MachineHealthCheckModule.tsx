@@ -6,7 +6,6 @@ import { Card } from '../common/Card';
 import { Cpu, Activity } from 'lucide-react';
 
 // Active Subcomponents
-import { SmartMhcWorkspace } from '../mhc/SmartMhcWorkspace';
 import { MhcHistoryView } from '../mhc/MhcHistoryView';
 import { MhcAutopilot } from '../mhc/MhcAutopilot';
 
@@ -80,8 +79,8 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     return unsub;
   }, []);
 
-  // 3. View Mode: 'mhc_autopilot' | 'smart_workspace' | 'mhc_history'
-  const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'smart_workspace' | 'mhc_history'>('mhc_autopilot');
+  // 3. View Mode: 'mhc_autopilot' | 'mhc_history'
+  const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'mhc_history'>('mhc_autopilot');
 
   // Handle activeSubTab mapping from sidebar navigation
   useEffect(() => {
@@ -89,9 +88,7 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
 
     if (activeSubTab === 'mhc_history') {
       setViewMode('mhc_history');
-    } else if (activeSubTab === 'mhc') {
-      setViewMode('smart_workspace');
-    } else if (activeSubTab === 'mhc_autopilot') {
+    } else {
       setViewMode('mhc_autopilot');
     }
   }, [activeSubTab]);
@@ -143,63 +140,46 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* 1. PRIMARY MHC AUTOPILOT OVERLAY EXPERIENCE */}
+      {/* 1. CANONICAL MHC AUTOPILOT EXPERIENCE */}
       {viewMode === 'mhc_autopilot' && selectedMachine && (
-        <div className="relative min-h-[650px]">
-          {/* Background Canvas (Dimmed + Blurred) */}
-          <div className="opacity-30 blur-[4px] pointer-events-none select-none transition-all duration-300">
-            <SmartMhcWorkspace
-              machine={selectedMachine}
-              session={activeSession}
-              onUpdateSession={handleUpdateSession}
-              onUpdateMachine={onUpdateMachine}
-            />
-          </div>
-
-          {/* Focused Central Autopilot Experience */}
-          <MhcAutopilot
-            machines={machines}
-            selectedMachine={selectedMachine}
-            activeSession={activeSession}
-            mhcSessions={mhcSessions}
-            onSelectMachine={(m) => setSelectedMachineId(m.id)}
-            onUpdateSession={handleUpdateSession}
-            onSaveNewSession={handleUpdateSession}
-            onDeleteSession={handleDeleteSession}
-            onSwitchToCanvas={() => setViewMode('smart_workspace')}
-            onExitAutopilot={() => {
-              if (onNavigate) {
-                onNavigate('start_page');
-              } else {
-                setViewMode('smart_workspace');
-              }
-            }}
-            onNavigate={onNavigate}
-            onUpdateMachine={onUpdateMachine}
-          />
-        </div>
-      )}
-
-      {/* 2. SECONDARY SMART MHC WORKSPACE (CANVAS) */}
-      {viewMode === 'smart_workspace' && selectedMachine && (
-        <SmartMhcWorkspace
-          machine={selectedMachine}
-          session={activeSession}
+        <MhcAutopilot
+          machines={machines}
+          selectedMachine={selectedMachine}
+          activeSession={activeSession}
+          mhcSessions={mhcSessions}
+          onSelectMachine={(m) => setSelectedMachineId(m.id)}
           onUpdateSession={handleUpdateSession}
+          onSaveNewSession={handleUpdateSession}
+          onDeleteSession={handleDeleteSession}
+          onExitAutopilot={() => {
+            if (onNavigate) {
+              onNavigate('start_page');
+            } else {
+              setViewMode('mhc_history');
+            }
+          }}
+          onNavigate={onNavigate}
           onUpdateMachine={onUpdateMachine}
         />
       )}
 
-      {/* 3. MHC HISTORY VIEW */}
+      {/* 2. MHC HISTORY VIEW */}
       {viewMode === 'mhc_history' && (
         <MhcHistoryView
           sessions={mhcSessions}
           machines={machines}
+          onOpenSession={(sessionId) => {
+            const target = mhcSessions.find(s => s.id === sessionId);
+            if (target) {
+              setSelectedMachineId(target.machineId);
+              setViewMode('mhc_autopilot');
+            }
+          }}
           onOpenSmartWorkspace={(sessionId) => {
             const target = mhcSessions.find(s => s.id === sessionId);
             if (target) {
               setSelectedMachineId(target.machineId);
-              setViewMode('smart_workspace');
+              setViewMode('mhc_autopilot');
             }
           }}
         />

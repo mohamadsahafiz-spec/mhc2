@@ -64,7 +64,7 @@ export interface MhcAutopilotProps {
   onUpdateSession: (session: MHCSession) => void;
   onSaveNewSession: (session: MHCSession) => void;
   onDeleteSession?: (sessionId: string) => void;
-  onSwitchToCanvas: () => void;
+  onSwitchToCanvas?: () => void;
   onExitAutopilot?: () => void;
   onNavigate?: (tab: NavigationTab) => void;
   onUpdateMachine?: (machine: Machine) => void;
@@ -2191,13 +2191,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     ← Change Machine or Customer
                   </button>
 
-                  <button
-                    onClick={onSwitchToCanvas}
-                    className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Open Full Canvas / Workspace</span>
-                  </button>
+                  {onSwitchToCanvas && (
+                    <button
+                      onClick={onSwitchToCanvas}
+                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Open Full Canvas / Workspace</span>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}

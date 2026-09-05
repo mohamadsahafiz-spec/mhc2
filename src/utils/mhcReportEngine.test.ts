@@ -1071,6 +1071,7 @@ describe('mhcReportEngine', () => {
     session.machineId = 'MC-TEST-001';
     session.productProcessRecord = undefined;
     session.productProcessRecords = [];
+    session.stage06_productQuality = undefined;
 
     const mockMachine: any = {
       id: 'MC-TEST-001',
@@ -1110,6 +1111,218 @@ describe('mhcReportEngine', () => {
     // Machine passport record is pristine and unmutated
     expect(mockMachine.productProcessRecords[0].id).toBe('PP-HISTORICAL-PASSPORT');
     expect(mockMachine.productProcessRecords[0].productName).toBe('PASSPORT-SUBSTRATE-V1');
+  });
+
+  describe('Inspection Date Decoupling from Historical Last MHC Date', () => {
+    it('should display current session date as Inspection Date and keep machine lastMhcDate as previousMhcDate', () => {
+      const session = createDummySession('SESS-INSP-DATE-01');
+      session.machineId = 'MC-DATE-001';
+      session.startDate = '2026-08-16';
+      session.completedDate = '2026-08-17';
+
+      const mockMachine: any = {
+        id: 'MC-DATE-001',
+        model: 'EO-MICRO-5000',
+        serialNumber: 'MC230038',
+        lastMhcDate: '2026-06-07' // Historical date from older maintenance
+      };
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [mockMachine] });
+
+      // Inspection date on cover and metadata must reflect current session completion date
+      expect(doc.sections['01'].data.date).toBe('2026-08-17');
+      expect(doc.sections['01'].data.currentInspectionDate).toBe('2026-08-17');
+      expect(doc.metadata.currentInspectionDate).toBe('2026-08-17');
+
+      // Historical Last MHC date must remain historical machine date
+      expect(doc.sections['01'].data.previousMhcDate).toBe('2026-06-07');
+      expect(doc.sections['01'].data.lastMhcDate).toBe('2026-06-07');
+      expect(doc.metadata.previousMhcDate).toBe('2026-06-07');
+    });
+
+    it('should preserve completedDate -> startDate precedence for currentInspectionDate', () => {
+      const session = createDummySession('SESS-INSP-DATE-02');
+      session.machineId = 'MC-DATE-002';
+      session.startDate = '2026-08-14';
+      session.completedDate = undefined;
+
+      const mockMachine: any = {
+        id: 'MC-DATE-002',
+        model: 'EO-MICRO-5000',
+        serialNumber: 'MC230038',
+        lastMhcDate: '2026-06-07'
+      };
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [mockMachine] });
+
+      // Active/in-progress session uses startDate, NOT machine.lastMhcDate
+      expect(doc.sections['01'].data.date).toBe('2026-08-14');
+      expect(doc.sections['01'].data.currentInspectionDate).toBe('2026-08-14');
+      expect(doc.sections['01'].data.previousMhcDate).toBe('2026-06-07');
+    });
+
+    it('should NOT fall back to machine.lastMhcDate when current session dates are missing', () => {
+      const session = createDummySession('SESS-INSP-DATE-03');
+      session.machineId = 'MC-DATE-003';
+      session.startDate = '';
+      session.completedDate = undefined;
+      (session as any).inspectionDate = undefined;
+
+      const mockMachine: any = {
+        id: 'MC-DATE-003',
+        model: 'EO-MICRO-5000',
+        serialNumber: 'MC230038',
+        lastMhcDate: '2026-06-07'
+      };
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [mockMachine] });
+
+      // Current inspection date must NOT borrow machine.lastMhcDate
+      expect(doc.sections['01'].data.date).toBe('');
+      expect(doc.sections['01'].data.currentInspectionDate).toBe('');
+      expect(doc.metadata.currentInspectionDate).toBe('');
+
+      // previousMhcDate remains the historical machine date
+      expect(doc.sections['01'].data.previousMhcDate).toBe('2026-06-07');
+      expect(doc.sections['01'].data.lastMhcDate).toBe('2026-06-07');
+    });
+  });
+
+  describe('Beam Profile Raw Verdict Consistency', () => {
+    it('should NOT synthesize passing measurements when readings are absent, and mark rawResult OUT_OF_SPEC', () => {
+      const session = createDummySession('SESS-BEAM-RAW-01');
+      // Only 6A and 7A provided; 6B, 6C-*, 7B, 7C-* are absent
+      session.stage02_laserProfile = {
+        laserId: 'lh1',
+        beamProfileRecord: {
+          id: 'BPR-RAW-01',
+          date: '2026-08-10',
+          overallResult: 'PASS',
+          readings: {
+            '6A': { checkpointId: '6A', measuredDiameterMm: 3.50, pass: true },
+            '7A': { checkpointId: '7A', measuredDiameterMm: 3.48, pass: true }
+          } as any
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session);
+      const beamSection = doc.sections['06'];
+      const beamData = beamSection.data;
+
+      // Raw result must be OUT_OF_SPEC because not all checkpoints are collected/passing
+      expect(beamData.rawResult).toBe('OUT_OF_SPEC');
+
+      // Head 1 checkpoints verification: missing checkpoints must have null measuredDiameterMm and pass: false
+      const lh1 = beamData.heads.find(h => h.headId === 'lh1')!;
+      const lh1_6B = lh1.current.checkpoints?.find(cp => cp.checkpointId === '6B');
+      expect(lh1_6B).toBeDefined();
+      expect(lh1_6B?.measuredDiameterMm).toBeNull();
+      expect(lh1_6B?.pass).toBe(false);
+
+      // Raw head verdict must be OUT_OF_SPEC
+      expect(lh1.current.rawMeasurementVerdict).toBe('OUT_OF_SPEC');
+
+      // Executive summary verdict must be FAIL (or consistent with OUT_OF_SPEC without disposition)
+      const execSummary = doc.sections['03'].data;
+      const beamExecItem = execSummary.majorPassFailResults.find(r => r.component.includes('Beam Profile'));
+      expect(beamExecItem).toBeDefined();
+      expect(beamExecItem?.verdict).toBe('FAIL');
+      expect(beamExecItem?.note).toContain('OUT OF SPEC');
+    });
+
+    it('should mark rawResult as OUT_OF_SPEC when any checkpoint fails, and reflect FAIL in executive summary', () => {
+      const session = createDummySession('SESS-BEAM-RAW-02');
+      // Create all checkpoints, but make 6C-1.8mm fail
+      const readings: any = {
+        '6A': { checkpointId: '6A', measuredDiameterMm: 3.50, pass: true },
+        '6B': { checkpointId: '6B', measuredDiameterMm: 4.15, pass: true },
+        '6C-0.9mm': { checkpointId: '6C-0.9mm', measuredDiameterMm: 0.95, pass: true },
+        '6C-1.1mm': { checkpointId: '6C-1.1mm', measuredDiameterMm: 1.15, pass: true },
+        '6C-1.3mm': { checkpointId: '6C-1.3mm', measuredDiameterMm: 1.35, pass: true },
+        '6C-1.8mm': { checkpointId: '6C-1.8mm', measuredDiameterMm: 1.50, pass: false }, // FAILED
+        '6C-2.0mm': { checkpointId: '6C-2.0mm', measuredDiameterMm: 2.05, pass: true },
+        '6C-2.2mm': { checkpointId: '6C-2.2mm', measuredDiameterMm: 2.25, pass: true },
+        // Head 2 passing
+        '7A': { checkpointId: '7A', measuredDiameterMm: 3.48, pass: true },
+        '7B': { checkpointId: '7B', measuredDiameterMm: 4.18, pass: true },
+        '7C-0.9mm': { checkpointId: '7C-0.9mm', measuredDiameterMm: 0.95, pass: true },
+        '7C-1.1mm': { checkpointId: '7C-1.1mm', measuredDiameterMm: 1.15, pass: true },
+        '7C-1.3mm': { checkpointId: '7C-1.3mm', measuredDiameterMm: 1.35, pass: true },
+        '7C-1.8mm': { checkpointId: '7C-1.8mm', measuredDiameterMm: 1.85, pass: true },
+        '7C-2.0mm': { checkpointId: '7C-2.0mm', measuredDiameterMm: 2.05, pass: true },
+        '7C-2.2mm': { checkpointId: '7C-2.2mm', measuredDiameterMm: 2.25, pass: true },
+      };
+
+      session.stage02_laserProfile = {
+        laserId: 'lh1',
+        beamProfileRecord: {
+          id: 'BPR-RAW-02',
+          date: '2026-08-10',
+          overallResult: 'PASS',
+          readings
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session);
+      const beamData = doc.sections['06'].data;
+      expect(beamData.rawResult).toBe('OUT_OF_SPEC');
+
+      const lh1 = beamData.heads.find(h => h.headId === 'lh1')!;
+      expect(lh1.current.rawMeasurementVerdict).toBe('OUT_OF_SPEC');
+
+      const lh2 = beamData.heads.find(h => h.headId === 'lh2')!;
+      expect(lh2.current.rawMeasurementVerdict).toBe('PASS');
+
+      // Executive summary reflects failure
+      const execSummary = doc.sections['03'].data;
+      const beamExecItem = execSummary.majorPassFailResults.find(r => r.component.includes('Beam Profile'));
+      expect(beamExecItem?.verdict).toBe('FAIL');
+    });
+
+    it('should respect engineer disposition (e.g. ACCEPTED_DEVIATION) when raw measurements are OUT_OF_SPEC', () => {
+      const session = createDummySession('SESS-BEAM-RAW-03');
+      // Only 6A provided
+      session.stage02_laserProfile = {
+        laserId: 'lh1',
+        beamProfileRecord: {
+          id: 'BPR-RAW-03',
+          date: '2026-08-10',
+          overallResult: 'PASS',
+          readings: {
+            '6A': { checkpointId: '6A', measuredDiameterMm: 3.50, pass: true }
+          } as any
+        }
+      } as any;
+
+      // Set engineer disposition for beam profile under autopilotProgress.dispositions
+      session.autopilotProgress = {
+        dispositions: {
+          '02_beam': {
+            activityId: '02_beam',
+            verdict: 'ACCEPTED_DEVIATION',
+            rationale: 'Customer approved operating at mask 1.8mm deviation until next scheduled PM',
+            timestamp: '2026-08-10T10:00:00Z',
+            engineerId: 'ENG-01',
+            acknowledged: true
+          }
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session);
+      const beamData = doc.sections['06'].data;
+      // Raw remains OUT_OF_SPEC
+      expect(beamData.rawResult).toBe('OUT_OF_SPEC');
+      // Engineer disposition is recorded
+      expect(beamData.engineerDisposition).toBe('ACCEPTED_DEVIATION');
+      expect(beamData.dispositionRationale).toContain('Customer approved');
+
+      // Executive Summary displays ACCEPTED_DEVIATION rather than forcing hard FAIL
+      const execSummary = doc.sections['03'].data;
+      const beamExecItem = execSummary.majorPassFailResults.find(r => r.component.includes('Beam Profile'));
+      expect(beamExecItem?.verdict).toBe('ACCEPTED_DEVIATION');
+      expect(beamExecItem?.note).toContain('ACCEPTED DEVIATION');
+      expect(beamExecItem?.note).toContain('Raw: OUT OF SPEC');
+    });
   });
 });
 

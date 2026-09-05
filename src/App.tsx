@@ -120,9 +120,17 @@ function AppLayout() {
     });
 
     // 2. Reactive listener for asynchronous ImageStore hydration
+    let isMounted = true;
+    let hydrationScheduled = false;
     const unsubscribeImageStore = ImageStore.subscribe(() => {
-      const loadedMachines = StorageService.getMachines();
-      setMachines(prev => mergeMachinesPreservingImages(loadedMachines, prev));
+      if (hydrationScheduled) return;
+      hydrationScheduled = true;
+      queueMicrotask(() => {
+        hydrationScheduled = false;
+        if (!isMounted) return;
+        const loadedMachines = StorageService.getMachines();
+        setMachines(prev => mergeMachinesPreservingImages(loadedMachines, prev));
+      });
     });
 
     // 3. Subscribe to SyncEngine remote updates to synchronize React UI without clobbering images
@@ -147,6 +155,7 @@ function AppLayout() {
     });
 
     return () => {
+      isMounted = false;
       unsubscribeImageStore();
       unsubscribeSync();
     };
@@ -428,7 +437,7 @@ function AppLayout() {
           onMarkAsRead={handleMarkNotificationAsRead}
           onMarkAllAsRead={handleMarkAllNotificationsAsRead}
           onClearAllNotifications={handleClearAllNotifications}
-          onOpenQuickMhc={() => setActiveTab('mhc')}
+          onOpenQuickMhc={() => setActiveTab('mhc_autopilot')}
           nextPriorityAction={nextPriorityAction}
           workspaceMode={workspaceMode}
           onModeChange={handleModeChange}
@@ -449,7 +458,7 @@ function AppLayout() {
                 onSelectMachine={(id) => setSelectedMachineId(id)}
                 onOpenMhcInspection={(id) => {
                   setSelectedMachineId(id);
-                  setActiveTab('mhc');
+                  setActiveTab('mhc_autopilot');
                 }}
                 onAddMachine={() => {
                   setActiveTab('machines');
@@ -501,7 +510,7 @@ function AppLayout() {
               mhcRecords={mhcRecords}
               onOpenMhcForMachine={(id) => {
                 setSelectedMachineId(id);
-                setActiveTab('mhc');
+                setActiveTab('mhc_autopilot');
               }}
               onAddMachine={handleAddMachine}
               onEditMachine={handleEditMachine}

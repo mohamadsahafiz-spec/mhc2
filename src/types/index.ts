@@ -645,13 +645,16 @@ export interface MHCProductQualityData {
 export interface MHCSparePartItem {
   id: string;
   partName: string;
-  partNumber: string;
+  partNumber?: string;
   category: string;
   quantity: number;
   reason: string;
   action: 'REPLACED' | 'USED' | 'RECOMMENDED';
   costIndicator: 'CUSTOMER_COST' | 'EO_SUPPORT' | 'WARRANTY';
-  notes: string;
+  notes?: string;
+  sourceType?: 'PASSPORT_CATALOG' | 'CUSTOM';
+  catalogPartId?: string;
+  isCustom?: boolean;
 }
 
 export interface MHCEngineerRemarksData {

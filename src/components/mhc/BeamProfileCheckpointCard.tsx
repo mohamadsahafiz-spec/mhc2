@@ -9,7 +9,6 @@ interface BeamProfileCheckpointCardProps {
   isDark: boolean;
   onDiameterChange: (val: string) => void;
   onImageUpload: (file: File) => void;
-  onImageRemove?: () => void;
 }
 
 export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps> = ({
@@ -18,8 +17,7 @@ export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps>
   pass,
   isDark,
   onDiameterChange,
-  onImageUpload,
-  onImageRemove
+  onImageUpload
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 

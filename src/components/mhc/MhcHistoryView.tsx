@@ -8,13 +8,15 @@ import { useTheme } from '../../context/ThemeContext';
 interface MhcHistoryViewProps {
   sessions: MHCSession[];
   machines: Machine[];
-  onOpenSmartWorkspace: (sessionId: string) => void;
+  onOpenSession?: (sessionId: string) => void;
+  onOpenSmartWorkspace?: (sessionId: string) => void;
   onOpenStageForm?: (sessionId: string, stageNum: number) => void;
 }
 
 export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
   sessions,
   machines,
+  onOpenSession,
   onOpenSmartWorkspace,
   onOpenStageForm
 }) => {
@@ -130,9 +132,12 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
                     size="sm"
                     className="text-xs"
                     icon={<FileText className="w-3.5 h-3.5" />}
-                    onClick={() => onOpenSmartWorkspace(s.id)}
+                    onClick={() => {
+                      if (onOpenSession) onOpenSession(s.id);
+                      else if (onOpenSmartWorkspace) onOpenSmartWorkspace(s.id);
+                    }}
                   >
-                    Open Smart MHC Workspace
+                    Open Inspection
                   </Button>
                   {!isCompleted && (
                     <Button
@@ -140,7 +145,11 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
                       size="sm"
                       className="text-xs"
                       icon={<ArrowRight className="w-3.5 h-3.5" />}
-                      onClick={() => onOpenStageForm ? onOpenStageForm(s.id, s.currentSection || 1) : onOpenSmartWorkspace(s.id)}
+                      onClick={() => {
+                        if (onOpenStageForm) onOpenStageForm(s.id, s.currentSection || 1);
+                        else if (onOpenSession) onOpenSession(s.id);
+                        else if (onOpenSmartWorkspace) onOpenSmartWorkspace(s.id);
+                      }}
                     >
                       Continue Inspection
                     </Button>
@@ -155,7 +164,7 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
           }`}>
             <History className="w-8 h-8 text-slate-500 mx-auto mb-2" />
             <p className="font-semibold text-slate-300">No MHC Session Records Found</p>
-            <p className="text-xs text-slate-500 mt-1">Try adjusting your search filter or start a new MHC inspection from the Smart MHC Workspace.</p>
+            <p className="text-xs text-slate-500 mt-1">Try adjusting your search filter or start a new MHC inspection from MHC Autopilot.</p>
           </div>
         )}
       </div>

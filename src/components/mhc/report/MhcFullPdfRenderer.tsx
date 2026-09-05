@@ -185,9 +185,16 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     session.productionLineName ||
     '—'
   );
-  const [inspectionDate, setInspectionDate] = useState<string>(
-    session.completedDate || session.startDate || (session as any).inspectionDate || sections['01']?.data?.date || ''
-  );
+  // Authoritative decoupling: currentInspectionDate vs previousMhcDate
+  const resolvedCurrentInspectionDate =
+    session.completedDate ||
+    session.startDate ||
+    (session as any).inspectionDate ||
+    sections['01']?.data?.currentInspectionDate ||
+    sections['01']?.data?.date ||
+    '';
+
+  const [inspectionDate, setInspectionDate] = useState<string>(resolvedCurrentInspectionDate);
   const [machineNumber, setMachineNumber] = useState<string>(
     (session as any).machineNumber || sections['01']?.data?.machineNumber || ''
   );
@@ -864,7 +871,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 font-bold block">LAST MHC DATE</span>
-                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.lastMhcDate || inspectionDate}</strong>
+                    <strong className="text-slate-800 text-xs">{sections['01']?.data?.previousMhcDate || sections['01']?.data?.lastMhcDate || '—'}</strong>
                   </div>
                 </div>
               </div>
@@ -1700,7 +1707,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                   Current Measured Spot Size
                                 </span>
                                 <strong className="text-base font-extrabold text-cyan-950 block">
-                                  Ø {sourceCp?.measuredDiameterMm !== null && sourceCp?.measuredDiameterMm !== undefined ? `${sourceCp.measuredDiameterMm.toFixed(3)} mm` : '3.500 mm'}
+                                  {sourceCp?.measuredDiameterMm !== null && sourceCp?.measuredDiameterMm !== undefined ? `Ø ${sourceCp.measuredDiameterMm.toFixed(3)} mm` : '—'}
                                 </strong>
                               </div>
 
@@ -1751,7 +1758,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                   Current Measured Spot Size
                                 </span>
                                 <strong className="text-base font-extrabold text-indigo-950 block">
-                                  Ø {flatTopCp?.measuredDiameterMm !== null && flatTopCp?.measuredDiameterMm !== undefined ? `${flatTopCp.measuredDiameterMm.toFixed(3)} mm` : '4.150 mm'}
+                                  {flatTopCp?.measuredDiameterMm !== null && flatTopCp?.measuredDiameterMm !== undefined ? `Ø ${flatTopCp.measuredDiameterMm.toFixed(3)} mm` : '—'}
                                 </strong>
                               </div>
 

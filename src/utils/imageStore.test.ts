@@ -71,4 +71,80 @@ describe('ImageStore & Batched Image Offloading', () => {
     expect(extracted.img).toBe('idb:MHC-CYCLE-TEST__img');
     expect(extracted.child.name).toBe('B');
   });
+
+  it('prevents synchronous re-entrant notifications during mergeMachinesPreservingImages', async () => {
+    let callCount = 0;
+    let insideReconciliation = false;
+
+    // Set up a listener mimicking App.tsx
+    const unsubscribe = ImageStore.subscribe(() => {
+      callCount++;
+      // If triggered synchronously while inside mergeMachinesPreservingImages, this would be true
+      expect(insideReconciliation).toBe(false);
+    });
+
+    const existingMachines = [
+      {
+        id: 'M-1',
+        photo: 'data:image/png;base64,PREV_HYDRATED_DATA'
+      }
+    ];
+
+    const incomingMachines = [
+      {
+        id: 'M-1',
+        photo: 'idb:M-1_photo'
+      }
+    ];
+
+    insideReconciliation = true;
+    const merged = ImageStore.reconcile(() => {
+      return incomingMachines.map(inc => {
+        return {
+          id: inc.id,
+          photo: inc.photo === 'idb:M-1_photo' ? existingMachines[0].photo : inc.photo
+        };
+      });
+    });
+    insideReconciliation = false;
+
+    expect(merged[0].photo).toBe('data:image/png;base64,PREV_HYDRATED_DATA');
+    // At this synchronous point, callCount must be 0
+    expect(callCount).toBe(0);
+
+    unsubscribe();
+  });
+
+  it('deduplicates in-flight and not-found reads in resolveImage', async () => {
+    let idbGetCount = 0;
+    const origGetImage = ImageStore.getImage;
+    ImageStore.getImage = async (id: string) => {
+      idbGetCount++;
+      return null;
+    };
+
+    try {
+      // Multiple synchronous calls from render path for the same non-existent key
+      const res1 = ImageStore.resolveImage('idb:NON_EXISTENT_KEY_123');
+      const res2 = ImageStore.resolveImage('idb:NON_EXISTENT_KEY_123');
+      const res3 = ImageStore.resolveImage('idb:NON_EXISTENT_KEY_123');
+
+      expect(res1).toBeUndefined();
+      expect(res2).toBeUndefined();
+      expect(res3).toBeUndefined();
+
+      // Should only initiate 1 request
+      expect(idbGetCount).toBe(1);
+
+      // Await microtasks to let the mock finish and register in notFoundInIdbKeys
+      await new Promise(r => setTimeout(r, 10));
+
+      // Subsequent renders should now be completely guarded by notFoundInIdbKeys
+      const res4 = ImageStore.resolveImage('idb:NON_EXISTENT_KEY_123');
+      expect(res4).toBeUndefined();
+      expect(idbGetCount).toBe(1);
+    } finally {
+      ImageStore.getImage = origGetImage;
+    }
+  });
 });

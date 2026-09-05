@@ -12,7 +12,8 @@ import {
   MHCStageCalibrationResult,
   MHCAgcResult,
   MHCTemperatureEvidenceData,
-  MHCEvidenceItem
+  MHCEvidenceItem,
+  Machine
 } from './index';
 import { ViaSpecification } from './productProcess';
 
@@ -68,6 +69,8 @@ export interface MhcReportCoverData {
   subtitle: string;
   reportNumber: string;
   date: string;
+  currentInspectionDate?: string;
+  previousMhcDate?: string;
   customerName: string;
   plantName: string;
   productionLine?: string;
@@ -119,6 +122,8 @@ export interface MhcReportMachineInfoData {
   installationDate?: string;
   baselineDate?: string;
   lastMhcDate?: string;
+  currentInspectionDate?: string;
+  previousMhcDate?: string;
   engineerName: string;
   laserHeads: Array<{
     laserId: string;
@@ -589,13 +594,16 @@ export interface MhcReportSparePartsData {
   spareParts: Array<{
     id: string;
     partName: string;
-    partNumber: string;
+    partNumber?: string;
     category: string;
     quantity: number;
     reason: string;
     action: 'REPLACED' | 'USED' | 'RECOMMENDED';
     costIndicator: 'CUSTOMER_COST' | 'EO_SUPPORT' | 'WARRANTY';
-    notes: string;
+    notes?: string;
+    sourceType?: 'PASSPORT_CATALOG' | 'CUSTOM';
+    catalogPartId?: string;
+    isCustom?: boolean;
   }>;
   consumedParts: Array<{
     id: string;
@@ -606,7 +614,7 @@ export interface MhcReportSparePartsData {
     reason: string;
     action: 'REPLACED' | 'USED';
     costIndicator: 'CUSTOMER_COST' | 'EO_SUPPORT' | 'WARRANTY';
-    notes: string;
+    notes?: string;
   }>;
   recommendedParts: Array<{
     id: string;
@@ -617,6 +625,9 @@ export interface MhcReportSparePartsData {
     reason: string;
     sourceFinding?: string;
     notes?: string;
+    sourceType?: 'PASSPORT_CATALOG' | 'CUSTOM';
+    catalogPartId?: string;
+    isCustom?: boolean;
   }>;
   recommendations: string[];
   engineerRecommendationsText?: string;
@@ -696,6 +707,8 @@ export interface MhcReportMetadata {
   reportNumber: string;
   title: string;
   generatedAt: string;
+  currentInspectionDate?: string;
+  previousMhcDate?: string;
   sessionId: string;
   machineId: string;
   machineModel: string;
@@ -732,4 +745,5 @@ export interface MhcReportOptions {
     logoUrl?: string;
   };
   sectionVisibilityOverrides?: Record<MhcReportSectionCode, boolean>;
+  machines?: Machine[];
 }

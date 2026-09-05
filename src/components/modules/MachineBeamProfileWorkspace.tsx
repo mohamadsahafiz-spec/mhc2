@@ -823,7 +823,6 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       isDark={isDark}
                       onDiameterChange={(val) => handleInputChange(s.id, 'diameterStr', val)}
                       onImageUpload={(file) => handleImageFileUpload(s.id, file)}
-                      onImageRemove={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
                     />
                   );
                 })}
@@ -872,7 +871,6 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       isDark={isDark}
                       onDiameterChange={(val) => handleInputChange(s.id, 'diameterStr', val)}
                       onImageUpload={(file) => handleImageFileUpload(s.id, file)}
-                      onImageRemove={() => handleInputChange(s.id, 'imageDataUrl', undefined)}
                     />
                   );
                 })}

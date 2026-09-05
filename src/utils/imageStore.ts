@@ -9,19 +9,52 @@ const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
 const MAX_MEMORY_CACHE_ITEMS = 128; // LRU cache limit sized to accommodate multi-head sequence inspections without thrashing
 
+// Tracking in-flight reads and keys missing from IndexedDB to guard against render loops
+const inFlightReads = new Map<string, Promise<string | null>>();
+const notFoundInIdbKeys = new Set<string>();
+
+// Reconciliation tracking to prevent re-entrant merge/notification loops
+let reconciliationDepth = 0;
+const deferredReconciliationKeys = new Set<string>();
+
+let isNotifying = false;
+const queuedNotificationKeys = new Set<string>();
+
 // Reactive listeners for asynchronous image hydration
 type ImageStoreListener = (hydratedKeys: string[]) => void;
 const listeners = new Set<ImageStoreListener>();
 
 function notifyListeners(keys: string[]) {
   if (keys.length === 0 || listeners.size === 0) return;
-  listeners.forEach(fn => {
-    try {
-      fn(keys);
-    } catch (err) {
-      console.warn('[ImageStore] Error in listener callback:', err);
+  if (isNotifying) {
+    keys.forEach(k => queuedNotificationKeys.add(k));
+    return;
+  }
+  isNotifying = true;
+  try {
+    const uniqueKeys = Array.from(new Set(keys));
+    listeners.forEach(fn => {
+      try {
+        fn(uniqueKeys);
+      } catch (err) {
+        console.warn('[ImageStore] Error in listener callback:', err);
+      }
+    });
+
+    while (queuedNotificationKeys.size > 0) {
+      const nextKeys = Array.from(queuedNotificationKeys);
+      queuedNotificationKeys.clear();
+      listeners.forEach(fn => {
+        try {
+          fn(nextKeys);
+        } catch (err) {
+          console.warn('[ImageStore] Error in listener callback:', err);
+        }
+      });
     }
-  });
+  } finally {
+    isNotifying = false;
+  }
 }
 
 function setMemoryCache(key: string, val: string) {
@@ -122,6 +155,22 @@ function scheduleBatchFlush() {
 }
 
 export const ImageStore = {
+  reconcile<T>(fn: () => T): T {
+    reconciliationDepth++;
+    try {
+      return fn();
+    } finally {
+      reconciliationDepth--;
+      if (reconciliationDepth === 0 && deferredReconciliationKeys.size > 0) {
+        const keysToNotify = Array.from(deferredReconciliationKeys);
+        deferredReconciliationKeys.clear();
+        queueMicrotask(() => {
+          notifyListeners(keysToNotify);
+        });
+      }
+    }
+  },
+
   async saveImage(id: string, dataUrl: string): Promise<void> {
     if (!id || !dataUrl) return;
 
@@ -131,19 +180,33 @@ export const ImageStore = {
     }
 
     setMemoryCache(id, dataUrl);
+    notFoundInIdbKeys.delete(id);
     if (existing !== dataUrl) {
       persistedInIdbKeys.delete(id);
     }
 
-    notifyListeners([id]);
+    if (reconciliationDepth > 0) {
+      deferredReconciliationKeys.add(id);
+    } else {
+      notifyListeners([id]);
+    }
     pendingIdbWrites.set(id, dataUrl);
     scheduleBatchFlush();
   },
 
   saveImageInMemoryOnly(id: string, dataUrl: string): void {
     if (!id || !dataUrl) return;
+    if (imageMemoryCache.get(id) === dataUrl) {
+      return; // Already present in memory cache with exact payload
+    }
     setMemoryCache(id, dataUrl);
-    notifyListeners([id]);
+    notFoundInIdbKeys.delete(id);
+
+    if (reconciliationDepth > 0) {
+      deferredReconciliationKeys.add(id);
+    } else {
+      notifyListeners([id]);
+    }
   },
 
   subscribe(listener: ImageStoreListener): () => void {
@@ -158,27 +221,53 @@ export const ImageStore = {
     if (imageMemoryCache.has(id)) {
       return imageMemoryCache.get(id)!;
     }
-    try {
-      const db = await openDB();
-      return await new Promise<string | null>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(id);
-        req.onsuccess = () => {
-          const val = req.result || null;
-          if (val) {
-            setMemoryCache(id, val);
-            persistedInIdbKeys.add(id);
-            notifyListeners([id]);
-          }
-          resolve(val);
-        };
-        req.onerror = () => reject(req.error);
-      });
-    } catch (err) {
-      console.warn('[ImageStore] Error reading image from IndexedDB:', err);
+    if (notFoundInIdbKeys.has(id)) {
       return null;
     }
+    const inFlight = inFlightReads.get(id);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const promise = (async () => {
+      try {
+        const db = await openDB();
+        return await new Promise<string | null>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(id);
+          req.onsuccess = () => {
+            const val = req.result || null;
+            if (val) {
+              setMemoryCache(id, val);
+              persistedInIdbKeys.add(id);
+              notFoundInIdbKeys.delete(id);
+              if (reconciliationDepth > 0) {
+                deferredReconciliationKeys.add(id);
+              } else {
+                notifyListeners([id]);
+              }
+            } else {
+              notFoundInIdbKeys.add(id);
+            }
+            resolve(val);
+          };
+          req.onerror = () => {
+            notFoundInIdbKeys.add(id);
+            reject(req.error);
+          };
+        });
+      } catch (err) {
+        notFoundInIdbKeys.add(id);
+        console.warn('[ImageStore] Error reading image from IndexedDB:', err);
+        return null;
+      } finally {
+        inFlightReads.delete(id);
+      }
+    })();
+
+    inFlightReads.set(id, promise);
+    return promise;
   },
 
   async deleteImage(id: string): Promise<void> {
@@ -186,6 +275,8 @@ export const ImageStore = {
     imageMemoryCache.delete(id);
     persistedInIdbKeys.delete(id);
     pendingIdbWrites.delete(id);
+    inFlightReads.delete(id);
+    notFoundInIdbKeys.delete(id);
 
     try {
       const db = await openDB();
@@ -210,6 +301,8 @@ export const ImageStore = {
           imageMemoryCache.delete(key);
           persistedInIdbKeys.delete(key);
           pendingIdbWrites.delete(key);
+          inFlightReads.delete(key);
+          notFoundInIdbKeys.delete(key);
         }
       }
 
@@ -241,7 +334,21 @@ export const ImageStore = {
     if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
 
     if (id.startsWith('idb:')) {
-      this.getImage(id);
+      if (!notFoundInIdbKeys.has(id) && !inFlightReads.has(id)) {
+        const promise = this.getImage(id)
+          .then(res => {
+            if (!res) notFoundInIdbKeys.add(id);
+            return res;
+          })
+          .catch(() => {
+            notFoundInIdbKeys.add(id);
+            return null;
+          })
+          .finally(() => {
+            inFlightReads.delete(id);
+          });
+        inFlightReads.set(id, promise);
+      }
     }
     return undefined;
   },
@@ -269,6 +376,7 @@ export const ImageStore = {
       if (data.startsWith('data:image/') || data.startsWith('data:application/') || (data.startsWith('<svg') && data.length > 50)) {
         const imageKey = `idb:${recordId}_${pathPrefix || 'img'}`;
         this.saveImage(imageKey, data);
+        notFoundInIdbKeys.delete(imageKey);
         return imageKey as unknown as T;
       }
       return data;
@@ -318,7 +426,21 @@ export const ImageStore = {
       if (data.startsWith('idb:')) {
         const cached = imageMemoryCache.get(data);
         if (cached) return cached as unknown as T;
-        this.getImage(data);
+        if (!notFoundInIdbKeys.has(data) && !inFlightReads.has(data)) {
+          const promise = this.getImage(data)
+            .then(res => {
+              if (!res) notFoundInIdbKeys.add(data);
+              return res;
+            })
+            .catch(() => {
+              notFoundInIdbKeys.add(data);
+              return null;
+            })
+            .finally(() => {
+              inFlightReads.delete(data);
+            });
+          inFlightReads.set(data, promise);
+        }
         return data as unknown as T;
       }
       return data;
@@ -430,13 +552,17 @@ export const ImageStore = {
             if (val) {
               setMemoryCache(key, val);
               persistedInIdbKeys.add(key);
+              notFoundInIdbKeys.delete(key);
               resolved.set(key, val);
               newlyHydrated.push(key);
+            } else {
+              notFoundInIdbKeys.add(key);
             }
             completed++;
             if (completed === missingKeys.length) resolve();
           };
           req.onerror = () => {
+            notFoundInIdbKeys.add(key);
             completed++;
             if (completed === missingKeys.length) resolve();
           };
@@ -444,7 +570,11 @@ export const ImageStore = {
       });
 
       if (newlyHydrated.length > 0) {
-        notifyListeners(newlyHydrated);
+        if (reconciliationDepth > 0) {
+          newlyHydrated.forEach(k => deferredReconciliationKeys.add(k));
+        } else {
+          notifyListeners(newlyHydrated);
+        }
       }
     } catch (err) {
       console.warn('[ImageStore] Error batch hydrating keys from IndexedDB:', err);
@@ -533,6 +663,10 @@ export const ImageStore = {
     imageMemoryCache.clear();
     persistedInIdbKeys.clear();
     pendingIdbWrites.clear();
+    inFlightReads.clear();
+    notFoundInIdbKeys.clear();
+    deferredReconciliationKeys.clear();
+    queuedNotificationKeys.clear();
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
@@ -548,11 +682,7 @@ export const ImageStore = {
   }
 };
 
-/**
- * Universal helper that prevents subsequent sync / state updates from clobbering
- * already-hydrated base64 or external URLs with unresolved "idb:..." pointers.
- */
-export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncestors = new Set<object>()): T {
+function preserveHydratedImagesInternal<T>(incoming: T, existing: T, activeAncestors = new Set<object>()): T {
   if (!incoming || !existing) return incoming;
   if (typeof incoming === 'string') {
     // If incoming is an idb: pointer, but existing already has a resolved data URL / URL, preserve the resolved URL!
@@ -571,7 +701,7 @@ export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncest
       if (Array.isArray(incoming) && Array.isArray(existing)) {
         return incoming.map((item, idx) => {
           if (idx < existing.length) {
-            return preserveHydratedImages(item, existing[idx], activeAncestors);
+            return preserveHydratedImagesInternal(item, existing[idx], activeAncestors);
           }
           return item;
         }) as unknown as T;
@@ -580,7 +710,7 @@ export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncest
       const result: any = { ...incoming };
       for (const key of Object.keys(incoming as any)) {
         if (key in (existing as any)) {
-          result[key] = preserveHydratedImages((incoming as any)[key], (existing as any)[key], activeAncestors);
+          result[key] = preserveHydratedImagesInternal((incoming as any)[key], (existing as any)[key], activeAncestors);
         }
       }
       return result;
@@ -592,15 +722,28 @@ export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncest
 }
 
 /**
+ * Universal helper that prevents subsequent sync / state updates from clobbering
+ * already-hydrated base64 or external URLs with unresolved "idb:..." pointers.
+ */
+export function preserveHydratedImages<T>(incoming: T, existing: T, activeAncestors = new Set<object>()): T {
+  if (reconciliationDepth === 0 && activeAncestors.size === 0) {
+    return ImageStore.reconcile(() => preserveHydratedImagesInternal(incoming, existing, activeAncestors));
+  }
+  return preserveHydratedImagesInternal(incoming, existing, activeAncestors);
+}
+
+/**
  * Merges updated machine records while preserving already-hydrated image payloads.
  */
 export function mergeMachinesPreservingImages<M extends { id: string }>(incoming: M[], existing: M[]): M[] {
   if (!existing || existing.length === 0) return incoming;
-  const existingMap = new Map(existing.map(m => [m.id, m]));
-  return incoming.map(inc => {
-    const prev = existingMap.get(inc.id);
-    if (!prev) return inc;
-    return preserveHydratedImages(inc, prev);
+  return ImageStore.reconcile(() => {
+    const existingMap = new Map(existing.map(m => [m.id, m]));
+    return incoming.map(inc => {
+      const prev = existingMap.get(inc.id);
+      if (!prev) return inc;
+      return preserveHydratedImagesInternal(inc, prev);
+    });
   });
 }
 
@@ -609,10 +752,12 @@ export function mergeMachinesPreservingImages<M extends { id: string }>(incoming
  */
 export function mergeSessionsPreservingImages<S extends { id: string }>(incoming: S[], existing: S[]): S[] {
   if (!existing || existing.length === 0) return incoming;
-  const existingMap = new Map(existing.map(s => [s.id, s]));
-  return incoming.map(inc => {
-    const prev = existingMap.get(inc.id);
-    if (!prev) return inc;
-    return preserveHydratedImages(inc, prev);
+  return ImageStore.reconcile(() => {
+    const existingMap = new Map(existing.map(s => [s.id, s]));
+    return incoming.map(inc => {
+      const prev = existingMap.get(inc.id);
+      if (!prev) return inc;
+      return preserveHydratedImagesInternal(inc, prev);
+    });
   });
 }

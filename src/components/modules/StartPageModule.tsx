@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   ArrowRight, 
   BookOpen, 
-  FileBarChart2, 
   CalendarDays,
   Activity,
   Sliders,
@@ -432,7 +431,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
           <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400 font-semibold">Shortcut Access • Reuse Existing Modules</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           
           {/* Card 1: Machine Passport */}
           <div 
@@ -513,33 +512,6 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
-          </div>
-
-          {/* Card 4: Canvas / Workspace */}
-          <div 
-            onClick={() => onNavigate('mhc')}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between ${
-              isDark 
-                ? 'bg-[#1A1D21] border-[#2B323A] hover:border-[#EFCB7A]/50 hover:bg-[#20252B]' 
-                : 'bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md shadow-xs'
-            }`}
-          >
-            <div className="flex items-center gap-3.5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                isDark ? 'bg-indigo-950/40 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
-              }`}>
-                <FileBarChart2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
-                  MHC Canvas
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                  Interactive stage execution
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
           </div>
 
         </div>

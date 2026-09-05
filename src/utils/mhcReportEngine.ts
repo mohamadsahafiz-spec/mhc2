@@ -108,7 +108,7 @@ export function buildMhcReportDocument(
   const sessionAudit = auditMhcSession(session);
 
   // Authoritative Machine Record Resolution
-  const savedMachines = StorageService.getMachines();
+  const savedMachines = options?.machines || StorageService.getMachines();
   const matchedMachine = savedMachines.find(m => m.id === session.machineId || m.serialNumber === session.machineSerialNumber);
 
   const machineNumber = (session as any).machineNumber || matchedMachine?.machineNumber || matchedMachine?.machineNo || (session.machineName?.includes('#') ? session.machineName : undefined) || '';
@@ -117,14 +117,20 @@ export function buildMhcReportDocument(
   const zone = session.zone || matchedMachine?.zone || (session as any).facilityZone || (session as any).zone || '—';
 
   const baselineDate = previousSession?.completedDate || previousSession?.startDate || matchedMachine?.baselineDate || undefined;
-  const lastMhcDate = session.completedDate || session.startDate || matchedMachine?.lastMhcDate || undefined;
+  
+  // Authoritative separation of Current Inspection Date from Historical Machine Last MHC Date
+  const currentInspectionDate = session.completedDate || session.startDate || (session as any).inspectionDate || '';
+  const previousMhcDate = previousSession?.completedDate || previousSession?.startDate || matchedMachine?.lastMhcDate || undefined;
+  const lastMhcDate = previousMhcDate;
 
   // 01 COVER
   const coverData: MhcReportCoverData = {
     title: options?.title || 'Maintenance & Health Check (MHC) Report',
     subtitle: 'System Health, Calibration & Optical Performance Assessment',
     reportNumber,
-    date: session.completedDate || session.startDate || (session as any).inspectionDate || '',
+    date: currentInspectionDate,
+    currentInspectionDate,
+    previousMhcDate,
     customerName: session.customerName || matchedMachine?.customerName || '',
     plantName: session.plantName || matchedMachine?.plantName || '',
     productionLine: productionLine,
@@ -256,8 +262,10 @@ export function buildMhcReportDocument(
     productionLine: productionLine,
     zone: zone,
     installationDate: (session as any).installationDate || matchedMachine?.installationDate,
-    baselineDate: previousSession?.completedDate || previousSession?.startDate || matchedMachine?.baselineDate,
-    lastMhcDate: session.completedDate || session.startDate || matchedMachine?.lastMhcDate,
+    baselineDate: baselineDate,
+    lastMhcDate: previousMhcDate,
+    currentInspectionDate,
+    previousMhcDate,
     engineerName: session.engineerName || '',
     laserHeads: laserHoursDetails.map(item => ({
       laserId: item.laserId,
@@ -484,11 +492,12 @@ export function buildMhcReportDocument(
         friendlyStageLabel = `Mask ${spec.maskSize}`;
       }
 
-      const defaultVal = spec.id.endsWith('A') ? 3.50 : spec.id.endsWith('B') ? 4.15 : (spec.minMm + 0.05);
       const val = (r?.measuredDiameterMm !== undefined && r?.measuredDiameterMm !== null)
         ? r.measuredDiameterMm
-        : (beamRecord ? defaultVal : defaultVal);
-      const pass = r?.pass !== undefined ? r.pass : BeamProfileEngine.evalSpec(val, spec.minMm, spec.maxMm);
+        : null;
+      const pass = r?.pass !== undefined 
+        ? r.pass 
+        : (val !== null ? BeamProfileEngine.evalSpec(val, spec.minMm, spec.maxMm) : false);
 
       checkpointsList.push({
         checkpointId: spec.id,
@@ -1275,13 +1284,16 @@ export function buildMhcReportDocument(
   const rawSparePartsList = (session.stage07_spareParts || []).map(sp => ({
     id: sp.id,
     partName: sp.partName,
-    partNumber: sp.partNumber,
+    partNumber: sp.partNumber || undefined,
     category: sp.category,
     quantity: sp.quantity,
     reason: sp.reason,
     action: sp.action,
     costIndicator: sp.costIndicator,
-    notes: sp.notes
+    notes: sp.notes,
+    sourceType: sp.sourceType,
+    catalogPartId: sp.catalogPartId,
+    isCustom: sp.isCustom
   }));
 
   const consumedParts = rawSparePartsList.filter(sp => sp.action === 'REPLACED' || sp.action === 'USED') as MhcReportSparePartsData['consumedParts'];
@@ -1296,7 +1308,10 @@ export function buildMhcReportDocument(
       category: sp.category,
       quantity: sp.quantity,
       reason: sp.reason,
-      notes: sp.notes
+      notes: sp.notes,
+      sourceType: sp.sourceType,
+      catalogPartId: sp.catalogPartId,
+      isCustom: sp.isCustom
     });
   });
 
@@ -1635,7 +1650,7 @@ export function buildMhcReportDocument(
         { component: 'AGC / Scanner Calibration', verdict: agcOverallVerdict === 'PASS' ? 'PASS' : agcOverallVerdict === 'OUT_OF_SPEC' ? 'FAIL' : 'NOT_COLLECTED', note: agcSpec },
         { component: 'Temperature & Cooling', verdict: temperatureData.coolingResult === 'PASS' ? 'PASS' : temperatureData.coolingResult === 'FAIL' ? 'FAIL' : 'NOT_COLLECTED', note: tempSpec }
       ],
-      replacementRecommendations: rawSparePartsList.map(s => `${s.partName} (${s.partNumber}) - ${s.action}`),
+      replacementRecommendations: rawSparePartsList.map(s => s.partNumber ? `${s.partName} (${s.partNumber}) - ${s.action}` : `${s.partName} - ${s.action}`),
       importantObservations: sessionAudit.blockers.map(b => b.reason)
     };
 
@@ -1758,6 +1773,8 @@ export function buildMhcReportDocument(
       reportNumber,
       title: coverData.title,
       generatedAt,
+      currentInspectionDate,
+      previousMhcDate,
       sessionId: session.id || 'UNSAVED',
       machineId: machineInfoData.machineId,
       machineModel: coverData.machineModel,
