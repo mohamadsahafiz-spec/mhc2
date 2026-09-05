@@ -280,9 +280,9 @@ describe('LaserEngine', () => {
       const machineWithLegacyFields = {
         id: 'WD-19926',
         machineNo: 'WLVIA#2',
-        machineNumber: 'WLVIA#RND', // Stale or corrupted field
+        machineNumber: 'WLVIA#2',
         serialNo: 'MC230023',
-        serialNumber: 'SN-OLD',
+        serialNumber: 'MC230023',
         model: 'BMD250WM',
         lasers: [
           { id: 'WD-19926-L1', serialNo: 'MC230023-L1', baseLaserHour: 1000 }
@@ -297,6 +297,28 @@ describe('LaserEngine', () => {
       expect(normalized.model).toBe('BMD250WM');
       expect(normalized.lasers.length).toBe(1);
       expect(normalized.laserHeads?.length).toBe(1);
+    });
+
+    it('Scenario F2: normalizeMachine respects edited machineNumber over stale machineNo and keeps them synchronized', () => {
+      const editedMachine = {
+        id: 'WD-81810',
+        machineNumber: 'WLVIA#002-RENAMED',
+        machineNo: 'WLVIA#002', // Stale legacy alias before sync
+        serialNumber: 'SN-MC240005-EDITED',
+        serialNo: 'SN-MC240005',
+        model: 'BMD250WM',
+        lasers: [
+          { id: 'WD-81810-L1', serialNo: 'MC240005-L1', baseLaserHour: 4500 }
+        ]
+      };
+
+      const normalized = LaserEngine.normalizeMachine(editedMachine);
+      expect(normalized.machineNumber).toBe('WLVIA#002-RENAMED');
+      expect(normalized.machineNo).toBe('WLVIA#002-RENAMED');
+      expect(normalized.serialNumber).toBe('SN-MC240005-EDITED');
+      expect(normalized.serialNo).toBe('SN-MC240005-EDITED');
+      expect(normalized.model).toBe('BMD250WM');
+      expect(normalized.lasers.length).toBe(1);
     });
 
     it('Scenario G: normalizeMachines sorts deterministically without swapping or disconnecting identities and metrics', () => {

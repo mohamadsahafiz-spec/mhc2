@@ -1152,8 +1152,8 @@ export const LaserEngine = {
       };
     }
 
-    const machineNo = m.machineNo || m.machineNumber || m.serialNo || m.serialNumber || m.id || 'MCH-01';
-    const serialNo = m.serialNo || m.serialNumber || m.machineNo || m.machineNumber || 'SN-0000';
+    const machineNo = m.machineNumber || m.machineNo || m.serialNumber || m.serialNo || m.id || 'MCH-01';
+    const serialNo = m.serialNumber || m.serialNo || m.machineNumber || m.machineNo || 'SN-0000';
     const id = m.id || m.machineNumber || m.machineNo || m.serialNumber || m.serialNo || 'MCH-01';
     const machineName = m.machineName || ('Wafer Driller ' + (m.model || 'BMD302W'));
     const manufacturer = m.manufacturer || 'SemiconTech';

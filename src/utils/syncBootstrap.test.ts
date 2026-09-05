@@ -280,4 +280,72 @@ describe('SyncEngine Bootstrap & Cross-Device Reconciliation', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('F: Machine number edit persists through StorageService, SyncEngine, and getMachines hydration', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    const storageMap = new Map<string, string>();
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+
+      // 1. Initial machine state
+      const initialMachine = {
+        id: 'WD-81810',
+        machineNumber: 'WLVIA#002',
+        machineNo: 'WLVIA#002',
+        serialNumber: 'MC240005',
+        serialNo: 'MC240005',
+        model: 'BMD250WM',
+        customerId: 'cust-1',
+        customerName: 'Customer Alpha',
+        lasers: [{ id: 'WD-81810-L1', serialNo: 'MC240005-L1', baseLaserHour: 4000 }]
+      };
+
+      StorageService.saveMachines([initialMachine as any]);
+      await SyncEngine.processQueue();
+
+      // 2. User edits machine number in UI and saves
+      const editedMachine = {
+        ...initialMachine,
+        machineNumber: 'WLVIA#002-MODIFIED',
+        machineNo: 'WLVIA#002-MODIFIED'
+      };
+
+      StorageService.saveMachines([editedMachine as any]);
+
+      // 3. Sync cycle processes the updated machine record
+      await SyncEngine.processQueue();
+
+      // 4. Reload from StorageService (simulating App sync listener and page refresh)
+      const reloadedMachines = StorageService.getMachines();
+      expect(reloadedMachines.length).toBe(1);
+      expect(reloadedMachines[0].machineNumber).toBe('WLVIA#002-MODIFIED');
+      expect(reloadedMachines[0].machineNo).toBe('WLVIA#002-MODIFIED');
+      expect(reloadedMachines[0].model).toBe('BMD250WM');
+      expect(reloadedMachines[0].id).toBe('WD-81810');
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
 });

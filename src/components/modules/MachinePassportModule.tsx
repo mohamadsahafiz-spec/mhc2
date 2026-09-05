@@ -981,7 +981,9 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       zone: addForm.zone || '',
       model: addForm.model || 'Laser System',
       machineNumber: addForm.machineNumber || `MCH-${Math.floor(100 + Math.random() * 900)}`,
+      machineNo: addForm.machineNumber || `MCH-${Math.floor(100 + Math.random() * 900)}`,
       serialNumber: addForm.serialNumber || `SN-${Date.now().toString().slice(-8)}`,
+      serialNo: addForm.serialNumber || `SN-${Date.now().toString().slice(-8)}`,
       installationDate: addForm.installationDate,
       baselineDate: addForm.baselineDate,
       healthScore: Number(addForm.healthScore) || 98,
@@ -1072,7 +1074,9 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       ...selectedMachine,
       model: editForm.model,
       machineNumber: editForm.machineNumber,
+      machineNo: editForm.machineNumber,
       serialNumber: editForm.serialNumber,
+      serialNo: editForm.serialNumber,
       customerName: editForm.customerName,
       plantName: editForm.plantName,
       productionLineName: editForm.productionLineName,
@@ -1107,7 +1111,9 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       ...selectedMachine,
       model: renameForm.model,
       machineNumber: renameForm.machineNumber,
-      serialNumber: renameForm.serialNumber
+      machineNo: renameForm.machineNumber,
+      serialNumber: renameForm.serialNumber,
+      serialNo: renameForm.serialNumber
     };
 
     if (onEditMachine) {

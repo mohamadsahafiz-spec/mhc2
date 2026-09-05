@@ -179,6 +179,7 @@ export interface Machine {
   nextMhcDate: string;
   // Multi-laser lifecycle engine extensions (v0.9.0 Phase 2.1)
   machineNo?: string;
+  serialNo?: string;
   machineName?: string;
   manufacturer?: string;
   department?: string;
