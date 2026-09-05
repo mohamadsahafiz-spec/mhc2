@@ -1462,170 +1462,231 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {filteredMachines.map((m) => {
               const isSelected = m.id === selectedMachine?.id;
+              const laserCount = m.laserHeads?.length || m.lasers?.length || 1;
+              const healthStatus = LaserEngine.getMachineHealthStatus(m);
+
               return (
                 <div
                   key={m.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`Select machine ${m.machineNumber || m.machineNo || m.id}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectMachine(m.id);
+                    }
+                  }}
                   onClick={() => onSelectMachine(m.id)}
-                  className={`p-4 rounded-2xl border text-left transition-all duration-200 relative group cursor-pointer ${
+                  className={`p-4 rounded-2xl border text-left transition-all duration-200 relative group cursor-pointer select-none flex flex-col justify-between ${
                     isSelected
                       ? isDark
-                        ? 'bg-gradient-to-br from-[#1E2228] to-[#16181C] border-[#8B9DFF] shadow-lg shadow-[#8B9DFF]/10 ring-1 ring-[#8B9DFF]/50'
+                        ? 'bg-gradient-to-br from-[#1C212B] to-[#14171E] border-[#8B9DFF] shadow-lg shadow-[#8B9DFF]/15 ring-1.5 ring-[#8B9DFF]/50'
                         : 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-md'
                       : isDark
-                        ? 'bg-[#14171A] border-[#2B323A] hover:bg-[#1A1D21] hover:border-slate-600'
-                        : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300'
+                        ? 'bg-[#14171A] border-[#2B323A] hover:bg-[#1A1D21] hover:border-slate-600 shadow-xs'
+                        : 'bg-slate-50/90 border-slate-200 hover:bg-white hover:border-slate-300 shadow-2xs'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <h4 className={`text-sm font-bold font-mono tracking-tight truncate ${
-                        isSelected
-                          ? isDark ? 'text-white' : 'text-slate-900'
-                          : isDark ? 'text-slate-100' : 'text-slate-900'
-                      }`}>
-                        {m.machineNumber || m.machineNo || m.id}
-                      </h4>
-                      <Badge
-                        variant={
-                          m.status === 'OPERATIONAL'
-                            ? 'emerald'
-                            : m.status === 'NEEDS_CALIBRATION'
-                              ? 'amber'
-                              : m.status === 'MAINTENANCE_DUE'
-                                ? 'purple'
-                                : 'rose'
-                        }
-                      >
-                        {m.status}
-                      </Badge>
-                    </div>
+                  {/* Selected Indicator Accent Stripe on left edge */}
+                  {isSelected && (
+                    <div
+                      className={`absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full ${
+                        isDark ? 'bg-[#8B9DFF]' : 'bg-indigo-600'
+                      }`}
+                    />
+                  )}
 
-                    {/* Machine 3-Dot Action Menu */}
-                    <div className="relative z-10 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMachineCardMenuId(activeMachineCardMenuId === m.id ? null : m.id);
-                        }}
-                        className={`p-1 rounded-lg transition-colors ${
-                          isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'
-                        }`}
-                      >
-                        <MoreVertical className="w-3.5 h-3.5" />
-                      </button>
+                  {/* Header: Machine Number (Dominant Primary Identifier) + Status + Action Menu */}
+                  <div>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <h4 className={`text-base font-bold font-mono tracking-tight truncate ${
+                          isSelected
+                            ? isDark ? 'text-white' : 'text-slate-900'
+                            : isDark ? 'text-slate-100 group-hover:text-white' : 'text-slate-900'
+                        }`}>
+                          {m.machineNumber || m.machineNo || m.id}
+                        </h4>
+                        {isSelected && (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider ${
+                            isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/40' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          }`}>
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            SELECTED
+                          </span>
+                        )}
+                      </div>
 
-                      {activeMachineCardMenuId === m.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-20"
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Operational Status Badge */}
+                        <Badge
+                          variant={
+                            m.status === 'OPERATIONAL'
+                              ? 'emerald'
+                              : m.status === 'NEEDS_CALIBRATION'
+                                ? 'amber'
+                                : m.status === 'MAINTENANCE_DUE'
+                                  ? 'purple'
+                                  : 'rose'
+                          }
+                          className="text-[10px] font-semibold py-0.5"
+                        >
+                          {m.status}
+                        </Badge>
+
+                        {/* Machine 3-Dot Action Menu */}
+                        <div className="relative z-10 shrink-0">
+                          <button
+                            type="button"
+                            aria-label={`Options for ${m.machineNumber || m.id}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveMachineCardMenuId(null);
+                              setActiveMachineCardMenuId(activeMachineCardMenuId === m.id ? null : m.id);
                             }}
-                          />
-                          <div
-                            className={`absolute right-0 mt-1 w-44 rounded-xl border shadow-xl z-30 py-1 text-xs transition-all ${
-                              isDark
-                                ? 'bg-[#1E2227] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
-                                : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
+                            className={`p-1.5 rounded-lg transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center ${
+                              isDark ? 'hover:bg-slate-700 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-800'
                             }`}
                           >
-                            <div className="py-1">
-                              <button
-                                type="button"
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+
+                          {activeMachineCardMenuId === m.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-20"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMachineCardMenuId(null);
-                                  onSelectMachine(m.id);
-                                  handleOpenEdit();
                                 }}
-                                className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                              />
+                              <div
+                                className={`absolute right-0 mt-1 w-44 rounded-xl border shadow-xl z-30 py-1 text-xs transition-all ${
+                                  isDark
+                                    ? 'bg-[#1E2227] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
+                                    : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
                                 }`}
                               >
-                                <Edit3 className="w-3.5 h-3.5 text-[#8B9DFF]" />
-                                Edit Specifications
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMachineCardMenuId(null);
-                                  onSelectMachine(m.id);
-                                  setIsRenameModalOpen(true);
-                                }}
-                                className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                              >
-                                <Type className="w-3.5 h-3.5 text-[#8ECDF7]" />
-                                Rename Asset
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMachineCardMenuId(null);
-                                  onSelectMachine(m.id);
-                                  handleDuplicateMachine();
-                                }}
-                                className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                              >
-                                <Copy className="w-3.5 h-3.5 text-amber-400" />
-                                Duplicate Machine
-                              </button>
-                            </div>
-                            <div className="py-1">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMachineCardMenuId(null);
-                                  onSelectMachine(m.id);
-                                  setIsDeleteModalOpen(true);
-                                }}
-                                className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 transition-colors ${
-                                  isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                                }`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                Delete Machine
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                                <div className="py-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMachineCardMenuId(null);
+                                      onSelectMachine(m.id);
+                                      handleOpenEdit();
+                                    }}
+                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
+                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-[#8B9DFF]" />
+                                    Edit Specifications
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMachineCardMenuId(null);
+                                      onSelectMachine(m.id);
+                                      setIsRenameModalOpen(true);
+                                    }}
+                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
+                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    <Type className="w-3.5 h-3.5 text-[#8ECDF7]" />
+                                    Rename Asset
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMachineCardMenuId(null);
+                                      onSelectMachine(m.id);
+                                      handleDuplicateMachine();
+                                    }}
+                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
+                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    <Copy className="w-3.5 h-3.5 text-amber-400" />
+                                    Duplicate Machine
+                                  </button>
+                                </div>
+                                <div className="py-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMachineCardMenuId(null);
+                                      onSelectMachine(m.id);
+                                      setIsDeleteModalOpen(true);
+                                    }}
+                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 transition-colors ${
+                                      isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
+                                    }`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                    Delete Machine
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Secondary Hierarchy: Machine Model, Serial Number & Laser Count */}
+                    <div className="flex items-center justify-between gap-2 text-xs font-mono mb-2.5">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className={`font-semibold ${
+                          isSelected
+                            ? isDark ? 'text-slate-200' : 'text-slate-800'
+                            : isDark ? 'text-slate-300' : 'text-slate-700'
+                        }`}>
+                          {m.model}
+                        </span>
+                        <span className={`opacity-40 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>•</span>
+                        <span className={`text-[11px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          SN: {m.serialNumber || m.serialNo || 'N/A'}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 font-mono ${
+                        isDark ? 'bg-slate-800/80 text-slate-300 border border-slate-700/60' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}>
+                        {laserCount} {laserCount === 1 ? 'Laser' : 'Lasers'}
+                      </span>
                     </div>
                   </div>
 
-                  <p className={`text-xs font-medium truncate ${
-                    isSelected
-                      ? isDark ? 'text-slate-300' : 'text-slate-600'
-                      : isDark ? 'text-slate-400' : 'text-slate-500'
+                  {/* Footer: Plant / Location & Health PASS Status */}
+                  <div className={`flex items-center justify-between pt-2.5 border-t text-[11px] font-mono mt-auto ${
+                    isDark ? 'border-[#2B323A]/70' : 'border-slate-200'
                   }`}>
-                    {m.model}
-                  </p>
-
-                  <div className={`flex items-center justify-between mt-2.5 pt-2 border-t text-[11px] font-mono ${
-                    isDark ? 'border-[#2B323A]/60' : 'border-slate-200'
-                  }`}>
-                    <span className={`font-medium truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {m.plantName}
+                    <span className={`font-medium truncate flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                      <span className="truncate">{m.plantName || activeCustomer?.site || 'P3 Cleanroom'}</span>
+                      {m.productionLineName && (
+                        <>
+                          <span className="opacity-40">•</span>
+                          <span className="truncate">{m.productionLineName}</span>
+                        </>
+                      )}
                     </span>
-                    <span className={`font-bold shrink-0 text-[10px] px-1.5 py-0.5 rounded ${
-                      LaserEngine.getMachineHealthStatus(m) === 'PASS'
+                    <span className={`font-bold shrink-0 text-[10px] px-2 py-0.5 rounded tracking-wider ${
+                      healthStatus === 'PASS'
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : LaserEngine.getMachineHealthStatus(m) === 'WARNING'
+                        : healthStatus === 'WARNING'
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                         : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                     }`}>
-                      {LaserEngine.getMachineHealthStatus(m)}
+                      {healthStatus}
                     </span>
                   </div>
                 </div>
@@ -1636,22 +1697,30 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             <button
               type="button"
               onClick={handleOpenAdd}
-              className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[110px] transition-all group ${
+              aria-label="Register new machine asset"
+              className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2.5 min-h-[125px] transition-all group ${
                 isDark
                   ? 'border-[#2B323A] hover:border-[#8B9DFF] bg-[#14171A]/40 hover:bg-[#1A1D21]'
                   : 'border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-white'
               }`}
             >
-              <div className={`p-2 rounded-full transition-transform group-hover:scale-110 ${
+              <div className={`p-2.5 rounded-full transition-transform group-hover:scale-110 ${
                 isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'
               }`}>
                 <Plus className="w-4 h-4" />
               </div>
-              <span className={`text-xs font-bold font-mono ${
-                isDark ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-indigo-600'
-              }`}>
-                Add Machine
-              </span>
+              <div className="text-center">
+                <span className={`block text-xs font-bold font-mono ${
+                  isDark ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-indigo-600'
+                }`}>
+                  Add Machine Asset
+                </span>
+                <span className={`block text-[10px] font-mono mt-0.5 ${
+                  isDark ? 'text-slate-500' : 'text-slate-400'
+                }`}>
+                  Register new laser unit
+                </span>
+              </div>
             </button>
           </div>
         )}
@@ -1719,10 +1788,10 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               {/* Machine Core Identity (Layer 5 Rank 1 & 2) */}
               <div className="space-y-3 flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold border tracking-wide ${
-                    isDark ? 'bg-[#8ECDF7]/15 border-[#8ECDF7]/40 text-[#8ECDF7]' : 'bg-sky-50 border-sky-300 text-sky-800 font-bold'
+                  <span className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] font-bold tracking-wider uppercase border ${
+                    isDark ? 'bg-[#8B9DFF]/15 border-[#8B9DFF]/40 text-[#8B9DFF]' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
                   }`}>
-                    {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
+                    SELECTED MACHINE
                   </span>
                   <Badge
                     variant={
@@ -1743,12 +1812,16 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 </div>
 
                 <div>
-                  <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>
-                    {selectedMachine.model}
+                  <h1 className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>
+                    {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
                   </h1>
-                  <div className={`flex items-center gap-2 mt-1 text-xs font-medium flex-wrap ${
+                  <div className={`flex items-center gap-2 mt-1.5 text-xs font-medium flex-wrap ${
                     isDark ? 'text-[#94A3B8]' : 'text-slate-600'
                   }`}>
+                    <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {selectedMachine.model}
+                    </span>
+                    <span className="opacity-40">•</span>
                     <span className="flex items-center gap-1">
                       <Building2 className="w-3.5 h-3.5 text-[#8B9DFF]" />
                       {selectedMachine.customerName}

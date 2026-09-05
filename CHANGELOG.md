@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v1.4.7 — MACHINE PASSPORT UI/UX PRO MAX REDESIGN (2026-09-05)
+
+### Machine Passport UI/UX Redesign & Visual Hierarchy
+- **Primary Machine Identity Prominence**: Redesigned the machine passport fleet selection cards to make the machine number/ID (`WLVIA#1`, `WLVIA#2`, `WLVIA#002`, `WLVIA#3`, `WLVIA#4`, `WLVIA#5`) the dominant primary visual identifier in bold monospace display typography.
+- **HUD & Industrial Control Selection UX**: Added a subtle active left-edge accent indicator, selected status tag, clean dark/light mode surface contrasts, and refined keyboard accessibility (`Enter`/`Space` navigation).
+- **Secondary Identity & Hardware Specifications**: Structured the secondary row to display the machine model (`BMD250WM` / `BMD302W`), serial number (`SN`), and laser count with clean divider bullets, preventing model dominance over machine identity.
+- **Footer & Location Alignment**: Standardized plant and line info (`P3 Cleanroom`) with inline map pin indicators and high-contrast semantic health status badges (`PASS`).
+- **Cockpit Header Alignment**: Synchronized the selected machine cockpit header to emphasize the machine number as the primary H1 title with model, client, plant, and line details neatly organized in the subtitle metadata strip.
+- **Authoritative Version Synchronization**: Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.7`.
+
+## v1.4.6 — MACHINE NUMBER EDIT SYNC PERSISTENCE (2026-09-05)
+
+### Machine Number Edit & Storage Persistence Fix
+- **Bidirectional Field Synchronization**: Synchronized `machineNumber` and `machineNo` updates when editing machine specifications in `MachinePassportModule`, preventing legacy field overrides during storage normalization and sync bootstrap.
+- **Storage and D1 Sync Resilience**: Ensured `LaserEngine.normalizeMachine()` prioritizes explicit user-provided machine numbers while maintaining backwards compatibility across offline storage and cloud synchronization pipelines.
+
 ## v1.4.5 — MACHINE CARD DISPLAY HIERARCHY (2026-09-05)
 
 ### Machine Passport UI & Presentation Hierarchy
