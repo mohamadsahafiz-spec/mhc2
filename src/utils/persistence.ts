@@ -32,6 +32,11 @@ import {
   RecommendedPart
 } from '../types';
 import { 
+  reconcileMhcSessionIdentities, 
+  MhcSessionReconciliationReport, 
+  ReconciliationResult 
+} from './mhcIdentityReconciler';
+import { 
   INITIAL_FOUNDER_BRANDING,
   INITIAL_ENGINEER_PROFILE,
   INITIAL_USERS
@@ -525,12 +530,44 @@ export const StorageService = {
   getWorkspaceMode: (): WorkspaceMode => getStorage(KEYS.WORKSPACE_MODE, 'MHC_MODE'),
   saveWorkspaceMode: (mode: WorkspaceMode) => setStorage(KEYS.WORKSPACE_MODE, mode),
 
-  getMhcSessions: (): MHCSession[] => {
+  getMhcSessions: (reconcileWithMachines = false): MHCSession[] => {
     const raw = getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []);
     const validSessions = Array.isArray(raw)
       ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
       : [];
-    return validSessions.map(s => ImageStore.hydrateImagesSync(s));
+    const hydrated = validSessions.map(s => ImageStore.hydrateImagesSync(s));
+
+    if (reconcileWithMachines) {
+      const activeMachines = StorageService.getMachines();
+      if (activeMachines.length > 0) {
+        const { sessions } = StorageService.reconcileMhcSessions(hydrated, activeMachines);
+        return sessions;
+      }
+    }
+
+    return hydrated;
+  },
+  reconcileMhcSessions: (
+    sessionsList?: MHCSession[],
+    machinesList?: Machine[]
+  ): ReconciliationResult => {
+    const raw = sessionsList || getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []);
+    const validSessions = Array.isArray(raw)
+      ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
+      : [];
+    const activeMachines = machinesList || StorageService.getMachines();
+
+    const result = reconcileMhcSessionIdentities(validSessions, activeMachines);
+
+    if (result.modified) {
+      console.info(
+        `[StorageService] Reconciled ${result.report.relinkedCount} orphaned MHC session(s) to active machines:`,
+        result.report.mappings
+      );
+      StorageService.saveMhcSessions(result.sessions);
+    }
+
+    return result;
   },
   saveMhcSessions: (data: MHCSession[]) => {
     const validSessions = Array.isArray(data)

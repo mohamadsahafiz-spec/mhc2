@@ -113,6 +113,7 @@ function AppLayout() {
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
+      StorageService.reconcileMhcSessions(undefined, rec.machines);
       setMachines(prev => mergeMachinesPreservingImages(rec.machines, prev));
       setCustomers(rec.customers);
     }).catch(err => {
@@ -140,6 +141,7 @@ function AppLayout() {
           const curCusts = StorageService.getCustomers();
           const curMachines = StorageService.getMachines();
           const rec = StorageService.reconcileCustomerIdentities(curMachines, curCusts);
+          StorageService.reconcileMhcSessions(undefined, rec.machines);
           setMachines(prev => mergeMachinesPreservingImages(rec.machines, prev));
           setCustomers(rec.customers);
           setMhcRecords(StorageService.getMhcRecords());
@@ -300,6 +302,7 @@ function AppLayout() {
 
     setMachines(reconciled.machines);
     StorageService.saveMachines(reconciled.machines);
+    StorageService.reconcileMhcSessions(undefined, reconciled.machines);
     if (reconciled.machines.length > 0) {
       setSelectedMachineId(reconciled.machines[0].id);
     }

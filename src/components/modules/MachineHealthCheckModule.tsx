@@ -43,8 +43,18 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
 
   // 2. All MHC Sessions persistence state
   const [mhcSessions, setMhcSessions] = useState<MHCSession[]>(() =>
-    StorageService.getMhcSessions()
+    StorageService.getMhcSessions(true)
   );
+
+  // Reconcile MHC sessions when active machine list changes
+  useEffect(() => {
+    if (machines.length > 0) {
+      const result = StorageService.reconcileMhcSessions(mhcSessions, machines);
+      if (result.modified) {
+        setMhcSessions(result.sessions);
+      }
+    }
+  }, [machines]);
 
   // Active Session for current machine
   const activeSession = mhcSessions.find(

@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v1.5.6 — RESTORE MHC SESSION MACHINE IDENTITY LINKS (2026-09-06)
+
+### Restore MHC Session Machine Identity Links
+- **Deterministic Machine Identity Reconciliation (`mhcIdentityReconciler`)**:
+  - Implemented multi-tier deterministic matching algorithm (`SERIAL_NUMBER_MATCH`, `MACHINE_ID_NORMALIZED_MATCH`, `MACHINE_NAME_MATCH`, `COMPOSITE_MODEL_CUSTOMER_MATCH`) to re-link orphaned `MHCSession.machineId` values to active machine fleet identities following Laser Monitor JSON backup import.
+  - Preserved session payloads, session IDs, activity progress, findings, timestamps, and `idb:<imageId>` evidence references 100% byte-for-byte and logically intact.
+- **Defensive Idempotent Reconciliation Hooks**:
+  - Integrated `StorageService.reconcileMhcSessions()` into core lifecycle hooks (`App.tsx` startup/IDB hydration, batch machine imports, and `MachineHealthCheckModule` machine state listener).
+  - Ensured idempotency: already-linked sessions remain untouched, no duplicate sessions are created, and ambiguous mappings are halted safely with structured diagnostics.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.6`.
+
 ## v1.5.5 — RESET STALE CONFIRMED CLOUD IMAGE STATE (2026-09-06)
 
 ### Reset Stale Confirmed Cloud Image State on Empty D1 Replica
