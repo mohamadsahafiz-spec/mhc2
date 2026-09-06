@@ -547,4 +547,187 @@ describe('SyncEngine Bootstrap & Cross-Device Reconciliation', () => {
       (globalThis as any).localStorage = originalLocalStorage;
     }
   });
+
+  it('I: When serverRecordCount === 0, stale bootstrappedKeys are invalidated and parent record is reconciled and pushed to D1', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    const storageMap = new Map<string, string>();
+    // Inject stale bootstrappedKeys simulating previous sync before D1 was empty
+    storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:MHC-AUTO-001']));
+    storageMap.set('fsos_server_record_count_v1', '0');
+
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+      // Pre-seed stale bootstrappedKeys directly
+      storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:MHC-AUTO-001']));
+
+      const localMachine = {
+        id: 'MHC-AUTO-001',
+        model: 'MHC-8000',
+        photoRef: 'idb:img-pc-001',
+        status: 'Operational'
+      };
+
+      SyncEngine.registerLocalDataProvider(() => ({
+        machines: [localMachine]
+      }));
+
+      // Confirm mockDb records are empty before sync
+      expect(mockDb.rows.size).toBe(0);
+
+      // Process queue -> detects serverRecordCount === 0, invalidates stale key, reconciles and pushes to D1
+      await SyncEngine.processQueue();
+
+      // Verify D1 records is now populated with the parent record
+      expect(mockDb.rows.has('machines:MHC-AUTO-001')).toBe(true);
+      const inserted = mockDb.rows.get('machines:MHC-AUTO-001');
+      expect(inserted).toBeDefined();
+      expect(JSON.parse(inserted!.data!)).toMatchObject({ id: 'MHC-AUTO-001', photoRef: 'idb:img-pc-001' });
+
+      // Verify bootstrappedKeys now properly tracks the newly synced record
+      expect(SyncEngine.getBootstrappedKeys().has('machines:MHC-AUTO-001')).toBe(true);
+      expect(SyncEngine.getState().serverRecordCount).toBeGreaterThan(0);
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
+
+  it('J: When serverRecordCount > 0, bootstrapped keys are preserved and redundant reconciliation is skipped', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    // Pre-populate D1 with an existing record
+    mockDb.rows.set('machines:MHC-EXISTING-01', {
+      key: 'machines:MHC-EXISTING-01',
+      table_name: 'machines',
+      record_id: 'MHC-EXISTING-01',
+      data: JSON.stringify({ id: 'MHC-EXISTING-01', model: 'MHC-9000' }),
+      updated_at: new Date().toISOString(),
+      device_id: 'HOME-PC',
+      version: 1,
+      is_deleted: 0
+    });
+
+    const storageMap = new Map<string, string>();
+    storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:MHC-EXISTING-01']));
+    storageMap.set('fsos_server_record_count_v1', '1');
+
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    let postSyncCount = 0;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (urlStr.includes('/api/sync') && init?.method === 'POST') {
+        postSyncCount++;
+      }
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+      // Re-populate valid synced key with serverRecordCount = 1
+      storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:MHC-EXISTING-01']));
+      storageMap.set('fsos_server_record_count_v1', '1');
+
+      SyncEngine.registerLocalDataProvider(() => ({
+        machines: [{ id: 'MHC-EXISTING-01', model: 'MHC-9000' }]
+      }));
+
+      // First sync process to pull and confirm server state
+      await SyncEngine.processQueue();
+
+      // Reset POST /api/sync counter
+      postSyncCount = 0;
+
+      // Re-run process queue - should NOT re-push already bootstrapped record
+      await SyncEngine.processQueue();
+
+      expect(postSyncCount).toBe(0);
+      expect(SyncEngine.getBootstrappedKeys().has('machines:MHC-EXISTING-01')).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
+
+  it('K: When reconcile/sync fails on server error, recovery is not falsely marked complete', async () => {
+    const mockDb = new MockD1Database();
+    // Simulate server outage on D1
+    mockDb.shouldFail = true;
+    const env = { DB: mockDb };
+
+    const storageMap = new Map<string, string>();
+    storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:MHC-FAIL-01']));
+
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+
+      SyncEngine.registerLocalDataProvider(() => ({
+        machines: [{ id: 'MHC-FAIL-01', model: 'MHC-FAIL' }]
+      }));
+
+      await SyncEngine.processQueue();
+
+      const state = SyncEngine.getState();
+      // Server returned error, queue must retain items and state must be pending
+      expect(state.pendingCount).toBeGreaterThan(0);
+      expect(state.serverRecordCount).toBe(0);
+      expect(SyncEngine.getBootstrappedKeys().has('machines:MHC-FAIL-01')).toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
 });

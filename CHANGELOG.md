@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v1.5.4 — RESTORE MISSING PARENT RECORD RECONCILIATION (2026-09-06)
+
+### Stale Bootstrap State Invalidation on Empty D1 Records
+- **Automatic Recovery on `serverRecordCount === 0`**:
+  - Detected proven root cause where PC client's persisted `fsos_synced_keys_v1` suppressed local record reconciliation while D1 `records` was empty.
+  - Invalidate and purge stale `bootstrappedKeys` when `serverRecordCount === 0` in both `reconcileLocalData()` and `pullCloudChanges()`.
+  - Enables local authoritative records containing `idb:<imageId>` references to be queued and POSTed via the standard `/api/sync` pipeline.
+- **Preserved Idempotency & Zero-Redundancy on Active Servers (`serverRecordCount > 0`)**:
+  - Maintained full bootstrap caching when the server contains records (`serverRecordCount > 0`), preventing redundant sync traffic.
+- **Fail-Safe Recovery Semantics**:
+  - Reconcile or sync failures retain queue items without falsely marking recovery complete, ensuring reliable retry.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.4`.
+
 ## v1.5.3 — INSTRUMENT D1 IMAGE CHUNK 503 FAILURE (2026-09-06)
 
 ### Structured Diagnostic Instrumentation for Chunk Uploads

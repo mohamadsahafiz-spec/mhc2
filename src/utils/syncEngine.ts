@@ -91,6 +91,7 @@ const MIGRATED_KEY = 'fsos_cloud_migrated_v1';
 const SYNCED_KEYS_KEY = 'fsos_synced_keys_v1';
 const LEGACY_SYNCED_IMAGES_KEY = 'fsos_synced_images_v1';
 const CONFIRMED_CLOUD_IMAGES_KEY = 'fsos_confirmed_cloud_images_v2';
+const SERVER_RECORD_COUNT_KEY = 'fsos_server_record_count_v1';
 
 function parseDataUrlToBinary(dataUrl: string): { mimeType: string; binary: Uint8Array } {
   if (dataUrl.startsWith("data:")) {
@@ -193,6 +194,15 @@ class SyncEngineManager {
       }
     } catch (e) {
       console.warn('[SyncEngine] Failed to read synced keys tracker', e);
+    }
+
+    // Load Server Record Count tracker if saved
+    const savedServerRecordCount = safeStorageGet(SERVER_RECORD_COUNT_KEY);
+    if (savedServerRecordCount !== null) {
+      const parsed = parseInt(savedServerRecordCount, 10);
+      if (!isNaN(parsed)) {
+        this.serverRecordCount = parsed;
+      }
     }
 
     // Migration: Invalidate and purge stale unconfirmed v1 tracker
@@ -328,6 +338,10 @@ class SyncEngineManager {
     return new Map(this.failedImageUploads);
   }
 
+  public getBootstrappedKeys(): Set<string> {
+    return new Set(this.bootstrappedKeys);
+  }
+
   public clearImageSyncStateForTesting() {
     this.confirmedCloudImages.clear();
     this.uploadingImages.clear();
@@ -385,6 +399,14 @@ class SyncEngineManager {
     if (!this.localDataProvider) return;
 
     try {
+      // If server is confirmed empty (serverRecordCount === 0) and we have local bootstrappedKeys,
+      // invalidate them so that authoritative local records can be pushed to the empty server.
+      if (this.serverRecordCount === 0 && this.bootstrappedKeys.size > 0) {
+        console.warn('[SyncEngine] Reconcile detected serverRecordCount === 0 with stale bootstrappedKeys. Invalidating to allow parent record push.');
+        this.bootstrappedKeys.clear();
+        safeStorageRemove(SYNCED_KEYS_KEY);
+      }
+
       const allData = this.localDataProvider();
       if (!allData || typeof allData !== 'object') return;
 
@@ -543,6 +565,7 @@ class SyncEngineManager {
           }
           if (result.totalServerRecords !== undefined) {
             this.serverRecordCount = result.totalServerRecords;
+            safeStorageSet(SERVER_RECORD_COUNT_KEY, String(this.serverRecordCount));
           }
           this.lastError = null;
           this.notify();
@@ -988,7 +1011,15 @@ class SyncEngineManager {
       const res = await fetch(`/api/changes?since=${sinceParam}&deviceId=${encodeURIComponent(this.deviceId)}`);
       if (res.ok) {
         const data = await this.safeParseJson(res);
-        this.serverRecordCount = data.serverRecordCount ?? this.serverRecordCount;
+        if (typeof data.serverRecordCount === 'number') {
+          this.serverRecordCount = data.serverRecordCount;
+          safeStorageSet(SERVER_RECORD_COUNT_KEY, String(this.serverRecordCount));
+          if (this.serverRecordCount === 0 && this.bootstrappedKeys.size > 0) {
+            console.warn('[SyncEngine] Server record count is 0 while local client has bootstrapped keys. Invalidating stale bootstrappedKeys.');
+            this.bootstrappedKeys.clear();
+            safeStorageRemove(SYNCED_KEYS_KEY);
+          }
+        }
         const changes: CloudRecord[] = data.changes || [];
 
         if (changes.length > 0) {
@@ -1060,6 +1091,7 @@ class SyncEngineManager {
     safeStorageRemove(SYNCED_KEYS_KEY);
     safeStorageRemove(CONFIRMED_CLOUD_IMAGES_KEY);
     safeStorageRemove(LEGACY_SYNCED_IMAGES_KEY);
+    safeStorageRemove(SERVER_RECORD_COUNT_KEY);
     this.notify();
   }
 
