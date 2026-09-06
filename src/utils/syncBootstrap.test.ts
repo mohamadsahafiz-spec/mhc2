@@ -730,4 +730,166 @@ describe('SyncEngine Bootstrap & Cross-Device Reconciliation', () => {
       (globalThis as any).localStorage = originalLocalStorage;
     }
   });
+
+  it('L: When serverRecordCount === 0, stale confirmedCloudImages is invalidated and local image chunks are re-uploaded to D1', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    const storageMap = new Map<string, string>();
+    // Inject stale state: bootstrappedKeys AND confirmedCloudImages from prior session
+    storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:WD-44367']));
+    storageMap.set('fsos_confirmed_cloud_images_v2', JSON.stringify(['idb:WD-44367_img']));
+    storageMap.set('fsos_server_record_count_v1', '0');
+
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+      // Pre-seed stale state directly
+      storageMap.set('fsos_synced_keys_v1', JSON.stringify(['machines:WD-44367']));
+      storageMap.set('fsos_confirmed_cloud_images_v2', JSON.stringify(['idb:WD-44367_img']));
+
+      // Save local image in ImageStore
+      const testImageDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      await ImageStore.saveImage('idb:WD-44367_img', testImageDataUrl);
+
+      const localMachine = {
+        id: 'WD-44367',
+        machineNo: 'WLVIA#3',
+        photoRef: 'idb:WD-44367_img',
+        status: 'Operational'
+      };
+
+      SyncEngine.registerLocalDataProvider(() => ({
+        machines: [localMachine]
+      }));
+
+      // Confirm mockDb records and imageChunks are empty before sync
+      expect(mockDb.rows.size).toBe(0);
+      expect(mockDb.imageChunks.size).toBe(0);
+
+      // Process queue -> detects serverRecordCount === 0, invalidates stale confirmedCloudImages & bootstrappedKeys,
+      // uploads image chunks to D1, and pushes parent record to D1
+      await SyncEngine.processQueue();
+
+      // Verify D1 records and imageChunks are both populated
+      expect(mockDb.rows.has('machines:WD-44367')).toBe(true);
+      expect(mockDb.imageChunks.has('idb:WD-44367_img')).toBe(true);
+
+      // Verify confirmedCloudImages is now properly populated after verified upload
+      expect(SyncEngine.getConfirmedCloudImages().has('idb:WD-44367_img')).toBe(true);
+      expect(SyncEngine.getBootstrappedKeys().has('machines:WD-44367')).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
+
+  it('M: Full two-device end-to-end: PC stale recovery uploads chunks -> Laptop /info and chunks succeed (HTTP 200)', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    // 1. Setup Source PC
+    const pcStorage = new Map<string, string>();
+    pcStorage.set('fsos_synced_keys_v1', JSON.stringify(['machines:WD-44367']));
+    pcStorage.set('fsos_confirmed_cloud_images_v2', JSON.stringify(['idb:WD-44367_photo']));
+    pcStorage.set('fsos_server_record_count_v1', '0');
+
+    const pcLocalStorage = {
+      getItem: (key: string) => pcStorage.get(key) || null,
+      setItem: (key: string, val: string) => pcStorage.set(key, val),
+      removeItem: (key: string) => pcStorage.delete(key),
+      clear: () => pcStorage.clear(),
+      get length() { return pcStorage.size; },
+      key: (i: number) => Array.from(pcStorage.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = pcLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+      SyncEngine.setDeviceId('SOURCE-PC');
+      pcStorage.set('fsos_synced_keys_v1', JSON.stringify(['machines:WD-44367']));
+      pcStorage.set('fsos_confirmed_cloud_images_v2', JSON.stringify(['idb:WD-44367_photo']));
+
+      const testImageDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      await ImageStore.saveImage('idb:WD-44367_photo', testImageDataUrl);
+
+      SyncEngine.registerLocalDataProvider(() => ({
+        machines: [{ id: 'WD-44367', photoRef: 'idb:WD-44367_photo' }]
+      }));
+
+      // PC processes queue and recovers
+      await SyncEngine.processQueue();
+
+      expect(mockDb.rows.size).toBe(1);
+      expect(mockDb.imageChunks.has('idb:WD-44367_photo')).toBe(true);
+
+      // 2. Setup Target Laptop
+      const laptopStorage = new Map<string, string>();
+      const laptopLocalStorage = {
+        getItem: (key: string) => laptopStorage.get(key) || null,
+        setItem: (key: string, val: string) => laptopStorage.set(key, val),
+        removeItem: (key: string) => laptopStorage.delete(key),
+        clear: () => laptopStorage.clear(),
+        get length() { return laptopStorage.size; },
+        key: (i: number) => Array.from(laptopStorage.keys())[i] || null
+      };
+      (globalThis as any).localStorage = laptopLocalStorage;
+
+      // Clear local memory image store to simulate target laptop that does NOT yet have the image
+      await ImageStore.clearAll();
+
+      SyncEngine.resetLocalSyncState();
+      SyncEngine.setDeviceId('TARGET-LAPTOP');
+      SyncEngine.registerLocalDataProvider(() => ({}));
+
+      let receivedRecord: any = null;
+      SyncEngine.registerRemoteUpdateCallback((_table, records) => {
+        if (records.length > 0) {
+          receivedRecord = records[0].data;
+        }
+      });
+
+      // Target Laptop pulls changes from cloud
+      await SyncEngine.processQueue();
+
+      expect(receivedRecord).toBeDefined();
+      expect(receivedRecord.photoRef).toBe('idb:WD-44367_photo');
+
+      // Laptop fetches image on demand -> /info returns 200, chunk returns 200, reassembles to data URL
+      const imagePayload = await SyncEngine.fetchImageOnDemand('idb:WD-44367_photo');
+      expect(imagePayload).toBeDefined();
+      expect(imagePayload).toContain('data:image/png;base64,');
+      expect(ImageStore.hasLocalImage('idb:WD-44367_photo')).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
 });

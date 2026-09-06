@@ -342,6 +342,10 @@ class SyncEngineManager {
     return new Set(this.bootstrappedKeys);
   }
 
+  public getConfirmedCloudImages(): Set<string> {
+    return new Set(this.confirmedCloudImages);
+  }
+
   public clearImageSyncStateForTesting() {
     this.confirmedCloudImages.clear();
     this.uploadingImages.clear();
@@ -399,12 +403,19 @@ class SyncEngineManager {
     if (!this.localDataProvider) return;
 
     try {
-      // If server is confirmed empty (serverRecordCount === 0) and we have local bootstrappedKeys,
-      // invalidate them so that authoritative local records can be pushed to the empty server.
-      if (this.serverRecordCount === 0 && this.bootstrappedKeys.size > 0) {
-        console.warn('[SyncEngine] Reconcile detected serverRecordCount === 0 with stale bootstrappedKeys. Invalidating to allow parent record push.');
-        this.bootstrappedKeys.clear();
-        safeStorageRemove(SYNCED_KEYS_KEY);
+      // If server is confirmed empty (serverRecordCount === 0) and we have local bootstrappedKeys or confirmedCloudImages,
+      // invalidate them so that authoritative local records and images can be pushed to the empty server.
+      if (this.serverRecordCount === 0) {
+        if (this.bootstrappedKeys.size > 0) {
+          console.warn('[SyncEngine] Reconcile detected serverRecordCount === 0 with stale bootstrappedKeys. Invalidating to allow parent record push.');
+          this.bootstrappedKeys.clear();
+          safeStorageRemove(SYNCED_KEYS_KEY);
+        }
+        if (this.confirmedCloudImages.size > 0) {
+          console.warn('[SyncEngine] Reconcile detected serverRecordCount === 0 with stale confirmedCloudImages. Invalidating to allow image chunks push.');
+          this.confirmedCloudImages.clear();
+          safeStorageRemove(CONFIRMED_CLOUD_IMAGES_KEY);
+        }
       }
 
       const allData = this.localDataProvider();
@@ -1014,10 +1025,17 @@ class SyncEngineManager {
         if (typeof data.serverRecordCount === 'number') {
           this.serverRecordCount = data.serverRecordCount;
           safeStorageSet(SERVER_RECORD_COUNT_KEY, String(this.serverRecordCount));
-          if (this.serverRecordCount === 0 && this.bootstrappedKeys.size > 0) {
-            console.warn('[SyncEngine] Server record count is 0 while local client has bootstrapped keys. Invalidating stale bootstrappedKeys.');
-            this.bootstrappedKeys.clear();
-            safeStorageRemove(SYNCED_KEYS_KEY);
+          if (this.serverRecordCount === 0) {
+            if (this.bootstrappedKeys.size > 0) {
+              console.warn('[SyncEngine] Server record count is 0 while local client has bootstrapped keys. Invalidating stale bootstrappedKeys.');
+              this.bootstrappedKeys.clear();
+              safeStorageRemove(SYNCED_KEYS_KEY);
+            }
+            if (this.confirmedCloudImages.size > 0) {
+              console.warn('[SyncEngine] Server record count is 0 while local client has confirmed images. Invalidating stale confirmedCloudImages.');
+              this.confirmedCloudImages.clear();
+              safeStorageRemove(CONFIRMED_CLOUD_IMAGES_KEY);
+            }
           }
         }
         const changes: CloudRecord[] = data.changes || [];

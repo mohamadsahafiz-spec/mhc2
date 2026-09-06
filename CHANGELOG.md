@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v1.5.5 — RESET STALE CONFIRMED CLOUD IMAGE STATE (2026-09-06)
+
+### Reset Stale Confirmed Cloud Image State on Empty D1 Replica
+- **Invalidate Stale `confirmedCloudImages` on `serverRecordCount === 0`**:
+  - Resolved root cause where source PC client's persisted `fsos_confirmed_cloud_images_v2` caused `uploadPendingImages()` to skip chunk upload when D1 `image_chunks` was wiped/empty.
+  - Automatically clear in-memory `confirmedCloudImages` and purge `fsos_confirmed_cloud_images_v2` from persistent storage when `serverRecordCount === 0` is detected in `reconcileLocalData()` and `pullCloudChanges()`.
+  - Enables `uploadPendingImages()` to naturally re-upload local image chunks to D1 so target devices can fetch `/api/images/:imageId/info` (HTTP 200) and assemble binary image payloads.
+- **Preserved Idempotency & Zero-Redundancy on Active Servers (`serverRecordCount > 0`)**:
+  - Preserved confirmed image caching when server contains records (`serverRecordCount > 0`), preventing redundant full image re-uploads.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.5`.
+
 ## v1.5.4 — RESTORE MISSING PARENT RECORD RECONCILIATION (2026-09-06)
 
 ### Stale Bootstrap State Invalidation on Empty D1 Records
