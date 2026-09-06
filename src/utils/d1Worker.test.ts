@@ -370,6 +370,26 @@ export async function runD1WorkerTests(): Promise<{ success: boolean; log: strin
     const chunk0Res = await worker.fetch(chunk0Req, env);
     const chunk0Json = await chunk0Res.json();
     assert(chunk0Res.status === 200 && chunk0Json.success === true, "I. Binary chunk 0 upload returned HTTP 200 success");
+    assert(typeof chunk0Json.reqId === "string" && chunk0Json.stage === "COMPLETE", "I. Chunk 0 returned structured reqId and stage COMPLETE");
+    assert(chunk0Res.headers.get("X-Request-Id") !== null, "I. Chunk 0 response includes X-Request-Id header");
+    assert(chunk0Res.headers.get("X-Stage") === "COMPLETE", "I. Chunk 0 response includes X-Stage header");
+
+    // Test invalid header diagnostics
+    const badChunkReq = new Request("https://worker.dev/api/images/chunk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Image-Id": "",
+        "X-Chunk-Index": "0",
+        "X-Total-Chunks": "0"
+      },
+      body: new Uint8Array([1, 2, 3])
+    });
+    const badChunkRes = await worker.fetch(badChunkReq, env);
+    const badChunkJson = await badChunkRes.json();
+    assert(badChunkRes.status === 400, "I. Invalid chunk headers returned HTTP 400");
+    assert(badChunkJson.stage === "VALIDATION_ERROR", "I. Invalid chunk headers returned stage VALIDATION_ERROR");
+    assert(badChunkRes.headers.get("X-Stage") === "VALIDATION_ERROR", "I. Invalid chunk headers returned X-Stage header VALIDATION_ERROR");
 
     // Upload Chunk 1
     const chunk1Req = new Request("https://worker.dev/api/images/chunk", {

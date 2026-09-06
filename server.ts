@@ -196,33 +196,71 @@ async function startServer() {
 
   // 3a. Worker API: Binary Image Chunk Persistence (POST /api/images/chunk)
   app.post("/api/images/chunk", (req, res) => {
+    const reqStart = Date.now();
+    const reqId = `req-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+    let stage = "INIT";
+    let imageId = "";
+    let chunkIndex = 0;
+    let totalChunks = 1;
+    let chunkByteLength = 0;
+
     try {
+      stage = "PARSE_HEADERS";
       const rawImageIdHeader = (req.headers["x-image-id"] as string) || "";
-      const imageId = decodeURIComponent(rawImageIdHeader);
-      const chunkIndex = parseInt((req.headers["x-chunk-index"] as string) || "0", 10);
-      const totalChunks = parseInt((req.headers["x-total-chunks"] as string) || "1", 10);
+      imageId = decodeURIComponent(rawImageIdHeader);
+      chunkIndex = parseInt((req.headers["x-chunk-index"] as string) || "0", 10);
+      totalChunks = parseInt((req.headers["x-total-chunks"] as string) || "1", 10);
       const mimeType = (req.headers["x-mime-type"] as string) || "application/octet-stream";
       const byteSize = parseInt((req.headers["x-byte-size"] as string) || "0", 10);
       const deviceId = (req.headers["x-device-id"] as string) || "";
 
       if (!imageId || isNaN(chunkIndex) || isNaN(totalChunks) || totalChunks < 1 || chunkIndex < 0 || chunkIndex >= totalChunks) {
-        return res.status(400).json({ error: "Invalid chunk metadata headers (x-image-id, x-chunk-index, x-total-chunks)" });
+        const durationMs = Date.now() - reqStart;
+        res.setHeader("X-Request-Id", reqId);
+        res.setHeader("X-Stage", "VALIDATION_ERROR");
+        res.setHeader("X-Duration-Ms", String(durationMs));
+        return res.status(400).json({
+          error: "Invalid chunk metadata headers (x-image-id, x-chunk-index, x-total-chunks)",
+          reqId,
+          stage: "VALIDATION_ERROR",
+          durationMs,
+          imageId,
+          chunkIndex,
+          totalChunks
+        });
       }
 
       if (deviceId) {
         activeDevices.add(deviceId);
       }
 
+      stage = "READ_BODY";
       let chunkBytes: Uint8Array;
       if (Buffer.isBuffer(req.body)) {
         chunkBytes = new Uint8Array(req.body.buffer, req.body.byteOffset, req.body.byteLength);
       } else if (req.body instanceof Uint8Array) {
         chunkBytes = req.body;
       } else {
-        return res.status(400).json({ error: "Raw binary chunk body required" });
+        const durationMs = Date.now() - reqStart;
+        res.setHeader("X-Request-Id", reqId);
+        res.setHeader("X-Stage", "INVALID_BODY");
+        res.setHeader("X-Duration-Ms", String(durationMs));
+        return res.status(400).json({
+          error: "Raw binary chunk body required",
+          reqId,
+          stage: "INVALID_BODY",
+          durationMs,
+          imageId,
+          chunkIndex,
+          totalChunks
+        });
       }
 
+      chunkByteLength = chunkBytes.byteLength;
       const nowIso = new Date().toISOString();
+
+      stage = "D1_UPSERT";
+      const d1Start = Date.now();
       const existingChunks = d1ImageChunks.get(imageId) || [];
       
       // If chunk 0 is uploaded, filter out any older chunks with index >= totalChunks
@@ -239,23 +277,49 @@ async function startServer() {
         totalChunks,
         data: chunkBytes,
         mimeType,
-        byteSize: byteSize > 0 ? byteSize : chunkBytes.byteLength,
+        byteSize: byteSize > 0 ? byteSize : chunkByteLength,
         createdAt: nowIso
       });
 
       d1ImageChunks.set(imageId, filteredChunks);
+      const d1DurationMs = Date.now() - d1Start;
+      const totalDurationMs = Date.now() - reqStart;
+
+      res.setHeader("X-Request-Id", reqId);
+      res.setHeader("X-Stage", "COMPLETE");
+      res.setHeader("X-Duration-Ms", String(totalDurationMs));
+      res.setHeader("X-D1-Duration-Ms", String(d1DurationMs));
 
       res.json({
         success: true,
+        reqId,
+        stage: "COMPLETE",
         imageId,
         chunkIndex,
         totalChunks,
-        bytesReceived: chunkBytes.byteLength,
-        serverTimestamp: nowIso
+        bytesReceived: chunkByteLength,
+        serverTimestamp: nowIso,
+        durationMs: totalDurationMs,
+        d1DurationMs
       });
     } catch (err: any) {
-      console.error("[Worker API /api/images/chunk Error]:", err);
-      res.status(500).json({ error: err?.message || "Failed to persist image chunk" });
+      const totalDurationMs = Date.now() - reqStart;
+      console.error(`[Worker API /api/images/chunk Error] [${reqId}] stage=${stage} img=${imageId} chunk=${chunkIndex}/${totalChunks} size=${chunkByteLength} err=${err?.message || String(err)} durationMs=${totalDurationMs}`);
+      res.setHeader("X-Request-Id", reqId);
+      res.setHeader("X-Stage", stage);
+      res.setHeader("X-Duration-Ms", String(totalDurationMs));
+      res.status(500).json({
+        error: err?.message || "Failed to persist image chunk",
+        errorName: err?.name,
+        reqId,
+        stage,
+        imageId,
+        chunkIndex,
+        totalChunks,
+        bytesReceived: chunkByteLength,
+        durationMs: totalDurationMs,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 

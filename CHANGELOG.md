@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v1.5.3 — INSTRUMENT D1 IMAGE CHUNK 503 FAILURE (2026-09-06)
+
+### Structured Diagnostic Instrumentation for Chunk Uploads
+- **Cloudflare Worker Diagnostic Headers & Error Payload (`POST /api/images/chunk`)**:
+  - Implemented precise stage tracking (`INIT`, `PARSE_HEADERS`, `READ_BODY`, `D1_CONNECT`, `D1_CLEANUP_ORPHANS`, `D1_UPSERT`) across chunk processing.
+  - Added request execution timing (`durationMs`, `d1DurationMs`) and unique `reqId` generation (`crypto.randomUUID()`).
+  - Standardized structured error responses with HTTP diagnostic headers (`X-Request-Id`, `X-Stage`, `X-Duration-Ms`, `X-D1-Duration-Ms`) and JSON diagnostic bodies.
+- **Local Dev Server Parity (`server.ts`)**:
+  - Instrumented local development Express server with identical stage tracking, timing, and response headers for seamless test parity.
+- **Client-Side Diagnostic Capture & Telemetry (`SyncEngine`)**:
+  - Enhanced `SyncEngine` with `lastImageUploadDiagnostic` and detailed per-ref failure telemetry (`FailedImageUploadInfo`).
+  - Added diagnostic getters (`getLastImageUploadDiagnostic()`, `getFailedImageUploads()`) and unified upload failure logging to isolate 503 causes.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.3`.
+
 ## v1.5.2 — FIX STALE IMAGE SYNC STATE (2026-09-06)
 
 ### Stale Tracker Invalidation & Authoritative Cloud Image Confirmation

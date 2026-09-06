@@ -1,6 +1,28 @@
 import { SyncStatus, SyncQueueItem, SyncState, CloudRecord } from '../types/sync';
 import { ImageStore } from './imageStore';
 
+export interface ImageChunkUploadDiagnostic {
+  status: number;
+  statusText: string;
+  chunkIndex: number;
+  totalChunks: number;
+  chunkBytes: number;
+  totalBytes: number;
+  durationMs: number;
+  reqId: string;
+  stage: string;
+  d1DurationMs?: number | string;
+  errorSnippet: string;
+  isNetworkError: boolean;
+  timestamp: string;
+}
+
+export interface FailedImageUploadInfo {
+  attempts: number;
+  nextRetry: number;
+  lastError?: ImageChunkUploadDiagnostic;
+}
+
 function getCircularReplacer() {
   const ancestors: any[] = [];
   return function(this: any, _key: string, value: any) {
@@ -121,7 +143,7 @@ class SyncEngineManager {
   private deviceId: string = 'HOME-PC';
   private lastSyncTime: string | null = null;
   private status: SyncStatus = 'synced';
-  private online: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  private online: boolean = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
   private serverRecordCount: number = 0;
   private lastError: string | null = null;
   private listeners: Set<Listener> = new Set();
@@ -132,7 +154,8 @@ class SyncEngineManager {
   private bootstrappedKeys: Set<string> = new Set();
   private confirmedCloudImages: Set<string> = new Set();
   private uploadingImages: Set<string> = new Set();
-  private failedImageUploads: Map<string, { attempts: number; nextRetry: number }> = new Map();
+  private failedImageUploads: Map<string, FailedImageUploadInfo> = new Map();
+  private lastImageUploadDiagnostic: ImageChunkUploadDiagnostic | null = null;
   private pendingImageDownloads: Set<string> = new Set();
   private activeDownloadingImage: string | null = null;
   private missingRemoteImages: Map<string, { attempts: number; nextRetry: number }> = new Map();
@@ -295,6 +318,24 @@ class SyncEngineManager {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  public getLastImageUploadDiagnostic(): ImageChunkUploadDiagnostic | null {
+    return this.lastImageUploadDiagnostic;
+  }
+
+  public getFailedImageUploads(): Map<string, FailedImageUploadInfo> {
+    return new Map(this.failedImageUploads);
+  }
+
+  public clearImageSyncStateForTesting() {
+    this.confirmedCloudImages.clear();
+    this.uploadingImages.clear();
+    this.failedImageUploads.clear();
+    this.pendingImageDownloads.clear();
+    this.missingRemoteImages.clear();
+    this.lastImageUploadDiagnostic = null;
+    safeStorageRemove(CONFIRMED_CLOUD_IMAGES_KEY);
   }
 
   public notifyListeners() {
@@ -537,9 +578,18 @@ class SyncEngineManager {
   }
 
   // Upload image references (`idb:...`) to cloud
-  private async uploadPendingImages() {
+  public async uploadPendingImages(explicitRefs?: Iterable<string>) {
     try {
       const candidateRefs = new Set<string>();
+
+      // 0. Include explicitly requested image refs
+      if (explicitRefs) {
+        for (const ref of explicitRefs) {
+          if (ref && typeof ref === 'string' && ref.startsWith('idb:')) {
+            candidateRefs.add(ref);
+          }
+        }
+      }
 
       // 1. Gather image refs from current queue items
       for (const item of this.queue) {
@@ -596,26 +646,96 @@ class SyncEngineManager {
                 Math.min((chunkIndex + 1) * CLIENT_IMAGE_CHUNK_SIZE, byteSize)
               );
 
-              const res = await fetch('/api/images/chunk', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/octet-stream',
-                  'X-Image-Id': encodeURIComponent(ref),
-                  'X-Chunk-Index': String(chunkIndex),
-                  'X-Total-Chunks': String(totalChunks),
-                  'X-Mime-Type': mimeType,
-                  'X-Byte-Size': String(byteSize),
-                  'X-Device-Id': this.deviceId
-                },
-                body: chunkData
-              });
+              const chunkStart = Date.now();
+              let res: Response | null = null;
+              let networkError: any = null;
 
-              if (!res.ok) {
+              try {
+                res = await fetch('/api/images/chunk', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'X-Image-Id': encodeURIComponent(ref),
+                    'X-Chunk-Index': String(chunkIndex),
+                    'X-Total-Chunks': String(totalChunks),
+                    'X-Mime-Type': mimeType,
+                    'X-Byte-Size': String(byteSize),
+                    'X-Device-Id': this.deviceId
+                  },
+                  body: chunkData
+                });
+              } catch (fetchErr) {
+                networkError = fetchErr;
+              }
+
+              const durationMs = Date.now() - chunkStart;
+
+              if (res && res.ok) {
+                const serverReqId = res.headers.get('X-Request-Id') || '';
+                const serverStage = res.headers.get('X-Stage') || 'COMPLETE';
+                const d1Duration = res.headers.get('X-D1-Duration-Ms') || '';
+                console.log(
+                  `[SyncEngine] Image chunk ${chunkIndex + 1}/${totalChunks} uploaded for ${ref} (${chunkData.byteLength}B) in ${durationMs}ms | reqId: ${serverReqId || 'n/a'} | stage: ${serverStage} | d1: ${d1Duration ? d1Duration + 'ms' : 'n/a'}`
+                );
+              } else {
                 allChunksSucceeded = false;
                 const attempts = (failedInfo?.attempts || 0) + 1;
                 const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
-                this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
-                console.warn(`[SyncEngine] Image chunk ${chunkIndex + 1}/${totalChunks} upload failed for ${ref}: status ${res.status}`);
+
+                let reqId = '';
+                let stage = 'UNKNOWN';
+                let d1DurationMs: number | string | undefined;
+                let errorSnippet = '';
+
+                if (res) {
+                  reqId = res.headers.get('X-Request-Id') || res.headers.get('cf-ray') || '';
+                  stage = res.headers.get('X-Stage') || 'HTTP_RESPONSE';
+                  d1DurationMs = res.headers.get('X-D1-Duration-Ms') || undefined;
+                  try {
+                    const text = await res.text();
+                    try {
+                      const parsed = JSON.parse(text);
+                      reqId = parsed.reqId || reqId;
+                      stage = parsed.stage || stage;
+                      d1DurationMs = parsed.d1DurationMs || d1DurationMs;
+                      errorSnippet = (parsed.error || parsed.message || text).slice(0, 300);
+                    } catch {
+                      errorSnippet = text.slice(0, 300);
+                    }
+                  } catch {
+                    errorSnippet = `HTTP ${res.status} ${res.statusText}`;
+                  }
+                } else {
+                  stage = 'CLIENT_FETCH_NETWORK_ERROR';
+                  errorSnippet = networkError?.message || String(networkError);
+                }
+
+                const diagnostic: ImageChunkUploadDiagnostic = {
+                  status: res ? res.status : 0,
+                  statusText: res ? res.statusText : 'Network Error',
+                  chunkIndex,
+                  totalChunks,
+                  chunkBytes: chunkData.byteLength,
+                  totalBytes: byteSize,
+                  durationMs,
+                  reqId,
+                  stage,
+                  d1DurationMs,
+                  errorSnippet,
+                  isNetworkError: !res,
+                  timestamp: new Date().toISOString()
+                };
+
+                this.lastImageUploadDiagnostic = diagnostic;
+                this.failedImageUploads.set(ref, {
+                  attempts,
+                  nextRetry: Date.now() + delay,
+                  lastError: diagnostic
+                });
+
+                console.warn(
+                  `[SyncEngine] Image chunk ${chunkIndex + 1}/${totalChunks} upload failed for ${ref} (${chunkData.byteLength}B / total ${byteSize}B) | HTTP ${diagnostic.status} (${diagnostic.statusText}) | duration: ${durationMs}ms | reqId: ${reqId || 'n/a'} | stage: ${stage} | d1: ${d1DurationMs ? d1DurationMs + 'ms' : 'n/a'} | attempt: ${attempts} | nextRetry: ${(delay / 1000).toFixed(1)}s | snippet: ${errorSnippet}`
+                );
                 break;
               }
             }
@@ -625,11 +745,30 @@ class SyncEngineManager {
               this.saveConfirmedCloudImages();
               this.failedImageUploads.delete(ref);
             }
-          } catch (e) {
+          } catch (e: any) {
             const attempts = (failedInfo?.attempts || 0) + 1;
             const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
-            this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
-            console.warn(`[SyncEngine] Image chunk upload error for ${ref}:`, e);
+            const diagnostic: ImageChunkUploadDiagnostic = {
+              status: 0,
+              statusText: 'Client Exception',
+              chunkIndex: 0,
+              totalChunks,
+              chunkBytes: 0,
+              totalBytes: byteSize,
+              durationMs: 0,
+              reqId: '',
+              stage: 'CLIENT_EXCEPTION',
+              errorSnippet: e?.message || String(e),
+              isNetworkError: false,
+              timestamp: new Date().toISOString()
+            };
+            this.lastImageUploadDiagnostic = diagnostic;
+            this.failedImageUploads.set(ref, {
+              attempts,
+              nextRetry: Date.now() + delay,
+              lastError: diagnostic
+            });
+            console.warn(`[SyncEngine] Image chunk upload exception for ${ref}:`, e);
           } finally {
             this.uploadingImages.delete(ref);
             this.notify();

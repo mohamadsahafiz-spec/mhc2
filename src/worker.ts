@@ -105,12 +105,13 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    const json = (data: any, status = 200) => {
+    const json = (data: any, status = 200, extraHeaders: Record<string, string> = {}) => {
       return new Response(JSON.stringify(data), {
         status,
         headers: {
           "Content-Type": "application/json",
           ...corsHeaders,
+          ...extraHeaders,
         },
       });
     };
@@ -312,60 +313,121 @@ export default {
 
         if (path === "/api/images/chunk") {
           if (request.method === "POST") {
-            const db = await getDb(env);
-            await ensureD1Table(db);
+            const reqStart = Date.now();
+            const reqId = `req-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+            let stage = "INIT";
+            let imageId = "";
+            let chunkIndex = 0;
+            let totalChunks = 1;
+            let chunkByteLength = 0;
 
-            const rawImageIdHeader = request.headers.get("X-Image-Id") || "";
-            const imageId = decodeURIComponent(rawImageIdHeader);
-            const chunkIndex = parseInt(request.headers.get("X-Chunk-Index") || "0", 10);
-            const totalChunks = parseInt(request.headers.get("X-Total-Chunks") || "1", 10);
-            const mimeType = request.headers.get("X-Mime-Type") || "application/octet-stream";
-            const byteSize = parseInt(request.headers.get("X-Byte-Size") || "0", 10);
-            const deviceId = request.headers.get("X-Device-Id");
+            try {
+              stage = "PARSE_HEADERS";
+              const rawImageIdHeader = request.headers.get("X-Image-Id") || "";
+              imageId = decodeURIComponent(rawImageIdHeader);
+              chunkIndex = parseInt(request.headers.get("X-Chunk-Index") || "0", 10);
+              totalChunks = parseInt(request.headers.get("X-Total-Chunks") || "1", 10);
+              const mimeType = request.headers.get("X-Mime-Type") || "application/octet-stream";
+              const byteSize = parseInt(request.headers.get("X-Byte-Size") || "0", 10);
+              const deviceId = request.headers.get("X-Device-Id");
 
-            if (!imageId || isNaN(chunkIndex) || isNaN(totalChunks) || totalChunks < 1 || chunkIndex < 0 || chunkIndex >= totalChunks) {
-              return json({ error: "Invalid chunk metadata headers (X-Image-Id, X-Chunk-Index, X-Total-Chunks)" }, 400);
+              if (!imageId || isNaN(chunkIndex) || isNaN(totalChunks) || totalChunks < 1 || chunkIndex < 0 || chunkIndex >= totalChunks) {
+                const durationMs = Date.now() - reqStart;
+                return json({
+                  error: "Invalid chunk metadata headers (X-Image-Id, X-Chunk-Index, X-Total-Chunks)",
+                  reqId,
+                  stage: "VALIDATION_ERROR",
+                  durationMs,
+                  imageId,
+                  chunkIndex,
+                  totalChunks
+                }, 400, {
+                  "X-Request-Id": reqId,
+                  "X-Stage": "VALIDATION_ERROR",
+                  "X-Duration-Ms": String(durationMs)
+                });
+              }
+
+              if (deviceId) activeDevices.add(deviceId);
+
+              stage = "READ_BODY";
+              const chunkBuffer = await request.arrayBuffer();
+              const chunkBytes = new Uint8Array(chunkBuffer);
+              chunkByteLength = chunkBytes.byteLength;
+              const nowIso = new Date().toISOString();
+
+              stage = "D1_CONNECT";
+              const d1Start = Date.now();
+              const db = await getDb(env);
+              await ensureD1Table(db);
+
+              // If uploading chunk 0, clean up any previous/orphaned higher chunks from older versions
+              if (chunkIndex === 0) {
+                stage = "D1_CLEANUP_ORPHANS";
+                await db.prepare("DELETE FROM image_chunks WHERE image_id = ? AND chunk_index >= ?").bind(imageId, totalChunks).run();
+              }
+
+              // Upsert single chunk
+              stage = "D1_UPSERT";
+              await db.prepare(`
+                INSERT INTO image_chunks (image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(image_id, chunk_index) DO UPDATE SET
+                  total_chunks = excluded.total_chunks,
+                  data = excluded.data,
+                  mime_type = excluded.mime_type,
+                  byte_size = excluded.byte_size,
+                  created_at = excluded.created_at
+              `).bind(
+                imageId,
+                chunkIndex,
+                totalChunks,
+                chunkBytes,
+                mimeType,
+                byteSize > 0 ? byteSize : chunkByteLength,
+                nowIso
+              ).run();
+
+              const d1DurationMs = Date.now() - d1Start;
+              const totalDurationMs = Date.now() - reqStart;
+
+              return json({
+                success: true,
+                reqId,
+                stage: "COMPLETE",
+                imageId,
+                chunkIndex,
+                totalChunks,
+                bytesReceived: chunkByteLength,
+                serverTimestamp: nowIso,
+                durationMs: totalDurationMs,
+                d1DurationMs
+              }, 200, {
+                "X-Request-Id": reqId,
+                "X-Stage": "COMPLETE",
+                "X-Duration-Ms": String(totalDurationMs),
+                "X-D1-Duration-Ms": String(d1DurationMs)
+              });
+            } catch (chunkErr: any) {
+              const totalDurationMs = Date.now() - reqStart;
+              console.error(`[Worker ImageChunk Error] [${reqId}] stage=${stage} img=${imageId} chunk=${chunkIndex}/${totalChunks} size=${chunkByteLength} err=${chunkErr?.message || String(chunkErr)} durationMs=${totalDurationMs}`);
+              return json({
+                error: chunkErr?.message || "Internal Worker Image Chunk Error",
+                errorName: chunkErr?.name,
+                reqId,
+                stage,
+                imageId,
+                chunkIndex,
+                totalChunks,
+                bytesReceived: chunkByteLength,
+                durationMs: totalDurationMs,
+                timestamp: new Date().toISOString()
+              }, 500, {
+                "X-Request-Id": reqId,
+                "X-Stage": stage,
+                "X-Duration-Ms": String(totalDurationMs)
+              });
             }
-
-            if (deviceId) activeDevices.add(deviceId);
-
-            const chunkBuffer = await request.arrayBuffer();
-            const chunkBytes = new Uint8Array(chunkBuffer);
-            const nowIso = new Date().toISOString();
-
-            // If uploading chunk 0, clean up any previous/orphaned higher chunks from older versions
-            if (chunkIndex === 0) {
-              await db.prepare("DELETE FROM image_chunks WHERE image_id = ? AND chunk_index >= ?").bind(imageId, totalChunks).run();
-            }
-
-            // Upsert single chunk
-            await db.prepare(`
-              INSERT INTO image_chunks (image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT(image_id, chunk_index) DO UPDATE SET
-                total_chunks = excluded.total_chunks,
-                data = excluded.data,
-                mime_type = excluded.mime_type,
-                byte_size = excluded.byte_size,
-                created_at = excluded.created_at
-            `).bind(
-              imageId,
-              chunkIndex,
-              totalChunks,
-              chunkBytes,
-              mimeType,
-              byteSize > 0 ? byteSize : chunkBytes.byteLength,
-              nowIso
-            ).run();
-
-            return json({
-              success: true,
-              imageId,
-              chunkIndex,
-              totalChunks,
-              bytesReceived: chunkBytes.byteLength,
-              serverTimestamp: nowIso
-            });
           }
         }
 
@@ -561,8 +623,12 @@ export default {
 
         return json({ error: `API route not found: ${request.method} ${path}` }, 404);
       } catch (err: any) {
-        console.error("[Worker API Error]:", err);
-        return json({ error: err?.message || "Internal Worker D1 Error" }, 500);
+        console.error("[Worker API Unhandled Error]:", err);
+        return json({
+          error: err?.message || "Internal Worker D1 Error",
+          errorName: err?.name,
+          timestamp: new Date().toISOString()
+        }, 500);
       }
     }
 
