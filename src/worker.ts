@@ -56,21 +56,6 @@ function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array }
   }
 }
 
-function binaryToDataUrl(mimeType: string, bytes: Uint8Array): string {
-  if (mimeType === "image/svg+xml") {
-    const decoder = new TextDecoder();
-    return decoder.decode(bytes);
-  }
-  let binaryStr = "";
-  const len = bytes.byteLength;
-  const CHUNK_SIZE = 8192;
-  for (let i = 0; i < len; i += CHUNK_SIZE) {
-    const slice = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
-    binaryStr += String.fromCharCode.apply(null, slice as any);
-  }
-  return `data:${mimeType};base64,${btoa(binaryStr)}`;
-}
-
 async function getDb(env: Env) {
   if (!env || !env.DB) {
     throw new Error("[D1 Database Error]: Cloudflare D1 binding (env.DB) is not configured or unavailable.");
@@ -516,62 +501,6 @@ export default {
               serverTimestamp: nowIso
             });
           }
-        }
-
-        if (path.startsWith("/api/images/")) {
-          const db = await getDb(env);
-          await ensureD1Table(db);
-
-          const rawImageId = decodeURIComponent(path.replace("/api/images/", ""));
-          const { results } = await db.prepare(
-            "SELECT chunk_index, total_chunks, data, mime_type, byte_size FROM image_chunks WHERE image_id = ? ORDER BY chunk_index ASC"
-          ).bind(rawImageId).all();
-
-          if (!results || results.length === 0) {
-            return json({ error: "Image not found in Cloud D1 replica" }, 404);
-          }
-
-          const totalChunks = Number(results[0].total_chunks);
-          if (results.length !== totalChunks) {
-            return json({ error: `Incomplete image chunks: expected ${totalChunks}, found ${results.length}` }, 500);
-          }
-
-          const mimeType = String(results[0].mime_type || "application/octet-stream");
-          const totalByteSize = Number(results[0].byte_size || 0);
-
-          const assembledBytes = new Uint8Array(
-            totalByteSize > 0
-              ? totalByteSize
-              : results.reduce((acc: number, r: any) => acc + (r.data?.byteLength || r.data?.length || 0), 0)
-          );
-
-          let offset = 0;
-          for (const row of results) {
-            let chunkBytes: Uint8Array;
-            if (row.data instanceof Uint8Array) {
-              chunkBytes = row.data;
-            } else if (row.data instanceof ArrayBuffer) {
-              chunkBytes = new Uint8Array(row.data);
-            } else if (Array.isArray(row.data)) {
-              chunkBytes = new Uint8Array(row.data);
-            } else if (typeof row.data === "string") {
-              chunkBytes = new TextEncoder().encode(row.data);
-            } else {
-              chunkBytes = new Uint8Array(0);
-            }
-            assembledBytes.set(chunkBytes, offset);
-            offset += chunkBytes.byteLength;
-          }
-
-          const dataUrl = binaryToDataUrl(mimeType, assembledBytes);
-          return json({
-            success: true,
-            imageId: rawImageId,
-            dataUrl,
-            mimeType,
-            byteSize: assembledBytes.byteLength,
-            totalChunks
-          });
         }
 
         if (path === "/api/record") {

@@ -1,5 +1,24 @@
 # FSOS CHANGELOG
 
+## v1.5.1 — COMPLETE D1 CROSS-DEVICE IMAGE SYNC (2026-09-06)
+
+### Symmetric Raw Binary Image Download & SQL-Optimized Sync
+- **Symmetric Chunk Download Architecture (`GET /api/images/:imageId/info` & `/chunk/:index`)**:
+  - Implemented metadata info endpoint returning total chunks, MIME type, and byte size.
+  - Implemented single raw binary chunk retrieval (`application/octet-stream`), completely eliminating monolithic full-image reassembly and Base64 conversion inside Cloudflare Workers.
+- **Client-Side Progressive Image Reassembly (`SyncEngine.processDownloadQueue`)**:
+  - Orchestrates sequential chunk downloads on the client with single-image concurrency limits.
+  - Prevents duplicate in-flight requests and avoids request storms using exponential retry backoff (`missingRemoteImages`).
+  - Saves reassembled images directly into IndexedDB via `ImageStore.saveImage`.
+- **SQL-Side Bounded Changes Querying (`GET /api/changes`)**:
+  - Replaced unconstrained table retrieval with direct SQL filtering (`WHERE updated_at > ? AND device_id != ? ORDER BY updated_at ASC LIMIT 500`).
+  - Added device exclusion on initial sync (`WHERE device_id != ? AND is_deleted = 0`) to minimize Worker D1 CPU load and memory usage.
+- **Truthful Sync State Reporting**:
+  - Refined `SyncEngine.getState()` to accurately track pending and downloading image replication.
+  - Ensures sync badge displays truthful "Pending" status when image synchronization or retry backoff is in progress.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.5.1`.
+
 ## v1.4.9 — CLIENT-SIDE BINARY CHUNKING FOR D1 IMAGE TRANSPORT (2026-09-06)
 
 ### High-Performance Binary Chunked Transport Architecture

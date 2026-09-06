@@ -48,14 +48,6 @@ function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array }
   }
 }
 
-function binaryToDataUrl(mimeType: string, bytes: Uint8Array): string {
-  if (mimeType === "image/svg+xml") {
-    return new TextDecoder().decode(bytes);
-  }
-  const base64 = Buffer.from(bytes).toString("base64");
-  return `data:${mimeType};base64,${base64}`;
-}
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -173,9 +165,9 @@ async function startServer() {
 
       d1Database.forEach((rec) => {
         const recordTime = new Date(rec.updatedAt).getTime() || rec.version || 0;
-        // If since === 0, fetch ALL active non-deleted records to hydrate device
+        // If since === 0, fetch active non-deleted records (excluding requesting device)
         if (sinceTime === 0) {
-          if (!rec.isDeleted) {
+          if (!rec.isDeleted && (!deviceIdParam || rec.deviceId !== deviceIdParam)) {
             changes.push(rec);
           }
         } else {
@@ -186,11 +178,15 @@ async function startServer() {
         }
       });
 
+      // Sort by updatedAt ascending and cap at 500 records
+      changes.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+      const boundedChanges = changes.slice(0, 500);
+
       res.json({
         success: true,
         serverTimestamp: new Date().toISOString(),
         serverRecordCount: d1Database.size,
-        changes
+        changes: boundedChanges
       });
     } catch (err: any) {
       console.error("[Worker API /api/changes Error]:", err);
@@ -378,48 +374,7 @@ async function startServer() {
     }
   });
 
-  // 4. Worker API: Fetch Image Payload (GET /api/images/:imageId)
-  app.get("/api/images/:imageId", (req, res) => {
-    try {
-      const { imageId } = req.params;
-      const chunks = d1ImageChunks.get(imageId);
-      if (!chunks || chunks.length === 0) {
-        return res.status(404).json({ error: "Image not found in Cloud D1 replica" });
-      }
-
-      const totalChunks = chunks[0].totalChunks;
-      if (chunks.length !== totalChunks) {
-        return res.status(500).json({ error: `Incomplete image chunks: expected ${totalChunks}, found ${chunks.length}` });
-      }
-
-      // Sort by chunkIndex asc
-      const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
-      const mimeType = sortedChunks[0].mimeType || "application/octet-stream";
-      const totalByteSize = sortedChunks[0].byteSize || sortedChunks.reduce((acc, c) => acc + c.data.byteLength, 0);
-
-      const assembledBytes = new Uint8Array(totalByteSize);
-      let offset = 0;
-      for (const chunk of sortedChunks) {
-        assembledBytes.set(chunk.data, offset);
-        offset += chunk.data.byteLength;
-      }
-
-      const dataUrl = binaryToDataUrl(mimeType, assembledBytes);
-      res.json({
-        success: true,
-        imageId,
-        dataUrl,
-        mimeType,
-        byteSize: assembledBytes.byteLength,
-        totalChunks
-      });
-    } catch (err: any) {
-      console.error("[Worker API /api/images/:imageId Error]:", err);
-      res.status(500).json({ error: err?.message || "Failed to retrieve image" });
-    }
-  });
-
-  // 5. Worker API: Record Deletion / Mutation (Supports ALL methods: DELETE, POST, etc.)
+  // 4. Worker API: Record Deletion / Mutation (Supports ALL methods: DELETE, POST, etc.)
   app.all("/api/record", (req, res) => {
     try {
       const { table, recordId, deviceId, action } = req.body || {};

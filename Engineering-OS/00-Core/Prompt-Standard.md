@@ -57,6 +57,30 @@ Use these sections when applicable:
 
 Sections may be omitted only when genuinely irrelevant.
 
+## Atlas Pre-Task Verification Gate
+
+**Verify current source and rules before drafting or finalizing.**
+
+Before drafting or finalizing any Mikasa implementation or investigation task, Atlas must perform a mandatory pre-task verification pass against the live, canonical source of truth.
+
+### Pre-Task Verification Checklist
+Before issuing a prompt to Mikasa, Atlas must:
+1. **Inspect canonical Engineering-OS active surface**: Confirm the active surface (`00-Core/`, `01-Templates/`, `02-Projects/`, `03-Knowledge/`, `README.md`, `metadata.json`, `CHANGELOG.md`).
+2. **Verify current Engineering-OS version**: Re-verify the authoritative Engineering-OS version from canonical version surfaces.
+3. **Read applicable active Core rule(s)**: Re-read the relevant governing Core standards (including `Prompt-Standard.md`, `Atlas-Constitution.md`, `Decision-Making.md`, `Engineering Principles.md`, etc.).
+4. **Verify relevant project/repository evidence**: Inspect the current code, repository files, configuration, schemas, or live system evidence relevant to the task.
+5. **Resolve conflicts prior to prompt generation**: Reconcile any version, rule, schema, or specification conflict before issuing the prompt.
+
+### Mandatory Hard-Stop Rule
+- **If the governing source, version, or applicable rule is unclear, conflicting, or not verified, Atlas MUST NOT issue the Mikasa prompt.**
+- Atlas must pause, state the conflict or ambiguity, and resolve it (or consult the Founder) before finalizing the prompt.
+
+### Current Source Precedence
+- **Memory, historical/archive material (`04-Archive/`), prior chat statements, or assumptions cannot substitute for current-source verification.**
+- Active canonical files always supersede remembered instructions or historical records.
+
+This verification gate is a mandatory prerequisite that precedes the enhancement and better-approach review passes.
+
 ## Atlas Enhancement Gate
 
 **Never send the first draft.**
@@ -99,7 +123,7 @@ If the better approach requires a Founder decision, Atlas must stop and present 
 
 Therefore, the normal Mikasa prompt workflow is:
 
-**Founder request → draft → enhancement → better-approach review → decision gate if needed → final production prompt → Mikasa**
+**Founder request → pre-task verification gate → draft → enhancement → better-approach review → decision gate if needed → final production prompt → Mikasa**
 
 The enhanced prompt must be more precise than the draft without becoming bloated.
 
@@ -269,5 +293,6 @@ Never treat a successful Pages deployment as evidence of a successful Workers de
 | 1.3.0 | Superseded | Clarified enhanced-prompt workflow and compact production prompting. |
 | 1.4.0 | Superseded | Added mandatory better-approach review before a Mikasa prompt is submitted. |
 | 1.5.0 | Superseded | Added input/output token economy, 50-word ceiling clarification, and evidence-backed defect-prompt requirements. |
-| 1.6.0 | Active | Consolidated Prompt Enhancement Principle 01 into Prompt Standard: 7-level Enhancement Hierarchy, Never Write the Minimum Prompt philosophy, Golden Rule, and predictability/failure-prevention gates. |
+| 1.6.0 | Superseded | Consolidated Prompt Enhancement Principle 01 into Prompt Standard: 7-level Enhancement Hierarchy, Never Write the Minimum Prompt philosophy, Golden Rule, and predictability/failure-prevention gates. |
+| 1.7.0 | Active | Added mandatory Atlas Pre-Task Verification Gate: required current-source, rule, and evidence verification before drafting/finalizing prompts, with explicit hard-stop and anti-assumption rules. |
 

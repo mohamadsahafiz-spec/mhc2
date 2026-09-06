@@ -1,4 +1,4 @@
-# Engineering-OS v1.10.0 — Atlas Engineering Operating System
+# Engineering-OS v1.11.0 — Atlas Engineering Operating System
 
 ## Purpose
 
@@ -152,4 +152,4 @@ FSOS is governed by this Engineering-OS but maintains its own authoritative proj
 
 ## Current Version
 
-v1.9.0
+v1.11.0

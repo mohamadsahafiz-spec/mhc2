@@ -1,5 +1,16 @@
 # Engineering-OS Changelog
 
+## v1.11.0 — Mandatory Atlas Pre-Task Verification Gate
+
+### Added
+- Mandatory Atlas Pre-Task Verification Gate (`00-Core/Prompt-Standard.md`): Atlas must inspect the current canonical Engineering-OS active surface, verify the current version, read applicable active Core rules, and verify repository evidence before drafting or finalizing any Mikasa prompt.
+- Explicit Hard-Stop Rule: If the governing source, version, or applicable rule is unclear, conflicting, or unverified, Atlas must not issue the Mikasa prompt.
+- Current-Source Precedence Rule: Memory, historical/archive material (`04-Archive/`), prior chat statements, or assumptions cannot substitute for current-source verification.
+
+### Changed
+- Upgraded Engineering-OS active version from **v1.10.0** to **v1.11.0** across `metadata.json`, `README.md`, `CHANGELOG.md`, and `00-Core/Prompt-Standard.md`.
+- Corrected stale README version surface to consistently display v1.11.0.
+
 ## v1.10.0 — Authoritative Backup Topology & Identity Precedence
 
 ### Added

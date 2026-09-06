@@ -147,6 +147,13 @@ class MockD1Database {
           throw new Error("D1 Database fetch failed (Simulated outage)");
         }
 
+        if (sql.includes("FROM image_chunks WHERE image_id = ? AND chunk_index = ?")) {
+          const [imageId, chunkIndex] = boundArgs;
+          const chunks = self.imageChunks.get(imageId) || [];
+          const match = chunks.filter(c => c.chunk_index === Number(chunkIndex));
+          return { results: match };
+        }
+
         if (sql.includes("FROM image_chunks WHERE image_id = ?")) {
           const [imageId] = boundArgs;
           const chunks = (self.imageChunks.get(imageId) || []).slice().sort((a, b) => a.chunk_index - b.chunk_index);
@@ -154,7 +161,20 @@ class MockD1Database {
         }
 
         if (sql.includes("SELECT key, table_name as \"table\"")) {
-          const results = Array.from(self.rows.values()).map(r => ({
+          let rows = Array.from(self.rows.values());
+          if (sql.includes("WHERE device_id != ? AND is_deleted = 0")) {
+            const [devId] = boundArgs;
+            rows = rows.filter(r => r.device_id !== devId && r.is_deleted === 0);
+          } else if (sql.includes("WHERE is_deleted = 0")) {
+            rows = rows.filter(r => r.is_deleted === 0);
+          } else if (sql.includes("WHERE updated_at > ? AND device_id != ?")) {
+            const [since, devId] = boundArgs;
+            rows = rows.filter(r => r.updated_at > since && r.device_id !== devId);
+          } else if (sql.includes("WHERE updated_at > ?")) {
+            const [since] = boundArgs;
+            rows = rows.filter(r => r.updated_at > since);
+          }
+          const results = rows.map(r => ({
             key: r.key,
             table: r.table_name,
             recordId: r.record_id,
@@ -311,12 +331,20 @@ export async function runD1WorkerTests(): Promise<{ success: boolean; log: strin
     assert(imgUploadRes.status === 200 && imgUploadJson.success === true, "H. Image upload returned HTTP 200 success");
     assert(mockDb.imageChunks.has("idb:test-img-001"), "H. Image chunk persisted directly into D1 image_chunks table");
 
-    // Retrieve image from fresh worker environment
-    const imgGetReq = new Request("https://worker.dev/api/images/idb%3Atest-img-001", { method: "GET" });
-    const imgGetRes = await worker.fetch(imgGetReq, newWorkerInstanceEnv);
-    const imgGetJson = await imgGetRes.json();
-    assert(imgGetRes.status === 200 && imgGetJson.success === true, "H. Image retrieved from D1 on separate worker instance");
-    assert(imgGetJson.dataUrl === testDataUrl, "H. Reassembled image dataUrl matches original payload exactly");
+    // Retrieve image metadata info from fresh worker environment
+    const imgInfoReq = new Request("https://worker.dev/api/images/idb%3Atest-img-001/info", { method: "GET" });
+    const imgInfoRes = await worker.fetch(imgInfoReq, newWorkerInstanceEnv);
+    const imgInfoJson = await imgInfoRes.json();
+    assert(imgInfoRes.status === 200 && imgInfoJson.success === true, "H. Image metadata retrieved via /api/images/:imageId/info");
+    assert(imgInfoJson.totalChunks === 1, "H. Image info reports 1 chunk");
+    assert(imgInfoJson.mimeType === "image/png", "H. Image info reports correct mimeType");
+
+    // Retrieve single chunk 0
+    const imgChunkReq = new Request("https://worker.dev/api/images/idb%3Atest-img-001/chunk/0", { method: "GET" });
+    const imgChunkRes = await worker.fetch(imgChunkReq, newWorkerInstanceEnv);
+    assert(imgChunkRes.status === 200, "H. Single image chunk retrieved via /api/images/:imageId/chunk/0");
+    const imgChunkBytes = new Uint8Array(await imgChunkRes.arrayBuffer());
+    assert(imgChunkBytes.length > 0, "H. Retrieved chunk contains non-empty binary data");
 
     // I. Client-Side Binary Chunk Transport (POST /api/images/chunk)
     // Simulate a multi-chunk binary upload (3 sequential chunks)
@@ -382,23 +410,45 @@ export async function runD1WorkerTests(): Promise<{ success: boolean; log: strin
     const savedChunks = mockDb.imageChunks.get("idb:chunked-img-002");
     assert(savedChunks !== undefined && savedChunks.length === 3, "I. D1 contains all 3 sequential binary chunks");
 
-    // Retrieve and verify complete multi-chunk image reassembly
-    const chunkedGetReq = new Request("https://worker.dev/api/images/idb%3Achunked-img-002", { method: "GET" });
-    const chunkedGetRes = await worker.fetch(chunkedGetReq, newWorkerInstanceEnv);
-    const chunkedGetJson = await chunkedGetRes.json();
-    assert(chunkedGetRes.status === 200 && chunkedGetJson.success === true, "I. Chunked image retrieved from D1 on fresh worker instance");
-    assert(chunkedGetJson.mimeType === "image/jpeg", "I. Chunked image mimeType is image/jpeg");
-    assert(chunkedGetJson.byteSize === totalBinaryBytes, "I. Chunked image byteSize matches expected total");
-    assert(chunkedGetJson.totalChunks === 3, "I. Chunked image totalChunks is 3");
+    // Retrieve metadata info
+    const chunkInfoReq = new Request("https://worker.dev/api/images/idb%3Achunked-img-002/info", { method: "GET" });
+    const chunkInfoRes = await worker.fetch(chunkInfoReq, newWorkerInstanceEnv);
+    const chunkInfoJson = await chunkInfoRes.json();
+    assert(chunkInfoRes.status === 200 && chunkInfoJson.success === true, "I. Multi-chunk image info retrieved from D1 on fresh worker instance");
+    assert(chunkInfoJson.mimeType === "image/jpeg", "I. Chunked image mimeType is image/jpeg");
+    assert(chunkInfoJson.byteSize === totalBinaryBytes, "I. Chunked image byteSize matches expected total");
+    assert(chunkInfoJson.totalChunks === 3, "I. Chunked image totalChunks is 3");
 
-    // Combine expected binary into base64 to verify assembled dataUrl
+    // Download chunks individually without monolithic worker assembly
+    const downloadedChunks: Uint8Array[] = [];
+    for (let c = 0; c < chunkInfoJson.totalChunks; c++) {
+      const getCReq = new Request(`https://worker.dev/api/images/idb%3Achunked-img-002/chunk/${c}`, { method: "GET" });
+      const getCRes = await worker.fetch(getCReq, newWorkerInstanceEnv);
+      assert(getCRes.status === 200, `I. Chunk ${c} downloaded successfully`);
+      downloadedChunks.push(new Uint8Array(await getCRes.arrayBuffer()));
+    }
+    assert(downloadedChunks.length === 3, "I. All 3 chunks downloaded separately");
+
+    // Client-side reassembly verification
+    const assembledClientBytes = new Uint8Array(totalBinaryBytes);
+    let offset = 0;
+    for (const chunk of downloadedChunks) {
+      assembledClientBytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    let assembledStr = "";
+    for (let i = 0; i < assembledClientBytes.length; i++) {
+      assembledStr += String.fromCharCode(assembledClientBytes[i]);
+    }
+    const clientDataUrl = `data:image/jpeg;base64,${btoa(assembledStr)}`;
+
     const fullExpectedBinary = new Uint8Array([...chunk1Bytes, ...chunk2Bytes, ...chunk3Bytes]);
     let binaryStr = "";
     for (let i = 0; i < fullExpectedBinary.length; i++) {
       binaryStr += String.fromCharCode(fullExpectedBinary[i]);
     }
     const expectedDataUrl = `data:image/jpeg;base64,${btoa(binaryStr)}`;
-    assert(chunkedGetJson.dataUrl === expectedDataUrl, "I. Reassembled chunked dataUrl matches expected binary payload");
+    assert(clientDataUrl === expectedDataUrl, "I. Client-side reassembled chunked dataUrl matches expected binary payload exactly");
 
   } catch (err: any) {
     log.push(`❌ EXCEPTION DURING D1 TESTS: ${err?.message || String(err)}`);
