@@ -75,6 +75,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ isDark
           </div>
         );
       case 'syncing':
+        const imgActivity = (syncState.pendingImageCount || 0) + (syncState.downloadingImageCount || 0);
         return (
           <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium font-mono transition-all ${
             isDark 
@@ -82,7 +83,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ isDark
               : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}>
             <RefreshCw className="w-3 h-3 text-amber-400 animate-spin shrink-0" />
-            <span>Syncing...</span>
+            <span>{imgActivity > 0 ? `Syncing (${imgActivity} img)...` : 'Syncing...'}</span>
           </div>
         );
       case 'pending':

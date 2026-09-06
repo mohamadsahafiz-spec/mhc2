@@ -22,9 +22,27 @@ interface MockD1Row {
   is_deleted: number;
 }
 
+interface MockImageChunkRow {
+  image_id: string;
+  chunk_index: number;
+  total_chunks: number;
+  data: Uint8Array;
+  mime_type: string;
+  byte_size: number;
+  created_at: string;
+}
+
 class MockD1Database {
   public rows = new Map<string, MockD1Row>();
+  public imageChunks = new Map<string, MockImageChunkRow[]>();
   public shouldFail = false;
+
+  async batch(statements: any[]) {
+    for (const stmt of statements) {
+      await stmt.run();
+    }
+    return { success: true };
+  }
 
   prepare(sql: string) {
     const self = this;
@@ -41,6 +59,33 @@ class MockD1Database {
         }
 
         if (sql.includes("CREATE TABLE IF NOT EXISTS")) {
+          return { success: true };
+        }
+
+        if (sql.includes("DELETE FROM image_chunks WHERE image_id = ?")) {
+          const [imageId] = boundArgs;
+          self.imageChunks.delete(imageId);
+          return { success: true };
+        }
+
+        if (sql.includes("DELETE FROM image_chunks")) {
+          self.imageChunks.clear();
+          return { success: true };
+        }
+
+        if (sql.includes("INSERT INTO image_chunks")) {
+          const [image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at] = boundArgs;
+          const chunks = self.imageChunks.get(image_id) || [];
+          chunks.push({
+            image_id,
+            chunk_index: Number(chunk_index),
+            total_chunks: Number(total_chunks),
+            data,
+            mime_type,
+            byte_size: Number(byte_size),
+            created_at
+          });
+          self.imageChunks.set(image_id, chunks);
           return { success: true };
         }
 
@@ -66,6 +111,10 @@ class MockD1Database {
           throw new Error("D1 Database query failed (Simulated outage)");
         }
 
+        if (sql.includes("COUNT(DISTINCT image_id)")) {
+          return { total: self.imageChunks.size };
+        }
+
         if (sql.includes("SELECT COUNT(*) as total FROM records WHERE is_deleted = 0")) {
           let count = 0;
           for (const row of self.rows.values()) {
@@ -86,6 +135,12 @@ class MockD1Database {
       async all() {
         if (self.shouldFail) {
           throw new Error("D1 Database fetch failed (Simulated outage)");
+        }
+
+        if (sql.includes("FROM image_chunks WHERE image_id = ?")) {
+          const [imageId] = boundArgs;
+          const chunks = (self.imageChunks.get(imageId) || []).slice().sort((a, b) => a.chunk_index - b.chunk_index);
+          return { results: chunks };
         }
 
         if (sql.includes("SELECT key, table_name as \"table\"")) {
@@ -229,6 +284,29 @@ export async function runD1WorkerTests(): Promise<{ success: boolean; log: strin
     const devBChangesJson = await devBChangesRes.json();
     const delRecordInChanges = devBChangesJson.changes.find((c: any) => c.recordId === "M-101");
     assert(delRecordInChanges !== undefined && delRecordInChanges.isDeleted === true, "G. /api/changes delivered deletion tombstone to Device B");
+
+    // H. Cross-Device Image Sync: Durable Image Chunking & Persistence via D1
+    const testDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const imgUploadReq = new Request("https://worker.dev/api/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imageId: "idb:test-img-001",
+        dataUrl: testDataUrl,
+        deviceId: "DEV-A"
+      })
+    });
+    const imgUploadRes = await worker.fetch(imgUploadReq, env);
+    const imgUploadJson = await imgUploadRes.json();
+    assert(imgUploadRes.status === 200 && imgUploadJson.success === true, "H. Image upload returned HTTP 200 success");
+    assert(mockDb.imageChunks.has("idb:test-img-001"), "H. Image chunk persisted directly into D1 image_chunks table");
+
+    // Retrieve image from fresh worker environment
+    const imgGetReq = new Request("https://worker.dev/api/images/idb%3Atest-img-001", { method: "GET" });
+    const imgGetRes = await worker.fetch(imgGetReq, newWorkerInstanceEnv);
+    const imgGetJson = await imgGetRes.json();
+    assert(imgGetRes.status === 200 && imgGetJson.success === true, "H. Image retrieved from D1 on separate worker instance");
+    assert(imgGetJson.dataUrl === testDataUrl, "H. Reassembled image dataUrl matches original payload exactly");
 
   } catch (err: any) {
     log.push(`❌ EXCEPTION DURING D1 TESTS: ${err?.message || String(err)}`);

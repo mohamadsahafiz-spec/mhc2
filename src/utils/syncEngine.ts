@@ -67,6 +67,7 @@ const DEVICE_ID_KEY = 'fsos_device_id';
 const LAST_SYNC_KEY = 'fsos_last_sync_time';
 const MIGRATED_KEY = 'fsos_cloud_migrated_v1';
 const SYNCED_KEYS_KEY = 'fsos_synced_keys_v1';
+const SYNCED_IMAGES_KEY = 'fsos_synced_images_v1';
 
 type Listener = (state: SyncState) => void;
 
@@ -84,12 +85,20 @@ class SyncEngineManager {
   private onRemoteDataUpdateCallback: ((table: string, data: any) => void) | null = null;
   private localDataProvider: (() => Record<string, any[]>) | null = null;
   private bootstrappedKeys: Set<string> = new Set();
+  private syncedImageKeys: Set<string> = new Set();
+  private uploadingImages: Set<string> = new Set();
+  private failedImageUploads: Map<string, { attempts: number; nextRetry: number }> = new Map();
+  private downloadingImages: Set<string> = new Set();
+  private missingRemoteImages: Map<string, number> = new Map();
 
   constructor() {
     this.init();
   }
 
   private init() {
+    // Register ImageStore remote fetch hook for seamless on-demand image hydration
+    ImageStore.setRemoteFetcher((imgId) => this.fetchImageOnDemand(imgId));
+
     // Load Device ID or set default
     const savedDeviceId = safeStorageGet(DEVICE_ID_KEY);
     if (savedDeviceId) {
@@ -113,6 +122,19 @@ class SyncEngineManager {
       }
     } catch (e) {
       console.warn('[SyncEngine] Failed to read synced keys tracker', e);
+    }
+
+    // Load Synced Images tracker
+    try {
+      const savedSyncedImages = safeStorageGet(SYNCED_IMAGES_KEY);
+      if (savedSyncedImages) {
+        const arr = JSON.parse(savedSyncedImages);
+        if (Array.isArray(arr)) {
+          this.syncedImageKeys = new Set(arr);
+        }
+      }
+    } catch (e) {
+      console.warn('[SyncEngine] Failed to read synced images tracker', e);
     }
 
     // Load Queue from storage
@@ -182,10 +204,23 @@ class SyncEngineManager {
   }
 
   public getState(): SyncState {
+    let computedStatus: SyncStatus = this.status;
+    if (!this.online) {
+      computedStatus = 'offline';
+    } else if (this.isProcessing || this.uploadingImages.size > 0 || this.downloadingImages.size > 0) {
+      computedStatus = 'syncing';
+    } else if (this.queue.length > 0) {
+      computedStatus = 'pending';
+    } else {
+      computedStatus = 'synced';
+    }
+
     return {
-      status: this.status,
+      status: computedStatus,
       lastSyncTime: this.lastSyncTime,
       pendingCount: this.queue.length,
+      pendingImageCount: this.uploadingImages.size,
+      downloadingImageCount: this.downloadingImages.size,
       deviceId: this.deviceId,
       online: this.online,
       serverRecordCount: this.serverRecordCount,
@@ -221,6 +256,15 @@ class SyncEngineManager {
       safeStorageSet(SYNCED_KEYS_KEY, JSON.stringify(arr));
     } catch (e) {
       console.warn('[SyncEngine] Failed to save synced keys tracker', e);
+    }
+  }
+
+  private saveSyncedImageKeys() {
+    try {
+      const arr = Array.from(this.syncedImageKeys);
+      safeStorageSet(SYNCED_IMAGES_KEY, JSON.stringify(arr));
+    } catch (e) {
+      console.warn('[SyncEngine] Failed to save synced images tracker', e);
     }
   }
 
@@ -422,14 +466,49 @@ class SyncEngineManager {
   // Upload image references (`idb:...`) to cloud
   private async uploadPendingImages() {
     try {
-      // Find all image references in current queue items
+      const candidateRefs = new Set<string>();
+
+      // 1. Gather image refs from current queue items
       for (const item of this.queue) {
         if (!item.data) continue;
-        const imageRefs = this.extractImageRefs(item.data);
-        for (const ref of imageRefs) {
-          const cachedPayload = ImageStore.getCachedImage(ref) || await ImageStore.getImage(ref);
-          if (cachedPayload && (cachedPayload.startsWith('data:') || cachedPayload.startsWith('<svg'))) {
-            await fetch('/api/images', {
+        const refs = this.extractImageRefs(item.data);
+        refs.forEach(r => candidateRefs.add(r));
+      }
+
+      // 2. Gather image refs from local data provider if available
+      if (this.localDataProvider) {
+        try {
+          const allData = this.localDataProvider();
+          if (allData && typeof allData === 'object') {
+            for (const items of Object.values(allData)) {
+              if (Array.isArray(items)) {
+                for (const item of items) {
+                  const refs = this.extractImageRefs(item);
+                  refs.forEach(r => candidateRefs.add(r));
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[SyncEngine] Local data scan exception for images:', e);
+        }
+      }
+
+      const now = Date.now();
+      for (const ref of candidateRefs) {
+        if (this.syncedImageKeys.has(ref)) continue;
+        if (this.uploadingImages.has(ref)) continue;
+
+        const failedInfo = this.failedImageUploads.get(ref);
+        if (failedInfo && now < failedInfo.nextRetry) continue;
+
+        const cachedPayload = ImageStore.getCachedImage(ref) || await ImageStore.getImage(ref);
+        if (cachedPayload && (cachedPayload.startsWith('data:') || cachedPayload.startsWith('<svg') || cachedPayload.startsWith('blob:'))) {
+          this.uploadingImages.add(ref);
+          this.notify();
+
+          try {
+            const res = await fetch('/api/images', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: safeJsonStringify({
@@ -437,13 +516,90 @@ class SyncEngineManager {
                 dataUrl: cachedPayload,
                 deviceId: this.deviceId
               })
-            }).catch(e => console.warn('[SyncEngine] Image upload soft fail:', e));
+            });
+
+            if (res.ok) {
+              this.syncedImageKeys.add(ref);
+              this.saveSyncedImageKeys();
+              this.failedImageUploads.delete(ref);
+            } else {
+              const attempts = (failedInfo?.attempts || 0) + 1;
+              const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+              this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
+              console.warn(`[SyncEngine] Image upload failed for ${ref}: status ${res.status}`);
+            }
+          } catch (e) {
+            const attempts = (failedInfo?.attempts || 0) + 1;
+            const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+            this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
+            console.warn(`[SyncEngine] Image upload error for ${ref}:`, e);
+          } finally {
+            this.uploadingImages.delete(ref);
+            this.notify();
           }
         }
       }
     } catch (e) {
       console.warn('[SyncEngine] Image upload check exception:', e);
     }
+  }
+
+  // Asynchronously download missing images from Cloud D1
+  public async downloadMissingImages(imageRefs: Iterable<string>) {
+    const now = Date.now();
+    for (const ref of imageRefs) {
+      if (!ref || !ref.startsWith('idb:')) continue;
+      if (ImageStore.hasLocalImage(ref)) continue;
+      if (this.downloadingImages.has(ref)) continue;
+
+      const nextRetry = this.missingRemoteImages.get(ref);
+      if (nextRetry && now < nextRetry) continue;
+
+      // Fetch on-demand in background
+      this.fetchImageOnDemand(ref).catch(e => console.warn('[SyncEngine] Image download background error:', e));
+    }
+  }
+
+  // Fetch individual image on-demand and store in local IndexedDB
+  public async fetchImageOnDemand(imageId: string): Promise<string | null> {
+    if (!imageId || !imageId.startsWith('idb:')) return null;
+    if (ImageStore.hasLocalImage(imageId)) {
+      return ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+    }
+    if (this.downloadingImages.has(imageId)) return null;
+    if (!this.checkOnline()) return null;
+
+    const cooldown = this.missingRemoteImages.get(imageId);
+    if (cooldown && Date.now() < cooldown) return null;
+
+    this.downloadingImages.add(imageId);
+    this.notify();
+
+    try {
+      const res = await fetch(`/api/images/${encodeURIComponent(imageId)}`);
+      if (res.ok) {
+        const data = await this.safeParseJson(res);
+        if (data && data.dataUrl) {
+          await ImageStore.saveImage(imageId, data.dataUrl);
+          this.syncedImageKeys.add(imageId);
+          this.saveSyncedImageKeys();
+          this.missingRemoteImages.delete(imageId);
+          return data.dataUrl;
+        }
+      } else if (res.status === 404) {
+        // Cooldown 30s before retrying missing remote image
+        this.missingRemoteImages.set(imageId, Date.now() + 30000);
+      } else {
+        this.missingRemoteImages.set(imageId, Date.now() + 10000);
+      }
+    } catch (err) {
+      console.warn('[SyncEngine] On-demand image fetch error for:', imageId, err);
+      this.missingRemoteImages.set(imageId, Date.now() + 10000);
+    } finally {
+      this.downloadingImages.delete(imageId);
+      this.notify();
+    }
+    return null;
   }
 
   private extractImageRefs(obj: any, refs: Set<string> = new Set(), seen: WeakSet<object> = new WeakSet()): string[] {
@@ -479,12 +635,22 @@ class SyncEngineManager {
 
         if (changes.length > 0) {
           // Record pulled keys in bootstrappedKeys so receiver does not push them back
+          const incomingImageRefs = new Set<string>();
+
           changes.forEach(change => {
             if (change.table && change.recordId) {
               this.bootstrappedKeys.add(`${change.table}:${change.recordId}`);
             }
+            if (change.data) {
+              this.extractImageRefs(change.data, incomingImageRefs);
+            }
           });
           this.saveBootstrappedKeys();
+
+          // Trigger asynchronous background download of newly discovered image references
+          if (incomingImageRefs.size > 0) {
+            this.downloadMissingImages(incomingImageRefs);
+          }
 
           if (this.onRemoteDataUpdateCallback) {
             // Group changes by table
@@ -523,10 +689,16 @@ class SyncEngineManager {
     this.status = 'synced';
     this.lastError = null;
     this.bootstrappedKeys.clear();
+    this.syncedImageKeys.clear();
+    this.uploadingImages.clear();
+    this.downloadingImages.clear();
+    this.failedImageUploads.clear();
+    this.missingRemoteImages.clear();
     safeStorageRemove(QUEUE_KEY);
     safeStorageRemove(LAST_SYNC_KEY);
     safeStorageRemove(MIGRATED_KEY);
     safeStorageRemove(SYNCED_KEYS_KEY);
+    safeStorageRemove(SYNCED_IMAGES_KEY);
     this.notify();
   }
 

@@ -19,15 +19,6 @@ interface D1Record {
   isDeleted?: boolean;
 }
 
-interface D1Image {
-  imageId: string;
-  dataUrl: string;
-  deviceId: string;
-  updatedAt: string;
-}
-
-// In-memory active devices and images (image persistence to R2 is out of scope for this sprint)
-const memoryImages = new Map<string, D1Image>();
 const activeDevices = new Set<string>();
 
 const corsHeaders = {
@@ -35,6 +26,50 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
 };
+
+function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array } {
+  if (dataUrl.startsWith("data:")) {
+    const commaIdx = dataUrl.indexOf(",");
+    const meta = dataUrl.substring(5, commaIdx);
+    const mimeType = meta.split(";")[0] || "application/octet-stream";
+    const isBase64 = meta.includes("base64");
+    const payload = dataUrl.substring(commaIdx + 1);
+    if (isBase64) {
+      const binaryStr = atob(payload);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      return { mimeType, binary: bytes };
+    } else {
+      const decoded = decodeURIComponent(payload);
+      const encoder = new TextEncoder();
+      return { mimeType, binary: encoder.encode(decoded) };
+    }
+  } else if (dataUrl.startsWith("<svg")) {
+    const encoder = new TextEncoder();
+    return { mimeType: "image/svg+xml", binary: encoder.encode(dataUrl) };
+  } else {
+    const encoder = new TextEncoder();
+    return { mimeType: "application/octet-stream", binary: encoder.encode(dataUrl) };
+  }
+}
+
+function binaryToDataUrl(mimeType: string, bytes: Uint8Array): string {
+  if (mimeType === "image/svg+xml") {
+    const decoder = new TextDecoder();
+    return decoder.decode(bytes);
+  }
+  let binaryStr = "";
+  const len = bytes.byteLength;
+  const CHUNK_SIZE = 8192;
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    const slice = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
+    binaryStr += String.fromCharCode.apply(null, slice as any);
+  }
+  return `data:${mimeType};base64,${btoa(binaryStr)}`;
+}
 
 async function getDb(env: Env) {
   if (!env || !env.DB) {
@@ -58,6 +93,20 @@ async function ensureD1Table(db: any) {
       is_deleted INTEGER NOT NULL DEFAULT 0
     )
   `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS image_chunks (
+      image_id TEXT NOT NULL,
+      chunk_index INTEGER NOT NULL,
+      total_chunks INTEGER NOT NULL,
+      data BLOB NOT NULL,
+      mime_type TEXT NOT NULL,
+      byte_size INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (image_id, chunk_index)
+    )
+  `).run();
+
   tableInitialized = true;
 }
 
@@ -102,7 +151,7 @@ export default {
           const db = await getDb(env);
           await ensureD1Table(db);
           await db.prepare("DELETE FROM records").run();
-          memoryImages.clear();
+          await db.prepare("DELETE FROM image_chunks").run();
           activeDevices.clear();
           return json({
             success: true,
@@ -254,30 +303,117 @@ export default {
 
         if (path === "/api/images") {
           if (request.method === "POST") {
+            const db = await getDb(env);
+            await ensureD1Table(db);
+
             const body: any = await request.json().catch(() => ({}));
             const { imageId, dataUrl, deviceId } = body;
             if (!imageId || !dataUrl) {
               return json({ error: "imageId and dataUrl required" }, 400);
             }
 
-            memoryImages.set(imageId, {
-              imageId,
-              dataUrl,
-              deviceId: deviceId || "UNKNOWN",
-              updatedAt: new Date().toISOString()
-            });
+            if (deviceId) activeDevices.add(deviceId);
 
-            return json({ success: true, imageId });
+            const { mimeType, binary } = parseDataUrl(dataUrl);
+            const byteSize = binary.byteLength;
+            const SINGLE_CHUNK_MAX = 1500000;
+            const MULTI_CHUNK_SIZE = 1000000;
+
+            const chunks: { index: number; total: number; data: Uint8Array }[] = [];
+            if (byteSize <= SINGLE_CHUNK_MAX) {
+              chunks.push({ index: 0, total: 1, data: binary });
+            } else {
+              const total = Math.ceil(byteSize / MULTI_CHUNK_SIZE);
+              for (let i = 0; i < total; i++) {
+                const slice = binary.subarray(i * MULTI_CHUNK_SIZE, Math.min((i + 1) * MULTI_CHUNK_SIZE, byteSize));
+                chunks.push({ index: i, total, data: slice });
+              }
+            }
+
+            const nowIso = new Date().toISOString();
+
+            // Prepare batch: remove previous chunks, then insert current chunks
+            const deleteStmt = db.prepare("DELETE FROM image_chunks WHERE image_id = ?").bind(imageId);
+            const insertStmts = chunks.map(chunk =>
+              db.prepare(
+                `INSERT INTO image_chunks (image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`
+              ).bind(imageId, chunk.index, chunk.total, chunk.data, mimeType, byteSize, nowIso)
+            );
+
+            if (typeof db.batch === "function") {
+              await db.batch([deleteStmt, ...insertStmts]);
+            } else {
+              await deleteStmt.run();
+              for (const stmt of insertStmts) {
+                await stmt.run();
+              }
+            }
+
+            return json({
+              success: true,
+              imageId,
+              byteSize,
+              totalChunks: chunks.length,
+              serverTimestamp: nowIso
+            });
           }
         }
 
         if (path.startsWith("/api/images/")) {
-          const imageId = path.replace("/api/images/", "");
-          const img = memoryImages.get(imageId);
-          if (!img) {
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          const rawImageId = decodeURIComponent(path.replace("/api/images/", ""));
+          const { results } = await db.prepare(
+            "SELECT chunk_index, total_chunks, data, mime_type, byte_size FROM image_chunks WHERE image_id = ? ORDER BY chunk_index ASC"
+          ).bind(rawImageId).all();
+
+          if (!results || results.length === 0) {
             return json({ error: "Image not found in Cloud D1 replica" }, 404);
           }
-          return json({ success: true, imageId: img.imageId, dataUrl: img.dataUrl });
+
+          const totalChunks = Number(results[0].total_chunks);
+          if (results.length !== totalChunks) {
+            return json({ error: `Incomplete image chunks: expected ${totalChunks}, found ${results.length}` }, 500);
+          }
+
+          const mimeType = String(results[0].mime_type || "application/octet-stream");
+          const totalByteSize = Number(results[0].byte_size || 0);
+
+          const assembledBytes = new Uint8Array(
+            totalByteSize > 0
+              ? totalByteSize
+              : results.reduce((acc: number, r: any) => acc + (r.data?.byteLength || r.data?.length || 0), 0)
+          );
+
+          let offset = 0;
+          for (const row of results) {
+            let chunkBytes: Uint8Array;
+            if (row.data instanceof Uint8Array) {
+              chunkBytes = row.data;
+            } else if (row.data instanceof ArrayBuffer) {
+              chunkBytes = new Uint8Array(row.data);
+            } else if (Array.isArray(row.data)) {
+              chunkBytes = new Uint8Array(row.data);
+            } else if (typeof row.data === "string") {
+              chunkBytes = new TextEncoder().encode(row.data);
+            } else {
+              chunkBytes = new Uint8Array(0);
+            }
+            assembledBytes.set(chunkBytes, offset);
+            offset += chunkBytes.byteLength;
+          }
+
+          const dataUrl = binaryToDataUrl(mimeType, assembledBytes);
+          return json({
+            success: true,
+            imageId: rawImageId,
+            dataUrl,
+            mimeType,
+            byteSize: assembledBytes.byteLength,
+            totalChunks
+          });
         }
 
         if (path === "/api/record") {
@@ -318,11 +454,19 @@ export default {
           const countRes = await db.prepare("SELECT COUNT(*) as total FROM records WHERE is_deleted = 0").first();
           const serverRecordCount = Number(countRes?.total ?? 0);
 
+          let totalStoredImages = 0;
+          try {
+            const imgCountRes = await db.prepare("SELECT COUNT(DISTINCT image_id) as total FROM image_chunks").first();
+            totalStoredImages = Number(imgCountRes?.total ?? 0);
+          } catch {
+            totalStoredImages = 0;
+          }
+
           return json({
             status: "online",
             runtime: "cloudflare-workers",
             serverRecordCount,
-            totalStoredImages: memoryImages.size,
+            totalStoredImages,
             activeDevices: Array.from(activeDevices),
             serverTimestamp: new Date().toISOString()
           });

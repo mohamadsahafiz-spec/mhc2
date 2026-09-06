@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v1.4.8 — DURABLE D1 CROSS-DEVICE IMAGE SYNCHRONIZATION (2026-09-05)
+
+### Durable D1 Persistent Image Architecture
+- **Dedicated D1 Binary Storage (`image_chunks`)**: Added `/migrations/0002_add_image_chunks.sql` defining persistent BLOB storage with adaptive chunking (single binary payload for ≤ 1.5 MB, 1.0 MB chunking for larger images) directly within the existing `fsos-d1` database, fully eliminating ephemeral in-memory map loss upon Cloudflare Workers recycle/deployment.
+- **Worker Binary Endpoints (`POST & GET /api/images`)**: Implemented binary dataUrl decomposition (`parseDataUrl`) and chunk persistence on upload, plus ordered chunk assembly and binary base64 reassembly (`binaryToDataUrl`) upon retrieval.
+- **Bi-Directional Image Sync Pipeline in SyncEngine**:
+  - **Reliable Local-to-Cloud Upload**: `SyncEngine.uploadPendingImages()` scans all local entity records and sync queues for `idb:<imageId>` references, uploading binary data with exponential retry backoff and tracking synced status in `fsos_synced_images_v1`.
+  - **Target Device Cloud Download & Hydration**: `SyncEngine.pullCloudChanges()` extracts newly received remote `idb:` references and triggers background downloads (`downloadMissingImages`).
+  - **On-Demand Remote Hydration Hook**: Hooked `ImageStore.setRemoteFetcher()` to `SyncEngine.fetchImageOnDemand()`, ensuring that any machine/report record loaded on another device automatically hydrates missing images from D1 on-demand and caches them into IndexedDB.
+- **Telemetry & Sync Status Badge Integration**: Expanded `SyncState` with `pendingImageCount` and `downloadingImageCount` telemetry and integrated live image transfer counters into `SyncStatusIndicator`.
+- **Authoritative Version Synchronization**: Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.8`.
+
 ## v1.4.7 — MACHINE PASSPORT UI/UX PRO MAX REDESIGN (2026-09-05)
 
 ### Machine Passport UI/UX Redesign & Visual Hierarchy

@@ -24,6 +24,9 @@ const queuedNotificationKeys = new Set<string>();
 type ImageStoreListener = (hydratedKeys: string[]) => void;
 const listeners = new Set<ImageStoreListener>();
 
+type RemoteImageFetcher = (imageId: string) => Promise<string | null>;
+let remoteImageFetcher: RemoteImageFetcher | null = null;
+
 function notifyListeners(keys: string[]) {
   if (keys.length === 0 || listeners.size === 0) return;
   if (isNotifying) {
@@ -324,6 +327,15 @@ export const ImageStore = {
     }
   },
 
+  setRemoteFetcher(fetcher: RemoteImageFetcher | null) {
+    remoteImageFetcher = fetcher;
+  },
+
+  hasLocalImage(id?: string | null): boolean {
+    if (!id) return false;
+    return imageMemoryCache.has(id) || persistedInIdbKeys.has(id);
+  },
+
   getCachedImage(id?: string | null): string | undefined {
     return this.resolveImage(id);
   },
@@ -336,11 +348,21 @@ export const ImageStore = {
     if (id.startsWith('idb:')) {
       if (!notFoundInIdbKeys.has(id) && !inFlightReads.has(id)) {
         const promise = this.getImage(id)
-          .then(res => {
-            if (!res) notFoundInIdbKeys.add(id);
+          .then(async res => {
+            if (!res) {
+              if (remoteImageFetcher) {
+                const fetched = await remoteImageFetcher(id);
+                if (fetched) return fetched;
+              }
+              notFoundInIdbKeys.add(id);
+            }
             return res;
           })
-          .catch(() => {
+          .catch(async () => {
+            if (remoteImageFetcher) {
+              const fetched = await remoteImageFetcher(id).catch(() => null);
+              if (fetched) return fetched;
+            }
             notFoundInIdbKeys.add(id);
             return null;
           })
@@ -358,7 +380,10 @@ export const ImageStore = {
     if (id.startsWith('data:') || id.startsWith('<svg') || id.startsWith('http:') || id.startsWith('https:') || id.startsWith('blob:')) return id;
     if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
     if (id.startsWith('idb:')) {
-      const val = await this.getImage(id);
+      let val = await this.getImage(id);
+      if (!val && remoteImageFetcher) {
+        val = await remoteImageFetcher(id).catch(() => null);
+      }
       return val || undefined;
     }
     return id;

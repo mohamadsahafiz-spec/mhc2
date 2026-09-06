@@ -15,6 +15,8 @@ export interface SyncState {
   status: SyncStatus;
   lastSyncTime: string | null;
   pendingCount: number;
+  pendingImageCount?: number;
+  downloadingImageCount?: number;
   deviceId: string;
   online: boolean;
   serverRecordCount: number;

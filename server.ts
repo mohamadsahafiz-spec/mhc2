@@ -12,17 +12,49 @@ interface D1Record {
   isDeleted?: boolean;
 }
 
-interface D1Image {
+interface D1ImageChunk {
   imageId: string;
-  dataUrl: string;
-  deviceId: string;
-  updatedAt: string;
+  chunkIndex: number;
+  totalChunks: number;
+  data: Uint8Array;
+  mimeType: string;
+  byteSize: number;
+  createdAt: string;
 }
 
 // Simulated Cloudflare D1 replica storage
 const d1Database = new Map<string, D1Record>();
-const d1Images = new Map<string, D1Image>();
+const d1ImageChunks = new Map<string, D1ImageChunk[]>();
 const activeDevices = new Set<string>();
+
+function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array } {
+  if (dataUrl.startsWith("data:")) {
+    const commaIdx = dataUrl.indexOf(",");
+    const meta = dataUrl.substring(5, commaIdx);
+    const mimeType = meta.split(";")[0] || "application/octet-stream";
+    const isBase64 = meta.includes("base64");
+    const payload = dataUrl.substring(commaIdx + 1);
+    if (isBase64) {
+      const buffer = Buffer.from(payload, "base64");
+      return { mimeType, binary: new Uint8Array(buffer) };
+    } else {
+      const decoded = decodeURIComponent(payload);
+      return { mimeType, binary: new TextEncoder().encode(decoded) };
+    }
+  } else if (dataUrl.startsWith("<svg")) {
+    return { mimeType: "image/svg+xml", binary: new TextEncoder().encode(dataUrl) };
+  } else {
+    return { mimeType: "application/octet-stream", binary: new TextEncoder().encode(dataUrl) };
+  }
+}
+
+function binaryToDataUrl(mimeType: string, bytes: Uint8Array): string {
+  if (mimeType === "image/svg+xml") {
+    return new TextDecoder().decode(bytes);
+  }
+  const base64 = Buffer.from(bytes).toString("base64");
+  return `data:${mimeType};base64,${base64}`;
+}
 
 async function startServer() {
   const app = express();
@@ -50,9 +82,9 @@ async function startServer() {
   app.all(["/api/purge-all", "/api/purge-all/"], (req, res) => {
     try {
       const recordsPurged = d1Database.size;
-      const imagesPurged = d1Images.size;
+      const imagesPurged = d1ImageChunks.size;
       d1Database.clear();
-      d1Images.clear();
+      d1ImageChunks.clear();
       activeDevices.clear();
 
       console.log(`[FSOS Server] Purged all operational data: ${recordsPurged} records, ${imagesPurged} images.`);
@@ -173,14 +205,53 @@ async function startServer() {
         return res.status(400).json({ error: "imageId and dataUrl required" });
       }
 
-      d1Images.set(imageId, {
-        imageId,
-        dataUrl,
-        deviceId: deviceId || "UNKNOWN",
-        updatedAt: new Date().toISOString()
-      });
+      if (deviceId) {
+        activeDevices.add(deviceId);
+      }
 
-      res.json({ success: true, imageId });
+      const { mimeType, binary } = parseDataUrl(dataUrl);
+      const byteSize = binary.byteLength;
+      const SINGLE_CHUNK_MAX = 1500000;
+      const MULTI_CHUNK_SIZE = 1000000;
+
+      const chunks: D1ImageChunk[] = [];
+      const nowIso = new Date().toISOString();
+
+      if (byteSize <= SINGLE_CHUNK_MAX) {
+        chunks.push({
+          imageId,
+          chunkIndex: 0,
+          totalChunks: 1,
+          data: binary,
+          mimeType,
+          byteSize,
+          createdAt: nowIso
+        });
+      } else {
+        const total = Math.ceil(byteSize / MULTI_CHUNK_SIZE);
+        for (let i = 0; i < total; i++) {
+          const slice = binary.subarray(i * MULTI_CHUNK_SIZE, Math.min((i + 1) * MULTI_CHUNK_SIZE, byteSize));
+          chunks.push({
+            imageId,
+            chunkIndex: i,
+            totalChunks: total,
+            data: slice,
+            mimeType,
+            byteSize,
+            createdAt: nowIso
+          });
+        }
+      }
+
+      d1ImageChunks.set(imageId, chunks);
+
+      res.json({
+        success: true,
+        imageId,
+        byteSize,
+        totalChunks: chunks.length,
+        serverTimestamp: nowIso
+      });
     } catch (err: any) {
       console.error("[Worker API /api/images Error]:", err);
       res.status(500).json({ error: err?.message || "Failed to persist image" });
@@ -189,12 +260,43 @@ async function startServer() {
 
   // 4. Worker API: Fetch Image Payload (GET /api/images/:imageId)
   app.get("/api/images/:imageId", (req, res) => {
-    const { imageId } = req.params;
-    const img = d1Images.get(imageId);
-    if (!img) {
-      return res.status(404).json({ error: "Image not found in Cloud D1 replica" });
+    try {
+      const { imageId } = req.params;
+      const chunks = d1ImageChunks.get(imageId);
+      if (!chunks || chunks.length === 0) {
+        return res.status(404).json({ error: "Image not found in Cloud D1 replica" });
+      }
+
+      const totalChunks = chunks[0].totalChunks;
+      if (chunks.length !== totalChunks) {
+        return res.status(500).json({ error: `Incomplete image chunks: expected ${totalChunks}, found ${chunks.length}` });
+      }
+
+      // Sort by chunkIndex asc
+      const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+      const mimeType = sortedChunks[0].mimeType || "application/octet-stream";
+      const totalByteSize = sortedChunks[0].byteSize || sortedChunks.reduce((acc, c) => acc + c.data.byteLength, 0);
+
+      const assembledBytes = new Uint8Array(totalByteSize);
+      let offset = 0;
+      for (const chunk of sortedChunks) {
+        assembledBytes.set(chunk.data, offset);
+        offset += chunk.data.byteLength;
+      }
+
+      const dataUrl = binaryToDataUrl(mimeType, assembledBytes);
+      res.json({
+        success: true,
+        imageId,
+        dataUrl,
+        mimeType,
+        byteSize: assembledBytes.byteLength,
+        totalChunks
+      });
+    } catch (err: any) {
+      console.error("[Worker API /api/images/:imageId Error]:", err);
+      res.status(500).json({ error: err?.message || "Failed to retrieve image" });
     }
-    res.json({ success: true, imageId: img.imageId, dataUrl: img.dataUrl });
   });
 
   // 5. Worker API: Record Deletion / Mutation (Supports ALL methods: DELETE, POST, etc.)
@@ -229,7 +331,7 @@ async function startServer() {
     res.json({
       status: "online",
       serverRecordCount: d1Database.size,
-      totalStoredImages: d1Images.size,
+      totalStoredImages: d1ImageChunks.size,
       activeDevices: Array.from(activeDevices),
       serverTimestamp: new Date().toISOString()
     });
