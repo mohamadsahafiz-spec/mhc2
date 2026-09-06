@@ -62,6 +62,14 @@ class MockD1Database {
           return { success: true };
         }
 
+        if (sql.includes("DELETE FROM image_chunks WHERE image_id = ? AND chunk_index >= ?")) {
+          const [imageId, chunkIndex] = boundArgs;
+          const chunks = self.imageChunks.get(imageId) || [];
+          const remaining = chunks.filter(c => c.chunk_index < Number(chunkIndex));
+          self.imageChunks.set(imageId, remaining);
+          return { success: true };
+        }
+
         if (sql.includes("DELETE FROM image_chunks WHERE image_id = ?")) {
           const [imageId] = boundArgs;
           self.imageChunks.delete(imageId);
@@ -75,7 +83,9 @@ class MockD1Database {
 
         if (sql.includes("INSERT INTO image_chunks")) {
           const [image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at] = boundArgs;
-          const chunks = self.imageChunks.get(image_id) || [];
+          let chunks = self.imageChunks.get(image_id) || [];
+          // Filter out matching chunk_index to emulate ON CONFLICT DO UPDATE
+          chunks = chunks.filter(c => c.chunk_index !== Number(chunk_index));
           chunks.push({
             image_id,
             chunk_index: Number(chunk_index),
@@ -307,6 +317,88 @@ export async function runD1WorkerTests(): Promise<{ success: boolean; log: strin
     const imgGetJson = await imgGetRes.json();
     assert(imgGetRes.status === 200 && imgGetJson.success === true, "H. Image retrieved from D1 on separate worker instance");
     assert(imgGetJson.dataUrl === testDataUrl, "H. Reassembled image dataUrl matches original payload exactly");
+
+    // I. Client-Side Binary Chunk Transport (POST /api/images/chunk)
+    // Simulate a multi-chunk binary upload (3 sequential chunks)
+    const chunk1Bytes = new Uint8Array([10, 20, 30, 40, 50]);
+    const chunk2Bytes = new Uint8Array([60, 70, 80, 90, 100]);
+    const chunk3Bytes = new Uint8Array([110, 120, 130]);
+    const totalBinaryBytes = chunk1Bytes.length + chunk2Bytes.length + chunk3Bytes.length;
+
+    // Upload Chunk 0
+    const chunk0Req = new Request("https://worker.dev/api/images/chunk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Image-Id": encodeURIComponent("idb:chunked-img-002"),
+        "X-Chunk-Index": "0",
+        "X-Total-Chunks": "3",
+        "X-Mime-Type": "image/jpeg",
+        "X-Byte-Size": String(totalBinaryBytes),
+        "X-Device-Id": "DEV-A"
+      },
+      body: chunk1Bytes
+    });
+    const chunk0Res = await worker.fetch(chunk0Req, env);
+    const chunk0Json = await chunk0Res.json();
+    assert(chunk0Res.status === 200 && chunk0Json.success === true, "I. Binary chunk 0 upload returned HTTP 200 success");
+
+    // Upload Chunk 1
+    const chunk1Req = new Request("https://worker.dev/api/images/chunk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Image-Id": encodeURIComponent("idb:chunked-img-002"),
+        "X-Chunk-Index": "1",
+        "X-Total-Chunks": "3",
+        "X-Mime-Type": "image/jpeg",
+        "X-Byte-Size": String(totalBinaryBytes),
+        "X-Device-Id": "DEV-A"
+      },
+      body: chunk2Bytes
+    });
+    const chunk1Res = await worker.fetch(chunk1Req, env);
+    const chunk1Json = await chunk1Res.json();
+    assert(chunk1Res.status === 200 && chunk1Json.success === true, "I. Binary chunk 1 upload returned HTTP 200 success");
+
+    // Upload Chunk 2
+    const chunk2Req = new Request("https://worker.dev/api/images/chunk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Image-Id": encodeURIComponent("idb:chunked-img-002"),
+        "X-Chunk-Index": "2",
+        "X-Total-Chunks": "3",
+        "X-Mime-Type": "image/jpeg",
+        "X-Byte-Size": String(totalBinaryBytes),
+        "X-Device-Id": "DEV-A"
+      },
+      body: chunk3Bytes
+    });
+    const chunk2Res = await worker.fetch(chunk2Req, env);
+    const chunk2Json = await chunk2Res.json();
+    assert(chunk2Res.status === 200 && chunk2Json.success === true, "I. Binary chunk 2 upload returned HTTP 200 success");
+
+    const savedChunks = mockDb.imageChunks.get("idb:chunked-img-002");
+    assert(savedChunks !== undefined && savedChunks.length === 3, "I. D1 contains all 3 sequential binary chunks");
+
+    // Retrieve and verify complete multi-chunk image reassembly
+    const chunkedGetReq = new Request("https://worker.dev/api/images/idb%3Achunked-img-002", { method: "GET" });
+    const chunkedGetRes = await worker.fetch(chunkedGetReq, newWorkerInstanceEnv);
+    const chunkedGetJson = await chunkedGetRes.json();
+    assert(chunkedGetRes.status === 200 && chunkedGetJson.success === true, "I. Chunked image retrieved from D1 on fresh worker instance");
+    assert(chunkedGetJson.mimeType === "image/jpeg", "I. Chunked image mimeType is image/jpeg");
+    assert(chunkedGetJson.byteSize === totalBinaryBytes, "I. Chunked image byteSize matches expected total");
+    assert(chunkedGetJson.totalChunks === 3, "I. Chunked image totalChunks is 3");
+
+    // Combine expected binary into base64 to verify assembled dataUrl
+    const fullExpectedBinary = new Uint8Array([...chunk1Bytes, ...chunk2Bytes, ...chunk3Bytes]);
+    let binaryStr = "";
+    for (let i = 0; i < fullExpectedBinary.length; i++) {
+      binaryStr += String.fromCharCode(fullExpectedBinary[i]);
+    }
+    const expectedDataUrl = `data:image/jpeg;base64,${btoa(binaryStr)}`;
+    assert(chunkedGetJson.dataUrl === expectedDataUrl, "I. Reassembled chunked dataUrl matches expected binary payload");
 
   } catch (err: any) {
     log.push(`❌ EXCEPTION DURING D1 TESTS: ${err?.message || String(err)}`);

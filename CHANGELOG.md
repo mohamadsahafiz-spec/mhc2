@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v1.4.9 — CLIENT-SIDE BINARY CHUNKING FOR D1 IMAGE TRANSPORT (2026-09-06)
+
+### High-Performance Binary Chunked Transport Architecture
+- **Client-Side Chunk Decomposition (`SyncEngine.uploadPendingImages`)**: Slices binary image payloads into ≤ 512 KB raw binary chunks on the client before transmission, bypassing monolithic Base64 JSON payloads and eliminating Cloudflare Worker CPU timeouts (HTTP 503).
+- **Dedicated Binary Transport Endpoint (`POST /api/images/chunk`)**: Implemented raw `application/octet-stream` transport passing chunk metadata via headers (`X-Image-Id`, `X-Chunk-Index`, `X-Total-Chunks`, `X-Mime-Type`, `X-Byte-Size`, `X-Device-Id`).
+- **Single-Chunk Parameterized D1 Upsert**: Cloudflare Worker and Node dev servers handle one chunk per request with isolated, sub-50ms single-row upserts (`ON CONFLICT(image_id, chunk_index) DO UPDATE`), eliminating the 32MB D1 RPC batch limit constraint.
+- **Interrupted Recovery & Idempotent Cleanup**: Chunk 0 upload resets any stale higher-index chunks from prior versions while preserving atomicity. Incomplete uploads fail fast with exponential backoff and are never marked synced until all chunks succeed.
+- **Backward Compatibility & Retrieval Integrity**: Preserved existing `idb:<imageId>` reference contract, local IndexedDB persistence, and `GET /api/images/:imageId` reassembly.
+- **Authoritative Version Synchronization**: Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.4.9`.
+
 ## v1.4.8 — DURABLE D1 CROSS-DEVICE IMAGE SYNCHRONIZATION (2026-09-05)
 
 ### Durable D1 Persistent Image Architecture

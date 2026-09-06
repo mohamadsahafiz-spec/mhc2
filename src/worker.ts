@@ -301,6 +301,65 @@ export default {
           });
         }
 
+        if (path === "/api/images/chunk") {
+          if (request.method === "POST") {
+            const db = await getDb(env);
+            await ensureD1Table(db);
+
+            const rawImageIdHeader = request.headers.get("X-Image-Id") || "";
+            const imageId = decodeURIComponent(rawImageIdHeader);
+            const chunkIndex = parseInt(request.headers.get("X-Chunk-Index") || "0", 10);
+            const totalChunks = parseInt(request.headers.get("X-Total-Chunks") || "1", 10);
+            const mimeType = request.headers.get("X-Mime-Type") || "application/octet-stream";
+            const byteSize = parseInt(request.headers.get("X-Byte-Size") || "0", 10);
+            const deviceId = request.headers.get("X-Device-Id");
+
+            if (!imageId || isNaN(chunkIndex) || isNaN(totalChunks) || totalChunks < 1 || chunkIndex < 0 || chunkIndex >= totalChunks) {
+              return json({ error: "Invalid chunk metadata headers (X-Image-Id, X-Chunk-Index, X-Total-Chunks)" }, 400);
+            }
+
+            if (deviceId) activeDevices.add(deviceId);
+
+            const chunkBuffer = await request.arrayBuffer();
+            const chunkBytes = new Uint8Array(chunkBuffer);
+            const nowIso = new Date().toISOString();
+
+            // If uploading chunk 0, clean up any previous/orphaned higher chunks from older versions
+            if (chunkIndex === 0) {
+              await db.prepare("DELETE FROM image_chunks WHERE image_id = ? AND chunk_index >= ?").bind(imageId, totalChunks).run();
+            }
+
+            // Upsert single chunk
+            await db.prepare(`
+              INSERT INTO image_chunks (image_id, chunk_index, total_chunks, data, mime_type, byte_size, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(image_id, chunk_index) DO UPDATE SET
+                total_chunks = excluded.total_chunks,
+                data = excluded.data,
+                mime_type = excluded.mime_type,
+                byte_size = excluded.byte_size,
+                created_at = excluded.created_at
+            `).bind(
+              imageId,
+              chunkIndex,
+              totalChunks,
+              chunkBytes,
+              mimeType,
+              byteSize > 0 ? byteSize : chunkBytes.byteLength,
+              nowIso
+            ).run();
+
+            return json({
+              success: true,
+              imageId,
+              chunkIndex,
+              totalChunks,
+              bytesReceived: chunkBytes.byteLength,
+              serverTimestamp: nowIso
+            });
+          }
+        }
+
         if (path === "/api/images") {
           if (request.method === "POST") {
             const db = await getDb(env);

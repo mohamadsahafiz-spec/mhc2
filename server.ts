@@ -61,6 +61,7 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: "50mb" }));
+  app.use(express.raw({ type: "application/octet-stream", limit: "50mb" }));
 
   // Enable CORS & handle OPTIONS preflight to prevent 405 Method Not Allowed & cross-device errors
   app.use((req, res, next) => {
@@ -197,7 +198,72 @@ async function startServer() {
     }
   });
 
-  // 3. Worker API: Separate Image Persistence (POST /api/images)
+  // 3a. Worker API: Binary Image Chunk Persistence (POST /api/images/chunk)
+  app.post("/api/images/chunk", (req, res) => {
+    try {
+      const rawImageIdHeader = (req.headers["x-image-id"] as string) || "";
+      const imageId = decodeURIComponent(rawImageIdHeader);
+      const chunkIndex = parseInt((req.headers["x-chunk-index"] as string) || "0", 10);
+      const totalChunks = parseInt((req.headers["x-total-chunks"] as string) || "1", 10);
+      const mimeType = (req.headers["x-mime-type"] as string) || "application/octet-stream";
+      const byteSize = parseInt((req.headers["x-byte-size"] as string) || "0", 10);
+      const deviceId = (req.headers["x-device-id"] as string) || "";
+
+      if (!imageId || isNaN(chunkIndex) || isNaN(totalChunks) || totalChunks < 1 || chunkIndex < 0 || chunkIndex >= totalChunks) {
+        return res.status(400).json({ error: "Invalid chunk metadata headers (x-image-id, x-chunk-index, x-total-chunks)" });
+      }
+
+      if (deviceId) {
+        activeDevices.add(deviceId);
+      }
+
+      let chunkBytes: Uint8Array;
+      if (Buffer.isBuffer(req.body)) {
+        chunkBytes = new Uint8Array(req.body.buffer, req.body.byteOffset, req.body.byteLength);
+      } else if (req.body instanceof Uint8Array) {
+        chunkBytes = req.body;
+      } else {
+        return res.status(400).json({ error: "Raw binary chunk body required" });
+      }
+
+      const nowIso = new Date().toISOString();
+      const existingChunks = d1ImageChunks.get(imageId) || [];
+      
+      // If chunk 0 is uploaded, filter out any older chunks with index >= totalChunks
+      let filteredChunks = chunkIndex === 0
+        ? existingChunks.filter(c => c.chunkIndex < totalChunks)
+        : existingChunks;
+
+      // Filter out chunk with same chunkIndex if present (safe idempotent upsert)
+      filteredChunks = filteredChunks.filter(c => c.chunkIndex !== chunkIndex);
+
+      filteredChunks.push({
+        imageId,
+        chunkIndex,
+        totalChunks,
+        data: chunkBytes,
+        mimeType,
+        byteSize: byteSize > 0 ? byteSize : chunkBytes.byteLength,
+        createdAt: nowIso
+      });
+
+      d1ImageChunks.set(imageId, filteredChunks);
+
+      res.json({
+        success: true,
+        imageId,
+        chunkIndex,
+        totalChunks,
+        bytesReceived: chunkBytes.byteLength,
+        serverTimestamp: nowIso
+      });
+    } catch (err: any) {
+      console.error("[Worker API /api/images/chunk Error]:", err);
+      res.status(500).json({ error: err?.message || "Failed to persist image chunk" });
+    }
+  });
+
+  // 3b. Worker API: Separate Image Persistence (POST /api/images)
   app.post("/api/images", (req, res) => {
     try {
       const { imageId, dataUrl, deviceId } = req.body || {};

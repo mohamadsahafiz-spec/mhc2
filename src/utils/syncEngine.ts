@@ -69,6 +69,38 @@ const MIGRATED_KEY = 'fsos_cloud_migrated_v1';
 const SYNCED_KEYS_KEY = 'fsos_synced_keys_v1';
 const SYNCED_IMAGES_KEY = 'fsos_synced_images_v1';
 
+function parseDataUrlToBinary(dataUrl: string): { mimeType: string; binary: Uint8Array } {
+  if (dataUrl.startsWith("data:")) {
+    const commaIdx = dataUrl.indexOf(",");
+    if (commaIdx === -1) {
+      return { mimeType: "application/octet-stream", binary: new Uint8Array() };
+    }
+    const meta = dataUrl.substring(5, commaIdx);
+    const mimeType = meta.split(";")[0] || "application/octet-stream";
+    const isBase64 = meta.includes("base64");
+    const payload = dataUrl.substring(commaIdx + 1);
+    if (isBase64) {
+      const binaryStr = atob(payload);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      return { mimeType, binary: bytes };
+    } else {
+      const decoded = decodeURIComponent(payload);
+      return { mimeType, binary: new TextEncoder().encode(decoded) };
+    }
+  } else if (dataUrl.startsWith("<svg")) {
+    return { mimeType: "image/svg+xml", binary: new TextEncoder().encode(dataUrl) };
+  } else {
+    return { mimeType: "application/octet-stream", binary: new TextEncoder().encode(dataUrl) };
+  }
+}
+
+// Maximum chunk size for raw binary transport over HTTP (512 KB)
+const CLIENT_IMAGE_CHUNK_SIZE = 512 * 1024;
+
 type Listener = (state: SyncState) => void;
 
 class SyncEngineManager {
@@ -504,35 +536,61 @@ class SyncEngineManager {
 
         const cachedPayload = ImageStore.getCachedImage(ref) || await ImageStore.getImage(ref);
         if (cachedPayload && (cachedPayload.startsWith('data:') || cachedPayload.startsWith('<svg') || cachedPayload.startsWith('blob:'))) {
+          const { mimeType, binary } = parseDataUrlToBinary(cachedPayload);
+          const byteSize = binary.byteLength;
+
+          if (byteSize === 0) {
+            this.syncedImageKeys.add(ref);
+            this.saveSyncedImageKeys();
+            continue;
+          }
+
+          const totalChunks = Math.max(1, Math.ceil(byteSize / CLIENT_IMAGE_CHUNK_SIZE));
           this.uploadingImages.add(ref);
           this.notify();
 
           try {
-            const res = await fetch('/api/images', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: safeJsonStringify({
-                imageId: ref,
-                dataUrl: cachedPayload,
-                deviceId: this.deviceId
-              })
-            });
+            let allChunksSucceeded = true;
+            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+              const chunkData = binary.subarray(
+                chunkIndex * CLIENT_IMAGE_CHUNK_SIZE,
+                Math.min((chunkIndex + 1) * CLIENT_IMAGE_CHUNK_SIZE, byteSize)
+              );
 
-            if (res.ok) {
+              const res = await fetch('/api/images/chunk', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/octet-stream',
+                  'X-Image-Id': encodeURIComponent(ref),
+                  'X-Chunk-Index': String(chunkIndex),
+                  'X-Total-Chunks': String(totalChunks),
+                  'X-Mime-Type': mimeType,
+                  'X-Byte-Size': String(byteSize),
+                  'X-Device-Id': this.deviceId
+                },
+                body: chunkData
+              });
+
+              if (!res.ok) {
+                allChunksSucceeded = false;
+                const attempts = (failedInfo?.attempts || 0) + 1;
+                const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+                this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
+                console.warn(`[SyncEngine] Image chunk ${chunkIndex + 1}/${totalChunks} upload failed for ${ref}: status ${res.status}`);
+                break;
+              }
+            }
+
+            if (allChunksSucceeded) {
               this.syncedImageKeys.add(ref);
               this.saveSyncedImageKeys();
               this.failedImageUploads.delete(ref);
-            } else {
-              const attempts = (failedInfo?.attempts || 0) + 1;
-              const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
-              this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
-              console.warn(`[SyncEngine] Image upload failed for ${ref}: status ${res.status}`);
             }
           } catch (e) {
             const attempts = (failedInfo?.attempts || 0) + 1;
             const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
             this.failedImageUploads.set(ref, { attempts, nextRetry: Date.now() + delay });
-            console.warn(`[SyncEngine] Image upload error for ${ref}:`, e);
+            console.warn(`[SyncEngine] Image chunk upload error for ${ref}:`, e);
           } finally {
             this.uploadingImages.delete(ref);
             this.notify();
