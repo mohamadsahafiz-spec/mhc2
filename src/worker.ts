@@ -251,11 +251,46 @@ export default {
 
           if (deviceIdParam) activeDevices.add(deviceIdParam);
 
-          const sinceTime = sinceParam === "0" ? 0 : (new Date(sinceParam).getTime() || 0);
+          const isInitialSync = sinceParam === "0" || !sinceParam;
 
-          const { results } = await db.prepare(
-            `SELECT key, table_name as "table", record_id as recordId, data, updated_at as updatedAt, device_id as deviceId, version, is_deleted as isDeleted FROM records`
-          ).all();
+          let querySql = "";
+          let queryParams: any[] = [];
+
+          if (isInitialSync) {
+            if (deviceIdParam) {
+              querySql = `SELECT key, table_name as "table", record_id as recordId, data, updated_at as updatedAt, device_id as deviceId, version, is_deleted as isDeleted
+                          FROM records
+                          WHERE device_id != ?
+                          ORDER BY updated_at ASC
+                          LIMIT 500`;
+              queryParams = [deviceIdParam];
+            } else {
+              querySql = `SELECT key, table_name as "table", record_id as recordId, data, updated_at as updatedAt, device_id as deviceId, version, is_deleted as isDeleted
+                          FROM records
+                          ORDER BY updated_at ASC
+                          LIMIT 500`;
+              queryParams = [];
+            }
+          } else {
+            if (deviceIdParam) {
+              querySql = `SELECT key, table_name as "table", record_id as recordId, data, updated_at as updatedAt, device_id as deviceId, version, is_deleted as isDeleted
+                          FROM records
+                          WHERE updated_at > ? AND device_id != ?
+                          ORDER BY updated_at ASC
+                          LIMIT 500`;
+              queryParams = [sinceParam, deviceIdParam];
+            } else {
+              querySql = `SELECT key, table_name as "table", record_id as recordId, data, updated_at as updatedAt, device_id as deviceId, version, is_deleted as isDeleted
+                          FROM records
+                          WHERE updated_at > ?
+                          ORDER BY updated_at ASC
+                          LIMIT 500`;
+              queryParams = [sinceParam];
+            }
+          }
+
+          const stmt = queryParams.length > 0 ? db.prepare(querySql).bind(...queryParams) : db.prepare(querySql);
+          const { results } = await stmt.all();
 
           const changes: D1Record[] = [];
           for (const row of (results || [])) {
@@ -268,7 +303,7 @@ export default {
               }
             }
 
-            const rec: D1Record = {
+            changes.push({
               table: row.table as string,
               recordId: row.recordId as string,
               data: parsedData,
@@ -276,18 +311,7 @@ export default {
               deviceId: row.deviceId as string,
               version: Number(row.version),
               isDeleted: Boolean(row.isDeleted)
-            };
-
-            const recordTime = new Date(rec.updatedAt).getTime() || rec.version || 0;
-            if (sinceTime === 0) {
-              if (!deviceIdParam || rec.deviceId !== deviceIdParam) {
-                changes.push(rec);
-              }
-            } else {
-              if (recordTime > sinceTime && (!deviceIdParam || rec.deviceId !== deviceIdParam)) {
-                changes.push(rec);
-              }
-            }
+            });
           }
 
           const countRes = await db.prepare("SELECT COUNT(*) as total FROM records WHERE is_deleted = 0").first();
@@ -358,6 +382,81 @@ export default {
               serverTimestamp: nowIso
             });
           }
+        }
+
+        // Endpoint: GET /api/images/:imageId/info (Image Chunk Metadata)
+        if (path.startsWith("/api/images/") && path.endsWith("/info")) {
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          const rawImageId = decodeURIComponent(path.slice("/api/images/".length, -"/info".length));
+          const { results } = await db.prepare(
+            "SELECT chunk_index, total_chunks, mime_type, byte_size, created_at FROM image_chunks WHERE image_id = ? ORDER BY chunk_index ASC LIMIT 1"
+          ).bind(rawImageId).all();
+
+          if (!results || results.length === 0) {
+            return json({ error: "Image not found in Cloud D1 replica" }, 404);
+          }
+
+          const row = results[0];
+          return json({
+            success: true,
+            imageId: rawImageId,
+            totalChunks: Number(row.total_chunks),
+            byteSize: Number(row.byte_size),
+            mimeType: String(row.mime_type || "application/octet-stream"),
+            createdAt: String(row.created_at)
+          });
+        }
+
+        // Endpoint: GET /api/images/:imageId/chunk/:index (Single Raw Binary Chunk)
+        if (path.startsWith("/api/images/") && path.includes("/chunk/")) {
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          const chunkMatch = path.match(/^\/api\/images\/(.+)\/chunk\/(\d+)$/);
+          if (!chunkMatch) {
+            return json({ error: "Invalid image chunk path format" }, 400);
+          }
+
+          const rawImageId = decodeURIComponent(chunkMatch[1]);
+          const chunkIndex = parseInt(chunkMatch[2], 10);
+
+          const { results } = await db.prepare(
+            "SELECT data, total_chunks, mime_type, byte_size FROM image_chunks WHERE image_id = ? AND chunk_index = ?"
+          ).bind(rawImageId, chunkIndex).all();
+
+          if (!results || results.length === 0) {
+            return json({ error: `Chunk ${chunkIndex} not found for image ${rawImageId}` }, 404);
+          }
+
+          const row = results[0];
+          let chunkBytes: Uint8Array;
+          if (row.data instanceof Uint8Array) {
+            chunkBytes = row.data;
+          } else if (row.data instanceof ArrayBuffer) {
+            chunkBytes = new Uint8Array(row.data);
+          } else if (Array.isArray(row.data)) {
+            chunkBytes = new Uint8Array(row.data);
+          } else if (typeof row.data === "string") {
+            chunkBytes = new TextEncoder().encode(row.data);
+          } else {
+            chunkBytes = new Uint8Array(0);
+          }
+
+          return new Response(chunkBytes, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "X-Image-Id": encodeURIComponent(rawImageId),
+              "X-Chunk-Index": String(chunkIndex),
+              "X-Total-Chunks": String(row.total_chunks),
+              "X-Mime-Type": String(row.mime_type || "application/octet-stream"),
+              "X-Byte-Size": String(row.byte_size || chunkBytes.byteLength),
+              "Cache-Control": "public, max-age=31536000, immutable",
+              ...corsHeaders
+            }
+          });
         }
 
         if (path === "/api/images") {

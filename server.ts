@@ -324,6 +324,60 @@ async function startServer() {
     }
   });
 
+  // 3c. Worker API: Image Metadata Info (GET /api/images/:imageId/info)
+  app.get("/api/images/:imageId/info", (req, res) => {
+    try {
+      const { imageId } = req.params;
+      const chunks = d1ImageChunks.get(imageId);
+      if (!chunks || chunks.length === 0) {
+        return res.status(404).json({ error: "Image not found in Cloud D1 replica" });
+      }
+
+      const row = chunks[0];
+      res.json({
+        success: true,
+        imageId,
+        totalChunks: row.totalChunks,
+        byteSize: row.byteSize,
+        mimeType: row.mimeType,
+        createdAt: row.createdAt
+      });
+    } catch (err: any) {
+      console.error("[Worker API /api/images/:imageId/info Error]:", err);
+      res.status(500).json({ error: err?.message || "Failed to retrieve image info" });
+    }
+  });
+
+  // 3d. Worker API: Single Raw Binary Chunk (GET /api/images/:imageId/chunk/:index)
+  app.get("/api/images/:imageId/chunk/:index", (req, res) => {
+    try {
+      const { imageId, index } = req.params;
+      const chunkIndex = parseInt(index, 10);
+      const chunks = d1ImageChunks.get(imageId);
+      if (!chunks || chunks.length === 0) {
+        return res.status(404).json({ error: "Image not found in Cloud D1 replica" });
+      }
+
+      const chunk = chunks.find(c => c.chunkIndex === chunkIndex);
+      if (!chunk) {
+        return res.status(404).json({ error: `Chunk ${chunkIndex} not found for image ${imageId}` });
+      }
+
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("X-Image-Id", encodeURIComponent(imageId));
+      res.setHeader("X-Chunk-Index", String(chunkIndex));
+      res.setHeader("X-Total-Chunks", String(chunk.totalChunks));
+      res.setHeader("X-Mime-Type", String(chunk.mimeType));
+      res.setHeader("X-Byte-Size", String(chunk.byteSize));
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
+      return res.send(Buffer.from(chunk.data));
+    } catch (err: any) {
+      console.error("[Worker API /api/images/:imageId/chunk/:index Error]:", err);
+      res.status(500).json({ error: err?.message || "Failed to retrieve image chunk" });
+    }
+  });
+
   // 4. Worker API: Fetch Image Payload (GET /api/images/:imageId)
   app.get("/api/images/:imageId", (req, res) => {
     try {

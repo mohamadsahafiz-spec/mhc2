@@ -98,6 +98,20 @@ function parseDataUrlToBinary(dataUrl: string): { mimeType: string; binary: Uint
   }
 }
 
+function binaryToClientDataUrl(mimeType: string, bytes: Uint8Array): string {
+  if (mimeType === 'image/svg+xml') {
+    return new TextDecoder().decode(bytes);
+  }
+  let binaryStr = '';
+  const len = bytes.byteLength;
+  const CHUNK_SIZE = 8192;
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    const slice = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
+    binaryStr += String.fromCharCode.apply(null, slice as any);
+  }
+  return `data:${mimeType};base64,${btoa(binaryStr)}`;
+}
+
 // Maximum chunk size for raw binary transport over HTTP (512 KB)
 const CLIENT_IMAGE_CHUNK_SIZE = 512 * 1024;
 
@@ -120,8 +134,11 @@ class SyncEngineManager {
   private syncedImageKeys: Set<string> = new Set();
   private uploadingImages: Set<string> = new Set();
   private failedImageUploads: Map<string, { attempts: number; nextRetry: number }> = new Map();
-  private downloadingImages: Set<string> = new Set();
-  private missingRemoteImages: Map<string, number> = new Map();
+  private pendingImageDownloads: Set<string> = new Set();
+  private activeDownloadingImage: string | null = null;
+  private missingRemoteImages: Map<string, { attempts: number; nextRetry: number }> = new Map();
+  private inFlightDownloadPromises: Map<string, Promise<string | null>> = new Map();
+  private isProcessingDownloadQueue: boolean = false;
 
   constructor() {
     this.init();
@@ -236,23 +253,34 @@ class SyncEngineManager {
   }
 
   public getState(): SyncState {
+    const isUploading = this.uploadingImages.size > 0;
+    const isDownloading = this.activeDownloadingImage !== null;
+    const hasPendingDownloads = this.pendingImageDownloads.size > 0;
+    const hasFailedUploads = this.failedImageUploads.size > 0;
+    const hasFailedDownloads = this.missingRemoteImages.size > 0;
+    const hasPendingQueue = this.queue.length > 0;
+
     let computedStatus: SyncStatus = this.status;
     if (!this.online) {
       computedStatus = 'offline';
-    } else if (this.isProcessing || this.uploadingImages.size > 0 || this.downloadingImages.size > 0) {
+    } else if (this.isProcessing || isUploading || isDownloading) {
       computedStatus = 'syncing';
-    } else if (this.queue.length > 0) {
+    } else if (hasPendingQueue || hasPendingDownloads || hasFailedUploads || hasFailedDownloads) {
       computedStatus = 'pending';
     } else {
       computedStatus = 'synced';
     }
 
+    const downloadingImageCount = (this.activeDownloadingImage ? 1 : 0) + this.pendingImageDownloads.size + this.missingRemoteImages.size;
+    const pendingImageCount = this.uploadingImages.size + this.failedImageUploads.size;
+    const totalPendingCount = this.queue.length + pendingImageCount + downloadingImageCount;
+
     return {
       status: computedStatus,
       lastSyncTime: this.lastSyncTime,
-      pendingCount: this.queue.length,
-      pendingImageCount: this.uploadingImages.size,
-      downloadingImageCount: this.downloadingImages.size,
+      pendingCount: totalPendingCount,
+      pendingImageCount,
+      downloadingImageCount,
       deviceId: this.deviceId,
       online: this.online,
       serverRecordCount: this.serverRecordCount,
@@ -484,11 +512,22 @@ class SyncEngineManager {
       // 4. Download cross-device cloud changes
       await this.pullCloudChanges();
 
-      this.status = this.queue.length > 0 ? 'pending' : 'synced';
+      // Truthful sync status check: replication must be genuinely complete
+      const hasPendingImages = this.uploadingImages.size > 0 ||
+                               this.pendingImageDownloads.size > 0 ||
+                               this.activeDownloadingImage !== null ||
+                               this.failedImageUploads.size > 0 ||
+                               this.missingRemoteImages.size > 0;
+
+      if (this.queue.length > 0 || hasPendingImages) {
+        this.status = 'pending';
+      } else {
+        this.status = 'synced';
+      }
     } catch (err: any) {
       console.warn('[SyncEngine] Sync iteration encounter:', err);
       this.lastError = err?.message || 'Network error';
-      this.status = this.queue.length > 0 ? 'pending' : (this.checkOnline() ? 'synced' : 'offline');
+      this.status = this.checkOnline() ? 'pending' : 'offline';
     } finally {
       this.isProcessing = false;
       this.notify();
@@ -603,19 +642,21 @@ class SyncEngineManager {
   }
 
   // Asynchronously download missing images from Cloud D1
-  public async downloadMissingImages(imageRefs: Iterable<string>) {
-    const now = Date.now();
+  public downloadMissingImages(imageRefs: Iterable<string>) {
     for (const ref of imageRefs) {
       if (!ref || !ref.startsWith('idb:')) continue;
       if (ImageStore.hasLocalImage(ref)) continue;
-      if (this.downloadingImages.has(ref)) continue;
-
-      const nextRetry = this.missingRemoteImages.get(ref);
-      if (nextRetry && now < nextRetry) continue;
-
-      // Fetch on-demand in background
-      this.fetchImageOnDemand(ref).catch(e => console.warn('[SyncEngine] Image download background error:', e));
+      if (this.syncedImageKeys.has(ref)) continue;
+      this.pendingImageDownloads.add(ref);
     }
+    this.triggerDownloadQueueProcessing();
+  }
+
+  private triggerDownloadQueueProcessing() {
+    if (this.isProcessingDownloadQueue || this.activeDownloadingImage !== null) {
+      return;
+    }
+    this.processDownloadQueue().catch(e => console.warn('[SyncEngine] Download queue trigger error:', e));
   }
 
   // Fetch individual image on-demand and store in local IndexedDB
@@ -624,40 +665,155 @@ class SyncEngineManager {
     if (ImageStore.hasLocalImage(imageId)) {
       return ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
     }
-    if (this.downloadingImages.has(imageId)) return null;
+
+    // If already in flight, reuse promise
+    const existingPromise = this.inFlightDownloadPromises.get(imageId);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
     if (!this.checkOnline()) return null;
 
-    const cooldown = this.missingRemoteImages.get(imageId);
-    if (cooldown && Date.now() < cooldown) return null;
+    const downloadPromise = this.downloadImageDirectly(imageId);
+    this.inFlightDownloadPromises.set(imageId, downloadPromise);
+    try {
+      return await downloadPromise;
+    } finally {
+      this.inFlightDownloadPromises.delete(imageId);
+    }
+  }
 
-    this.downloadingImages.add(imageId);
-    this.notify();
+  private async downloadImageDirectly(imageId: string): Promise<string | null> {
+    if (ImageStore.hasLocalImage(imageId)) {
+      return ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+    }
+
+    const failedInfo = this.missingRemoteImages.get(imageId);
+    const now = Date.now();
+    if (failedInfo && now < failedInfo.nextRetry) {
+      return null;
+    }
+
+    // Add to pending queue if not already active
+    if (this.activeDownloadingImage !== imageId && !this.pendingImageDownloads.has(imageId)) {
+      this.pendingImageDownloads.add(imageId);
+    }
+
+    this.triggerDownloadQueueProcessing();
+
+    // Poll for completion (up to 30s)
+    return new Promise<string | null>((resolve) => {
+      const interval = setInterval(async () => {
+        if (ImageStore.hasLocalImage(imageId)) {
+          clearInterval(interval);
+          const data = ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+          resolve(data);
+        } else if (!this.pendingImageDownloads.has(imageId) && this.activeDownloadingImage !== imageId) {
+          clearInterval(interval);
+          resolve(null);
+        }
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        resolve(null);
+      }, 30000);
+    });
+  }
+
+  private async processDownloadQueue() {
+    if (this.isProcessingDownloadQueue) return;
+    this.isProcessingDownloadQueue = true;
 
     try {
-      const res = await fetch(`/api/images/${encodeURIComponent(imageId)}`);
-      if (res.ok) {
-        const data = await this.safeParseJson(res);
-        if (data && data.dataUrl) {
-          await ImageStore.saveImage(imageId, data.dataUrl);
+      while (this.pendingImageDownloads.size > 0 && this.checkOnline()) {
+        const imageId = this.pendingImageDownloads.values().next().value;
+        if (!imageId) break;
+        this.pendingImageDownloads.delete(imageId);
+
+        if (ImageStore.hasLocalImage(imageId)) {
           this.syncedImageKeys.add(imageId);
           this.saveSyncedImageKeys();
-          this.missingRemoteImages.delete(imageId);
-          return data.dataUrl;
+          continue;
         }
-      } else if (res.status === 404) {
-        // Cooldown 30s before retrying missing remote image
-        this.missingRemoteImages.set(imageId, Date.now() + 30000);
-      } else {
-        this.missingRemoteImages.set(imageId, Date.now() + 10000);
+
+        const failedInfo = this.missingRemoteImages.get(imageId);
+        const now = Date.now();
+        if (failedInfo && now < failedInfo.nextRetry) {
+          continue;
+        }
+
+        this.activeDownloadingImage = imageId;
+        this.notify();
+
+        try {
+          // 1. Fetch metadata info
+          const infoRes = await fetch(`/api/images/${encodeURIComponent(imageId)}/info`);
+          if (!infoRes.ok) {
+            const attempts = (failedInfo?.attempts || 0) + 1;
+            const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+            this.missingRemoteImages.set(imageId, { attempts, nextRetry: Date.now() + delay });
+            continue;
+          }
+
+          const infoData = await this.safeParseJson(infoRes);
+          const totalChunks = Number(infoData.totalChunks || 1);
+          const totalByteSize = Number(infoData.byteSize || 0);
+          const mimeType = String(infoData.mimeType || 'application/octet-stream');
+
+          // 2. Fetch single chunks sequentially
+          const chunkBuffers: Uint8Array[] = [];
+          let totalAssembledSize = 0;
+          let downloadOk = true;
+
+          for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+            const chunkRes = await fetch(`/api/images/${encodeURIComponent(imageId)}/chunk/${chunkIdx}`);
+            if (!chunkRes.ok) {
+              downloadOk = false;
+              console.warn(`[SyncEngine] Chunk ${chunkIdx + 1}/${totalChunks} download failed for ${imageId}: status ${chunkRes.status}`);
+              break;
+            }
+            const arrayBuffer = await chunkRes.arrayBuffer();
+            const chunkBytes = new Uint8Array(arrayBuffer);
+            chunkBuffers.push(chunkBytes);
+            totalAssembledSize += chunkBytes.byteLength;
+          }
+
+          if (downloadOk && chunkBuffers.length === totalChunks) {
+            // 3. Reassemble on client
+            const finalSize = totalByteSize > 0 ? totalByteSize : totalAssembledSize;
+            const assembledBytes = new Uint8Array(finalSize);
+            let offset = 0;
+            for (const chunk of chunkBuffers) {
+              assembledBytes.set(chunk, offset);
+              offset += chunk.byteLength;
+            }
+
+            const dataUrl = binaryToClientDataUrl(mimeType, assembledBytes);
+            await ImageStore.saveImage(imageId, dataUrl);
+            this.syncedImageKeys.add(imageId);
+            this.saveSyncedImageKeys();
+            this.missingRemoteImages.delete(imageId);
+          } else {
+            const attempts = (failedInfo?.attempts || 0) + 1;
+            const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+            this.missingRemoteImages.set(imageId, { attempts, nextRetry: Date.now() + delay });
+          }
+        } catch (downloadErr) {
+          const attempts = (failedInfo?.attempts || 0) + 1;
+          const delay = Math.min(60000, Math.pow(2, attempts) * 1000);
+          this.missingRemoteImages.set(imageId, { attempts, nextRetry: Date.now() + delay });
+          console.warn(`[SyncEngine] Download error for ${imageId}:`, downloadErr);
+        } finally {
+          this.activeDownloadingImage = null;
+          this.notify();
+        }
       }
-    } catch (err) {
-      console.warn('[SyncEngine] On-demand image fetch error for:', imageId, err);
-      this.missingRemoteImages.set(imageId, Date.now() + 10000);
     } finally {
-      this.downloadingImages.delete(imageId);
+      this.isProcessingDownloadQueue = false;
+      this.activeDownloadingImage = null;
       this.notify();
     }
-    return null;
   }
 
   private extractImageRefs(obj: any, refs: Set<string> = new Set(), seen: WeakSet<object> = new WeakSet()): string[] {
@@ -749,9 +905,11 @@ class SyncEngineManager {
     this.bootstrappedKeys.clear();
     this.syncedImageKeys.clear();
     this.uploadingImages.clear();
-    this.downloadingImages.clear();
+    this.pendingImageDownloads.clear();
+    this.activeDownloadingImage = null;
     this.failedImageUploads.clear();
     this.missingRemoteImages.clear();
+    this.inFlightDownloadPromises.clear();
     safeStorageRemove(QUEUE_KEY);
     safeStorageRemove(LAST_SYNC_KEY);
     safeStorageRemove(MIGRATED_KEY);
