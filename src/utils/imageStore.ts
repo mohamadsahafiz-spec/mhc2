@@ -336,6 +336,11 @@ export const ImageStore = {
     return imageMemoryCache.has(id) || persistedInIdbKeys.has(id);
   },
 
+  getDirectMemoryImage(id?: string | null): string | undefined {
+    if (!id) return undefined;
+    return imageMemoryCache.get(id);
+  },
+
   getCachedImage(id?: string | null): string | undefined {
     return this.resolveImage(id);
   },

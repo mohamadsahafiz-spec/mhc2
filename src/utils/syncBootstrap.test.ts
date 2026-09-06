@@ -6,6 +6,8 @@ import worker from '../worker';
 import { SyncEngine } from './syncEngine';
 import { StorageService } from './persistence';
 
+import { ImageStore } from './imageStore';
+
 interface MockD1Row {
   key: string;
   table_name: string;
@@ -17,8 +19,19 @@ interface MockD1Row {
   is_deleted: number;
 }
 
+interface MockImageChunkRow {
+  image_id: string;
+  chunk_index: number;
+  total_chunks: number;
+  data: Uint8Array;
+  mime_type: string;
+  byte_size: number;
+  created_at: string;
+}
+
 class MockD1Database {
   public rows = new Map<string, MockD1Row>();
+  public imageChunks = new Map<string, MockImageChunkRow[]>();
   public shouldFail = false;
 
   prepare(sql: string) {
@@ -51,6 +64,32 @@ class MockD1Database {
             version: Number(version),
             is_deleted: Number(is_deleted)
           });
+          return { success: true };
+        }
+
+        if (sql.includes("INSERT INTO image_chunks")) {
+          const [imageId, chunkIndex, totalChunks, chunkData, mimeType, byteSize, createdAt] = boundArgs;
+          const existing = self.imageChunks.get(imageId) || [];
+          const updated = existing.filter(c => c.chunk_index !== Number(chunkIndex));
+          updated.push({
+            image_id: imageId,
+            chunk_index: Number(chunkIndex),
+            total_chunks: Number(totalChunks),
+            data: chunkData,
+            mime_type: mimeType,
+            byte_size: Number(byteSize),
+            created_at: createdAt
+          });
+          self.imageChunks.set(imageId, updated);
+          return { success: true };
+        }
+
+        if (sql.includes("DELETE FROM image_chunks WHERE image_id = ? AND chunk_index >= ?")) {
+          const [imageId, totalChunks] = boundArgs;
+          const existing = self.imageChunks.get(imageId);
+          if (existing) {
+            self.imageChunks.set(imageId, existing.filter(c => c.chunk_index < Number(totalChunks)));
+          }
           return { success: true };
         }
 
@@ -95,6 +134,22 @@ class MockD1Database {
             isDeleted: r.is_deleted === 1
           }));
           return { results };
+        }
+
+        if (sql.includes("FROM image_chunks WHERE image_id = ? AND chunk_index = ?")) {
+          const [imageId, chunkIndex] = boundArgs;
+          const chunks = self.imageChunks.get(imageId);
+          if (!chunks) return { results: [] };
+          const matched = chunks.find(c => c.chunk_index === Number(chunkIndex));
+          return { results: matched ? [matched] : [] };
+        }
+
+        if (sql.includes("FROM image_chunks WHERE image_id = ?")) {
+          const [imageId] = boundArgs;
+          const chunks = self.imageChunks.get(imageId);
+          if (!chunks || chunks.length === 0) return { results: [] };
+          const sorted = [...chunks].sort((a, b) => a.chunk_index - b.chunk_index);
+          return { results: [sorted[0]] };
         }
 
         return { results: [] };
@@ -343,6 +398,150 @@ describe('SyncEngine Bootstrap & Cross-Device Reconciliation', () => {
       expect(reloadedMachines[0].machineNo).toBe('WLVIA#002-MODIFIED');
       expect(reloadedMachines[0].model).toBe('BMD250WM');
       expect(reloadedMachines[0].id).toBe('WD-81810');
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
+
+  it('G: Invalidates legacy stale image sync tracker and uploads local idb: image to D1', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    const storageMap = new Map<string, string>();
+    // Inject legacy stale tracker simulating older/failed sync state
+    storageMap.set('fsos_synced_images_v1', JSON.stringify(['idb:photo-stale-001']));
+
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      // 1. Save an image to local ImageStore
+      const testImageDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      await ImageStore.saveImage('idb:photo-stale-001', testImageDataUrl);
+
+      // 2. Add a record referencing the image
+      const reportRecord = {
+        id: 'rep-001',
+        title: 'MHC Inspection Report',
+        evidenceImageId: 'idb:photo-stale-001'
+      };
+
+      SyncEngine.resetLocalSyncState();
+      SyncEngine.registerLocalDataProvider(() => ({
+        reports: [reportRecord]
+      }));
+
+      // Confirm legacy tracker was purged
+      expect(storageMap.has('fsos_synced_images_v1')).toBe(false);
+
+      // 3. Process queue -> triggers reconciliation and uploadPendingImages
+      await SyncEngine.processQueue();
+
+      // 4. Verify that image was uploaded into D1 image_chunks table despite legacy marker
+      expect(mockDb.imageChunks.has('idb:photo-stale-001')).toBe(true);
+      const chunks = mockDb.imageChunks.get('idb:photo-stale-001');
+      expect(chunks).toBeDefined();
+      expect(chunks!.length).toBe(1);
+      expect(chunks![0].mime_type).toBe('image/png');
+
+      // 5. Verify confirmed tracker is now persisted
+      const confirmedSaved = storageMap.get('fsos_confirmed_cloud_images_v2');
+      expect(confirmedSaved).toBeDefined();
+      expect(confirmedSaved).toContain('idb:photo-stale-001');
+    } finally {
+      globalThis.fetch = originalFetch;
+      (globalThis as any).localStorage = originalLocalStorage;
+    }
+  });
+
+  it('H: Target device (e.g. Work Laptop) pulls remote record and replicates missing image chunks from D1', async () => {
+    const mockDb = new MockD1Database();
+    const env = { DB: mockDb };
+
+    // 1. Source PC uploads image chunks to D1
+    const testBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    mockDb.imageChunks.set('idb:cross-dev-img-999', [{
+      image_id: 'idb:cross-dev-img-999',
+      chunk_index: 0,
+      total_chunks: 1,
+      data: testBytes,
+      mime_type: 'image/png',
+      byte_size: testBytes.byteLength,
+      created_at: new Date().toISOString()
+    }]);
+
+    // Populate D1 records table with report containing the image ref
+    mockDb.rows.set('mhc_reports:rep-999', {
+      key: 'mhc_reports:rep-999',
+      table_name: 'mhc_reports',
+      record_id: 'rep-999',
+      data: JSON.stringify({ id: 'rep-999', photoRef: 'idb:cross-dev-img-999' }),
+      updated_at: new Date().toISOString(),
+      device_id: 'HOME-PC',
+      version: 1,
+      is_deleted: 0
+    });
+
+    const storageMap = new Map<string, string>();
+    const mockLocalStorage = {
+      getItem: (key: string) => storageMap.get(key) || null,
+      setItem: (key: string, val: string) => storageMap.set(key, val),
+      removeItem: (key: string) => storageMap.delete(key),
+      clear: () => storageMap.clear(),
+      get length() { return storageMap.size; },
+      key: (i: number) => Array.from(storageMap.keys())[i] || null
+    };
+
+    const originalLocalStorage = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = mockLocalStorage;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const req = new Request(urlStr.startsWith('http') ? urlStr : `https://worker.dev${urlStr}`, init);
+      return await worker.fetch(req, env);
+    };
+
+    try {
+      SyncEngine.resetLocalSyncState();
+      SyncEngine.setDeviceId('WORK-LAPTOP');
+      SyncEngine.registerLocalDataProvider(() => ({}));
+
+      let receivedRecord: any = null;
+      SyncEngine.registerRemoteUpdateCallback((_table, records) => {
+        if (records.length > 0) {
+          receivedRecord = records[0].data;
+        }
+      });
+
+      // 2. Work Laptop processes queue -> pulls record from D1 and queues image download
+      await SyncEngine.processQueue();
+
+      expect(receivedRecord).toBeDefined();
+      expect(receivedRecord.photoRef).toBe('idb:cross-dev-img-999');
+
+      // 3. Hydrate or verify image replicated to local ImageStore
+      const imagePayload = await SyncEngine.fetchImageOnDemand('idb:cross-dev-img-999');
+      expect(imagePayload).toBeDefined();
+      expect(imagePayload).toContain('data:image/png;base64,');
+      expect(ImageStore.hasLocalImage('idb:cross-dev-img-999')).toBe(true);
     } finally {
       globalThis.fetch = originalFetch;
       (globalThis as any).localStorage = originalLocalStorage;

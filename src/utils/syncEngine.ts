@@ -67,7 +67,8 @@ const DEVICE_ID_KEY = 'fsos_device_id';
 const LAST_SYNC_KEY = 'fsos_last_sync_time';
 const MIGRATED_KEY = 'fsos_cloud_migrated_v1';
 const SYNCED_KEYS_KEY = 'fsos_synced_keys_v1';
-const SYNCED_IMAGES_KEY = 'fsos_synced_images_v1';
+const LEGACY_SYNCED_IMAGES_KEY = 'fsos_synced_images_v1';
+const CONFIRMED_CLOUD_IMAGES_KEY = 'fsos_confirmed_cloud_images_v2';
 
 function parseDataUrlToBinary(dataUrl: string): { mimeType: string; binary: Uint8Array } {
   if (dataUrl.startsWith("data:")) {
@@ -104,10 +105,8 @@ function binaryToClientDataUrl(mimeType: string, bytes: Uint8Array): string {
   }
   let binaryStr = '';
   const len = bytes.byteLength;
-  const CHUNK_SIZE = 8192;
-  for (let i = 0; i < len; i += CHUNK_SIZE) {
-    const slice = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
-    binaryStr += String.fromCharCode.apply(null, slice as any);
+  for (let i = 0; i < len; i++) {
+    binaryStr += String.fromCharCode(bytes[i]);
   }
   return `data:${mimeType};base64,${btoa(binaryStr)}`;
 }
@@ -131,7 +130,7 @@ class SyncEngineManager {
   private onRemoteDataUpdateCallback: ((table: string, data: any) => void) | null = null;
   private localDataProvider: (() => Record<string, any[]>) | null = null;
   private bootstrappedKeys: Set<string> = new Set();
-  private syncedImageKeys: Set<string> = new Set();
+  private confirmedCloudImages: Set<string> = new Set();
   private uploadingImages: Set<string> = new Set();
   private failedImageUploads: Map<string, { attempts: number; nextRetry: number }> = new Map();
   private pendingImageDownloads: Set<string> = new Set();
@@ -173,17 +172,20 @@ class SyncEngineManager {
       console.warn('[SyncEngine] Failed to read synced keys tracker', e);
     }
 
-    // Load Synced Images tracker
+    // Migration: Invalidate and purge stale unconfirmed v1 tracker
+    safeStorageRemove(LEGACY_SYNCED_IMAGES_KEY);
+
+    // Load Confirmed Cloud Images tracker
     try {
-      const savedSyncedImages = safeStorageGet(SYNCED_IMAGES_KEY);
-      if (savedSyncedImages) {
-        const arr = JSON.parse(savedSyncedImages);
+      const savedConfirmedImages = safeStorageGet(CONFIRMED_CLOUD_IMAGES_KEY);
+      if (savedConfirmedImages) {
+        const arr = JSON.parse(savedConfirmedImages);
         if (Array.isArray(arr)) {
-          this.syncedImageKeys = new Set(arr);
+          this.confirmedCloudImages = new Set(arr);
         }
       }
     } catch (e) {
-      console.warn('[SyncEngine] Failed to read synced images tracker', e);
+      console.warn('[SyncEngine] Failed to read confirmed cloud images tracker', e);
     }
 
     // Load Queue from storage
@@ -319,12 +321,12 @@ class SyncEngineManager {
     }
   }
 
-  private saveSyncedImageKeys() {
+  private saveConfirmedCloudImages() {
     try {
-      const arr = Array.from(this.syncedImageKeys);
-      safeStorageSet(SYNCED_IMAGES_KEY, JSON.stringify(arr));
+      const arr = Array.from(this.confirmedCloudImages);
+      safeStorageSet(CONFIRMED_CLOUD_IMAGES_KEY, JSON.stringify(arr));
     } catch (e) {
-      console.warn('[SyncEngine] Failed to save synced images tracker', e);
+      console.warn('[SyncEngine] Failed to save confirmed cloud images tracker', e);
     }
   }
 
@@ -567,7 +569,7 @@ class SyncEngineManager {
 
       const now = Date.now();
       for (const ref of candidateRefs) {
-        if (this.syncedImageKeys.has(ref)) continue;
+        if (this.confirmedCloudImages.has(ref)) continue;
         if (this.uploadingImages.has(ref)) continue;
 
         const failedInfo = this.failedImageUploads.get(ref);
@@ -579,8 +581,6 @@ class SyncEngineManager {
           const byteSize = binary.byteLength;
 
           if (byteSize === 0) {
-            this.syncedImageKeys.add(ref);
-            this.saveSyncedImageKeys();
             continue;
           }
 
@@ -621,8 +621,8 @@ class SyncEngineManager {
             }
 
             if (allChunksSucceeded) {
-              this.syncedImageKeys.add(ref);
-              this.saveSyncedImageKeys();
+              this.confirmedCloudImages.add(ref);
+              this.saveConfirmedCloudImages();
               this.failedImageUploads.delete(ref);
             }
           } catch (e) {
@@ -645,8 +645,12 @@ class SyncEngineManager {
   public downloadMissingImages(imageRefs: Iterable<string>) {
     for (const ref of imageRefs) {
       if (!ref || !ref.startsWith('idb:')) continue;
+      if (this.pendingImageDownloads.has(ref) || this.activeDownloadingImage === ref) continue;
       if (ImageStore.hasLocalImage(ref)) continue;
-      if (this.syncedImageKeys.has(ref)) continue;
+
+      const failedInfo = this.missingRemoteImages.get(ref);
+      if (failedInfo && Date.now() < failedInfo.nextRetry) continue;
+
       this.pendingImageDownloads.add(ref);
     }
     this.triggerDownloadQueueProcessing();
@@ -663,7 +667,7 @@ class SyncEngineManager {
   public async fetchImageOnDemand(imageId: string): Promise<string | null> {
     if (!imageId || !imageId.startsWith('idb:')) return null;
     if (ImageStore.hasLocalImage(imageId)) {
-      return ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+      return ImageStore.getDirectMemoryImage(imageId) || await ImageStore.getImage(imageId);
     }
 
     // If already in flight, reuse promise
@@ -685,7 +689,7 @@ class SyncEngineManager {
 
   private async downloadImageDirectly(imageId: string): Promise<string | null> {
     if (ImageStore.hasLocalImage(imageId)) {
-      return ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+      return ImageStore.getDirectMemoryImage(imageId) || await ImageStore.getImage(imageId);
     }
 
     const failedInfo = this.missingRemoteImages.get(imageId);
@@ -706,13 +710,13 @@ class SyncEngineManager {
       const interval = setInterval(async () => {
         if (ImageStore.hasLocalImage(imageId)) {
           clearInterval(interval);
-          const data = ImageStore.getCachedImage(imageId) || await ImageStore.getImage(imageId);
+          const data = ImageStore.getDirectMemoryImage(imageId) || await ImageStore.getImage(imageId);
           resolve(data);
         } else if (!this.pendingImageDownloads.has(imageId) && this.activeDownloadingImage !== imageId) {
           clearInterval(interval);
           resolve(null);
         }
-      }, 100);
+      }, 50);
 
       setTimeout(() => {
         clearInterval(interval);
@@ -731,9 +735,10 @@ class SyncEngineManager {
         if (!imageId) break;
         this.pendingImageDownloads.delete(imageId);
 
-        if (ImageStore.hasLocalImage(imageId)) {
-          this.syncedImageKeys.add(imageId);
-          this.saveSyncedImageKeys();
+        const existingLocal = ImageStore.getDirectMemoryImage(imageId) || await ImageStore.getImage(imageId);
+        if (existingLocal) {
+          this.confirmedCloudImages.add(imageId);
+          this.saveConfirmedCloudImages();
           continue;
         }
 
@@ -791,8 +796,8 @@ class SyncEngineManager {
 
             const dataUrl = binaryToClientDataUrl(mimeType, assembledBytes);
             await ImageStore.saveImage(imageId, dataUrl);
-            this.syncedImageKeys.add(imageId);
-            this.saveSyncedImageKeys();
+            this.confirmedCloudImages.add(imageId);
+            this.saveConfirmedCloudImages();
             this.missingRemoteImages.delete(imageId);
           } else {
             const attempts = (failedInfo?.attempts || 0) + 1;
@@ -903,7 +908,7 @@ class SyncEngineManager {
     this.status = 'synced';
     this.lastError = null;
     this.bootstrappedKeys.clear();
-    this.syncedImageKeys.clear();
+    this.confirmedCloudImages.clear();
     this.uploadingImages.clear();
     this.pendingImageDownloads.clear();
     this.activeDownloadingImage = null;
@@ -914,7 +919,8 @@ class SyncEngineManager {
     safeStorageRemove(LAST_SYNC_KEY);
     safeStorageRemove(MIGRATED_KEY);
     safeStorageRemove(SYNCED_KEYS_KEY);
-    safeStorageRemove(SYNCED_IMAGES_KEY);
+    safeStorageRemove(CONFIRMED_CLOUD_IMAGES_KEY);
+    safeStorageRemove(LEGACY_SYNCED_IMAGES_KEY);
     this.notify();
   }
 

@@ -1,5 +1,22 @@
 # FSOS CHANGELOG
 
+## v1.5.2 — FIX STALE IMAGE SYNC STATE (2026-09-06)
+
+### Stale Tracker Invalidation & Authoritative Cloud Image Confirmation
+- **Invalidation of Legacy Unverified Image Tracker (`fsos_synced_images_v1`)**:
+  - Automatically invalidates and purges the legacy `fsos_synced_images_v1` tracker on `SyncEngine.init()`.
+  - Replaced blind local assumption with `confirmedCloudImages` (`fsos_confirmed_cloud_images_v2`), which is ONLY populated upon verified completion of all binary chunks upload or successful client-side download from D1.
+- **Unblocking Stalled Source PC Image Uploads (`uploadPendingImages`)**:
+  - Source PC with local `idb:<imageId>` images is no longer permanently skipped due to stale local markers.
+  - Verifies cloud persistence and re-uploads binary chunks to D1 with exponential backoff on retry.
+- **Unblocking Target Device Image Replication (`downloadMissingImages` & `processDownloadQueue`)**:
+  - Target device (e.g. Work Laptop) is no longer blocked from downloading missing cloud images by legacy local markers.
+  - Missing images are queued sequentially, downloaded via `/api/images/:imageId/info` and raw chunk streams, client-reassembled, and saved to IndexedDB before marking confirmed.
+- **Controlled Concurrency & Request Protection**:
+  - Retains single-image in-flight download queue processing and exponential backoff retry logic, preventing 404 polling storms or concurrent thrashing.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `wrangler.toml` to `v1.5.2`.
+
 ## v1.5.1 — COMPLETE D1 CROSS-DEVICE IMAGE SYNC (2026-09-06)
 
 ### Symmetric Raw Binary Image Download & SQL-Optimized Sync
