@@ -933,4 +933,5 @@ export interface MhcWorkspaceDraft {
 
 export * from './mhcReportDocument';
 export * from './parts';
+export * from './backup';
 

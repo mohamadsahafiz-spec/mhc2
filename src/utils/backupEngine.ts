@@ -4,22 +4,43 @@ import {
   FSOSFullBackupData,
   FSOSFullBackupEnvelope,
   FSOSBackupValidationResult,
-  CURRENT_BACKUP_SCHEMA_VERSION
+  FSOSMediaBackupManifest,
+  FSOSMediaBackupEnvelope,
+  FSOSMediaBackupValidationResult,
+  FSOSCompleteBackupValidationResult,
+  CURRENT_BACKUP_SCHEMA_VERSION,
+  CURRENT_MEDIA_BACKUP_SCHEMA_VERSION
 } from '../types/backup';
 import { StorageService, STORAGE_KEYS, safeJsonStringify } from './persistence';
 import { SyncEngine } from './syncEngine';
+import { ImageStore } from './imageStore';
 import { reconcileMhcSessionIdentities } from './mhcIdentityReconciler';
 
 /**
- * Generate formatted filename for full backups or pre-restore safety snapshots.
- * Example: fsos-full-backup-2026-09-07-033000.json
+ * Generate a unique deterministic backup ID.
  */
-export function getBackupFilename(prefix = 'fsos-full-backup'): string {
+export function generateBackupId(): string {
+  return `fsos_backup_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Generate formatted filename for core backups or pre-restore safety snapshots.
+ * Example: fsos-core-backup-2026-09-07-033000.json
+ */
+export function getBackupFilename(prefix = 'fsos-core-backup'): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const timeStr = `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
   return `${prefix}-${dateStr}-${timeStr}.json`;
+}
+
+/**
+ * Generate formatted filename for media backups.
+ * Example: fsos-media-backup-2026-09-07-033000.json
+ */
+export function getMediaBackupFilename(prefix = 'fsos-media-backup'): string {
+  return getBackupFilename(prefix);
 }
 
 /**
@@ -43,7 +64,7 @@ export function triggerFileDownload(content: string, filename: string): void {
  * Generates an in-memory FSOSFullBackupEnvelope snapshot of all current local operational data.
  * Pure read-only operation with zero mutations or sync triggers.
  */
-export function generateFullBackupEnvelope(): FSOSFullBackupEnvelope {
+export function generateFullBackupEnvelope(customBackupId?: string): FSOSFullBackupEnvelope {
   const localData = StorageService.getAllLocalData();
   const branding = StorageService.getBranding();
   const profile = StorageService.getProfile();
@@ -97,7 +118,7 @@ export function generateFullBackupEnvelope(): FSOSFullBackupEnvelope {
   };
 
   const manifest: FSOSBackupManifest = {
-    backupId: `fsos_backup_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    backupId: customBackupId || generateBackupId(),
     backupVersion: CURRENT_BACKUP_SCHEMA_VERSION,
     appVersion: APP_VERSION,
     createdAt: new Date().toISOString(),
@@ -114,14 +135,84 @@ export function generateFullBackupEnvelope(): FSOSFullBackupEnvelope {
 }
 
 /**
+ * Generates an in-memory FSOSMediaBackupEnvelope containing all stored evidence images.
+ */
+export async function generateMediaBackupEnvelope(sharedBackupId?: string): Promise<FSOSMediaBackupEnvelope> {
+  const images = await ImageStore.getAllImages();
+  const imageCount = Object.keys(images).length;
+
+  const manifest: FSOSMediaBackupManifest = {
+    backupId: sharedBackupId || generateBackupId(),
+    backupVersion: CURRENT_MEDIA_BACKUP_SCHEMA_VERSION,
+    appVersion: APP_VERSION,
+    createdAt: new Date().toISOString(),
+    environment: 'FSOS_WEB_CLIENT',
+    includesImages: true,
+    imageCount
+  };
+
+  return {
+    manifest,
+    images
+  };
+}
+
+/**
  * Assembles and exports a Full Core Data Backup JSON file, triggering immediate browser download.
  */
 export function exportFullBackup(customFilename?: string): { envelope: FSOSFullBackupEnvelope; filename: string } {
   const envelope = generateFullBackupEnvelope();
-  const filename = customFilename || getBackupFilename('fsos-full-backup');
+  const filename = customFilename || getBackupFilename('fsos-core-backup');
   const jsonContent = safeJsonStringify(envelope, 2);
   triggerFileDownload(jsonContent, filename);
   return { envelope, filename };
+}
+
+/**
+ * Assembles and exports a Media Evidence Backup JSON file.
+ */
+export async function exportMediaBackup(
+  sharedBackupId?: string,
+  customFilename?: string
+): Promise<{ envelope: FSOSMediaBackupEnvelope; filename: string }> {
+  const envelope = await generateMediaBackupEnvelope(sharedBackupId);
+  const filename = customFilename || getMediaBackupFilename('fsos-media-backup');
+  const jsonContent = safeJsonStringify(envelope, 2);
+  triggerFileDownload(jsonContent, filename);
+  return { envelope, filename };
+}
+
+/**
+ * Exports a Complete Archive containing paired Core Data Backup and Media Evidence Backup files.
+ * Both files share the exact same backupId.
+ */
+export async function exportCompleteArchive(): Promise<{
+  coreFilename: string;
+  mediaFilename: string;
+  backupId: string;
+  imageCount: number;
+}> {
+  const sharedBackupId = generateBackupId();
+
+  // 1. Generate & trigger Core Backup download
+  const coreEnvelope = generateFullBackupEnvelope(sharedBackupId);
+  const coreFilename = getBackupFilename('fsos-core-backup');
+  triggerFileDownload(safeJsonStringify(coreEnvelope, 2), coreFilename);
+
+  // 2. Generate & trigger Media Backup download
+  const mediaEnvelope = await generateMediaBackupEnvelope(sharedBackupId);
+  const mediaFilename = getMediaBackupFilename('fsos-media-backup');
+
+  // Small timeout to ensure browser handles dual file downloads cleanly
+  await new Promise(resolve => setTimeout(resolve, 200));
+  triggerFileDownload(safeJsonStringify(mediaEnvelope, 2), mediaFilename);
+
+  return {
+    coreFilename,
+    mediaFilename,
+    backupId: sharedBackupId,
+    imageCount: mediaEnvelope.manifest.imageCount
+  };
 }
 
 /**
@@ -159,33 +250,23 @@ export function validateBackup(jsonString: string): FSOSBackupValidationResult {
       valid: false,
       domainCounts: {},
       warnings: [],
-      errors: ['Invalid backup structure: Root must be a JSON object containing manifest and data.']
+      errors: ['Invalid backup envelope: Root must be a valid JSON object.']
     };
   }
 
-  // Validate manifest
-  if (!parsed.manifest || typeof parsed.manifest !== 'object' || Array.isArray(parsed.manifest)) {
-    errors.push('Missing or invalid "manifest" object in backup envelope.');
+  if (!parsed.manifest || typeof parsed.manifest !== 'object') {
+    errors.push('Missing or malformed "manifest" object in backup envelope.');
   } else {
-    const { backupVersion, backupId, createdAt, appVersion } = parsed.manifest;
-    if (!backupVersion || typeof backupVersion !== 'string') {
-      errors.push('Backup manifest is missing a valid "backupVersion" string.');
-    } else if (!backupVersion.startsWith('1.')) {
-      errors.push(`Unsupported backup version "${backupVersion}". Only schema v1.x backups are supported.`);
+    if (!parsed.manifest.backupId || typeof parsed.manifest.backupId !== 'string') {
+      errors.push('Manifest is missing a valid "backupId" string.');
     }
-
-    if (!backupId || typeof backupId !== 'string') {
-      warnings.push('Backup manifest is missing a unique "backupId".');
-    }
-    if (!createdAt || typeof createdAt !== 'string' || isNaN(Date.parse(createdAt))) {
-      warnings.push('Backup manifest contains an invalid or missing "createdAt" timestamp.');
-    }
-    if (!appVersion || typeof appVersion !== 'string') {
-      warnings.push('Backup manifest is missing "appVersion" metadata.');
+    if (!parsed.manifest.backupVersion || typeof parsed.manifest.backupVersion !== 'string') {
+      errors.push('Manifest is missing a valid "backupVersion" string.');
+    } else if (!parsed.manifest.backupVersion.startsWith('1.')) {
+      errors.push(`Unsupported backup version: ${parsed.manifest.backupVersion}. Expected version 1.x.`);
     }
   }
 
-  // Validate data payload
   if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
     errors.push('Missing or invalid "data" object containing core FSOS domains.');
     return {
@@ -253,6 +334,132 @@ export function validateBackup(jsonString: string): FSOSBackupValidationResult {
     manifest: parsed.manifest,
     envelope: parsed as FSOSFullBackupEnvelope,
     domainCounts,
+    warnings,
+    errors
+  };
+}
+
+/**
+ * Validates a potential Media Backup JSON string.
+ */
+export function validateMediaBackup(jsonString: string): FSOSMediaBackupValidationResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  if (!jsonString || typeof jsonString !== 'string' || jsonString.trim() === '') {
+    return {
+      valid: false,
+      imageCount: 0,
+      warnings: [],
+      errors: ['The selected media file is empty. Please provide a valid FSOS media backup JSON file.']
+    };
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (err: any) {
+    return {
+      valid: false,
+      imageCount: 0,
+      warnings: [],
+      errors: [`Invalid Media JSON formatting: ${err?.message || 'JSON Parse Error'}`]
+    };
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {
+      valid: false,
+      imageCount: 0,
+      warnings: [],
+      errors: ['Invalid Media backup envelope: Root must be a valid JSON object.']
+    };
+  }
+
+  if (!parsed.manifest || typeof parsed.manifest !== 'object') {
+    errors.push('Missing or malformed "manifest" object in media backup envelope.');
+  } else {
+    if (!parsed.manifest.backupId || typeof parsed.manifest.backupId !== 'string') {
+      errors.push('Media manifest is missing a valid "backupId" string.');
+    }
+    if (parsed.manifest.includesImages !== true) {
+      errors.push('Media manifest "includesImages" flag must be true.');
+    }
+    if (typeof parsed.manifest.imageCount !== 'number') {
+      errors.push('Media manifest is missing a numeric "imageCount".');
+    }
+  }
+
+  if (!parsed.images || typeof parsed.images !== 'object' || Array.isArray(parsed.images)) {
+    errors.push('Missing or invalid "images" dictionary in media backup envelope.');
+  }
+
+  const actualImageCount = parsed.images && typeof parsed.images === 'object' && !Array.isArray(parsed.images)
+    ? Object.keys(parsed.images).length
+    : 0;
+
+  if (parsed.manifest && typeof parsed.manifest.imageCount === 'number' && parsed.manifest.imageCount !== actualImageCount) {
+    errors.push(`Media manifest imageCount (${parsed.manifest.imageCount}) does not match actual image count in payload (${actualImageCount}).`);
+  }
+
+  const valid = errors.length === 0;
+
+  return {
+    valid,
+    manifest: parsed.manifest,
+    envelope: parsed as FSOSMediaBackupEnvelope,
+    imageCount: actualImageCount,
+    warnings,
+    errors
+  };
+}
+
+/**
+ * Validates a paired Complete Backup (Core Backup + Optional Media Backup).
+ */
+export function validateCompleteBackup(
+  coreJsonString: string,
+  mediaJsonString?: string
+): FSOSCompleteBackupValidationResult {
+  const coreRes = validateBackup(coreJsonString);
+  const warnings = [...coreRes.warnings];
+  const errors = [...coreRes.errors];
+
+  if (!mediaJsonString || mediaJsonString.trim() === '') {
+    return {
+      valid: coreRes.valid,
+      coreValidation: coreRes,
+      hasMedia: false,
+      backupIdMatch: true,
+      warnings,
+      errors
+    };
+  }
+
+  const mediaRes = validateMediaBackup(mediaJsonString);
+  warnings.push(...mediaRes.warnings);
+  errors.push(...mediaRes.errors);
+
+  let backupIdMatch = false;
+  if (coreRes.manifest?.backupId && mediaRes.manifest?.backupId) {
+    if (coreRes.manifest.backupId === mediaRes.manifest.backupId) {
+      backupIdMatch = true;
+    } else {
+      backupIdMatch = false;
+      errors.push(
+        `Backup ID mismatch: Core Backup ID (${coreRes.manifest.backupId}) does not match Media Backup ID (${mediaRes.manifest.backupId}). Both files must originate from the same Complete Archive.`
+      );
+    }
+  }
+
+  const valid = coreRes.valid && mediaRes.valid && backupIdMatch;
+
+  return {
+    valid,
+    coreValidation: coreRes,
+    mediaValidation: mediaRes,
+    hasMedia: true,
+    backupIdMatch,
     warnings,
     errors
   };
@@ -364,5 +571,126 @@ export async function restoreFullBackup(
   return {
     success: true,
     safetyBackupFilename: safetyFilename
+  };
+}
+
+/**
+ * Restores a Complete Archive snapshot (Core Data + Optional Media Evidence).
+ */
+export async function restoreCompleteBackup(
+  coreEnvelope: FSOSFullBackupEnvelope,
+  mediaEnvelope?: FSOSMediaBackupEnvelope,
+  options?: { skipReload?: boolean; skipSafetyDownload?: boolean }
+): Promise<{ success: boolean; safetyBackupFilename?: string; restoredImageCount?: number; error?: string }> {
+  // 1. VALIDATION
+  const validation = validateCompleteBackup(
+    safeJsonStringify(coreEnvelope),
+    mediaEnvelope ? safeJsonStringify(mediaEnvelope) : undefined
+  );
+
+  if (!validation.valid || !validation.coreValidation.envelope) {
+    const errMsg = `Complete Archive validation failed: ${validation.errors.join('; ')}`;
+    console.error('[BackupEngine] Complete restore aborted:', errMsg);
+    return { success: false, error: errMsg };
+  }
+
+  // 2. AUTOMATIC CORE SAFETY BACKUP (DOWNLOAD CURRENT STATE)
+  let safetyFilename: string | undefined;
+  if (!options?.skipSafetyDownload) {
+    try {
+      const safetyEnvelope = generateFullBackupEnvelope();
+      safetyFilename = getBackupFilename('fsos-pre-restore-safety-snapshot');
+      const safetyContent = safeJsonStringify(safetyEnvelope, 2);
+      triggerFileDownload(safetyContent, safetyFilename);
+    } catch (err: any) {
+      const errMsg = `Safety pre-restore backup generation failed (${err?.message || err}). Restore aborted to prevent unrecoverable data loss.`;
+      console.error('[BackupEngine] Restore aborted:', errMsg);
+      return { success: false, error: errMsg };
+    }
+  }
+
+  // 3. RESTORE CORE DATA TO LOCAL STORAGE
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const d = validation.coreValidation.envelope.data;
+
+      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines));
+      if (Array.isArray(d.customers)) localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(d.customers));
+      if (Array.isArray(d.plants)) localStorage.setItem(STORAGE_KEYS.PLANTS, safeJsonStringify(d.plants));
+      if (Array.isArray(d.lines)) localStorage.setItem(STORAGE_KEYS.LINES, safeJsonStringify(d.lines));
+      if (Array.isArray(d.contracts)) localStorage.setItem(STORAGE_KEYS.CONTRACTS, safeJsonStringify(d.contracts));
+      if (Array.isArray(d.schedule)) localStorage.setItem(STORAGE_KEYS.SCHEDULE, safeJsonStringify(d.schedule));
+      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions));
+      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports));
+      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records));
+      if (Array.isArray(d.tasks)) localStorage.setItem(STORAGE_KEYS.TASKS, safeJsonStringify(d.tasks));
+      if (Array.isArray(d.alerts)) localStorage.setItem(STORAGE_KEYS.ALERTS, safeJsonStringify(d.alerts));
+      if (Array.isArray(d.baselines)) localStorage.setItem(STORAGE_KEYS.BASELINES, safeJsonStringify(d.baselines));
+      if (Array.isArray(d.investigations)) localStorage.setItem(STORAGE_KEYS.INVESTIGATIONS, safeJsonStringify(d.investigations));
+      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates));
+      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts));
+      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts));
+      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates));
+      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts));
+      if (Array.isArray(d.recommended_parts)) localStorage.setItem(STORAGE_KEYS.RECOMMENDED_PARTS, safeJsonStringify(d.recommended_parts));
+      if (d.branding && typeof d.branding === 'object') localStorage.setItem(STORAGE_KEYS.BRANDING, safeJsonStringify(d.branding));
+      if (d.profile && typeof d.profile === 'object') localStorage.setItem(STORAGE_KEYS.PROFILE, safeJsonStringify(d.profile));
+    }
+  } catch (err: any) {
+    const errMsg = `Direct localStorage write failed: ${err?.message || err}`;
+    console.error('[BackupEngine] Write failure during restore:', errMsg);
+    return { success: false, error: errMsg };
+  }
+
+  // 4. RESTORE MEDIA IMAGES NON-DESTRUCTIVELY INTO INDEXEDDB
+  let restoredImageCount = 0;
+  if (mediaEnvelope && mediaEnvelope.images && typeof mediaEnvelope.images === 'object') {
+    try {
+      const mediaResult = await ImageStore.restoreImages(mediaEnvelope.images);
+      restoredImageCount = mediaResult.restoredCount;
+      if (mediaResult.errors.length > 0) {
+        console.warn('[BackupEngine] Some media images encountered restore errors:', mediaResult.errors);
+      }
+    } catch (err: any) {
+      console.warn('[BackupEngine] Media restoration error:', err);
+    }
+  }
+
+  // 5. RESET SYNC STATE
+  try {
+    SyncEngine.resetLocalSyncState();
+  } catch (err: any) {
+    console.warn('[BackupEngine] SyncEngine resetLocalSyncState warning:', err);
+  }
+
+  // 6. IDENTITY RECONCILIATION
+  try {
+    const rawMachines = StorageService.getMachines();
+    const rawCustomers = StorageService.getCustomers();
+    const recCust = StorageService.reconcileCustomerIdentities(rawMachines, rawCustomers);
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(recCust.machines));
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(recCust.customers));
+    }
+
+    const rawSessions = StorageService.getMhcSessions(false);
+    const recSessions = reconcileMhcSessionIdentities(rawSessions, recCust.machines);
+    if (recSessions.modified && typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(recSessions.sessions));
+    }
+  } catch (err: any) {
+    console.warn('[BackupEngine] Post-restore identity reconciliation warning:', err);
+  }
+
+  // 7. RELOAD APPLICATION
+  if (!options?.skipReload && typeof window !== 'undefined' && typeof window.location?.reload === 'function') {
+    window.location.reload();
+  }
+
+  return {
+    success: true,
+    safetyBackupFilename: safetyFilename,
+    restoredImageCount
   };
 }

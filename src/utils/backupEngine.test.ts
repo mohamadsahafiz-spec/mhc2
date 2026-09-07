@@ -1,13 +1,18 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import {
   generateFullBackupEnvelope,
+  generateMediaBackupEnvelope,
   validateBackup,
+  validateMediaBackup,
+  validateCompleteBackup,
   restoreFullBackup,
+  restoreCompleteBackup,
   getBackupFilename
 } from './backupEngine';
 import { StorageService, STORAGE_KEYS, safeJsonStringify } from './persistence';
 import { SyncEngine } from './syncEngine';
-import { Machine } from '../types';
+import { ImageStore } from './imageStore';
+import { Machine, FSOSMediaBackupEnvelope } from '../types';
 
 class MockLocalStorage {
   private store: Record<string, string> = {};
@@ -203,11 +208,11 @@ describe('FSOS P1.2 Full Core Data Backup & Restore Engine', () => {
     // 2. Missing manifest
     const missingManifest = validateBackup(JSON.stringify({ data: { machines: [] } }));
     expect(missingManifest.valid).toBe(false);
-    expect(missingManifest.errors.some(e => e.includes('Missing or invalid "manifest"'))).toBe(true);
+    expect(missingManifest.errors.some(e => e.includes('Missing or malformed "manifest"'))).toBe(true);
 
     // 3. Unsupported backup version
     const unsupportedVersion = validateBackup(JSON.stringify({
-      manifest: { backupVersion: '99.0.0', backupId: 'b1', createdAt: new Date().toISOString(), appVersion: 'v1.5.8' },
+      manifest: { backupVersion: '99.0.0', backupId: 'b1', createdAt: new Date().toISOString(), appVersion: 'v1.5.9' },
       data: {}
     }));
     expect(unsupportedVersion.valid).toBe(false);
@@ -215,7 +220,7 @@ describe('FSOS P1.2 Full Core Data Backup & Restore Engine', () => {
 
     // 4. Invalid domain structure
     const invalidDomain = validateBackup(JSON.stringify({
-      manifest: { backupVersion: '1.0.0', backupId: 'b1', createdAt: new Date().toISOString(), appVersion: 'v1.5.8' },
+      manifest: { backupVersion: '1.0.0', backupId: 'b1', createdAt: new Date().toISOString(), appVersion: 'v1.5.9' },
       data: { machines: 'not-an-array' }
     }));
     expect(invalidDomain.valid).toBe(false);
@@ -266,10 +271,198 @@ describe('FSOS P1.2 Full Core Data Backup & Restore Engine', () => {
   });
 
   it('formats backup filenames consistently with ISO dates', () => {
-    const backupName = getBackupFilename('fsos-full-backup');
-    expect(backupName).toMatch(/^fsos-full-backup-\d{4}-\d{2}-\d{2}-\d{6}\.json$/);
+    const backupName = getBackupFilename('fsos-core-backup');
+    expect(backupName).toMatch(/^fsos-core-backup-\d{4}-\d{2}-\d{2}-\d{6}\.json$/);
 
     const safetyName = getBackupFilename('fsos-pre-restore-safety-snapshot');
     expect(safetyName).toMatch(/^fsos-pre-restore-safety-snapshot-\d{4}-\d{2}-\d{2}-\d{6}\.json$/);
   });
 });
+
+describe('FSOS P1.3 Complete Archive (Media Evidence Backup & Restore)', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    SyncEngine.resetLocalSyncState();
+    await ImageStore.clearAll();
+  });
+
+  it('Media Export: preserves exact original idb: keys, image payloads, and generates valid manifest', async () => {
+    // 1. Store images in ImageStore
+    const key1 = 'idb:MHC-SESS-123_evidence_0';
+    const payload1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const key2 = 'idb:MACHINE-99_optics_lens';
+    const payload2 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+
+    ImageStore.saveImage(key1, payload1);
+    ImageStore.saveImage(key2, payload2);
+
+    // 2. Generate Media Backup Envelope
+    const sharedBackupId = 'fsos_backup_test_shared_123';
+    const mediaEnvelope = await generateMediaBackupEnvelope(sharedBackupId);
+
+    // 3. Verify Manifest
+    expect(mediaEnvelope.manifest).toBeDefined();
+    expect(mediaEnvelope.manifest.backupId).toBe(sharedBackupId);
+    expect(mediaEnvelope.manifest.backupVersion).toBe('1.0.0');
+    expect(mediaEnvelope.manifest.includesImages).toBe(true);
+    expect(mediaEnvelope.manifest.imageCount).toBe(2);
+
+    // 4. Verify exact image keys and payloads preserved byte-for-byte
+    expect(mediaEnvelope.images[key1]).toBe(payload1);
+    expect(mediaEnvelope.images[key2]).toBe(payload2);
+  });
+
+  it('Media Validation: accepts valid Media Backup and rejects malformed payloads', () => {
+    const validMedia = {
+      manifest: {
+        backupId: 'fsos_backup_valid_456',
+        backupVersion: '1.0.0',
+        appVersion: 'v1.5.9',
+        createdAt: new Date().toISOString(),
+        environment: 'FSOS_WEB_CLIENT',
+        includesImages: true,
+        imageCount: 1
+      },
+      images: {
+        'idb:MHC-001_photo': 'data:image/png;base64,ABC'
+      }
+    };
+
+    // 1. Valid Media Backup accepted
+    const validRes = validateMediaBackup(JSON.stringify(validMedia));
+    expect(validRes.valid).toBe(true);
+    expect(validRes.errors).toHaveLength(0);
+    expect(validRes.imageCount).toBe(1);
+
+    // 2. Malformed JSON rejected
+    const malformedRes = validateMediaBackup('{not valid json}');
+    expect(malformedRes.valid).toBe(false);
+    expect(malformedRes.errors[0]).toContain('Invalid Media JSON formatting');
+
+    // 3. Missing backupId rejected
+    const noBackupId = JSON.parse(JSON.stringify(validMedia));
+    delete noBackupId.manifest.backupId;
+    const noBackupIdRes = validateMediaBackup(JSON.stringify(noBackupId));
+    expect(noBackupIdRes.valid).toBe(false);
+    expect(noBackupIdRes.errors.some(e => e.includes('missing a valid "backupId"'))).toBe(true);
+
+    // 4. Invalid includesImages rejected
+    const badIncludesImages = JSON.parse(JSON.stringify(validMedia));
+    badIncludesImages.manifest.includesImages = false;
+    const badIncludesImagesRes = validateMediaBackup(JSON.stringify(badIncludesImages));
+    expect(badIncludesImagesRes.valid).toBe(false);
+    expect(badIncludesImagesRes.errors.some(e => e.includes('"includesImages" flag must be true'))).toBe(true);
+
+    // 5. imageCount mismatch rejected
+    const countMismatch = JSON.parse(JSON.stringify(validMedia));
+    countMismatch.manifest.imageCount = 99; // Actual is 1
+    const countMismatchRes = validateMediaBackup(JSON.stringify(countMismatch));
+    expect(countMismatchRes.valid).toBe(false);
+    expect(countMismatchRes.errors.some(e => e.includes('does not match actual image count'))).toBe(true);
+
+    // 6. Invalid images dictionary rejected
+    const invalidDict = JSON.parse(JSON.stringify(validMedia));
+    invalidDict.images = 'not-an-object';
+    const invalidDictRes = validateMediaBackup(JSON.stringify(invalidDict));
+    expect(invalidDictRes.valid).toBe(false);
+    expect(invalidDictRes.errors.some(e => e.includes('Missing or invalid "images" dictionary'))).toBe(true);
+  });
+
+  it('Media Restore: non-destructively upserts images using original keys, preserves existing images, and invalidates cache', async () => {
+    // 1. Existing image on device
+    const existingKey = 'idb:EXISTING_UNTOUCHED_01';
+    const existingPayload = 'data:image/png;base64,EXISTING_PAYLOAD';
+    ImageStore.saveImage(existingKey, existingPayload);
+
+    // 2. Images in backup envelope
+    const backupKey = 'idb:RESTORED_IMG_01';
+    const backupPayload = 'data:image/png;base64,RESTORED_PAYLOAD';
+
+    const mediaResult = await ImageStore.restoreImages({
+      [backupKey]: backupPayload
+    });
+
+    expect(mediaResult.restoredCount).toBe(1);
+    expect(mediaResult.errors).toHaveLength(0);
+
+    // 3. Verify restored image is now in ImageStore
+    expect(ImageStore.getCachedImage(backupKey)).toBe(backupPayload);
+
+    // 4. Verify existing image was NOT deleted (non-destructive upsert)
+    expect(ImageStore.getCachedImage(existingKey)).toBe(existingPayload);
+  });
+
+  it('Complete Restore: accepts matching Core + Media backupIds, rejects mismatched backupIds, and preserves core restore functionality', async () => {
+    const sharedBackupId = 'fsos_backup_matched_789';
+
+    // 1. Matching Core and Media envelopes
+    const coreEnvelope = generateFullBackupEnvelope(sharedBackupId);
+    coreEnvelope.data.machines = [{
+      id: 'M-COMPLETE-1',
+      serialNumber: 'SN-COMP-1',
+      model: 'WT-3000',
+      equipmentStatus: 'Operational',
+      operatingHours: 100,
+      lasers: []
+    } as any];
+
+    const mediaEnvelope: FSOSMediaBackupEnvelope = {
+      manifest: {
+        backupId: sharedBackupId,
+        backupVersion: '1.0.0',
+        appVersion: 'v1.5.9',
+        createdAt: new Date().toISOString(),
+        environment: 'FSOS_WEB_CLIENT',
+        includesImages: true,
+        imageCount: 1
+      },
+      images: {
+        'idb:M-COMPLETE-1_photo': 'data:image/png;base64,MATCHED_IMG'
+      }
+    };
+
+    // 2. Validate paired complete backup
+    const validComplete = validateCompleteBackup(
+      JSON.stringify(coreEnvelope),
+      JSON.stringify(mediaEnvelope)
+    );
+    expect(validComplete.valid).toBe(true);
+    expect(validComplete.hasMedia).toBe(true);
+    expect(validComplete.backupIdMatch).toBe(true);
+    expect(validComplete.errors).toHaveLength(0);
+
+    // 3. Mismatched backupId is rejected
+    const mismatchedMedia = JSON.parse(JSON.stringify(mediaEnvelope));
+    mismatchedMedia.manifest.backupId = 'fsos_backup_different_id_999';
+    const mismatchedComplete = validateCompleteBackup(
+      JSON.stringify(coreEnvelope),
+      JSON.stringify(mismatchedMedia)
+    );
+    expect(mismatchedComplete.valid).toBe(false);
+    expect(mismatchedComplete.backupIdMatch).toBe(false);
+    expect(mismatchedComplete.errors.some(e => e.includes('Backup ID mismatch'))).toBe(true);
+
+    // 4. Core-only restore without media remains functional
+    const coreOnlyComplete = validateCompleteBackup(JSON.stringify(coreEnvelope));
+    expect(coreOnlyComplete.valid).toBe(true);
+    expect(coreOnlyComplete.hasMedia).toBe(false);
+    expect(coreOnlyComplete.backupIdMatch).toBe(true);
+
+    // 5. Execute Complete Restore with Media
+    const restoreRes = await restoreCompleteBackup(coreEnvelope, mediaEnvelope, {
+      skipReload: true,
+      skipSafetyDownload: true
+    });
+    expect(restoreRes.success).toBe(true);
+    expect(restoreRes.restoredImageCount).toBe(1);
+
+    // Verify Core data restored
+    const storedMachines = JSON.parse(localStorage.getItem(STORAGE_KEYS.MACHINES)!);
+    expect(storedMachines).toHaveLength(1);
+    expect(storedMachines[0].id).toBe('M-COMPLETE-1');
+
+    // Verify Media image restored
+    expect(ImageStore.getCachedImage('idb:M-COMPLETE-1_photo')).toBe('data:image/png;base64,MATCHED_IMG');
+  });
+});
+

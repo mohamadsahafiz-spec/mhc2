@@ -23,6 +23,7 @@ import {
 import { RecommendedPart } from './parts';
 
 export const CURRENT_BACKUP_SCHEMA_VERSION = '1.0.0';
+export const CURRENT_MEDIA_BACKUP_SCHEMA_VERSION = '1.0.0';
 
 export interface FSOSBackupManifest {
   backupId: string;
@@ -69,6 +70,40 @@ export interface FSOSBackupValidationResult {
   manifest?: FSOSBackupManifest;
   envelope?: FSOSFullBackupEnvelope;
   domainCounts: Record<string, number>;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface FSOSMediaBackupManifest {
+  backupId: string;
+  backupVersion: string;
+  appVersion: string;
+  createdAt: string;
+  environment: string;
+  includesImages: true;
+  imageCount: number;
+}
+
+export interface FSOSMediaBackupEnvelope {
+  manifest: FSOSMediaBackupManifest;
+  images: Record<string, string>;
+}
+
+export interface FSOSMediaBackupValidationResult {
+  valid: boolean;
+  manifest?: FSOSMediaBackupManifest;
+  envelope?: FSOSMediaBackupEnvelope;
+  imageCount: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface FSOSCompleteBackupValidationResult {
+  valid: boolean;
+  coreValidation: FSOSBackupValidationResult;
+  mediaValidation?: FSOSMediaBackupValidationResult;
+  hasMedia: boolean;
+  backupIdMatch: boolean;
   warnings: string[];
   errors: string[];
 }

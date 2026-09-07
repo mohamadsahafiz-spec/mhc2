@@ -1,11 +1,31 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { RefreshCw, User, Download, Upload, ShieldCheck, AlertTriangle, FileJson, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
+import {
+  RefreshCw,
+  User,
+  Download,
+  Upload,
+  ShieldCheck,
+  AlertTriangle,
+  FileJson,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Loader2,
+  Image as ImageIcon,
+  Package,
+  Layers
+} from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { getAuthoritativeChangelog } from '../../utils/changelogParser';
-import { exportFullBackup, validateBackup, restoreFullBackup } from '../../utils/backupEngine';
-import { FSOSBackupValidationResult } from '../../types/backup';
+import {
+  exportFullBackup,
+  exportCompleteArchive,
+  validateCompleteBackup,
+  restoreCompleteBackup
+} from '../../utils/backupEngine';
+import { FSOSCompleteBackupValidationResult } from '../../types/backup';
 
 interface SettingsProps {
   onResetData: () => void;
@@ -18,36 +38,70 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const changelog = useMemo(() => getAuthoritativeChangelog(), []);
 
   // Backup & Restore State
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [exporting, setExporting] = useState(false);
+  const coreFileInputRef = useRef<HTMLInputElement>(null);
+  const mediaFileInputRef = useRef<HTMLInputElement>(null);
+  const [exportingCore, setExportingCore] = useState(false);
+  const [exportingComplete, setExportingComplete] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
+
+  const [coreFileText, setCoreFileText] = useState<string>('');
+  const [mediaFileText, setMediaFileText] = useState<string>('');
+  const [selectedCoreFileName, setSelectedCoreFileName] = useState<string>('');
+  const [selectedMediaFileName, setSelectedMediaFileName] = useState<string>('');
+
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<FSOSBackupValidationResult | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const [completeValidation, setCompleteValidation] = useState<FSOSCompleteBackupValidationResult | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
-  const handleExportBackup = () => {
+  // Re-run validation whenever core or media file text changes
+  const runValidation = (coreText: string, mediaText: string) => {
+    if (!coreText || coreText.trim() === '') {
+      setCompleteValidation(null);
+      return;
+    }
+    const result = validateCompleteBackup(coreText, mediaText || undefined);
+    setCompleteValidation(result);
+  };
+
+  const handleExportCoreBackup = () => {
     try {
-      setExporting(true);
+      setExportingCore(true);
       setExportSuccess(null);
       const { filename } = exportFullBackup();
-      setExportSuccess(`Full backup downloaded: ${filename}`);
-      setTimeout(() => setExportSuccess(null), 6000);
+      setExportSuccess(`Core Data Backup downloaded: ${filename}`);
+      setTimeout(() => setExportSuccess(null), 7000);
     } catch (err: any) {
-      console.error('[SettingsModule] Export error:', err);
-      alert(`Export failed: ${err?.message || 'Unknown error'}`);
+      console.error('[SettingsModule] Core export error:', err);
+      alert(`Core export failed: ${err?.message || 'Unknown error'}`);
     } finally {
-      setExporting(false);
+      setExportingCore(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExportCompleteArchive = async () => {
+    try {
+      setExportingComplete(true);
+      setExportSuccess(null);
+      const res = await exportCompleteArchive();
+      setExportSuccess(
+        `Complete Archive exported (${res.imageCount} images, Backup ID: ${res.backupId.slice(0, 18)}...): ${res.coreFilename} and ${res.mediaFilename}`
+      );
+      setTimeout(() => setExportSuccess(null), 8000);
+    } catch (err: any) {
+      console.error('[SettingsModule] Complete archive export error:', err);
+      alert(`Complete archive export failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setExportingComplete(false);
+    }
+  };
+
+  const handleCoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setSelectedFileName(file.name);
+    setSelectedCoreFileName(file.name);
     setValidating(true);
     setRestoreError(null);
 
@@ -55,55 +109,86 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        const result = validateBackup(text);
-        setValidationResult(result);
+        setCoreFileText(text);
+        runValidation(text, mediaFileText);
         setShowPreviewModal(true);
       } catch (err: any) {
-        setValidationResult({
-          valid: false,
-          domainCounts: {},
-          warnings: [],
-          errors: [`Failed to parse file: ${err?.message || 'Unknown error'}`]
-        });
-        setShowPreviewModal(true);
+        console.error('[SettingsModule] Core file load error:', err);
       } finally {
         setValidating(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+        if (coreFileInputRef.current) {
+          coreFileInputRef.current.value = '';
         }
       }
     };
     reader.onerror = () => {
-      setValidationResult({
-        valid: false,
-        domainCounts: {},
-        warnings: [],
-        errors: ['Failed to read selected file.']
-      });
       setValidating(false);
-      setShowPreviewModal(true);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      alert('Failed to read selected core backup file.');
+      if (coreFileInputRef.current) {
+        coreFileInputRef.current.value = '';
       }
     };
     reader.readAsText(file);
   };
 
+  const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedMediaFileName(file.name);
+    setValidating(true);
+    setRestoreError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        setMediaFileText(text);
+        runValidation(coreFileText, text);
+      } catch (err: any) {
+        console.error('[SettingsModule] Media file load error:', err);
+      } finally {
+        setValidating(false);
+        if (mediaFileInputRef.current) {
+          mediaFileInputRef.current.value = '';
+        }
+      }
+    };
+    reader.onerror = () => {
+      setValidating(false);
+      alert('Failed to read selected media backup file.');
+      if (mediaFileInputRef.current) {
+        mediaFileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRemoveMediaFile = () => {
+    setMediaFileText('');
+    setSelectedMediaFileName('');
+    runValidation(coreFileText, '');
+  };
+
   const handleConfirmRestore = async () => {
-    if (!validationResult?.envelope) return;
+    if (!completeValidation?.coreValidation?.envelope) return;
 
     try {
       setRestoring(true);
       setRestoreError(null);
 
-      const res = await restoreFullBackup(validationResult.envelope);
+      const res = await restoreCompleteBackup(
+        completeValidation.coreValidation.envelope,
+        completeValidation.mediaValidation?.envelope
+      );
+
       if (!res.success) {
         setRestoreError(res.error || 'Restore failed.');
         setRestoring(false);
       }
-      // If successful, restoreFullBackup reloads window automatically
+      // If successful, restoreCompleteBackup reloads window automatically
     } catch (err: any) {
-      console.error('[SettingsModule] Restore error:', err);
+      console.error('[SettingsModule] Complete restore error:', err);
       setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
       setRestoring(false);
     }
@@ -148,8 +233,8 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     <div className="space-y-6 pb-12">
       {/* Full System Backup & Restore */}
       <Card
-        title="Full System Backup & Restore"
-        subtitle="Disaster recovery and device migration for FSOS operational core data"
+        title="Full System Backup & Complete Archive Restore"
+        subtitle="Disaster recovery, media evidence preservation, and device migration for FSOS operational data"
       >
         <div className="space-y-4 text-xs">
           {/* Action Row */}
@@ -160,28 +245,36 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
             }`}>
               <div>
                 <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
-                  <Download className="w-4 h-4" />
-                  <span>Full Core Data Backup</span>
+                  <Package className="w-4 h-4" />
+                  <span>Export Backup & Complete Archive</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Backs up FSOS core operational data including Machine Passport, engineering records, customers, contracts, schedules, MHC sessions, reports, and system configurations.
+                  Export FSOS core operational data or a Complete Archive containing both Core Data and Media Evidence (photos & attachments) sharing a verified paired Backup ID.
                 </p>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-amber-400/90 font-mono">
-                  <Info className="w-3.5 h-3.5 shrink-0" />
-                  <span>Images and raw temperature data are not included yet.</span>
+                <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-400/90 font-mono">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>Non-destructive, zero-mutation read-only export.</span>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 font-mono">Schema v1.0.0</span>
+              <div className="pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={exportingCore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  onClick={handleExportCoreBackup}
+                  disabled={exportingCore || exportingComplete}
+                >
+                  {exportingCore ? 'Exporting...' : 'Export Core Backup'}
+                </Button>
                 <Button
                   variant="primary"
                   size="sm"
-                  icon={exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  onClick={handleExportBackup}
-                  disabled={exporting}
+                  icon={exportingComplete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
+                  onClick={handleExportCompleteArchive}
+                  disabled={exportingCore || exportingComplete}
                 >
-                  {exporting ? 'Exporting...' : 'Export Full Backup'}
+                  {exportingComplete ? 'Exporting Archive...' : 'Export Complete Archive'}
                 </Button>
               </div>
             </div>
@@ -193,10 +286,10 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <div>
                 <div className="flex items-center gap-2 font-bold text-sm text-emerald-400 mb-1">
                   <Upload className="w-4 h-4" />
-                  <span>Restore Full Backup</span>
+                  <span>Restore Backup & Complete Archive</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Restores a previously exported FSOS core backup via safe Snapshot Replace. Validates structure, shows a full domain preview, and takes an automatic safety snapshot before mutation.
+                  Restores an FSOS core backup or a paired Complete Archive. Validates schema, domain record counts, and media backup IDs before applying a non-destructive restore.
                 </p>
                 <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -207,20 +300,27 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
                 <input
                   type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
+                  ref={coreFileInputRef}
+                  onChange={handleCoreFileChange}
                   accept=".json,application/json"
                   className="hidden"
                 />
-                <span className="text-[11px] text-slate-500 font-mono">Snapshot Replace</span>
+                <input
+                  type="file"
+                  ref={mediaFileInputRef}
+                  onChange={handleMediaFileChange}
+                  accept=".json,application/json"
+                  className="hidden"
+                />
+                <span className="text-[11px] text-slate-500 font-mono">Safe Snapshot Replace</span>
                 <Button
                   variant="secondary"
                   size="sm"
                   icon={validating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => coreFileInputRef.current?.click()}
                   disabled={validating}
                 >
-                  {validating ? 'Validating...' : 'Select JSON File'}
+                  {validating ? 'Validating...' : 'Select Backup JSON'}
                 </Button>
               </div>
             </div>
@@ -239,7 +339,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
       </Card>
 
       {/* Restore Validation & Confirmation Modal */}
-      {showPreviewModal && validationResult && (
+      {showPreviewModal && completeValidation && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl p-6 space-y-5 my-8 ${
             isDark ? 'bg-[#181B1F] border-[#2E353F] text-slate-200' : 'bg-white border-slate-300 text-slate-900'
@@ -249,10 +349,10 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <div>
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <FileJson className="w-5 h-5 text-sky-400" />
-                  <span>Restore Backup Preview</span>
+                  <span>Restore Archive Preview</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Inspecting file: <span className="font-mono font-semibold text-slate-300">{selectedFileName}</span>
+                  Core File: <span className="font-mono font-semibold text-slate-300">{selectedCoreFileName}</span>
                 </p>
               </div>
               <button
@@ -264,16 +364,60 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               </button>
             </div>
 
+            {/* Media Attachment Selector in Modal */}
+            <div className={`p-3.5 rounded-xl border text-xs space-y-2.5 ${
+              isDark ? 'bg-[#14171A] border-[#252B33]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Media Evidence Pack (Optional)</span>
+                </span>
+                {selectedMediaFileName ? (
+                  <button
+                    onClick={handleRemoveMediaFile}
+                    className="text-[11px] text-rose-400 hover:underline font-mono"
+                  >
+                    Remove Media File
+                  </button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Upload className="w-3 h-3" />}
+                    onClick={() => mediaFileInputRef.current?.click()}
+                  >
+                    Attach Media JSON
+                  </Button>
+                )}
+              </div>
+
+              {selectedMediaFileName ? (
+                <div className="flex items-center justify-between font-mono text-[11px] bg-sky-950/30 border border-sky-800/40 p-2 rounded-lg text-sky-300">
+                  <span>Attached: {selectedMediaFileName}</span>
+                  <span>{completeValidation.mediaValidation?.imageCount || 0} images</span>
+                </div>
+              ) : (
+                <p className="text-slate-400 text-[11px]">
+                  No media pack attached. Restoration will proceed with <strong>Core Data only</strong>. Existing images on this device will remain preserved.
+                </p>
+              )}
+            </div>
+
             {/* Validation State Banner */}
-            {validationResult.valid ? (
+            {completeValidation.valid ? (
               <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
                 isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
               }`}>
                 <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
                 <div className="space-y-1 text-xs">
-                  <p className="font-bold">Backup Verification Passed</p>
+                  <p className="font-bold">
+                    {completeValidation.hasMedia ? 'Complete Archive Verification Passed' : 'Core Backup Verification Passed'}
+                  </p>
                   <p className="text-[11px] leading-relaxed opacity-90">
-                    The envelope structure, schema version, and operational domain records are valid and ready for restoration.
+                    {completeValidation.hasMedia
+                      ? `Core schema and media evidence dictionary are valid and share matching Backup ID (${completeValidation.coreValidation.manifest?.backupId}).`
+                      : 'The envelope structure, schema version, and operational domain records are valid and ready for restoration.'}
                   </p>
                 </div>
               </div>
@@ -283,9 +427,9 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               }`}>
                 <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
                 <div className="space-y-1 text-xs">
-                  <p className="font-bold">Backup Verification Failed</p>
+                  <p className="font-bold">Archive Verification Failed</p>
                   <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                    {validationResult.errors.map((err, idx) => (
+                    {completeValidation.errors.map((err, idx) => (
                       <li key={idx}>{err}</li>
                     ))}
                   </ul>
@@ -294,7 +438,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
             )}
 
             {/* Manifest Metadata */}
-            {validationResult.manifest && (
+            {completeValidation.coreValidation.manifest && (
               <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
                 isDark ? 'bg-[#121417] border-[#252B33]' : 'bg-slate-50 border-slate-200'
               }`}>
@@ -302,27 +446,31 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
                   <div>
                     <span className="text-slate-500 block">Backup Version:</span>
-                    <span className="text-sky-400 font-bold">{validationResult.manifest.backupVersion}</span>
+                    <span className="text-sky-400 font-bold">{completeValidation.coreValidation.manifest.backupVersion}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block">App Version:</span>
-                    <span className="text-slate-300 font-bold">{validationResult.manifest.appVersion || 'N/A'}</span>
+                    <span className="text-slate-300 font-bold">{completeValidation.coreValidation.manifest.appVersion || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">Images Included:</span>
-                    <span className="text-amber-400 font-bold">No</span>
+                    <span className="text-slate-500 block">Media Attached:</span>
+                    <span className={completeValidation.hasMedia ? 'text-emerald-400 font-bold' : 'text-slate-400 font-bold'}>
+                      {completeValidation.hasMedia ? `Yes (${completeValidation.mediaValidation?.imageCount} imgs)` : 'No (Core Only)'}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">Raw Temp Included:</span>
-                    <span className="text-amber-400 font-bold">No</span>
+                    <span className="text-slate-500 block">Backup ID Match:</span>
+                    <span className={completeValidation.backupIdMatch ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                      {completeValidation.backupIdMatch ? 'Verified ✓' : 'Mismatch ✕'}
+                    </span>
                   </div>
                   <div className="col-span-2">
                     <span className="text-slate-500 block">Created At (UTC):</span>
-                    <span className="text-slate-300">{validationResult.manifest.createdAt}</span>
+                    <span className="text-slate-300">{completeValidation.coreValidation.manifest.createdAt}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-500 block">Backup ID:</span>
-                    <span className="text-slate-400 truncate block">{validationResult.manifest.backupId}</span>
+                    <span className="text-slate-500 block">Shared Backup ID:</span>
+                    <span className="text-slate-400 truncate block">{completeValidation.coreValidation.manifest.backupId}</span>
                   </div>
                 </div>
               </div>
@@ -332,7 +480,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
             <div className="space-y-2">
               <p className="font-bold text-xs uppercase tracking-wider text-slate-400">Domain Record Counts</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                {Object.entries(validationResult.domainCounts).map(([domain, count]) => (
+                {Object.entries(completeValidation.coreValidation.domainCounts).map(([domain, count]) => (
                   <div
                     key={domain}
                     className={`p-2 rounded-lg border flex items-center justify-between ${
@@ -352,21 +500,24 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 isDark ? 'bg-[#14171A] border-[#252B33] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
               }`}>
                 <p className="text-slate-300">
-                  <strong className="text-sky-400">Core Data Only:</strong> This backup restores core FSOS data only. Image evidence and raw temperature IndexedDB data are not included in this backup.
+                  <strong className="text-sky-400">Media Policy:</strong>{' '}
+                  {completeValidation.hasMedia
+                    ? 'Media images will be non-destructively restored into IndexedDB using their exact original keys. Existing images on this device will not be deleted.'
+                    : 'Core Data only. Existing IndexedDB images will remain untouched on this device.'}
                 </p>
                 <p className="text-amber-400/90 font-medium">
-                  <strong className="text-amber-300">Replacement Notice:</strong> Restoring this backup will replace the current core FSOS data on this device. An automatic safety snapshot of your current data will be downloaded before restoration begins.
+                  <strong className="text-amber-300">Replacement Notice:</strong> Restoring this backup will replace current core FSOS data on this device. An automatic safety snapshot of your current core data will be downloaded before restoration begins.
                 </p>
               </div>
 
-              {validationResult.warnings.length > 0 && (
+              {completeValidation.warnings.length > 0 && (
                 <div className="p-3 rounded-lg border border-amber-800/40 bg-amber-950/20 text-amber-300 text-[11px] space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                     <span>Non-Fatal Warnings:</span>
                   </div>
                   <ul className="list-disc pl-4 space-y-0.5 opacity-90">
-                    {validationResult.warnings.map((w, idx) => (
+                    {completeValidation.warnings.map((w, idx) => (
                       <li key={idx}>{w}</li>
                     ))}
                   </ul>
@@ -396,9 +547,9 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 size="sm"
                 icon={restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                 onClick={handleConfirmRestore}
-                disabled={!validationResult.valid || restoring}
+                disabled={!completeValidation.valid || restoring}
               >
-                {restoring ? 'Restoring Snapshot...' : 'Confirm & Restore Snapshot'}
+                {restoring ? 'Restoring Archive...' : 'Confirm & Restore Archive'}
               </Button>
             </div>
           </div>
@@ -480,4 +631,3 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     </div>
   );
 };
-

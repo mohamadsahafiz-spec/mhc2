@@ -689,6 +689,149 @@ export const ImageStore = {
     }
   },
 
+  invalidateRuntimeCaches(): void {
+    if (typeof indexedDB !== 'undefined') {
+      imageMemoryCache.clear();
+    }
+    persistedInIdbKeys.clear();
+    notFoundInIdbKeys.clear();
+    inFlightReads.clear();
+    deferredReconciliationKeys.clear();
+    queuedNotificationKeys.clear();
+  },
+
+  async getAllImages(): Promise<Record<string, string>> {
+    // Flush any pending memory writes first so IDB is authoritative
+    await flushPendingWrites();
+    const images: Record<string, string> = {};
+    try {
+      const db = await openDB();
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+
+        if (typeof store.openCursor === 'function') {
+          const cursorReq = store.openCursor();
+          cursorReq.onsuccess = (event) => {
+            const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+            if (cursor) {
+              const key = String(cursor.key);
+              const val = cursor.value;
+              if (typeof val === 'string' && val.length > 0) {
+                images[key] = val;
+              }
+              cursor.continue();
+            } else {
+              resolve();
+            }
+          };
+          cursorReq.onerror = () => reject(cursorReq.error);
+        } else {
+          const keysReq = store.getAllKeys();
+          keysReq.onsuccess = () => {
+            const keys = keysReq.result;
+            if (!keys || keys.length === 0) {
+              resolve();
+              return;
+            }
+            let completed = 0;
+            for (const k of keys) {
+              const getReq = store.get(k);
+              getReq.onsuccess = () => {
+                if (typeof getReq.result === 'string') {
+                  images[String(k)] = getReq.result;
+                }
+                completed++;
+                if (completed === keys.length) resolve();
+              };
+              getReq.onerror = () => {
+                completed++;
+                if (completed === keys.length) resolve();
+              };
+            }
+          };
+          keysReq.onerror = () => reject(keysReq.error);
+        }
+      });
+    } catch (err) {
+      console.warn('[ImageStore] Error reading all images from IndexedDB:', err);
+    }
+
+    // Also include any memory-cached images not yet in images map
+    for (const [k, v] of imageMemoryCache.entries()) {
+      if (v && !images[k]) {
+        images[k] = v;
+      }
+    }
+
+    return images;
+  },
+
+  async restoreImages(images: Record<string, string>): Promise<{ restoredCount: number; errors: string[] }> {
+    const errors: string[] = [];
+    if (!images || typeof images !== 'object') {
+      return { restoredCount: 0, errors: ['Invalid images dictionary payload.'] };
+    }
+
+    const entries = Object.entries(images).filter(
+      ([k, v]) => typeof k === 'string' && typeof v === 'string' && v.length > 0
+    );
+
+    if (entries.length === 0) {
+      return { restoredCount: 0, errors: [] };
+    }
+
+    const BATCH_SIZE = 50;
+    let restoredCount = 0;
+
+    try {
+      if (typeof indexedDB === 'undefined') {
+        restoredCount = entries.length;
+      } else {
+        const db = await openDB();
+        for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+          const batch = entries.slice(i, i + BATCH_SIZE);
+          await new Promise<void>((resolve, reject) => {
+            try {
+              const tx = db.transaction(STORE_NAME, 'readwrite');
+              const store = tx.objectStore(STORE_NAME);
+
+              for (const [key, payload] of batch) {
+                store.put(payload, key);
+              }
+
+              tx.oncomplete = () => {
+                restoredCount += batch.length;
+                resolve();
+              };
+              tx.onerror = () => reject(tx.error);
+              tx.onabort = () => reject(new Error('IndexedDB transaction aborted'));
+            } catch (err) {
+              reject(err);
+            }
+          });
+        }
+      }
+    } catch (err: any) {
+      console.warn('[ImageStore] Error batch restoring images to IndexedDB:', err);
+      errors.push(`Failed restoring images to IndexedDB: ${err?.message || err}`);
+    }
+
+    // Invalidate runtime caches so newly restored images resolve fresh from IDB
+    this.invalidateRuntimeCaches();
+
+    // Populate memory cache and notify reactive listeners
+    const restoredKeys = entries.map(([k, v]) => {
+      setMemoryCache(k, v);
+      persistedInIdbKeys.add(k);
+      return k;
+    });
+
+    notifyListeners(restoredKeys);
+
+    return { restoredCount, errors };
+  },
+
   async clearAll(): Promise<void> {
     imageMemoryCache.clear();
     persistedInIdbKeys.clear();

@@ -1,5 +1,27 @@
 # FSOS CHANGELOG
 
+## v1.5.9 — COMPLETE ARCHIVE: MEDIA EVIDENCE BACKUP & RESTORE (2026-09-07)
+
+### Complete Archive (Core + Media Evidence Backup & Restore)
+- **Paired Core + Media JSON Backup Architecture (`backupEngine.ts`, `backup.ts`)**:
+  - Implemented Complete Archive export generating two synchronized, discrete JSON files: `fsos-core-backup-<timestamp>.json` and `fsos-media-backup-<timestamp>.json`.
+  - Linked files using a shared, immutable `backupId` in both manifests (`FSOSBackupManifest` and `FSOSMediaBackupManifest`), with `includesImages: true` and explicit `imageCount` validation.
+  - Zero external dependencies: no ZIP or compression libraries added, preserving pure browser-native memory safety.
+- **Image Evidence Export & Exact `idb:` Key Preservation (`imageStore.ts`)**:
+  - Exported all evidence images (`getAllImages()`) across IndexedDB with byte-for-byte fidelity.
+  - Preserved original key structure: `Original IndexedDB Key → Media Backup Key → Restored IndexedDB Key` remains 100% identical with no ID regeneration, key normalization, or pointer rewriting.
+- **Non-Destructive Image Restore & Cache Invalidation (`ImageStore.restoreImages`)**:
+  - Applied batched IndexedDB upsert (`IDBObjectStore.put`) to restore image evidence without clearing `fsos_evidence_db`, deleting existing photos, or dropping non-conflicting media.
+  - Flushed runtime memory caches (`invalidateRuntimeCaches()`) and notified reactive UI listeners so restored media resolves immediately upon application reload.
+- **Defensive Dual-File Validation & Flexible Restore Support**:
+  - Structured validator (`validateCompleteBackup`, `validateMediaBackup`) verifying manifest schema, matching `backupId` pairs, and image dictionary counts prior to mutation.
+  - Core-only restore remains fully supported if media is omitted or unselected.
+- **Settings Module Dual Export & Dual Restore Interface (`SettingsModule.tsx`)**:
+  - Added dedicated "Export Complete Archive" button triggering coordinated dual file downloads.
+  - Added dual-file selector supporting Core JSON and optional Media JSON with comprehensive pre-restore validation summary, image count badge, and safety snapshot download.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.9`.
+
 ## v1.5.8 — FULL CORE DATA BACKUP & SAFE RESTORE (2026-09-07)
 
 ### Full Core Data Backup & Safe Restore
