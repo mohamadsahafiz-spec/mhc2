@@ -1268,6 +1268,7 @@ export const LaserEngine = {
     laserHeadsFound: number;
     existingMatched: number;
     newMachines: number;
+    skippedUnmatched: number;
     warnings: string[];
     mappedMachines: any[];
     importedMachineList: any[];
@@ -1296,7 +1297,7 @@ export const LaserEngine = {
 
     let laserHeadsFoundCount = 0;
     let existingMatchedCount = 0;
-    let newMachinesCount = 0;
+    let skippedUnmatchedCount = 0;
 
     // Map of current FSOS machines keyed by ID & Machine Number for O(1) lookup
     const resultMap = new Map<string, any>();
@@ -1422,10 +1423,30 @@ export const LaserEngine = {
           mhcSpecs: normalizedRaw.mhcSpecs || (targetFsosMachine as any).mhcSpecs,
           lasers: targetLasers,
           laserHeads: targetLasers,
-          // Preserve FSOS operational records:
-          maintenanceHistory: Array.isArray(targetFsosMachine.maintenanceHistory) ? targetFsosMachine.maintenanceHistory : [],
-          productProcessRecords: Array.isArray(targetFsosMachine.productProcessRecords) ? targetFsosMachine.productProcessRecords : [],
+          // Explicitly preserve ALL existing FSOS embedded engineering & operational records:
+          focusOptimizationRecords: Array.isArray(targetFsosMachine.focusOptimizationRecords)
+            ? targetFsosMachine.focusOptimizationRecords
+            : (targetFsosMachine.focusOptimizationRecords || []),
+          laserPowerRecords: Array.isArray(targetFsosMachine.laserPowerRecords)
+            ? targetFsosMachine.laserPowerRecords
+            : (targetFsosMachine.laserPowerRecords || []),
+          beamProfileRecords: Array.isArray(targetFsosMachine.beamProfileRecords)
+            ? targetFsosMachine.beamProfileRecords
+            : (targetFsosMachine.beamProfileRecords || []),
+          manualTemperatureReadings: Array.isArray(targetFsosMachine.manualTemperatureReadings)
+            ? targetFsosMachine.manualTemperatureReadings
+            : (targetFsosMachine.manualTemperatureReadings || []),
           temperatureRecords: (targetFsosMachine as any).temperatureRecords || [],
+          productProcessRecords: Array.isArray(targetFsosMachine.productProcessRecords)
+            ? targetFsosMachine.productProcessRecords
+            : [],
+          maintenanceHistory: Array.isArray(targetFsosMachine.maintenanceHistory)
+            ? targetFsosMachine.maintenanceHistory
+            : [],
+          consumables: Array.isArray(targetFsosMachine.consumables)
+            ? targetFsosMachine.consumables
+            : [],
+          photos: (targetFsosMachine as any).photos || [],
           lastUpdated: new Date().toISOString()
         };
 
@@ -1435,43 +1456,14 @@ export const LaserEngine = {
         resultMap.set(mergedMachine.id, mergedMachine);
         importedMachineList.push(mergedMachine);
       } else {
-        // NEW MACHINE RECORD
-        newMachinesCount++;
-        const rawCustName = (normalizedRaw.customerName || normalizedRaw.plantName || '').trim();
-        const matchedCust = (existingCustomers || []).find(
-          (c: any) => (c.name && rawCustName && c.name.toLowerCase() === rawCustName.toLowerCase()) ||
-                      (c.site && rawCustName && c.site.toLowerCase() === rawCustName.toLowerCase())
+        // UNMATCHED MACHINE RECORD:
+        // Do NOT create a new active Machine record from partial Laser Lifecycle JSON.
+        // Skip safely to prevent stripped machine records from being created, saved, or synced.
+        skippedUnmatchedCount++;
+        const rawNameOrNo = normalizedRaw.machineNumber || normalizedRaw.machineNo || normalizedRaw.id || `#${idx + 1}`;
+        warnings.push(
+          `Skipped unmatched machine "${rawNameOrNo}": Partial Laser Lifecycle JSON cannot create new Machine Passport records to prevent data loss.`
         );
-
-        const assignedCustName = matchedCust?.name || rawCustName || 'Cleanroom Customer';
-        const assignedCustId = matchedCust?.id || normalizedRaw.customerId || `cust-${Date.now()}-${idx}`;
-
-        const newFsosMachine = {
-          ...normalizedRaw,
-          id: normalizedRaw.id || `mch-imp-${Date.now()}-${idx}`,
-          machineNumber: normalizedRaw.machineNumber || normalizedRaw.machineNo || `MCH-IMP-0${idx + 1}`,
-          machineNo: normalizedRaw.machineNo || normalizedRaw.machineNumber || `MCH-IMP-0${idx + 1}`,
-          machineName: normalizedRaw.machineName || ('Wafer Driller ' + (normalizedRaw.model || 'BMD302W')),
-          plantName: normalizedRaw.plantName || matchedCust?.site || 'Primary Cleanroom',
-          customerName: assignedCustName,
-          customerId: assignedCustId,
-          lineId: normalizedRaw.lineId || 'line-01',
-          contractType: normalizedRaw.contractType || 'STANDARD_SERVICE',
-          status: normalizedRaw.status || 'OPERATIONAL',
-          installDate: normalizedRaw.installDate || new Date().toISOString().split('T')[0],
-          lastServiceDate: normalizedRaw.lastServiceDate || new Date().toISOString().split('T')[0],
-          nextServiceDue: normalizedRaw.nextServiceDue || new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0],
-          healthScore: typeof normalizedRaw.healthScore === 'number' ? normalizedRaw.healthScore : 95,
-          opticalPowerWatts: normalizedRaw.opticalPowerWatts || 250,
-          laserModel: normalizedRaw.laserModel || (normalizedRaw.lasers?.[0]?.name || normalizedRaw.model || 'Laser System'),
-          lasers: normalizedRaw.lasers || [],
-          laserHeads: normalizedRaw.lasers || [],
-          consumables: normalizedRaw.consumables || [],
-          mhcSpecs: normalizedRaw.mhcSpecs
-        };
-
-        resultMap.set(newFsosMachine.id, newFsosMachine);
-        importedMachineList.push(newFsosMachine);
       }
     });
 
@@ -1479,7 +1471,8 @@ export const LaserEngine = {
       machinesFound: rawList.length,
       laserHeadsFound: laserHeadsFoundCount,
       existingMatched: existingMatchedCount,
-      newMachines: newMachinesCount,
+      newMachines: 0,
+      skippedUnmatched: skippedUnmatchedCount,
       warnings,
       mappedMachines: Array.from(resultMap.values()),
       importedMachineList

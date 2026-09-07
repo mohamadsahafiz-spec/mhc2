@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v1.5.7 — DATA SAFETY: PREVENT DESTRUCTIVE PARTIAL JSON IMPORT (2026-09-07)
+
+### Data Safety: Prevent Destructive Partial JSON Import
+- **Defensive Partial Backup Merging (`LaserEngine.parseAndMapLaserMonitorJson`)**:
+  - Prevented data loss by updating only matching active machines with supported Laser Monitor backup fields (identity, model, serial, laser lifecycle, and calibration history) while strictly preserving 100% of existing embedded engineering records (`focusOptimizationRecords`, `laserPowerRecords`, `beamProfileRecords`, `manualTemperatureReadings`, `temperatureRecords`, `productProcessRecords`, `maintenanceHistory`, `consumables`, `photos`).
+- **Safe Rejection of Unmatched Partial Records**:
+  - Prohibited partial Laser Lifecycle JSON files from creating new active Machine Passport records, preventing stripped or incomplete machine objects from entering local storage, SyncEngine queues, or D1 cloud replicas.
+  - Automatically skip unmatched records with explicit validation warnings and diagnostic summaries in the import workflow.
+- **Import Preview and Result Modal Safety Telemetry**:
+  - Updated `MachinePassportModule` import modals to display matched vs. skipped metrics with clear data-safety authority badges.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.7`.
+
 ## v1.5.6 — RESTORE MHC SESSION MACHINE IDENTITY LINKS (2026-09-06)
 
 ### Restore MHC Session Machine Identity Links

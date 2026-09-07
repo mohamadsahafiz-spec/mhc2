@@ -144,6 +144,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     laserHeadsFound: number;
     existingMatched: number;
     newMachines: number;
+    skippedUnmatched?: number;
     warnings: string[];
     mappedMachines: Machine[];
     importedMachineList: Machine[];
@@ -153,6 +154,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     laserHeadsImported: number;
     existingMatched: number;
     newMachines: number;
+    skippedUnmatched?: number;
     warnings: string[];
   } | null>(null);
 
@@ -199,6 +201,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       laserHeadsImported: importPreviewData.laserHeadsFound,
       existingMatched: importPreviewData.existingMatched,
       newMachines: importPreviewData.newMachines,
+      skippedUnmatched: importPreviewData.skippedUnmatched || 0,
       warnings: importPreviewData.warnings
     });
 
@@ -4056,8 +4059,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 <strong className="text-base text-amber-400 font-bold">{importPreviewData.existingMatched}</strong>
               </div>
               <div className="p-2.5 bg-slate-900/60 rounded-lg border border-slate-700/60">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">New Machines (Add)</span>
-                <strong className="text-base text-emerald-400 font-bold">{importPreviewData.newMachines}</strong>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Skipped Unmatched (Protected)</span>
+                <strong className="text-base text-slate-300 font-bold">{importPreviewData.skippedUnmatched || 0}</strong>
               </div>
             </div>
 
@@ -4065,7 +4068,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Validation Warnings ({importPreviewData.warnings.length})</span>
+                  <span>Validation & Safety Warnings ({importPreviewData.warnings.length})</span>
                 </div>
                 <ul className="text-[11px] text-amber-400/90 list-disc list-inside space-y-0.5 max-h-24 overflow-y-auto font-mono">
                   {importPreviewData.warnings.map((w, idx) => (
@@ -4079,11 +4082,11 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
             }`}>
               <div className="font-bold text-slate-300 flex justify-between items-center">
-                <span>LaserEngine Lifecycle Calculation Authority</span>
-                <Badge variant="emerald">ACTIVE</Badge>
+                <span>LaserEngine Data Safety Authority</span>
+                <Badge variant="emerald">SAFE MERGE</Badge>
               </div>
               <p className="text-[11px] text-slate-400">
-                Imported baseline physical hours (<code className="text-amber-400 font-mono">baseLaserHour</code> + <code className="text-amber-400 font-mono">baseTimestamp</code>) will be processed by native FSOS LaserEngine. LIVE running hours, status, and EOL prognosis will be derived deterministically without altering historical baselines.
+                Partial Laser Monitor backups update only matching active Machine Passports while preserving all operational history, focus optimizations, and engineering records. Unmatched records are safely rejected without creating stripped machines.
               </p>
             </div>
 
@@ -4120,8 +4123,12 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs">
               <CheckCircle2 className="w-6 h-6 shrink-0 text-emerald-400" />
               <div>
-                <strong className="block font-bold">Import Successful</strong>
-                <span>All imported machines and laser heads are now fully bound to FSOS Machine Passport, MHC, Smart MHC Data Tray, and Executive Reports.</span>
+                <strong className="block font-bold">Import Completed Safely</strong>
+                <span>
+                  {importResultSummary.existingMatched > 0
+                    ? `Successfully merged ${importResultSummary.existingMatched} matched machine(s). All embedded engineering records were preserved.`
+                    : 'No matching active machines found. All unmatched records were safely skipped.'}
+                </span>
               </div>
             </div>
 
@@ -4129,11 +4136,11 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
             }`}>
               <div className="flex justify-between py-1 border-b border-slate-700/50">
-                <span className="text-slate-400">Machines Processed:</span>
+                <span className="text-slate-400">Machines in File:</span>
                 <strong className="text-white">{importResultSummary.machinesImported}</strong>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-700/50">
-                <span className="text-slate-400">Laser Heads Imported:</span>
+                <span className="text-slate-400">Laser Heads Processed:</span>
                 <strong className="text-white">{importResultSummary.laserHeadsImported}</strong>
               </div>
               <div className="flex justify-between py-1">
@@ -4141,8 +4148,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 <strong className="text-amber-400">{importResultSummary.existingMatched}</strong>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400">New Added:</span>
-                <strong className="text-emerald-400">{importResultSummary.newMachines}</strong>
+                <span className="text-slate-400">Skipped Unmatched:</span>
+                <strong className="text-slate-300">{importResultSummary.skippedUnmatched || 0}</strong>
               </div>
             </div>
 

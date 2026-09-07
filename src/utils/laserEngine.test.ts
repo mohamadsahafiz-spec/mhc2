@@ -186,7 +186,66 @@ describe('LaserEngine', () => {
       expect(m.lasers[0].baseLaserHour).toBe(15500);
     });
 
-    it('Scenario E: all six supplied backup records survive import with correct identity, model, and head count', () => {
+    it('Scenario E: partial JSON backup merges into existing fleet while preserving all embedded operational data', () => {
+      const existingFleet = [
+        {
+          id: 'WD-77972',
+          machineNumber: 'WLVIA#1',
+          model: 'BMD250WM',
+          serialNo: 'MC23006',
+          focusOptimizationRecords: [{ id: 'foc-1', value: 42 }],
+          laserPowerRecords: [{ id: 'lp-1', power: 250 }],
+          beamProfileRecords: [{ id: 'bp-1', circularity: 0.95 }],
+          manualTemperatureReadings: [{ id: 'tmp-1', temp: 24.5 }],
+          temperatureRecords: [{ id: 'tr-1', value: 24.1 }],
+          productProcessRecords: [{ id: 'pp-1', recipe: 'REC-01' }],
+          maintenanceHistory: [{ id: 'mnt-1', note: 'Filter replacement' }],
+          consumables: [{ id: 'con-1', name: 'Lens' }],
+          photos: ['idb:img-1'],
+          lasers: [{ id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 9000 }]
+        },
+        {
+          id: 'WD-19926',
+          machineNumber: 'WLVIA#2',
+          model: 'BMD250WM',
+          serialNo: 'MC230023',
+          focusOptimizationRecords: [{ id: 'foc-2', value: 55 }],
+          lasers: [{ id: 'WD-19926-L1', name: 'Laser Head 1', serialNo: 'MC230023-L1', baseLaserHour: 10000 }]
+        },
+        {
+          id: 'WD-81810',
+          machineNumber: 'WLVIA#002',
+          model: 'BMD250WM',
+          serialNo: 'MC240005',
+          focusOptimizationRecords: [{ id: 'foc-3', value: 60 }],
+          lasers: [{ id: 'WD-81810-L1', name: 'Laser Head 1', serialNo: 'MC240005-L1', baseLaserHour: 3500 }]
+        },
+        {
+          id: 'WD-44367',
+          machineNumber: 'WLVIA#3',
+          model: 'BMD302W',
+          serialNo: 'MC230038',
+          focusOptimizationRecords: [{ id: 'foc-4', value: 75 }],
+          lasers: [{ id: 'WD-44367-L1', name: 'Laser Head 1', serialNo: 'MC230038-L1', baseLaserHour: 12000 }]
+        },
+        {
+          id: 'WD-35189',
+          machineNumber: 'WLVIA#4',
+          model: 'BMD302W',
+          serialNo: 'MC230039',
+          focusOptimizationRecords: [{ id: 'foc-5', value: 80 }],
+          lasers: [{ id: 'WD-35189-L1', name: 'Laser Head 1', serialNo: 'MC230039-L1', baseLaserHour: 13000 }]
+        },
+        {
+          id: 'WD-70784',
+          machineNumber: 'WLVIA#5',
+          model: 'BMD250WM',
+          serialNo: 'MC250005',
+          focusOptimizationRecords: [{ id: 'foc-6', value: 90 }],
+          lasers: [{ id: 'WD-70784-L1', name: 'Laser Head 1', serialNo: 'MC250005-L1', baseLaserHour: 2500 }]
+        }
+      ];
+
       const sixMachinesBackup = {
         version: '0.9.0',
         machines: [
@@ -252,28 +311,94 @@ describe('LaserEngine', () => {
         ]
       };
 
-      const res = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(sixMachinesBackup), [], []);
+      const res = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(sixMachinesBackup), existingFleet, []);
       expect(res.machinesFound).toBe(6);
+      expect(res.existingMatched).toBe(6);
+      expect(res.newMachines).toBe(0);
+      expect(res.skippedUnmatched).toBe(0);
       expect(res.mappedMachines.length).toBe(6);
 
-      const byNo = new Map(res.mappedMachines.map((m: any) => [m.machineNumber, m]));
-      expect(byNo.get('WLVIA#1')?.model).toBe('BMD250WM');
-      expect(byNo.get('WLVIA#1')?.lasers.length).toBe(2);
+      const m1 = res.mappedMachines.find((m: any) => m.machineNumber === 'WLVIA#1');
+      expect(m1?.model).toBe('BMD250WM');
+      expect(m1?.lasers.length).toBe(2);
+      // Verify embedded operational records are 100% preserved
+      expect(m1?.focusOptimizationRecords?.length).toBe(1);
+      expect(m1?.focusOptimizationRecords?.[0].value).toBe(42);
+      expect(m1?.laserPowerRecords?.length).toBe(1);
+      expect(m1?.beamProfileRecords?.length).toBe(1);
+      expect(m1?.manualTemperatureReadings?.length).toBe(1);
+      expect(m1?.temperatureRecords?.length).toBe(1);
+      expect(m1?.productProcessRecords?.length).toBe(1);
+      expect(m1?.maintenanceHistory?.length).toBe(1);
+      expect(m1?.consumables?.length).toBe(1);
+      expect(m1?.photos?.length).toBe(1);
 
-      expect(byNo.get('WLVIA#2')?.model).toBe('BMD250WM');
-      expect(byNo.get('WLVIA#2')?.lasers.length).toBe(2);
+      const m3 = res.mappedMachines.find((m: any) => m.machineNumber === 'WLVIA#3');
+      expect(m3?.model).toBe('BMD302W');
+      expect(m3?.lasers.length).toBe(2);
+      expect(m3?.focusOptimizationRecords?.length).toBe(1);
+      expect(m3?.focusOptimizationRecords?.[0].value).toBe(75);
+    });
 
-      expect(byNo.get('WLVIA#002')?.model).toBe('BMD250WM');
-      expect(byNo.get('WLVIA#002')?.lasers.length).toBe(1);
+    it('Scenario E2: unmatched machines in partial JSON backup are safely skipped and do NOT create stripped records', () => {
+      const existingFleet = [
+        {
+          id: 'WD-77972',
+          machineNumber: 'WLVIA#1',
+          serialNo: 'MC23006',
+          focusOptimizationRecords: [{ id: 'foc-1', value: 100 }],
+          lasers: [{ id: 'WD-77972-L1', baseLaserHour: 5000 }]
+        }
+      ];
 
-      expect(byNo.get('WLVIA#3')?.model).toBe('BMD302W');
-      expect(byNo.get('WLVIA#3')?.lasers.length).toBe(2);
+      const backupWithUnmatched = {
+        version: '0.9.0',
+        machines: [
+          {
+            id: 'WD-77972',
+            machineNumber: 'WLVIA#1',
+            serialNo: 'MC23006',
+            lasers: [{ id: 'WD-77972-L1', baseLaserHour: 5500 }]
+          },
+          {
+            id: 'WD-UNKNOWN-999',
+            machineNumber: 'WLVIA#99',
+            serialNo: 'MC990099',
+            lasers: [{ id: 'WD-UNKNOWN-999-L1', baseLaserHour: 1000 }]
+          }
+        ]
+      };
 
-      expect(byNo.get('WLVIA#4')?.model).toBe('BMD302W');
-      expect(byNo.get('WLVIA#4')?.lasers.length).toBe(2);
+      const res = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(backupWithUnmatched), existingFleet, []);
+      expect(res.machinesFound).toBe(2);
+      expect(res.existingMatched).toBe(1);
+      expect(res.newMachines).toBe(0);
+      expect(res.skippedUnmatched).toBe(1);
+      expect(res.mappedMachines.length).toBe(1);
+      expect(res.importedMachineList.length).toBe(1);
+      expect(res.warnings.some((w: string) => w.includes('Skipped unmatched machine'))).toBe(true);
 
-      expect(byNo.get('WLVIA#5')?.model).toBe('BMD250WM');
-      expect(byNo.get('WLVIA#5')?.lasers.length).toBe(2);
+      const m1 = res.mappedMachines[0];
+      expect(m1.machineNumber).toBe('WLVIA#1');
+      expect(m1.focusOptimizationRecords?.length).toBe(1);
+      expect(m1.lasers[0].baseLaserHour).toBe(5500);
+    });
+
+    it('Scenario E3: partial JSON import against empty existing fleet creates zero machines and safely rejects all records', () => {
+      const backupJson = JSON.stringify({
+        machines: [
+          { id: 'WD-1', machineNumber: 'M1', serialNo: 'SN1', lasers: [] }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(backupJson, [], []);
+      expect(res.machinesFound).toBe(1);
+      expect(res.existingMatched).toBe(0);
+      expect(res.newMachines).toBe(0);
+      expect(res.skippedUnmatched).toBe(1);
+      expect(res.mappedMachines.length).toBe(0);
+      expect(res.importedMachineList.length).toBe(0);
+      expect(res.warnings.length).toBeGreaterThan(0);
     });
 
     it('Scenario F: normalizeMachine synchronizes machineNumber, serialNumber, and laserHeads with machineNo, serialNo, and lasers', () => {
