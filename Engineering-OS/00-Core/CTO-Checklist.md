@@ -49,6 +49,24 @@ For a meaningful new defect:
 
 □ Will PASS, FAIL/NEEDS_REVIEW, incomplete, persistence/revisit, and downstream paths be verified where relevant?
 
+## Investigation Proportionality Gate
+
+Before requesting additional investigation:
+
+□ Does existing evidence already identify the practical problem and required decision?
+
+□ Is the next question necessary to implement the requested fix?
+
+□ Will the answer materially change the fix, scope, or safety?
+
+□ Am I investigating beyond the Founder actual objective?
+
+□ Can the task now move directly to the smallest verified fix?
+
+Stop investigation when additional evidence will not materially change the decision.
+
+Do not expand a bounded problem into a broad forensic investigation unless the evidence reveals a wider risk or the Founder requests it.
+
 ## Phase 4 — Architecture
 
 □ Is the current architecture appropriate?

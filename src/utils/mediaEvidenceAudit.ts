@@ -155,6 +155,7 @@ export function classifyMediaCategory(key: string): { category: MediaEvidenceCat
 export function detectPayloadType(payload: string): MediaPayloadType {
   if (typeof payload !== 'string') return 'unknown string';
   const trimmed = payload.trim();
+  if (trimmed.startsWith('ref:')) return 'reference pointer';
   if (trimmed.startsWith('data:image/png')) return 'data:image/png';
   if (trimmed.startsWith('data:image/jpeg') || trimmed.startsWith('data:image/jpg')) return 'data:image/jpeg';
   if (trimmed.startsWith('data:image/webp')) return 'data:image/webp';

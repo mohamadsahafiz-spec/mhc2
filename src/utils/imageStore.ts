@@ -1,5 +1,7 @@
 // src/utils/imageStore.ts
 
+import { MediaDeduplicationResult, MediaDeduplicationGroupDetail } from '../types/mediaAudit';
+
 const DB_NAME = 'fsos_evidence_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'evidence_images';
@@ -8,6 +10,12 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 const imageMemoryCache = new Map<string, string>();
 const persistedInIdbKeys = new Set<string>();
 const MAX_MEMORY_CACHE_ITEMS = 128; // LRU cache limit sized to accommodate multi-head sequence inspections without thrashing
+
+// Content-Addressable Deduplication Layer:
+// Maps exact physical image payload (dataUrl/SVG string) -> Canonical image key (e.g. idb:MHC-...)
+const payloadToCanonicalKey = new Map<string, string>();
+// Maps image key -> raw stored value in IDB (either data URL or 'ref:<canonicalKey>')
+const rawStoredValues = new Map<string, string>();
 
 // Tracking in-flight reads and keys missing from IndexedDB to guard against render loops
 const inFlightReads = new Map<string, Promise<string | null>>();
@@ -233,6 +241,57 @@ export const ImageStore = {
   async saveImage(id: string, dataUrl: string): Promise<void> {
     if (!id || !dataUrl) return;
 
+    if (dataUrl.startsWith('ref:')) {
+      // Explicit reference pointer saved
+      const targetKey = dataUrl.substring(4);
+      const targetVal = imageMemoryCache.get(targetKey);
+      if (targetVal && !targetVal.startsWith('ref:')) {
+        setMemoryCache(id, targetVal);
+      }
+      rawStoredValues.set(id, dataUrl);
+      notFoundInIdbKeys.delete(id);
+      pendingIdbWrites.set(id, dataUrl);
+      scheduleBatchFlush();
+      if (reconciliationDepth > 0) {
+        deferredReconciliationKeys.add(id);
+      } else {
+        notifyListeners([id]);
+      }
+      return;
+    }
+
+    // Content-Addressable Deduplication Check:
+    let canonKey = payloadToCanonicalKey.get(dataUrl);
+    if (!canonKey) {
+      for (const [k, v] of imageMemoryCache.entries()) {
+        if (v === dataUrl && !v.startsWith('ref:')) {
+          canonKey = k;
+          payloadToCanonicalKey.set(dataUrl, k);
+          break;
+        }
+      }
+    }
+
+    if (canonKey && canonKey !== id) {
+      // DEDUPLICATED WRITE: Store 'ref:<canonKey>' in IDB; keep full resolved payload in memory cache
+      setMemoryCache(id, dataUrl);
+      rawStoredValues.set(id, `ref:${canonKey}`);
+      notFoundInIdbKeys.delete(id);
+      persistedInIdbKeys.delete(id);
+
+      if (reconciliationDepth > 0) {
+        deferredReconciliationKeys.add(id);
+      } else {
+        notifyListeners([id]);
+      }
+      pendingIdbWrites.set(id, `ref:${canonKey}`);
+      scheduleBatchFlush();
+      return;
+    }
+
+    // CANONICAL WRITE: Store full payload in IDB
+    payloadToCanonicalKey.set(dataUrl, id);
+    rawStoredValues.set(id, dataUrl);
     const existing = imageMemoryCache.get(id);
     if (existing === dataUrl && persistedInIdbKeys.has(id)) {
       return; // Identical image payload already persisted in IDB
@@ -275,10 +334,25 @@ export const ImageStore = {
     };
   },
 
-  async getImage(id: string): Promise<string | null> {
+  async getImage(id: string, visited = new Set<string>()): Promise<string | null> {
     if (!id) return null;
+    if (visited.has(id)) {
+      console.warn('[ImageStore] Circular reference detected for key:', id);
+      return null;
+    }
+    visited.add(id);
+
     if (imageMemoryCache.has(id)) {
-      return imageMemoryCache.get(id)!;
+      const cached = imageMemoryCache.get(id)!;
+      if (cached.startsWith('ref:')) {
+        const targetKey = cached.substring(4);
+        const resolved = await this.getImage(targetKey, visited);
+        if (resolved) {
+          setMemoryCache(id, resolved);
+        }
+        return resolved;
+      }
+      return cached;
     }
     if (notFoundInIdbKeys.has(id)) {
       return null;
@@ -295,12 +369,33 @@ export const ImageStore = {
           const tx = db.transaction(STORE_NAME, 'readonly');
           const store = tx.objectStore(STORE_NAME);
           const req = store.get(id);
-          req.onsuccess = () => {
+          req.onsuccess = async () => {
             const val = req.result || null;
             if (val) {
-              setMemoryCache(id, val);
               persistedInIdbKeys.add(id);
               notFoundInIdbKeys.delete(id);
+              rawStoredValues.set(id, val);
+
+              if (typeof val === 'string' && val.startsWith('ref:')) {
+                const targetKey = val.substring(4);
+                const resolved = await this.getImage(targetKey, visited);
+                if (resolved) {
+                  setMemoryCache(id, resolved);
+                  if (reconciliationDepth > 0) {
+                    deferredReconciliationKeys.add(id);
+                  } else {
+                    notifyListeners([id]);
+                  }
+                  resolve(resolved);
+                  return;
+                }
+              }
+
+              if (typeof val === 'string' && !val.startsWith('ref:') && (val.startsWith('data:') || val.startsWith('<svg'))) {
+                payloadToCanonicalKey.set(val, id);
+              }
+
+              setMemoryCache(id, val);
               if (reconciliationDepth > 0) {
                 deferredReconciliationKeys.add(id);
               } else {
@@ -331,14 +426,39 @@ export const ImageStore = {
 
   async deleteImage(id: string): Promise<void> {
     if (!id) return;
+    const storedVal = rawStoredValues.get(id) || imageMemoryCache.get(id);
     imageMemoryCache.delete(id);
     persistedInIdbKeys.delete(id);
     pendingIdbWrites.delete(id);
     inFlightReads.delete(id);
     notFoundInIdbKeys.delete(id);
+    rawStoredValues.delete(id);
 
     try {
       const db = await openDB();
+      const allStored = await this.getAllRawStoredEntries();
+      const dependentAliases = Object.entries(allStored).filter(
+        ([k, v]) => k !== id && (v === `ref:${id}` || v.startsWith(`ref:${id}`))
+      );
+
+      if (dependentAliases.length > 0 && storedVal && !storedVal.startsWith('ref:')) {
+        // Promote first alias to become new canonical key
+        const [newCanonKey] = dependentAliases[0];
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          store.put(storedVal, newCanonKey);
+          for (let i = 1; i < dependentAliases.length; i++) {
+            store.put(`ref:${newCanonKey}`, dependentAliases[i][0]);
+          }
+          store.delete(id);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        payloadToCanonicalKey.set(storedVal, newCanonKey);
+        return;
+      }
+
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
@@ -401,10 +521,25 @@ export const ImageStore = {
     return this.resolveImage(id);
   },
 
-  resolveImage(id?: string | null): string | undefined {
+  resolveImage(id?: string | null, visited = new Set<string>()): string | undefined {
     if (!id) return undefined;
     if (id.startsWith('data:') || id.startsWith('<svg') || id.startsWith('http:') || id.startsWith('https:') || id.startsWith('blob:')) return id;
-    if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
+    if (visited.has(id)) return undefined;
+    visited.add(id);
+
+    if (imageMemoryCache.has(id)) {
+      const cached = imageMemoryCache.get(id)!;
+      if (cached.startsWith('ref:')) {
+        const targetKey = cached.substring(4);
+        const targetVal = this.resolveImage(targetKey, visited);
+        if (targetVal) {
+          setMemoryCache(id, targetVal);
+          return targetVal;
+        }
+      } else {
+        return cached;
+      }
+    }
 
     if (id.startsWith('idb:')) {
       if (!notFoundInIdbKeys.has(id) && !inFlightReads.has(id)) {
@@ -439,7 +574,10 @@ export const ImageStore = {
   async resolveImageAsync(id?: string | null): Promise<string | undefined> {
     if (!id) return undefined;
     if (id.startsWith('data:') || id.startsWith('<svg') || id.startsWith('http:') || id.startsWith('https:') || id.startsWith('blob:')) return id;
-    if (imageMemoryCache.has(id)) return imageMemoryCache.get(id);
+    if (imageMemoryCache.has(id)) {
+      const cached = imageMemoryCache.get(id)!;
+      if (!cached.startsWith('ref:')) return cached;
+    }
     if (id.startsWith('idb:')) {
       let val = await this.getImage(id);
       if (!val && remoteImageFetcher) {
@@ -773,10 +911,9 @@ export const ImageStore = {
     queuedNotificationKeys.clear();
   },
 
-  async getAllImages(): Promise<Record<string, string>> {
-    // Flush any pending memory writes first so IDB is authoritative
+  async getAllRawStoredEntries(): Promise<Record<string, string>> {
     await flushPendingWrites();
-    const images: Record<string, string> = {};
+    const entries: Record<string, string> = {};
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
@@ -791,7 +928,7 @@ export const ImageStore = {
               const key = String(cursor.key);
               const val = cursor.value;
               if (typeof val === 'string' && val.length > 0) {
-                images[key] = val;
+                entries[key] = val;
               }
               cursor.continue();
             } else {
@@ -812,7 +949,7 @@ export const ImageStore = {
               const getReq = store.get(k);
               getReq.onsuccess = () => {
                 if (typeof getReq.result === 'string') {
-                  images[String(k)] = getReq.result;
+                  entries[String(k)] = getReq.result;
                 }
                 completed++;
                 if (completed === keys.length) resolve();
@@ -827,17 +964,162 @@ export const ImageStore = {
         }
       });
     } catch (err) {
-      console.warn('[ImageStore] Error reading all images from IndexedDB:', err);
+      console.warn('[ImageStore] Error reading raw entries from IndexedDB:', err);
     }
 
-    // Also include any memory-cached images not yet in images map
-    for (const [k, v] of imageMemoryCache.entries()) {
-      if (v && !images[k]) {
-        images[k] = v;
+    for (const [k, v] of rawStoredValues.entries()) {
+      if (v && !entries[k]) {
+        entries[k] = v;
       }
     }
 
-    return images;
+    return entries;
+  },
+
+  async getAllImages(): Promise<Record<string, string>> {
+    // Flush any pending memory writes first so IDB is authoritative
+    await flushPendingWrites();
+    const raw = await this.getAllRawStoredEntries();
+    const resolved: Record<string, string> = {};
+
+    // First populate canonicals
+    for (const [k, v] of Object.entries(raw)) {
+      if (typeof v === 'string' && !v.startsWith('ref:')) {
+        resolved[k] = v;
+        payloadToCanonicalKey.set(v, k);
+        setMemoryCache(k, v);
+      }
+    }
+
+    // Now resolve pointers
+    for (const [k, v] of Object.entries(raw)) {
+      if (typeof v === 'string' && v.startsWith('ref:')) {
+        const targetKey = v.substring(4);
+        const canonVal = resolved[targetKey] || imageMemoryCache.get(targetKey);
+        if (canonVal && !canonVal.startsWith('ref:')) {
+          resolved[k] = canonVal;
+          setMemoryCache(k, canonVal);
+        }
+      }
+    }
+
+    // Also include any memory-cached images not yet in resolved map
+    for (const [k, v] of imageMemoryCache.entries()) {
+      if (v && !resolved[k] && !v.startsWith('ref:')) {
+        resolved[k] = v;
+      }
+    }
+
+    return resolved;
+  },
+
+  async consolidateDuplicatePayloads(): Promise<MediaDeduplicationResult> {
+    await flushPendingWrites();
+    const raw = await this.getAllRawStoredEntries();
+    const errors: string[] = [];
+    const details: MediaDeduplicationGroupDetail[] = [];
+
+    // Group keys by exact physical payload
+    const payloadToKeys = new Map<string, string[]>();
+    for (const [key, val] of Object.entries(raw)) {
+      if (typeof val === 'string' && !val.startsWith('ref:') && val.length > 0) {
+        if (!payloadToKeys.has(val)) {
+          payloadToKeys.set(val, []);
+        }
+        payloadToKeys.get(val)!.push(key);
+      }
+    }
+
+    let consolidatedGroupsCount = 0;
+    let deduplicatedEntriesCount = 0;
+    let reclaimedBytes = 0;
+
+    const updatesToPersist: Array<{ key: string; value: string }> = [];
+
+    for (const [payload, keys] of payloadToKeys.entries()) {
+      if (keys.length > 1) {
+        // Sort keys to pick the best canonical key:
+        // Priority: MHC session keys, then shortest key, then alphabetical
+        const sortedKeys = [...keys].sort((a, b) => {
+          const aMhc = a.includes('MHC');
+          const bMhc = b.includes('MHC');
+          if (aMhc && !bMhc) return -1;
+          if (!aMhc && bMhc) return 1;
+          if (a.length !== b.length) return a.length - b.length;
+          return a.localeCompare(b);
+        });
+
+        const canonicalKey = sortedKeys[0];
+        const aliasKeys = sortedKeys.slice(1);
+        const payloadSize = payload.length;
+        let groupReclaimed = 0;
+
+        for (const alias of aliasKeys) {
+          const refPointer = `ref:${canonicalKey}`;
+          updatesToPersist.push({ key: alias, value: refPointer });
+          rawStoredValues.set(alias, refPointer);
+          // Keep the full payload in memory cache so UI accesses remain immediate
+          setMemoryCache(alias, payload);
+          groupReclaimed += Math.max(0, payloadSize - refPointer.length);
+          deduplicatedEntriesCount++;
+        }
+
+        consolidatedGroupsCount++;
+        reclaimedBytes += groupReclaimed;
+
+        // Detect payload type
+        let payloadType: any = 'unknown string';
+        if (payload.startsWith('data:image/jpeg') || payload.startsWith('data:image/jpg')) payloadType = 'data:image/jpeg';
+        else if (payload.startsWith('data:image/png')) payloadType = 'data:image/png';
+        else if (payload.startsWith('data:image/webp')) payloadType = 'data:image/webp';
+        else if (payload.startsWith('data:image/svg+xml')) payloadType = 'data:image/svg+xml';
+        else if (payload.startsWith('<svg')) payloadType = 'raw SVG';
+        else if (payload.startsWith('data:')) payloadType = 'other data URL';
+
+        details.push({
+          groupId: `group_${canonicalKey}`,
+          canonicalKey,
+          aliasKeys,
+          payloadType,
+          reclaimedBytesForGroup: groupReclaimed,
+        });
+
+        payloadToCanonicalKey.set(payload, canonicalKey);
+      }
+    }
+
+    if (updatesToPersist.length > 0) {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          for (const item of updatesToPersist) {
+            store.put(item.value, item.key);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err: any) {
+        console.warn('[ImageStore] Error persisting deduplication consolidation to IDB:', err);
+        errors.push(`Failed persisting deduplication updates to IndexedDB: ${err?.message || err}`);
+      }
+    }
+
+    const totalScanned = Object.keys(raw).length;
+    const uniquePayloadsRemaining = payloadToKeys.size;
+    const totalLogicalReferencesPreserved = totalScanned;
+
+    return {
+      totalScanned,
+      consolidatedGroupsCount,
+      deduplicatedEntriesCount,
+      reclaimedBytes,
+      uniquePayloadsRemaining,
+      totalLogicalReferencesPreserved,
+      details,
+      errors,
+    };
   },
 
   async restoreImages(images: Record<string, string>): Promise<{ restoredCount: number; errors: string[] }> {

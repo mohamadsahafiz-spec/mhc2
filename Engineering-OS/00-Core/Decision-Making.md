@@ -44,6 +44,24 @@ Propose only a fix supported by the established root cause.
 ### Verification
 Prove that the fix works and did not regress related functionality.
 
+## Investigation Stop Rule
+
+Investigation must be proportional to the decision being made.
+
+Once the available evidence is sufficient to:
+
+1. Identify the practical problem,
+2. Define the responsible boundary,
+3. Choose the smallest safe fix,
+
+stop gathering additional evidence unless the next evidence could materially change the decision.
+
+Do not continue investigation merely to achieve a more complete explanation.
+
+A technically interesting question is not automatically a necessary engineering question.
+
+For a Founder-directed bounded task, investigation must remain focused on the requested outcome. Do not expand scope without a concrete reason.
+
 ## Evidence Status
 
 Use explicit evidence labels for material findings:

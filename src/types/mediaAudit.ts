@@ -16,6 +16,7 @@ export type MediaPayloadType =
   | 'data:image/webp'
   | 'data:image/svg+xml'
   | 'raw SVG'
+  | 'reference pointer'
   | 'other data URL'
   | 'unknown string';
 
@@ -29,6 +30,8 @@ export interface MediaEvidenceEntryAudit {
   isReferenced: boolean;
   isOrphaned: boolean;
   isDuplicate: boolean;
+  isReferencePointer?: boolean;
+  referenceTargetKey?: string;
   duplicateGroupId?: string;
   duplicateCount: number;
 }
@@ -91,5 +94,24 @@ export interface OrphanedMediaCleanupResult {
   remainingIndexedDbEntries: number;
   remainingOrphanCount: number;
   deletedKeys: string[];
+  errors: string[];
+}
+
+export interface MediaDeduplicationGroupDetail {
+  groupId: string;
+  canonicalKey: string;
+  aliasKeys: string[];
+  payloadType: MediaPayloadType;
+  reclaimedBytesForGroup: number;
+}
+
+export interface MediaDeduplicationResult {
+  totalScanned: number;
+  consolidatedGroupsCount: number;
+  deduplicatedEntriesCount: number;
+  reclaimedBytes: number;
+  uniquePayloadsRemaining: number;
+  totalLogicalReferencesPreserved: number;
+  details: MediaDeduplicationGroupDetail[];
   errors: string[];
 }
