@@ -44,7 +44,7 @@ import {
 
 const ZERO_STATE_PURGE_KEY = 'fsos_v1_0_31_4_zero_state_purged';
 
-const KEYS = {
+export const STORAGE_KEYS = {
   CUSTOMERS: 'fso_v04_customers',
   PLANTS: 'fso_v04_plants',
   LINES: 'fso_v04_lines',
@@ -71,6 +71,8 @@ const KEYS = {
   MHC_WORKSPACE_DRAFTS: 'fso_v090_mhc_workspace_drafts',
   RECOMMENDED_PARTS: 'fso_v090_recommended_parts'
 };
+
+const KEYS = STORAGE_KEYS;
 
 function getStorage<T>(key: string, defaultValue: T): T {
   try {

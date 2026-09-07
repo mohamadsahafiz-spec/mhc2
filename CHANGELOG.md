@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v1.5.8 — FULL CORE DATA BACKUP & SAFE RESTORE (2026-09-07)
+
+### Full Core Data Backup & Safe Restore
+- **Full Core Data Backup Engine (`backupEngine.ts`)**:
+  - Implemented versioned, envelope-wrapped (`FSOSFullBackupEnvelope`) export covering 100% of core operational FSOS domains (Machines and embedded engineering records, Customers, Plants, Lines, Contracts, Schedules, MHC Sessions, Reports, Audit Records, Tasks, Alerts, Baselines, Investigations, Templates, Drafts, Recommended Parts, Branding, and Profile).
+  - Explicit manifest metadata tracking (`backupVersion: "1.0.0"`, `appVersion`, UTC `createdAt`, unique `backupId`, domain counts) with strict non-inclusion of binary image blobs and raw high-frequency temperature tables.
+- **Defensive Pre-Restore Validation & Live Domain Preview**:
+  - Structured validator (`validateBackup`) inspecting envelope schema, version compatibility (v1.x), primary key integrity, and dynamic domain record counts with zero storage mutation.
+  - Interactive preview and confirmation modal in Settings with domain metrics breakdown, core-data-only notices, and non-fatal warning diagnostics.
+- **Atomic Snapshot Replace with Pre-Restore Safety Guard**:
+  - Integrated automatic pre-restore safety snapshot generation (`fsos-pre-restore-safety-snapshot-*.json`) directly downloading current state prior to any storage mutation.
+  - Direct atomic write to storage keys bypassing normal sync enqueue wrappers, followed by clean sync engine queue/cache reset (`SyncEngine.resetLocalSyncState()`) and deterministic relational identity reconciliation (`reconcileCustomerIdentities`, `reconcileMhcSessionIdentities`).
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.8`.
+
 ## v1.5.7 — DATA SAFETY: PREVENT DESTRUCTIVE PARTIAL JSON IMPORT (2026-09-07)
 
 ### Data Safety: Prevent Destructive Partial JSON Import
