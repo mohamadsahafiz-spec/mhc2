@@ -13,7 +13,14 @@ import {
   Loader2,
   Image as ImageIcon,
   Package,
-  Layers
+  Layers,
+  Search,
+  Filter,
+  Copy,
+  FileText,
+  Database,
+  BarChart3,
+  HardDrive
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -30,6 +37,15 @@ import {
   ImageContaminationAuditResult,
   ImageCleanupResult
 } from '../../utils/imageStore';
+import {
+  auditMediaEvidence,
+  formatBytes,
+  ALL_MEDIA_CATEGORIES
+} from '../../utils/mediaEvidenceAudit';
+import {
+  MediaEvidenceAuditReport,
+  MediaEvidenceCategory
+} from '../../types/mediaAudit';
 import { FSOSCompleteBackupValidationResult } from '../../types/backup';
 
 interface SettingsProps {
@@ -66,12 +82,30 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const [auditResult, setAuditResult] = useState<ImageContaminationAuditResult | null>(null);
   const [cleanupStatus, setCleanupStatus] = useState<string | null>(null);
 
+  // P1.3.5 Forensic Media Evidence Size & Provenance Audit State
+  const [forensicReport, setForensicReport] = useState<MediaEvidenceAuditReport | null>(null);
+  const [forensicSearch, setForensicSearch] = useState<string>('');
+  const [forensicCategoryFilter, setForensicCategoryFilter] = useState<string>('ALL');
+  const [forensicStatusFilter, setForensicStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ORPHANED' | 'DUPLICATE'>('ALL');
+  const [activeForensicTab, setActiveForensicTab] = useState<'summary' | 'categories' | 'references' | 'duplicates' | 'consumers'>('summary');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const handleAuditImages = async () => {
     try {
       setAuditing(true);
       setCleanupStatus(null);
-      const res = await ImageStore.auditMalformedImages();
-      setAuditResult(res);
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
     } catch (err: any) {
       console.error('[SettingsModule] Image audit error:', err);
     } finally {
@@ -605,7 +639,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
       {/* Media Evidence Diagnostics & Contamination Purge */}
       <Card
         title="Media Evidence Diagnostics & Storage Guard"
-        subtitle="Forensic audit and safe removal of React-derived internal artifact entries from IndexedDB"
+        subtitle="Forensic size, provenance, active/orphaned reference audit and safe IndexedDB storage guard"
       >
         <div className="space-y-4 text-xs">
           <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
@@ -613,11 +647,11 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
           }`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2 font-bold text-sm text-sky-400">
-                <ImageIcon className="w-4 h-4" />
-                <span>IndexedDB Evidence Images Integrity</span>
+                <HardDrive className="w-4 h-4" />
+                <span>IndexedDB Evidence Forensic Audit & Storage Guard</span>
               </div>
               <p className="text-slate-400 leading-relaxed max-w-xl">
-                Scans the browser IndexedDB evidence store to distinguish legitimate engineering photos, signatures, and beam profile images from inadvertent React Fiber / Event DOM artifact entries.
+                Executes a strict <strong>read-only</strong> forensic scan across all IndexedDB media evidence entries to analyze exact UTF-8 byte volumes, category provenance, active vs. orphaned Core Data references, and duplicate payload groups.
               </p>
             </div>
 
@@ -629,29 +663,417 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 onClick={handleAuditImages}
                 disabled={auditing || cleaning}
               >
-                {auditing ? 'Scanning...' : 'Audit Media Store'}
+                {auditing ? 'Running Forensic Scan...' : 'Audit Media Store'}
               </Button>
             </div>
           </div>
 
-          {/* Audit Results View */}
-          {auditResult && (
+          {/* Forensic Audit Report UI */}
+          {forensicReport && (
+            <div className="space-y-4">
+              {/* Navigation Sub-Tabs */}
+              <div className="flex items-center gap-1 border-b border-[#2B323A] pb-2 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveForensicTab('summary')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    activeForensicTab === 'summary'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Media Store Summary</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveForensicTab('categories')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    activeForensicTab === 'categories'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Category Breakdown ({forensicReport.categories.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveForensicTab('references')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    activeForensicTab === 'references'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Active vs Orphaned ({forensicReport.summary.orphanedRecords} orphans)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveForensicTab('duplicates')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    activeForensicTab === 'duplicates'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Duplicate Payloads ({forensicReport.duplicates.length} groups)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveForensicTab('consumers')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    activeForensicTab === 'consumers'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Top Storage Consumers ({forensicReport.topConsumers.length})</span>
+                </button>
+              </div>
+
+              {/* TAB 1: MEDIA STORE SUMMARY */}
+              {activeForensicTab === 'summary' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 font-mono text-[11px]">
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Total Stored Records</div>
+                      <div className="font-bold text-sky-400 text-lg mt-0.5">{forensicReport.summary.totalRecords}</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Physical IndexedDB entries</div>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Total Storage Volume</div>
+                      <div className="font-bold text-indigo-400 text-lg mt-0.5">{formatBytes(forensicReport.summary.totalStorageBytes)}</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">{forensicReport.summary.totalStorageBytes.toLocaleString()} UTF-8 bytes</div>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Active Referenced</div>
+                      <div className="font-bold text-emerald-400 text-lg mt-0.5">{forensicReport.summary.activeReferencedRecords}</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Linked to live Core Data</div>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Orphaned / Unreferenced</div>
+                      <div className={`font-bold text-lg mt-0.5 ${forensicReport.summary.orphanedRecords > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+                        {forensicReport.summary.orphanedRecords}
+                      </div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">No active Core reference</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 font-mono text-[11px]">
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Unique Payload Count</div>
+                      <div className="font-bold text-sky-300 text-base mt-0.5">{forensicReport.summary.uniquePayloadCount}</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Distinct visual payloads</div>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Duplicate Payload Entries</div>
+                      <div className={`font-bold text-base mt-0.5 ${forensicReport.summary.duplicateRecords > 0 ? 'text-amber-300' : 'text-slate-400'}`}>
+                        {forensicReport.summary.duplicateRecords} ({forensicReport.summary.duplicateGroupsCount} groups)
+                      </div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Identical content under different keys</div>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="text-slate-400 text-[10px]">Duplicate Storage Overhead</div>
+                      <div className={`font-bold text-base mt-0.5 ${forensicReport.summary.potentialDuplicateSavingsBytes > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+                        {formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}
+                      </div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Potential deduplication savings</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: CATEGORY STORAGE BREAKDOWN */}
+              {activeForensicTab === 'categories' && (
+                <div className="space-y-3">
+                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
+                      <span className="font-bold text-xs">Deterministic Category Storage Distribution</span>
+                      <span className="font-mono text-[11px] text-slate-400">Total: {formatBytes(forensicReport.summary.totalStorageBytes)}</span>
+                    </div>
+                    <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px]">
+                      {forensicReport.categories.map((cat) => (
+                        <div key={cat.category} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                          <div className="space-y-1 min-w-[200px]">
+                            <div className="font-sans font-bold text-xs text-slate-200 flex items-center gap-2">
+                              <span>{cat.category}</span>
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">
+                                {cat.count} {cat.count === 1 ? 'entry' : 'entries'}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden max-w-xs">
+                              <div
+                                className="bg-sky-500 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${Math.max(cat.percentageOfTotal, cat.count > 0 ? 1 : 0)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-right">
+                            <div>
+                              <div className="text-slate-200 font-bold">{formatBytes(cat.totalBytes)}</div>
+                              <div className="text-slate-400 text-[10px]">{cat.percentageOfTotal.toFixed(1)}% of total</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ACTIVE VS ORPHANED */}
+              {activeForensicTab === 'references' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+                    <div className={`p-4 rounded-xl border space-y-2 ${isDark ? 'bg-emerald-950/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'}`}>
+                      <div className="flex items-center gap-2 font-bold text-xs text-emerald-400 font-sans">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Active Reachable References ({forensicReport.summary.activeReferencedRecords})</span>
+                      </div>
+                      <p className="text-slate-400 text-xs font-sans leading-relaxed">
+                        These {forensicReport.summary.activeReferencedRecords} entries are physically referenced by existing Machines, MHC Sessions, Reports, Templates, or Engineer Profiles in active Core Data.
+                      </p>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border space-y-2 ${
+                      forensicReport.summary.orphanedRecords > 0
+                        ? isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
+                        : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-2 font-bold text-xs text-amber-400 font-sans">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Orphaned Entries ({forensicReport.summary.orphanedRecords})</span>
+                      </div>
+                      <p className="text-slate-400 text-xs font-sans leading-relaxed">
+                        These entries exist in IndexedDB but have no matching reference in current active Core Data. (Read-only audit: no deletion performed).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Missing Referenced Keys Warning */}
+                  {forensicReport.missingReferencedKeys.length > 0 && (
+                    <div className={`p-4 rounded-xl border space-y-2 ${isDark ? 'bg-rose-950/20 border-rose-800/40' : 'bg-rose-50 border-rose-200'}`}>
+                      <div className="flex items-center gap-2 font-bold text-xs text-rose-400 font-sans">
+                        <XCircle className="w-4 h-4" />
+                        <span>Missing Referenced Keys Detected ({forensicReport.missingReferencedKeys.length})</span>
+                      </div>
+                      <p className="text-slate-400 text-xs font-sans">
+                        Core Data references these `idb:` keys, but their payloads were not found in IndexedDB:
+                      </p>
+                      <div className="max-h-32 overflow-y-auto space-y-1 font-mono text-[10px] text-rose-300">
+                        {forensicReport.missingReferencedKeys.map((k) => (
+                          <div key={k} className="p-1.5 rounded bg-rose-950/40 border border-rose-900/50">
+                            {k}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: DUPLICATE PAYLOAD ANALYSIS */}
+              {activeForensicTab === 'duplicates' && (
+                <div className="space-y-3">
+                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
+                      <span className="font-bold text-xs">Identical Payload Groups ({forensicReport.duplicates.length} groups)</span>
+                      <span className="font-mono text-[11px] text-amber-400">
+                        Total Wasted Storage: {formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}
+                      </span>
+                    </div>
+
+                    {forensicReport.duplicates.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-80" />
+                        <div>No duplicate payloads detected. All stored image contents are unique.</div>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px] max-h-96 overflow-y-auto">
+                        {forensicReport.duplicates.map((dup) => (
+                          <div key={dup.groupId} className="p-3 space-y-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                                  {dup.groupId}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">
+                                  {dup.payloadType}
+                                </span>
+                                <span className="text-slate-300 font-bold">{dup.count} references</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-slate-400 text-[10px]">Single: {formatBytes(dup.byteSizePerEntry)} | </span>
+                                <span className="text-slate-300 font-bold">Total: {formatBytes(dup.totalBytes)} | </span>
+                                <span className="text-amber-400 font-bold">Duplicate Overhead: {formatBytes(dup.wastedBytes)}</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1 text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded-lg border border-[#2B323A]/40">
+                              <div className="text-slate-500 font-sans text-[9px] uppercase tracking-wider">Referencing Keys:</div>
+                              {dup.keys.map((k) => (
+                                <div key={k} className="flex items-center justify-between gap-2 truncate">
+                                  <span className="truncate text-slate-300">{k}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyKey(k)}
+                                    className="text-slate-500 hover:text-slate-300 shrink-0"
+                                    title="Copy key"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: TOP STORAGE CONSUMERS & INVENTORY */}
+              {activeForensicTab === 'consumers' && (
+                <div className="space-y-3">
+                  {/* Search and Filters */}
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by key, record ID, or source..."
+                        value={forensicSearch}
+                        onChange={(e) => setForensicSearch(e.target.value)}
+                        className={`w-full pl-8 pr-3 py-1.5 rounded-lg border text-xs ${
+                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select
+                        value={forensicCategoryFilter}
+                        onChange={(e) => setForensicCategoryFilter(e.target.value)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="ALL">All Categories</option>
+                        {ALL_MEDIA_CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={forensicStatusFilter}
+                        onChange={(e) => setForensicStatusFilter(e.target.value as any)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active Only</option>
+                        <option value="ORPHANED">Orphaned Only</option>
+                        <option value="DUPLICATE">Duplicates Only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Ranked Consumers List */}
+                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
+                      <span className="font-bold text-xs">Media Storage Consumer Inventory</span>
+                      <span className="font-mono text-[11px] text-slate-400">
+                        Showing filtered entries (Ranked by size descending)
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px] max-h-96 overflow-y-auto">
+                      {forensicReport.topConsumers
+                        .filter((entry) => {
+                          if (forensicCategoryFilter !== 'ALL' && entry.category !== forensicCategoryFilter) return false;
+                          if (forensicStatusFilter === 'ACTIVE' && !entry.isReferenced) return false;
+                          if (forensicStatusFilter === 'ORPHANED' && !entry.isOrphaned) return false;
+                          if (forensicStatusFilter === 'DUPLICATE' && !entry.isDuplicate) return false;
+                          if (forensicSearch.trim()) {
+                            const q = forensicSearch.toLowerCase();
+                            return (
+                              entry.key.toLowerCase().includes(q) ||
+                              entry.category.toLowerCase().includes(q) ||
+                              entry.sourceClassification.toLowerCase().includes(q)
+                            );
+                          }
+                          return true;
+                        })
+                        .map((entry, idx) => (
+                          <div key={entry.key} className="p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-slate-500 text-[10px]">#{idx + 1}</span>
+                                <span className="font-semibold text-slate-200 truncate">{entry.key}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyKey(entry.key)}
+                                  className="text-slate-500 hover:text-slate-300"
+                                  title="Copy key"
+                                >
+                                  {copiedKey === entry.key ? (
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
+                                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400">{entry.category}</span>
+                                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">{entry.payloadType}</span>
+                                <span className="text-slate-500 truncate">{entry.sourceClassification}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {entry.isReferenced ? (
+                                <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-medium font-sans">
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[10px] font-medium font-sans">
+                                  Orphaned
+                                </span>
+                              )}
+                              {entry.isDuplicate && (
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 text-[10px] font-medium font-sans">
+                                  Duplicate ({entry.duplicateCount}x)
+                                </span>
+                              )}
+                              <div className="text-right min-w-[70px]">
+                                <div className="font-bold text-slate-200">{formatBytes(entry.byteSize)}</div>
+                                <div className="text-slate-500 text-[9px]">{entry.charLength.toLocaleString()} chars</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Existing P1.3.4 Contamination Audit & Safe Cleanup Guard */}
+          {auditResult && auditResult.malformed > 0 && (
             <div className={`p-4 rounded-xl border space-y-3 ${
-              auditResult.malformed > 0
-                ? isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
-                : isDark ? 'bg-emerald-950/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'
+              isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
             }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-xs">
-                  {auditResult.malformed > 0 ? (
-                    <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  )}
-                  <span className={auditResult.malformed > 0 ? 'text-amber-300' : 'text-emerald-300'}>
-                    {auditResult.malformed > 0
-                      ? `Contamination Detected: ${auditResult.malformed} React-derived entries found`
-                      : 'Media Store Clean: All entries are legitimate engineering evidence'}
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span className="text-amber-300">
+                    Contamination Detected: {auditResult.malformed} React-derived entries found
                   </span>
                 </div>
                 <span className="font-mono text-[11px] text-slate-400">Total Records: {auditResult.total}</span>
@@ -664,28 +1086,22 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 </div>
                 <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className="text-slate-400 text-[10px]">React Fiber Artifacts</div>
-                  <div className={`font-bold text-sm mt-0.5 ${auditResult.malformed > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+                  <div className="font-bold text-sm mt-0.5 text-amber-400">
                     {auditResult.malformed}
                   </div>
                 </div>
                 <div className={`col-span-2 md:col-span-1 p-2.5 rounded-lg border flex items-center justify-center ${
                   isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
                 }`}>
-                  {auditResult.malformed > 0 ? (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      icon={cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                      onClick={handleCleanupImages}
-                      disabled={cleaning}
-                    >
-                      {cleaning ? 'Purging Artifacts...' : 'Purge React Artifacts'}
-                    </Button>
-                  ) : (
-                    <span className="text-emerald-400 font-sans text-xs flex items-center gap-1 font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Optimal
-                    </span>
-                  )}
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    icon={cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                    onClick={handleCleanupImages}
+                    disabled={cleaning}
+                  >
+                    {cleaning ? 'Purging Artifacts...' : 'Purge React Artifacts'}
+                  </Button>
                 </div>
               </div>
 

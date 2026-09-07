@@ -1,5 +1,29 @@
 # FSOS CHANGELOG
 
+## v1.5.11 — MEDIA EVIDENCE SIZE & PROVENANCE AUDIT (2026-09-07)
+
+### Media Evidence Size & Provenance Audit
+- **Strict Read-Only Forensic Analysis (`mediaEvidenceAudit.ts`, `mediaAudit.ts`)**:
+  - Implemented 100% read-only forensic analysis of IndexedDB `evidence_images` with zero data mutation, deletion, deduplication, compression, or migration.
+  - Calculated exact UTF-8 byte volumes using browser-native `TextEncoder` and string character lengths for every media evidence entry.
+- **Deterministic Category Classification (`classifyMediaCategory`)**:
+  - Classified media entries into 10 deterministic engineering categories without guesswork: Beam Profile, MHC Session, Focus Optimization, Product & Process, Laser Power, Machine Passport, Signatures, Findings / Evidence, Reports / Drafts / Templates, and Other / Unknown.
+  - Extracted source provenance and payload formats (`data:image/png`, `data:image/jpeg`, `data:image/webp`, `data:image/svg+xml`, `raw SVG`, `other data URL`, `unknown string`).
+- **Active vs. Orphaned Reference Verification (`collectAllReachableCoreIdbKeys`)**:
+  - Scanned active Core Data structures across Machines, MHC Sessions, Reports, Templates, and Engineer Profiles to map all reachable `idb:` references.
+  - Identified active referenced entries versus orphaned IndexedDB records, and detected missing referenced keys (where Core Data references an `idb:` key not present in IndexedDB).
+- **Duplicate Payload Grouping & Storage Savings Analysis**:
+  - Grouped entries with identical visual payloads to calculate unique payload count, duplicate entry count, and exact duplicate storage overhead / potential deduplication savings.
+- **Settings Module Forensic Dashboard & Top Consumers Inventory (`SettingsModule.tsx`)**:
+  - Integrated 5-tab forensic audit interface inside "Media Evidence Diagnostics & Storage Guard":
+    - **Media Store Summary**: High-level KPIs (Total Records, Total Storage Bytes, Active vs. Orphaned, Unique vs. Duplicate Payloads, Overhead).
+    - **Category Storage Breakdown**: Visual distribution bars, entry counts, total bytes, and percentage breakdown.
+    - **Active vs. Orphaned Reference Analysis**: Active reference mappings and missing key detection alerts.
+    - **Duplicate Payload Analysis**: Duplicate group telemetry, single vs. total size, and referencing key lists.
+    - **Top Storage Consumers & Inventory**: Interactive ranked table with search, category filtering, status filtering, and copyable keys.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.5.11`.
+
 ## v1.5.10 — REACT FIBER IMAGE CONTAMINATION GUARD & SAFE INDEXEDDB CLEANUP (2026-09-07)
 
 ### React Fiber Image Contamination Guard & Safe IndexedDB Cleanup
