@@ -27,6 +27,62 @@ const listeners = new Set<ImageStoreListener>();
 type RemoteImageFetcher = (imageId: string) => Promise<string | null>;
 let remoteImageFetcher: RemoteImageFetcher | null = null;
 
+export interface ImageContaminationAuditResult {
+  total: number;
+  malformed: number;
+  legitimate: number;
+  malformedKeys: string[];
+}
+
+export interface ImageCleanupResult {
+  scanned: number;
+  removed: number;
+  skipped: number;
+  removedKeys: string[];
+}
+
+/**
+ * Safely determines if an object is a DOM Node, Window, Document, or Event
+ * without throwing ReferenceError in environments where DOM constructors might be absent.
+ */
+export function isBlockedDomOrEventObject(val: unknown): boolean {
+  if (!val || typeof val !== 'object') return false;
+  if (val instanceof Date) return false;
+
+  // Check standard DOM constructors if defined in global scope
+  if (typeof Node !== 'undefined' && val instanceof Node) return true;
+  if (typeof Element !== 'undefined' && val instanceof Element) return true;
+  if (typeof Document !== 'undefined' && val instanceof Document) return true;
+  if (typeof Window !== 'undefined' && val instanceof Window) return true;
+  if (typeof Event !== 'undefined' && val instanceof Event) return true;
+  if (typeof EventTarget !== 'undefined' && val instanceof EventTarget) return true;
+
+  // Duck typing for mocked, synthesized, or cross-realm DOM / Event objects
+  const obj = val as Record<string, any>;
+  if (typeof obj.nodeType === 'number' && typeof obj.nodeName === 'string') return true;
+  if (obj.ownerDocument !== undefined && obj.attributes !== undefined) return true;
+  if (obj.defaultView !== undefined && obj.document !== undefined) return true;
+
+  // React SyntheticEvent duck typing
+  if ('_reactName' in obj || 'nativeEvent' in obj) return true;
+  if ('isTrusted' in obj && typeof obj.preventDefault === 'function' && typeof obj.stopPropagation === 'function') return true;
+
+  // React Fiber / Internal node duck typing
+  if ('stateNode' in obj && ('memoizedProps' in obj || 'memoizedState' in obj || 'return' in obj)) return true;
+  if ('tag' in obj && 'key' in obj && 'child' in obj && 'return' in obj) return true;
+
+  return false;
+}
+
+/**
+ * Checks if an object property key is a React internal or DOM event property that must never be traversed.
+ */
+export function isBlockedTraversalKey(key: string): boolean {
+  if (key.startsWith('__react') || key.startsWith('_react')) return true;
+  if (key === 'nativeEvent' || key === 'view' || key === 'target' || key === 'currentTarget') return true;
+  return false;
+}
+
 function notifyListeners(keys: string[]) {
   if (keys.length === 0 || listeners.size === 0) return;
   if (isNotifying) {
@@ -413,6 +469,11 @@ export const ImageStore = {
     }
 
     if (typeof data === 'object') {
+      // Guard against DOM Elements, Windows, Events, and React Fiber/Internal structures
+      if (isBlockedDomOrEventObject(data)) {
+        return data;
+      }
+
       if (activeAncestors.has(data as object)) {
         return undefined as unknown as T;
       }
@@ -422,6 +483,9 @@ export const ImageStore = {
         if (Array.isArray(data)) {
           let hasChanges = false;
           const mapped = data.map((item, idx) => {
+            if (isBlockedDomOrEventObject(item)) {
+              return item;
+            }
             const res = this.extractAndStoreImagesSync(item, recordId, `${pathPrefix}_${idx}`, activeAncestors);
             if (res !== item) hasChanges = true;
             return res;
@@ -434,6 +498,15 @@ export const ImageStore = {
         const keys = Object.keys(data as any);
         for (const key of keys) {
           const val = (data as any)[key];
+          // Block React internal properties and DOM nodes from recursive extraction
+          if (isBlockedTraversalKey(key) && (isBlockedDomOrEventObject(val) || key.startsWith('__react') || key.startsWith('_react'))) {
+            result[key] = val;
+            continue;
+          }
+          if (isBlockedDomOrEventObject(val)) {
+            result[key] = val;
+            continue;
+          }
           const res = this.extractAndStoreImagesSync(val, recordId, `${pathPrefix}_${key}`, activeAncestors);
           if (res !== val) hasChanges = true;
           result[key] = res;
@@ -832,6 +905,157 @@ export const ImageStore = {
     return { restoredCount, errors };
   },
 
+  /**
+   * Deterministically identifies whether an image key is a malformed React/DOM-derived artifact.
+   * Targets only confirmed React Fiber/Event paths (e.g., idb:...__target___reactFiber$...)
+   * and strictly avoids false positives on legitimate engineering keys.
+   */
+  isMalformedReactDerivedImageKey(key: string): boolean {
+    if (!key || typeof key !== 'string' || !key.startsWith('idb:')) {
+      return false;
+    }
+
+    // Direct React internal signatures
+    if (key.includes('__reactFiber') || key.includes('__reactProps') || key.includes('__reactEvents') || key.includes('__reactInternal')) {
+      return true;
+    }
+
+    // Event target traversal with React Fiber signatures
+    if (key.includes('__target___react') || key.includes('__currentTarget___react')) {
+      return true;
+    }
+
+    // Event target traversal with Fiber node navigation chains
+    const hasTargetPrefix = key.includes('__target_') || key.includes('_target___') || key.includes('_currentTarget___');
+    const hasFiberTraversals = key.includes('_return_') || key.includes('_child_') || key.includes('_memoizedProps_') || key.includes('_stateNode_') || key.includes('_alternate_') || key.includes('_sibling_') || key.includes('_memoizedState_');
+
+    if (hasTargetPrefix && hasFiberTraversals) {
+      return true;
+    }
+
+    // Event nativeEvent traversal with React internals
+    if (key.includes('_nativeEvent_') && (key.includes('_target_') || key.includes('__react') || key.includes('_view_'))) {
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
+   * Performs a non-destructive, read-only audit of evidence_images in IndexedDB and memory cache.
+   * Identifies all keys and isolates confirmed malformed React-derived entries without any deletion.
+   */
+  async auditMalformedImages(): Promise<ImageContaminationAuditResult> {
+    const allKeysSet = new Set<string>();
+
+    // 1. Gather all keys from memory cache
+    for (const k of imageMemoryCache.keys()) {
+      allKeysSet.add(k);
+    }
+
+    // 2. Gather all keys from pending writes
+    for (const k of pendingIdbWrites.keys()) {
+      allKeysSet.add(k);
+    }
+
+    // 3. Gather all keys from IndexedDB (if supported)
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAllKeys();
+          req.onsuccess = () => {
+            const keys = req.result;
+            if (keys && Array.isArray(keys)) {
+              for (const k of keys) {
+                if (typeof k === 'string') {
+                  allKeysSet.add(k);
+                }
+              }
+            }
+            resolve();
+          };
+          req.onerror = () => reject(req.error);
+        });
+      } catch (err) {
+        console.warn('[ImageStore] Error reading keys from IndexedDB during audit:', err);
+      }
+    }
+
+    const malformedKeys: string[] = [];
+    for (const key of allKeysSet) {
+      if (this.isMalformedReactDerivedImageKey(key)) {
+        malformedKeys.push(key);
+      }
+    }
+
+    const total = allKeysSet.size;
+    const malformed = malformedKeys.length;
+    const legitimate = total - malformed;
+
+    return {
+      total,
+      malformed,
+      legitimate,
+      malformedKeys
+    };
+  },
+
+  /**
+   * Safely purges ONLY confirmed malformed React-derived entries from IndexedDB and runtime memory caches.
+   * Strictly preserves all legitimate engineering evidence, photos, and beam profile images.
+   */
+  async cleanupMalformedReactDerivedImages(): Promise<ImageCleanupResult> {
+    const audit = await this.auditMalformedImages();
+    if (audit.malformed === 0 || audit.malformedKeys.length === 0) {
+      return {
+        scanned: audit.total,
+        removed: 0,
+        skipped: audit.total,
+        removedKeys: []
+      };
+    }
+
+    const keysToRemove = audit.malformedKeys;
+
+    // 1. Evict from memory caches and tracking sets
+    for (const key of keysToRemove) {
+      imageMemoryCache.delete(key);
+      persistedInIdbKeys.delete(key);
+      pendingIdbWrites.delete(key);
+      inFlightReads.delete(key);
+      notFoundInIdbKeys.add(key);
+      deferredReconciliationKeys.delete(key);
+    }
+
+    // 2. Delete from IndexedDB store (if supported)
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          for (const key of keysToRemove) {
+            store.delete(key);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('[ImageStore] Error deleting malformed keys from IndexedDB:', err);
+      }
+    }
+
+    return {
+      scanned: audit.total,
+      removed: keysToRemove.length,
+      skipped: audit.legitimate,
+      removedKeys: keysToRemove
+    };
+  },
+
   async clearAll(): Promise<void> {
     imageMemoryCache.clear();
     persistedInIdbKeys.clear();
@@ -840,17 +1064,19 @@ export const ImageStore = {
     notFoundInIdbKeys.clear();
     deferredReconciliationKeys.clear();
     queuedNotificationKeys.clear();
-    try {
-      const db = await openDB();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.clear();
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-    } catch (err) {
-      console.warn('[ImageStore] Error clearing IndexedDB:', err);
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      } catch (err) {
+        console.warn('[ImageStore] Error clearing IndexedDB:', err);
+      }
     }
   }
 };

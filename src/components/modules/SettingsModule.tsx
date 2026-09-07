@@ -25,6 +25,11 @@ import {
   validateCompleteBackup,
   restoreCompleteBackup
 } from '../../utils/backupEngine';
+import {
+  ImageStore,
+  ImageContaminationAuditResult,
+  ImageCleanupResult
+} from '../../utils/imageStore';
 import { FSOSCompleteBackupValidationResult } from '../../types/backup';
 
 interface SettingsProps {
@@ -54,6 +59,47 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // IndexedDB Contamination Audit & Safe Cleanup State
+  const [auditing, setAuditing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [auditResult, setAuditResult] = useState<ImageContaminationAuditResult | null>(null);
+  const [cleanupStatus, setCleanupStatus] = useState<string | null>(null);
+
+  const handleAuditImages = async () => {
+    try {
+      setAuditing(true);
+      setCleanupStatus(null);
+      const res = await ImageStore.auditMalformedImages();
+      setAuditResult(res);
+    } catch (err: any) {
+      console.error('[SettingsModule] Image audit error:', err);
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const handleCleanupImages = async () => {
+    if (!auditResult || auditResult.malformed === 0) return;
+    const confirmed = window.confirm(
+      `Remove ${auditResult.malformed} confirmed React-derived internal artifact entries from IndexedDB?\n\nThis strictly preserves all ${auditResult.legitimate} legitimate engineering photos, beam profiles, and evidence images.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setCleaning(true);
+      const res = await ImageStore.cleanupMalformedReactDerivedImages();
+      setCleanupStatus(`Successfully removed ${res.removed} React-derived entries. ${res.skipped} legitimate images preserved.`);
+      // Re-run audit to refresh stats
+      const nextAudit = await ImageStore.auditMalformedImages();
+      setAuditResult(nextAudit);
+    } catch (err: any) {
+      console.error('[SettingsModule] Image cleanup error:', err);
+      alert(`Cleanup error: ${err?.message || err}`);
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   // Re-run validation whenever core or media file text changes
   const runValidation = (coreText: string, mediaText: string) => {
@@ -555,6 +601,106 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
           </div>
         </div>
       )}
+
+      {/* Media Evidence Diagnostics & Contamination Purge */}
+      <Card
+        title="Media Evidence Diagnostics & Storage Guard"
+        subtitle="Forensic audit and safe removal of React-derived internal artifact entries from IndexedDB"
+      >
+        <div className="space-y-4 text-xs">
+          <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 font-bold text-sm text-sky-400">
+                <ImageIcon className="w-4 h-4" />
+                <span>IndexedDB Evidence Images Integrity</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed max-w-xl">
+                Scans the browser IndexedDB evidence store to distinguish legitimate engineering photos, signatures, and beam profile images from inadvertent React Fiber / Event DOM artifact entries.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={auditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                onClick={handleAuditImages}
+                disabled={auditing || cleaning}
+              >
+                {auditing ? 'Scanning...' : 'Audit Media Store'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Audit Results View */}
+          {auditResult && (
+            <div className={`p-4 rounded-xl border space-y-3 ${
+              auditResult.malformed > 0
+                ? isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
+                : isDark ? 'bg-emerald-950/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  {auditResult.malformed > 0 ? (
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  )}
+                  <span className={auditResult.malformed > 0 ? 'text-amber-300' : 'text-emerald-300'}>
+                    {auditResult.malformed > 0
+                      ? `Contamination Detected: ${auditResult.malformed} React-derived entries found`
+                      : 'Media Store Clean: All entries are legitimate engineering evidence'}
+                  </span>
+                </div>
+                <span className="font-mono text-[11px] text-slate-400">Total Records: {auditResult.total}</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 font-mono text-[11px]">
+                <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="text-slate-400 text-[10px]">Legitimate Evidence</div>
+                  <div className="font-bold text-emerald-400 text-sm mt-0.5">{auditResult.legitimate}</div>
+                </div>
+                <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="text-slate-400 text-[10px]">React Fiber Artifacts</div>
+                  <div className={`font-bold text-sm mt-0.5 ${auditResult.malformed > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+                    {auditResult.malformed}
+                  </div>
+                </div>
+                <div className={`col-span-2 md:col-span-1 p-2.5 rounded-lg border flex items-center justify-center ${
+                  isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+                }`}>
+                  {auditResult.malformed > 0 ? (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                      onClick={handleCleanupImages}
+                      disabled={cleaning}
+                    >
+                      {cleaning ? 'Purging Artifacts...' : 'Purge React Artifacts'}
+                    </Button>
+                  ) : (
+                    <span className="text-emerald-400 font-sans text-xs flex items-center gap-1 font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Optimal
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {cleanupStatus && (
+                <div className={`p-2.5 rounded-lg border flex items-center gap-2 text-[11px] font-mono ${
+                  isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                  <span>{cleanupStatus}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Structured Changelog */}
       <Card

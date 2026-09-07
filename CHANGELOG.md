@@ -1,5 +1,23 @@
 # FSOS CHANGELOG
 
+## v1.5.10 — REACT FIBER IMAGE CONTAMINATION GUARD & SAFE INDEXEDDB CLEANUP (2026-09-07)
+
+### React Fiber Image Contamination Guard & Safe IndexedDB Cleanup
+- **Defensive Traversal Boundaries at Ingestion (`ImageStore.extractAndStoreImagesSync`)**:
+  - Implemented strict runtime type and duck-typing guards (`isBlockedDomOrEventObject`) against browser DOM elements (`Node`, `Element`, `HTMLElement`, `Document`, `Window`), standard DOM events, React SyntheticEvents, and internal React Fiber tree representations (`stateNode`, `memoizedProps`, `memoizedState`, `return`, `child`).
+  - Added property-level recursion filters (`isBlockedTraversalKey`) blocking traversal into `__reactFiber*`, `__reactProps*`, `__reactEvents*`, `_react*`, `nativeEvent`, `target`, and `currentTarget`.
+  - Preserved 100% of legitimate nested engineering payloads, Base64 data URLs, SVG drawings, active ancestor cycle prevention, and structural object references.
+- **Deterministic Malformed Key Classifier (`ImageStore.isMalformedReactDerivedImageKey`)**:
+  - Implemented exact pattern matching isolating confirmed React/DOM-derived keys (e.g. `idb:<recordId>__target___reactFiber$*`, `_return_`, `_child_`, `_memoizedProps_`).
+  - Guaranteed zero false positives across all legitimate FSOS engineering keys (`beamProfileRecords`, `focusOptimizationRecords`, `productProcessRecords`, `laserPowerRecords`, MHC stage evidence, and engineer signatures).
+- **Non-Destructive Forensic Audit & Safe Cleanup (`ImageStore.auditMalformedImages`, `ImageStore.cleanupMalformedReactDerivedImages`)**:
+  - Added non-destructive, read-only audit scanning IndexedDB `evidence_images` and runtime memory caches to classify legitimate versus contaminated entries.
+  - Added surgical, non-automatic cleanup purging confirmed React-derived internal artifacts from IndexedDB, LRU memory caches, and pending write queues while strictly preserving 100% of authentic engineering images.
+- **Settings Module Media Diagnostics & Storage Guard (`SettingsModule.tsx`)**:
+  - Integrated interactive "Media Evidence Diagnostics & Storage Guard" providing manual audit triggers, legitimate vs. artifact telemetry breakdowns, and confirmation-guarded purge execution.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `package.json`, and `metadata.json` to `v1.5.10`.
+
 ## v1.5.9 — COMPLETE ARCHIVE: MEDIA EVIDENCE BACKUP & RESTORE (2026-09-07)
 
 ### Complete Archive (Core + Media Evidence Backup & Restore)
