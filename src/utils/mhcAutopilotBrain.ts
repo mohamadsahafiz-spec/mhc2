@@ -1297,3 +1297,40 @@ export function findLatestResumableMhcSession(
     machine: validResumables[0].machine
   };
 }
+
+/**
+ * Resolves the effective active/draft session for MHC Autopilot.
+ * Strictly enforces that ONLY incomplete/in-progress sessions can be resolved.
+ * Completed historical sessions must NEVER be returned as an active Autopilot recovery fallback.
+ */
+export function resolveEffectiveAutopilotSession(
+  activeSession?: MHCSession | null,
+  selectedMachineId?: string | null,
+  allSessions?: MHCSession[] | null
+): MHCSession | null {
+  let target: MHCSession | null = activeSession || null;
+
+  // Reject activeSession if it is completed or belongs to a different machine
+  if (target && (target.completionStatus === 'COMPLETED' || (selectedMachineId && target.machineId !== selectedMachineId))) {
+    target = null;
+  }
+
+  // If no valid active session provided, search all sessions for an incomplete session for this machine
+  if (!target && selectedMachineId && Array.isArray(allSessions)) {
+    const candidate = allSessions.find(
+      s => s && s.machineId === selectedMachineId && s.completionStatus !== 'COMPLETED'
+    );
+    target = candidate || null;
+  }
+
+  if (!target) return null;
+
+  if (!target.autopilotProgress) {
+    return {
+      ...target,
+      autopilotProgress: createDefaultAutopilotProgress()
+    };
+  }
+
+  return target;
+}

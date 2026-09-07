@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v1.6.0 — GHOST AUTOPILOT BOUNDARY ISOLATION (2026-09-07)
+
+### Ghost Autopilot Session Boundary & Recovery Isolation
+- **Strict Autopilot Recovery Boundary (`mhcAutopilotBrain.ts`, `MhcAutopilot.tsx`, `MachineHealthCheckModule.tsx`)**:
+  - Eliminated the faulty fallback pattern (`|| mhcSessions.find(s => s.machineId === machineId)`) that previously latched onto historical `COMPLETED` sessions when zero active/incomplete drafts existed.
+  - Implemented `resolveEffectiveAutopilotSession` pure helper strictly guaranteeing that only incomplete sessions (`completionStatus !== 'COMPLETED'`) can ever be resolved as the effective active session.
+  - When no active/incomplete draft exists for a selected machine, Autopilot now starts completely clean (0% Readiness, clean default progression, zero checked activities).
+- **Preserved Historical Records & MHC History View (`MhcHistoryView.tsx`)**:
+  - Maintained 100% data integrity for all completed historical MHC records, ensuring full availability in MHC History, executive reports, and baseline comparison models without mutation or deletion.
+- **Exhaustive 7-Scenario Regression Test Suite (`mhcAutopilotSessionBoundary.test.ts`)**:
+  - Added full test coverage for: (1) No sessions, (2) Only COMPLETED sessions, (3) Single incomplete session, (4) Mixed COMPLETED + incomplete sessions, (5) Completed session for other machine, (6) Zero active fleet drafts, and (7) MHC History preservation.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `src/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.6.0`.
+
 ## v1.5.11 — MEDIA EVIDENCE SIZE & PROVENANCE AUDIT (2026-09-07)
 
 ### Media Evidence Size & Provenance Audit

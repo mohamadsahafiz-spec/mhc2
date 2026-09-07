@@ -40,7 +40,8 @@ import {
   auditMhcSession,
   advanceAutopilotActivity,
   flagDownstreamNeedsReview,
-  findLatestResumableMhcSession
+  findLatestResumableMhcSession,
+  resolveEffectiveAutopilotSession
 } from '../../utils/mhcAutopilotBrain';
 import { MhcLaserHoursActivity } from './autopilot/MhcLaserHoursActivity';
 import { MhcLaserPowerActivity } from './autopilot/MhcLaserPowerActivity';
@@ -405,23 +406,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
   // Effective Active Session with Session Brain Progress initialized
   const effectiveSession = useMemo(() => {
-    let target = activeSession;
-    if (target && localSelectedMachine && target.machineId !== localSelectedMachine.id) {
-      target = undefined;
-    }
-    if (!target && localSelectedMachine) {
-      target = mhcSessions.find(s => s.machineId === localSelectedMachine.id && s.completionStatus !== 'COMPLETED') ||
-               mhcSessions.find(s => s.machineId === localSelectedMachine.id);
-    }
-    if (!target) return null;
-    if (!target.autopilotProgress) {
-      return {
-        ...target,
-        autopilotProgress: createDefaultAutopilotProgress()
-      };
-    }
-    return target;
-  }, [activeSession, localSelectedMachine, mhcSessions]);
+    return resolveEffectiveAutopilotSession(activeSession, localSelectedMachine?.id, mhcSessions);
+  }, [activeSession, localSelectedMachine?.id, mhcSessions]);
 
   const progress = useMemo(() => {
     return effectiveSession?.autopilotProgress || createDefaultAutopilotProgress();

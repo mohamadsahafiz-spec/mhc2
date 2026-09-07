@@ -56,10 +56,10 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     }
   }, [machines]);
 
-  // Active Session for current machine
+  // Active Session for current machine (strictly incomplete/draft session)
   const activeSession = mhcSessions.find(
     (s) => s.machineId === selectedMachineId && s.completionStatus !== 'COMPLETED'
-  ) || mhcSessions.find((s) => s.machineId === selectedMachineId);
+  );
 
   // 1. Targeted hydration of activeSession images independently of cloud sync
   useEffect(() => {
