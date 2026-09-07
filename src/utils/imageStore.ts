@@ -1056,6 +1056,63 @@ export const ImageStore = {
     };
   },
 
+  /**
+   * Safely deletes a specific list of image keys from IndexedDB and runtime memory caches in batches.
+   * Strictly preserves all other keys; never calls clear() or wipes the store.
+   */
+  async deleteImageKeys(keys: string[]): Promise<{ deletedCount: number; errors: string[] }> {
+    const errors: string[] = [];
+    if (!keys || keys.length === 0) return { deletedCount: 0, errors: [] };
+
+    // 1. Evict from memory caches and tracking sets
+    for (const key of keys) {
+      imageMemoryCache.delete(key);
+      persistedInIdbKeys.delete(key);
+      pendingIdbWrites.delete(key);
+      inFlightReads.delete(key);
+      notFoundInIdbKeys.add(key);
+      deferredReconciliationKeys.delete(key);
+    }
+
+    let deletedCount = 0;
+    const BATCH_SIZE = 50;
+
+    // 2. Delete from IndexedDB store (if supported) in safe batches
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        const db = await openDB();
+        for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+          const batch = keys.slice(i, i + BATCH_SIZE);
+          await new Promise<void>((resolve, reject) => {
+            try {
+              const tx = db.transaction(STORE_NAME, 'readwrite');
+              const store = tx.objectStore(STORE_NAME);
+              for (const k of batch) {
+                store.delete(k);
+              }
+              tx.oncomplete = () => {
+                deletedCount += batch.length;
+                resolve();
+              };
+              tx.onerror = () => reject(tx.error);
+              tx.onabort = () => reject(new Error('IndexedDB batch delete aborted'));
+            } catch (err) {
+              reject(err);
+            }
+          });
+        }
+      } catch (err: any) {
+        console.warn('[ImageStore] Error batch deleting image keys from IndexedDB:', err);
+        errors.push(err?.message || String(err));
+      }
+    } else {
+      deletedCount = keys.length;
+    }
+
+    notifyListeners(keys);
+    return { deletedCount, errors };
+  },
+
   async clearAll(): Promise<void> {
     imageMemoryCache.clear();
     persistedInIdbKeys.clear();

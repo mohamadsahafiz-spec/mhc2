@@ -72,3 +72,24 @@ export interface MediaEvidenceAuditReport {
   missingReferencedKeys: string[];
   entries: MediaEvidenceEntryAudit[];
 }
+
+export interface OrphanedMediaReconciliationPreview {
+  totalIndexedDbEntries: number;
+  totalActiveReferencedKeys: number;
+  referencedIndexedDbEntries: number;
+  orphanedIndexedDbEntries: number;
+  missingReferencedKeys: string[];
+  reclaimableBytes: number;
+  orphanCountByCategory: Record<MediaEvidenceCategory, { count: number; bytes: number }>;
+  orphanKeys: string[];
+}
+
+export interface OrphanedMediaCleanupResult {
+  scannedIndexedDb: number;
+  removedCount: number;
+  reclaimedBytes: number;
+  remainingIndexedDbEntries: number;
+  remainingOrphanCount: number;
+  deletedKeys: string[];
+  errors: string[];
+}

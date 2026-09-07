@@ -7,7 +7,9 @@ import {
   CategoryStorageSummary,
   DuplicateGroupSummary,
   MediaEvidenceAuditSummary,
-  MediaEvidenceAuditReport
+  MediaEvidenceAuditReport,
+  OrphanedMediaReconciliationPreview,
+  OrphanedMediaCleanupResult
 } from '../types/mediaAudit';
 
 export const ALL_MEDIA_CATEGORIES: MediaEvidenceCategory[] = [
@@ -377,3 +379,131 @@ export async function auditMediaEvidence(
     entries
   };
 }
+
+/**
+ * Generates a deterministic read-only preview of orphaned media candidate records.
+ * Compares current IndexedDB store against active reachable Core Data references.
+ * Strictly guarantees ZERO mutation of IndexedDB or Core Data.
+ */
+export async function previewOrphanedMediaCleanup(
+  imagesMap?: Record<string, string>,
+  activeCoreData?: any
+): Promise<OrphanedMediaReconciliationPreview> {
+  const images: Record<string, string> = imagesMap || (await ImageStore.getAllImages());
+  const allKeys = Object.keys(images);
+  const reachableCoreKeys = collectAllReachableCoreIdbKeys(activeCoreData);
+
+  const orphanCategoryBuckets: Record<MediaEvidenceCategory, { count: number; bytes: number }> = {} as any;
+  for (const cat of ALL_MEDIA_CATEGORIES) {
+    orphanCategoryBuckets[cat] = { count: 0, bytes: 0 };
+  }
+
+  const orphanKeys: string[] = [];
+  let referencedCount = 0;
+  let reclaimableBytes = 0;
+
+  for (const key of allKeys) {
+    const isReferenced = reachableCoreKeys.has(key);
+    if (isReferenced) {
+      referencedCount++;
+    } else {
+      orphanKeys.push(key);
+      const payload = images[key] || '';
+      const byteSize = getPayloadByteSize(payload);
+      reclaimableBytes += byteSize;
+      const { category } = classifyMediaCategory(key);
+      orphanCategoryBuckets[category].count += 1;
+      orphanCategoryBuckets[category].bytes += byteSize;
+    }
+  }
+
+  const missingReferencedKeys: string[] = [];
+  for (const coreKey of reachableCoreKeys) {
+    if (!images[coreKey]) {
+      missingReferencedKeys.push(coreKey);
+    }
+  }
+
+  return {
+    totalIndexedDbEntries: allKeys.length,
+    totalActiveReferencedKeys: reachableCoreKeys.size,
+    referencedIndexedDbEntries: referencedCount,
+    orphanedIndexedDbEntries: orphanKeys.length,
+    missingReferencedKeys,
+    reclaimableBytes,
+    orphanCountByCategory: orphanCategoryBuckets,
+    orphanKeys
+  };
+}
+
+/**
+ * Safely removes ONLY IndexedDB media entries that are PROVEN to be orphaned.
+ * 
+ * Safety constraints:
+ * 1. Recalculates the authoritative orphan set at execution time against current active Core Data references.
+ * 2. Deletes ONLY verified orphan keys in safe batches (never wipes the store or calls clearAll()).
+ * 3. Never deletes referenced entries (including completed historical MHC sessions, machines, reports, templates, profiles).
+ * 4. Never deletes entries based on duplicate payload detection.
+ * 5. Evicts deleted keys from all runtime caches and memory tracking maps.
+ */
+export async function cleanupOrphanedMedia(
+  imagesMap?: Record<string, string>,
+  activeCoreData?: any
+): Promise<OrphanedMediaCleanupResult> {
+  // 1. Authoritative Current Scan
+  const currentImages: Record<string, string> = imagesMap || (await ImageStore.getAllImages());
+  const currentAllKeys = Object.keys(currentImages);
+  const currentReachableKeys = collectAllReachableCoreIdbKeys(activeCoreData);
+
+  // 2. Identify ONLY proven orphan keys (present in IndexedDB, NOT in active Core Data)
+  const provenOrphanKeys: string[] = [];
+  let reclaimedBytes = 0;
+
+  for (const key of currentAllKeys) {
+    if (!currentReachableKeys.has(key)) {
+      provenOrphanKeys.push(key);
+      const payload = currentImages[key] || '';
+      reclaimedBytes += getPayloadByteSize(payload);
+    }
+  }
+
+  // 3. Safety Guard: If zero orphans, return immediately without touching storage
+  if (provenOrphanKeys.length === 0) {
+    return {
+      scannedIndexedDb: currentAllKeys.length,
+      removedCount: 0,
+      reclaimedBytes: 0,
+      remainingIndexedDbEntries: currentAllKeys.length,
+      remainingOrphanCount: 0,
+      deletedKeys: [],
+      errors: []
+    };
+  }
+
+  // 4. Safe Batch Deletion (Never clearAll / never wipe store)
+  const { deletedCount, errors } = await ImageStore.deleteImageKeys(provenOrphanKeys);
+
+  // In memory/test environments where imagesMap was passed directly:
+  if (imagesMap) {
+    for (const k of provenOrphanKeys) {
+      delete imagesMap[k];
+    }
+  }
+
+  // 5. Post-cleanup inventory calculation
+  const remainingImages = imagesMap || (await ImageStore.getAllImages());
+  const remainingKeys = Object.keys(remainingImages);
+  const postReachableKeys = collectAllReachableCoreIdbKeys(activeCoreData);
+  const remainingOrphans = remainingKeys.filter(k => !postReachableKeys.has(k)).length;
+
+  return {
+    scannedIndexedDb: currentAllKeys.length,
+    removedCount: deletedCount,
+    reclaimedBytes,
+    remainingIndexedDbEntries: remainingKeys.length,
+    remainingOrphanCount: remainingOrphans,
+    deletedKeys: provenOrphanKeys,
+    errors
+  };
+}
+

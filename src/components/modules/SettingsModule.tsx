@@ -20,7 +20,8 @@ import {
   FileText,
   Database,
   BarChart3,
-  HardDrive
+  HardDrive,
+  Trash2
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -40,11 +41,13 @@ import {
 import {
   auditMediaEvidence,
   formatBytes,
-  ALL_MEDIA_CATEGORIES
+  ALL_MEDIA_CATEGORIES,
+  cleanupOrphanedMedia
 } from '../../utils/mediaEvidenceAudit';
 import {
   MediaEvidenceAuditReport,
-  MediaEvidenceCategory
+  MediaEvidenceCategory,
+  OrphanedMediaCleanupResult
 } from '../../types/mediaAudit';
 import { FSOSCompleteBackupValidationResult } from '../../types/backup';
 
@@ -90,6 +93,10 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const [activeForensicTab, setActiveForensicTab] = useState<'summary' | 'categories' | 'references' | 'duplicates' | 'consumers'>('summary');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // P1.3.7 Safe Orphaned Media Reconciliation & Cleanup State
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
+  const [orphansCleanupResult, setOrphansCleanupResult] = useState<OrphanedMediaCleanupResult | null>(null);
+
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(key);
@@ -110,6 +117,44 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
       console.error('[SettingsModule] Image audit error:', err);
     } finally {
       setAuditing(false);
+    }
+  };
+
+  const handleCleanupOrphanedMedia = async () => {
+    if (!forensicReport || forensicReport.summary.orphanedRecords === 0) return;
+
+    const orphanedCount = forensicReport.summary.orphanedRecords;
+    const reclaimableBytes = forensicReport.entries
+      .filter((e) => e.isOrphaned)
+      .reduce((acc, e) => acc + e.byteSize, 0);
+
+    const confirmed = window.confirm(
+      `Permanently remove ${orphanedCount} confirmed orphaned media entries (${formatBytes(reclaimableBytes)}) from IndexedDB?\n\n` +
+      `Safety Guarantee:\n` +
+      `• ONLY media not referenced by current FSOS Core Data will be removed.\n` +
+      `• All active machine passports, MHC sessions (including completed historical sessions), beam profiles, reports, and templates are strictly preserved.\n\n` +
+      `Proceed with safe orphaned media cleanup?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setCleaningOrphans(true);
+      setOrphansCleanupResult(null);
+      const result = await cleanupOrphanedMedia();
+      setOrphansCleanupResult(result);
+
+      // Re-run audits automatically to refresh live UI
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
+    } catch (err: any) {
+      console.error('[SettingsModule] Orphan cleanup error:', err);
+      alert(`Orphan cleanup error: ${err?.message || err}`);
+    } finally {
+      setCleaningOrphans(false);
     }
   };
 
@@ -668,6 +713,37 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
             </div>
           </div>
 
+          {/* Post-Cleanup Status Banner */}
+          {orphansCleanupResult && (
+            <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+              isDark ? 'bg-emerald-950/30 border-emerald-500/50' : 'bg-emerald-50 border-emerald-300'
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Orphaned Media Cleanup Completed Successfully</span>
+                </div>
+                <div className="text-slate-300 text-xs font-mono flex flex-wrap items-center gap-3 pt-0.5">
+                  <span>Removed: <strong className="text-emerald-400">{orphansCleanupResult.removedCount}</strong> records</span>
+                  <span>•</span>
+                  <span>Reclaimed: <strong className="text-emerald-400">{formatBytes(orphansCleanupResult.reclaimedBytes)}</strong></span>
+                  <span>•</span>
+                  <span>Remaining Stored: <strong className="text-sky-400">{orphansCleanupResult.remainingIndexedDbEntries}</strong> records</span>
+                  <span>•</span>
+                  <span>Remaining Orphans: <strong className={orphansCleanupResult.remainingOrphanCount === 0 ? 'text-emerald-400' : 'text-amber-400'}>{orphansCleanupResult.remainingOrphanCount}</strong></span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrphansCleanupResult(null)}
+                className="self-end md:self-center text-slate-400 hover:text-slate-200"
+              >
+                Dismiss
+              </Button>
+            </div>
+          )}
+
           {/* Forensic Audit Report UI */}
           {forensicReport && (
             <div className="space-y-4">
@@ -849,10 +925,113 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                         <span>Orphaned Entries ({forensicReport.summary.orphanedRecords})</span>
                       </div>
                       <p className="text-slate-400 text-xs font-sans leading-relaxed">
-                        These entries exist in IndexedDB but have no matching reference in current active Core Data. (Read-only audit: no deletion performed).
+                        These {forensicReport.summary.orphanedRecords} entries exist in IndexedDB but have no matching reference in current active Core Data.
                       </p>
                     </div>
                   </div>
+
+                  {/* P1.3.7 Safe Orphaned Media Reconciliation & Cleanup Action Box */}
+                  {forensicReport.summary.orphanedRecords > 0 && (
+                    <div className={`p-4 rounded-xl border space-y-3 ${
+                      isDark ? 'bg-[#1C2026] border-amber-500/40' : 'bg-amber-50/80 border-amber-300'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Trash2 className="w-4 h-4 text-amber-400" />
+                            <span className="font-bold text-xs text-amber-300">
+                              Safe Orphaned Media Reconciliation & Cleanup
+                            </span>
+                          </div>
+                          <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                            <strong>Explicit Rule:</strong> Only media not referenced by current FSOS Core Data will be removed.
+                          </p>
+                          <p className="text-slate-400 text-[11px] leading-relaxed font-sans">
+                            All active machine passports, MHC sessions (including completed historical sessions), beam profiles, reports, and templates are strictly protected.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={auditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                            onClick={handleAuditImages}
+                            disabled={auditing || cleaningOrphans}
+                          >
+                            Preview / Re-run Audit
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={cleaningOrphans ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            onClick={handleCleanupOrphanedMedia}
+                            disabled={cleaningOrphans || auditing}
+                          >
+                            {cleaningOrphans ? 'Purging Orphans...' : `Clean Orphaned Media (${forensicReport.summary.orphanedRecords})`}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Orphan Metrics & Category Breakdown */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#2B323A]/60 font-mono text-[11px]">
+                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                          <div className="text-slate-400 text-[10px]">Orphan Candidates</div>
+                          <div className="font-bold text-amber-400 text-sm mt-0.5">{forensicReport.summary.orphanedRecords} records</div>
+                        </div>
+                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                          <div className="text-slate-400 text-[10px]">Reclaimable Storage</div>
+                          <div className="font-bold text-amber-400 text-sm mt-0.5">
+                            {formatBytes(
+                              forensicReport.entries
+                                .filter((e) => e.isOrphaned)
+                                .reduce((acc, e) => acc + e.byteSize, 0)
+                            )}
+                          </div>
+                        </div>
+                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                          <div className="text-slate-400 text-[10px]">Active Media Preserved</div>
+                          <div className="font-bold text-emerald-400 text-sm mt-0.5">{forensicReport.summary.activeReferencedRecords} records</div>
+                        </div>
+                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                          <div className="text-slate-400 text-[10px]">Total Stored Entries</div>
+                          <div className="font-bold text-sky-400 text-sm mt-0.5">{forensicReport.summary.totalRecords} records</div>
+                        </div>
+                      </div>
+
+                      {/* Orphan Candidates List */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="text-[10px] uppercase font-sans tracking-wider text-slate-400 font-bold">
+                          Orphan Candidates Ready for Reconciliation:
+                        </div>
+                        <div className="max-h-48 overflow-y-auto space-y-1 font-mono text-[10px] text-amber-300/90 divide-y divide-[#2B323A]/30">
+                          {forensicReport.entries
+                            .filter((e) => e.isOrphaned)
+                            .map((e) => (
+                              <div key={e.key} className="pt-1.5 pb-1 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 truncate min-w-0">
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 text-[9px] shrink-0 font-sans">
+                                    {e.category}
+                                  </span>
+                                  <span className="truncate text-slate-300">{e.key}</span>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <span className="text-slate-400">{formatBytes(e.byteSize)}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyKey(e.key)}
+                                    className="text-slate-500 hover:text-slate-300"
+                                    title="Copy key"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Missing Referenced Keys Warning */}
                   {forensicReport.missingReferencedKeys.length > 0 && (

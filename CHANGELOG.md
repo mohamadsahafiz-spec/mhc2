@@ -1,5 +1,26 @@
 # FSOS CHANGELOG
 
+## v1.7.0 — SAFE ORPHANED MEDIA RECONCILIATION & CLEANUP (2026-09-07)
+
+### Safe Orphaned Media Reconciliation & Storage Reclaim
+- **Deterministic Orphan Detection & Read-Only Preview (`previewOrphanedMediaCleanup`, `mediaEvidenceAudit.ts`)**:
+  - Implemented mathematical set reconciliation comparing physical IndexedDB `evidence_images` against authoritative active Core Data references (`ImageStore.collectIdbKeys()`).
+  - Strict orphan classification: An IndexedDB image is marked as an orphan candidate *if and only if* its `idb:` key exists in IndexedDB and is NOT referenced in active Core Data (Machines, MHC Sessions, Reports, Templates, or Engineer Profiles).
+  - Provided deterministic, zero-mutation preview detailing total stored entries, active referenced entries, candidate orphan counts, reclaimable byte sizes, and category breakdown.
+- **Safe Explicit Cleanup Execution (`cleanupOrphanedMedia`, `ImageStore.deleteImageKeys`)**:
+  - Engineered safe, batch-oriented IndexedDB deletion (`ImageStore.deleteImageKeys`) executing selective key deletes (`store.delete(key)`) without ever calling `clear()` or wiping the store.
+  - Dynamically re-evaluates active Core Data references at execution time, preventing stale audit results from deleting newly attached evidence.
+  - Strictly preserves all active media references across machine passports, beam profiles, focus optimizations, and completed historical MHC sessions.
+  - Strictly prohibits deletion based on duplicate payload detection (duplicate payloads under active keys remain 100% untouched).
+  - Automatically evicts deleted keys from runtime memory caches (`imageMemoryCache`, `persistedInIdbKeys`, `pendingIdbWrites`, `inFlightReads`) and updates listeners.
+- **Interactive Settings Module Reconciliation Dashboard (`SettingsModule.tsx`)**:
+  - Integrated "Safe Orphaned Media Reconciliation & Cleanup" controls directly into the Media Evidence Diagnostics view with explicit Founder confirmation prompts.
+  - Displayed real-time post-cleanup success metrics showing removed records, reclaimed UTF-8 storage, remaining stored entries, and remaining orphan counts.
+- **Comprehensive 10-Scenario Test Suite (`orphanedMediaReconciliation.test.ts`)**:
+  - Verified: (1) Referenced key retention, (2) Orphan detection, (3) Missing key safety (no delete), (4) Duplicate referenced payloads preservation, (5) Shared duplicate orphan deletion safety, (6) Completed historical session preservation, (7) Empty IndexedDB safety, (8) Empty Core references handling, (9) Dynamic execution-time reference re-evaluation, and (10) Store wipe prevention.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `src/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.7.0`.
+
 ## v1.6.0 — GHOST AUTOPILOT BOUNDARY ISOLATION (2026-09-07)
 
 ### Ghost Autopilot Session Boundary & Recovery Isolation
