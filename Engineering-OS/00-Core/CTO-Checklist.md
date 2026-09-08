@@ -115,6 +115,34 @@ Never activate a paid-capable service merely because it is technically convenien
 
 □ Failure conditions defined?
 
+## Sprint Direction & Stop Criteria
+
+□ Does this task have one primary objective?
+
+□ Does the task directly solve the current priority?
+
+□ Are unrelated investigation and cleanup explicitly out of scope?
+
+□ Are acceptance criteria sufficient to close the task?
+
+□ Is there a clear STOP condition?
+
+Once the acceptance criteria pass:
+
+STOP.
+
+Do not continue investigating or expanding the task unless a new issue directly prevents closure.
+
+When a higher-priority task is blocked:
+
+MINIMUM VIABLE FIX
+↓
+VERIFY ACCEPTANCE CRITERIA
+↓
+CLOSE CURRENT TASK
+↓
+RETURN TO HIGHER PRIORITY
+
 ## Phase 7 — Prompt Enhancement
 
 **Never submit the first draft.**

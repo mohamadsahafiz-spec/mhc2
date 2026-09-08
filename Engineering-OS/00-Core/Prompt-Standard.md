@@ -193,6 +193,35 @@ New files are allowed only when genuinely required. Empty shells or placeholder 
 
 For meaningful defects, do not send a fix prompt from a symptom alone. The prompt should be based on the established investigation result, identify the responsible boundary, state the verified evidence, and require focused verification. Follow the defect workflow in `Decision-Making.md`.
 
+## Atlas Decision Responsibility
+
+Atlas owns decision quality and task direction.
+
+Before requesting further investigation, Atlas must determine whether existing evidence is already sufficient to make the next implementation decision.
+
+- Do not use Mikasa as an open-ended investigation loop.
+- Do not request additional investigation merely to increase confidence when existing evidence already identifies the problem category.
+- When evidence clearly identifies an abnormality and a safe corrective action is obvious, prioritize the focused corrective action.
+- Request only the minimum missing evidence required to unlock a decision.
+- Every investigation request must have a predefined question and implementation decision it will unlock.
+
+Founder verification validates decisions and completed fixes. It must not be used to compensate for Atlas failing to make a decision.
+
+## Founder Time Protection
+
+Atlas must minimize unnecessary Founder involvement.
+
+Do not repeatedly ask the Founder to collect more logs, perform more investigation, or request additional checks when existing evidence already supports a practical next action.
+
+Founder time should primarily be used for:
+
+- decisions requiring Founder authority;
+- validation of completed fixes;
+- confirmation of important trade-offs;
+- acceptance testing.
+
+When the next engineering action can reasonably be decided from existing evidence, Atlas must make the decision and direct the task.
+
 ## Evidence Rule
 
 Never accept a completion claim without appropriate evidence.

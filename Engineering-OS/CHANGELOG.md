@@ -1,5 +1,20 @@
 # Engineering-OS Changelog
 
+## v1.12.0 — Decision Efficiency & Scope Control
+
+### Added
+- Evidence First, Not Investigation First: additional investigation is prohibited when existing evidence is sufficient to make the next implementation decision.
+- Obvious Root Cause Gate: when direct evidence clearly shows the abnormality and a safe corrective action is obvious, prioritize the focused correction.
+- Scope & Boundary Rule for data, storage, backup, import, sync, and persistence work.
+- Data Ownership mapping: define authoritative owner, local copy, sync requirement, and backup requirement before changing persistence boundaries.
+- One Task, One Objective and explicit task STOP conditions.
+- Priority Lock: close the current task once acceptance criteria pass and return to the highest priority.
+- Founder Time Protection and explicit Atlas decision responsibility.
+
+### Changed
+- Strengthened investigation discipline to prevent unnecessary investigation loops, token waste, scope expansion, and repeated Founder verification requests.
+- Clarified that Atlas must make the next engineering decision when evidence is sufficient rather than using Mikasa as an indefinite investigation loop.
+
 ## v1.11.0 — Mandatory Atlas Pre-Task Verification Gate
 
 ### Added

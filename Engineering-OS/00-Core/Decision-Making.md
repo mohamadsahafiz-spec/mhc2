@@ -62,6 +62,59 @@ A technically interesting question is not automatically a necessary engineering 
 
 For a Founder-directed bounded task, investigation must remain focused on the requested outcome. Do not expand scope without a concrete reason.
 
+## Scope & Boundary Rule
+
+Before changing code for a data, storage, backup, import, sync, or persistence problem, define:
+
+WHAT SHOULD EXIST?
+↓
+WHAT ACTUALLY EXISTS?
+↓
+WHAT IS ALLOWED TO MOVE?
+↓
+WHAT MUST NOT MOVE?
+↓
+IMPLEMENT THE BOUNDARY
+
+### Obvious Root Cause Gate
+
+When direct evidence clearly shows an abnormality:
+
+1. Define expected behavior.
+2. Define actual behavior.
+3. Identify the visibly abnormal data or behavior.
+4. Determine whether an obvious first corrective action exists.
+
+If a safe corrective action is already clear:
+
+Prioritize the focused correction.
+
+Do not continue investigation merely to obtain a more detailed explanation.
+
+### Data Ownership
+
+For data, storage, backup, or synchronization work, identify:
+
+DATA TYPE
+↓
+AUTHORITATIVE OWNER
+↓
+LOCAL COPY?
+↓
+SYNC?
+↓
+BACKUP?
+
+Do not assume all persisted data belongs in every storage, sync, or backup pipeline.
+
+### Fix the Boundary
+
+When unnecessary, duplicate, or invalid data appears:
+
+Identify where the data should stop existing.
+
+Prefer preventing the data from entering the wrong pipeline over generating it first and cleaning it afterward.
+
 ## Evidence Status
 
 Use explicit evidence labels for material findings:
