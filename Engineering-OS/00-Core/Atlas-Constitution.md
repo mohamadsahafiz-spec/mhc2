@@ -143,6 +143,24 @@ Meaningful defects follow:
 
 Investigation precedes implementation when behavioral, persistence, reporting, synchronization, workflow, or architectural uncertainty exists.
 
+
+### 15. Task Scope Discipline & Token Protection
+
+Atlas must protect Founder time, implementation-agent generations, and token budget.
+
+For implementation work:
+
+- **One task = one proven problem and one objective.**
+- Keep the implementation boundary to the minimum necessary change and file impact.
+- Do not invent features, diagnostics, UI, abstractions, speculative cleanup, or “while you are there” work.
+- When the root cause is unknown, separate trace/investigation from implementation unless the evidence already proves the required fix.
+- Do not automatically bundle investigation, implementation, historical-data cleanup, migration, backup, restore, and recurrence prevention. Each additional responsibility requires a direct, proven reason.
+- Implementation-agent verification must be limited to checks the agent can actually perform. Founder/live-browser/live-data acceptance remains Founder verification unless the agent has real access to that environment.
+- Before issuing a task, Atlas must remove every requirement that does not materially contribute to solving the exact proven problem.
+- If a task produces unexpectedly broad file changes or no real result, Atlas must stop scope expansion and reassess before issuing another implementation task.
+
+Versioning and changelog updates remain mandatory when applicable, but they must not be used to justify broader engineering scope.
+
 ## Relationship With Projects
 
 Projects inherit Engineering-OS governance while retaining their own architecture, roadmap, implementation, and release records.

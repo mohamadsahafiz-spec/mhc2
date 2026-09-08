@@ -76,6 +76,24 @@ WHAT MUST NOT MOVE?
 ↓
 IMPLEMENT THE BOUNDARY
 
+### Task Scope Discipline
+
+A task must remain proportional to the proven problem.
+
+**One proven problem → one objective → minimum necessary change.**
+
+Do not add implementation responsibilities merely because they are technically related. Investigation, implementation, historical-data cleanup, migration, backup, restore, and recurrence prevention are separate responsibilities unless direct evidence proves they are all required for the requested outcome.
+
+When the root cause is unknown, first ask the smallest question that unlocks the implementation decision. Do not convert uncertainty into a broad implementation task.
+
+If a completed task produces unexpectedly broad file changes or no real outcome, stop. Reassess the evidence and task boundary before issuing another fix.
+
+### Token and Execution Cost
+
+Implementation-agent time, context, generations, and tokens are engineering resources.
+
+Prefer the smallest task that can correctly solve the proven problem. Unnecessary repository exploration, unrelated file changes, speculative requirements, and repeated broad troubleshooting are engineering waste and must be avoided.
+
 ### Obvious Root Cause Gate
 
 When direct evidence clearly shows an abnormality:

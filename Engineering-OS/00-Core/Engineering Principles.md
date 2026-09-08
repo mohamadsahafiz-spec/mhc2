@@ -111,6 +111,16 @@ When frustration is high, slow the decision process, clarify facts and uncertain
 
 When an external machine backup or external dataset is explicitly established as authoritative, import/hydration/merge must not silently preserve conflicting machine identity or laser-head topology from stale local state. Authoritative identity and physical topology must strictly win, while non-conflicting operational and historical records are preserved.
 
+### 23 — Task Scope Discipline & Token Protection
+
+One task should solve one proven problem with the minimum necessary change.
+
+Do not bundle unrelated responsibilities or invent work beyond the requested boundary. When the root cause is unknown, separate investigation from implementation unless the evidence already establishes the required fix.
+
+Implementation-agent time, context, generations, and tokens are engineering resources. Avoid unnecessary repository exploration and broad file changes. If a task produces unexpectedly broad changes or no real result, stop and reassess before expanding the next task.
+
+Verification must match ownership: implementation agents perform code-level verification; Founder/live-environment acceptance remains with the Founder unless the agent has actual access.
+
 ## Engineering Maxim
 
 Optimize for total lifetime cost: engineering time + operational risk + infrastructure cost + future migration cost.

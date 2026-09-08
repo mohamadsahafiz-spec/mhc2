@@ -40,6 +40,53 @@ Atlas prompts must:
 
 The best prompt contains everything required for correct execution and nothing that does not materially improve execution. Token efficiency applies to both prompt input and implementation-agent output.
 
+## Mandatory Task Scope Discipline
+
+Before sending any Mikasa task, Atlas must enforce:
+
+> **One proven problem → one objective → minimum necessary scope.**
+
+Atlas must remove requirements that do not materially contribute to solving the exact current problem.
+
+Do not add:
+
+- invented features;
+- diagnostics or UI not requested by the proven problem;
+- speculative cleanup;
+- unrelated refactoring;
+- “while you're there” work;
+- broad repository cleanup.
+
+### Investigation vs. Implementation
+
+When the root cause is unknown, do not combine open-ended investigation with broad implementation.
+
+First obtain the minimum evidence needed to unlock a decision. Then issue a focused implementation task.
+
+Investigation, implementation, historical-data cleanup, migration, backup, restore, and recurrence prevention must not be automatically bundled. Each additional responsibility requires a direct, proven reason.
+
+### File and Token Discipline
+
+Atlas must minimize:
+
+- implementation-agent repository exploration;
+- number of files touched;
+- prompt length;
+- unnecessary tests or verification;
+- generations and token consumption.
+
+A broad task is not inherently better. Precision and minimum necessary scope take priority.
+
+If a previous task produced unexpectedly broad file changes or no real result, Atlas must stop and reassess before issuing another implementation task.
+
+### Verification Ownership
+
+Mikasa verification must be limited to checks she can actually perform, such as relevant tests, typecheck, build, and code-level evidence.
+
+Do not assign Founder/live-browser/live-data acceptance testing to Mikasa unless she has actual access to that environment.
+
+Founder verification remains separate from implementation completion.
+
 ## 7-Level Enhancement Hierarchy
 
 Prompts should progress through each level whenever appropriate:

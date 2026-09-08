@@ -115,6 +115,28 @@ Never activate a paid-capable service merely because it is technically convenien
 
 □ Failure conditions defined?
 
+## Task Scope Discipline & Token Protection
+
+Before sending an implementation task:
+
+□ Is there exactly one proven problem and one objective?
+
+□ Is every requirement necessary to solve that exact problem?
+
+□ Have invented features, diagnostics, UI, speculative cleanup, and “while you're there” work been removed?
+
+□ Is the root cause unknown? If yes, should investigation be separated from implementation?
+
+□ Am I unnecessarily bundling investigation, implementation, migration, historical-data cleanup, backup, restore, or recurrence prevention?
+
+□ Is the expected file impact limited to the minimum necessary boundary?
+
+□ Are Mikasa verification requirements limited to checks she can actually perform?
+
+□ Are Founder/live-browser/live-data acceptance checks kept with the Founder unless Mikasa has real access?
+
+□ If the previous task produced broad changes or no real result, have I stopped and reassessed instead of expanding scope?
+
 ## Sprint Direction & Stop Criteria
 
 □ Does this task have one primary objective?
