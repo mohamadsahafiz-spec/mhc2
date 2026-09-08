@@ -21,7 +21,8 @@ import {
   Database,
   BarChart3,
   HardDrive,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -59,13 +60,15 @@ import {
 
 interface SettingsProps {
   onResetData: () => void;
+  initialSubTab?: 'backup' | 'changelog';
 }
 
-export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
+export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSubTab = 'backup' }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
   const changelog = useMemo(() => getAuthoritativeChangelog(), []);
+  const [activeSubTab, setActiveSubTab] = useState<'backup' | 'changelog'>(initialSubTab);
 
   // Backup & Restore State
   const coreFileInputRef = useRef<HTMLInputElement>(null);
@@ -437,124 +440,141 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Full System Backup & Restore */}
-      <Card
-        title="Full System Backup & Complete Archive Restore"
-        subtitle="Disaster recovery, media evidence preservation, and device migration for FSOS operational data"
-      >
-        <div className="space-y-4 text-xs">
-          {/* Action Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Export Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-              isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
-                  <Package className="w-4 h-4" />
-                  <span>Export Portable Backup (.fsosbackup)</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v1.7.1</span>
-                </div>
-                <p className="text-slate-400 leading-relaxed">
-                  Creates a single unified portable archive containing structured JSON operational data, media catalog indices, and deduplicated raw binary images (zero Base64 bloat).
-                </p>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-400/90 font-mono">
-                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                  <span>Non-destructive, zero-mutation read-only export.</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={exportingPortable ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
-                  onClick={handleExportPortableBackup}
-                  disabled={exportingPortable || exportingCore || exportingComplete}
-                >
-                  {exportingPortable ? 'Packaging .fsosbackup...' : 'Export Portable Backup (.fsosbackup)'}
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={exportingCore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    onClick={handleExportCoreBackup}
-                    disabled={exportingPortable || exportingCore || exportingComplete}
-                  >
-                    {exportingCore ? 'Exporting...' : 'Core JSON'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={exportingComplete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    onClick={handleExportCompleteArchive}
-                    disabled={exportingPortable || exportingCore || exportingComplete}
-                  >
-                    {exportingComplete ? 'Exporting...' : 'Legacy Archive (JSON)'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Restore Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-              isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div>
-                <div className="flex items-center gap-2 font-bold text-sm text-emerald-400 mb-1">
-                  <Upload className="w-4 h-4" />
-                  <span>Restore Backup & Complete Archive</span>
-                </div>
-                <p className="text-slate-400 leading-relaxed">
-                  Restores a Portable Complete Backup (<code className="text-emerald-400/90">.fsosbackup</code>) or legacy Core / Media JSON archive. Pre-validates schema, domain record counts, and media files before restoring.
-                </p>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Automatic pre-restore safety snapshot included.</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
-                <input
-                  type="file"
-                  ref={coreFileInputRef}
-                  onChange={handleCoreFileChange}
-                  accept=".fsosbackup,.zip,.json,application/json"
-                  className="hidden"
-                />
-                <input
-                  type="file"
-                  ref={mediaFileInputRef}
-                  onChange={handleMediaFileChange}
-                  accept=".json,application/json"
-                  className="hidden"
-                />
-                <span className="text-[11px] text-slate-500 font-mono">Safe Snapshot Replace</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={validating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  onClick={() => coreFileInputRef.current?.click()}
-                  disabled={validating}
-                >
-                  {validating ? 'Validating...' : 'Select Backup (.fsosbackup / .json)'}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Export Success Toast */}
-          {exportSuccess && (
-            <div className={`p-3 rounded-lg border flex items-center gap-2 text-xs font-mono ${
-              isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-            }`}>
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span>{exportSuccess}</span>
-            </div>
-          )}
+      {/* SubTab Navigation */}
+      <div className="flex items-center justify-between pb-3 border-b border-[#2B323A]/60">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveSubTab('backup')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              activeSubTab === 'backup'
+                ? (isDark ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' : 'bg-sky-100 text-sky-800 border border-sky-300')
+                : (isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1D21]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Backup & System Storage</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab('changelog')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              activeSubTab === 'changelog'
+                ? (isDark ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' : 'bg-sky-100 text-sky-800 border border-sky-300')
+                : (isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1D21]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Milestone Changelog</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+              {changelog.length}
+            </span>
+          </button>
         </div>
-      </Card>
+        <div className="text-[11px] font-mono text-slate-500">
+          FSOS v1.7.1
+        </div>
+      </div>
+
+      {activeSubTab === 'backup' && (
+        <>
+          {/* Full System Backup & Restore */}
+          <Card
+            title="Full System Backup & Complete Archive Restore"
+            subtitle="Disaster recovery, media evidence preservation, and device migration for FSOS operational data"
+          >
+            <div className="space-y-4 text-xs">
+              {/* Action Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Export Card */}
+                <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
+                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div>
+                    <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
+                      <Package className="w-4 h-4" />
+                      <span>Export Portable Backup (.fsosbackup)</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v1.7.1</span>
+                    </div>
+                    <p className="text-slate-400 leading-relaxed">
+                      Complete operational backup including structured data and deduplicated media.
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-400/90 font-mono">
+                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                      <span>Non-destructive, zero-mutation read-only export.</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={exportingPortable ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
+                      onClick={handleExportPortableBackup}
+                      disabled={exportingPortable || exportingCore || exportingComplete}
+                    >
+                      {exportingPortable ? 'Packaging .fsosbackup...' : 'Export Portable Backup (.fsosbackup)'}
+                    </Button>
+                    <span className="text-[11px] text-slate-500 font-mono">Recommended</span>
+                  </div>
+                </div>
+
+                {/* Restore Card */}
+                <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
+                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div>
+                    <div className="flex items-center gap-2 font-bold text-sm text-emerald-400 mb-1">
+                      <Upload className="w-4 h-4" />
+                      <span>Restore Backup Archive</span>
+                    </div>
+                    <p className="text-slate-400 leading-relaxed">
+                      Select Backup (<code className="text-emerald-400/90">.fsosbackup</code> / supported legacy <code className="text-emerald-400/90">.json</code>). Pre-validates schema, domain record counts, and media files before restoring.
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Automatic pre-restore safety snapshot included.</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
+                    <input
+                      type="file"
+                      ref={coreFileInputRef}
+                      onChange={handleCoreFileChange}
+                      accept=".fsosbackup,.zip,.json,application/json"
+                      className="hidden"
+                    />
+                    <input
+                      type="file"
+                      ref={mediaFileInputRef}
+                      onChange={handleMediaFileChange}
+                      accept=".json,application/json"
+                      className="hidden"
+                    />
+                    <span className="text-[11px] text-slate-500 font-mono">Safe Snapshot Replace</span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={validating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      onClick={() => coreFileInputRef.current?.click()}
+                      disabled={validating}
+                    >
+                      {validating ? 'Validating...' : 'Select Backup (.fsosbackup / supported legacy .json)'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Export Success Toast */}
+              {exportSuccess && (
+                <div className={`p-3 rounded-lg border flex items-center gap-2 text-xs font-mono ${
+                  isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>{exportSuccess}</span>
+                </div>
+              )}
+            </div>
+          </Card>
 
       {/* Restore Validation & Confirmation Modal */}
       {showPreviewModal && (selectedArchiveType === 'portable' ? !!portableValidation : !!completeValidation) && (
@@ -1477,78 +1497,82 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
         </div>
       </Card>
 
-      {/* Structured Changelog */}
-      <Card
-        title="Authoritative Engineering Milestone Changelog"
-        subtitle={`Derived directly from single source of truth CHANGELOG.md (${changelog.length} milestone releases)`}
-      >
-        <div className="space-y-4">
-          {changelog.map((entry) => (
-            <div
-              key={entry.version}
-              className={`p-4 rounded-xl border text-xs space-y-3 ${
+          {/* System Data & Workspace Management */}
+          <Card title="System Data & Workspace Management">
+            <div className="space-y-4 text-xs">
+              <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
                 isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between border-b border-[#2B323A]/60 pb-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono font-bold text-[#8B9DFF]">{entry.version}</span>
-                  <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{entry.title}</span>
+              }`}>
+                <div>
+                  <p className="font-bold text-sm text-[#E98A8A]">Reset Local Workspace State</p>
+                  <p className="text-slate-400 mt-0.5">Restores default contracts, machines, schedule, tasks, and MHC audit records.</p>
                 </div>
-                {entry.date && <span className="font-mono text-slate-400 whitespace-nowrap">{entry.date}</span>}
+                <Button variant="danger" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={onResetData}>
+                  Reset State
+                </Button>
               </div>
 
-              <div className="space-y-2.5">
-                {entry.sections.map((sec, sIdx) => (
-                  <div key={sIdx} className="space-y-1.5">
-                    {sec.heading && (
-                      <h4 className="font-bold text-[11px] uppercase tracking-wider text-sky-400/90 pt-1">
-                        {sec.heading}
-                      </h4>
-                    )}
-                    <ul className="space-y-1 list-disc pl-4 text-slate-400">
-                      {sec.items.map((item, iIdx) => (
-                        <li key={iIdx}>
-                          {renderFormattedLine(item)}
-                        </li>
-                      ))}
-                    </ul>
+              <div className={`p-4 rounded-xl border ${
+                isDark ? 'bg-[#141618] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+              }`}>
+                <div className="flex items-center gap-2 font-bold text-xs text-[#8B9DFF] mb-1">
+                  <User className="w-4 h-4" />
+                  <span>Engineer Profile Governance</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  Personal identity details, avatar photo management, contact preferences, and certifications have been centralized under <strong>My Profile</strong> in accordance with FSOS Identity Standard v0.7.5.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* Structured Changelog (Dedicated to version/history) */}
+      {activeSubTab === 'changelog' && (
+        <Card
+          title="Authoritative Engineering Milestone Changelog"
+          subtitle={`Derived directly from single source of truth CHANGELOG.md (${changelog.length} milestone releases)`}
+        >
+          <div className="space-y-4">
+            {changelog.map((entry) => (
+              <div
+                key={entry.version}
+                className={`p-4 rounded-xl border text-xs space-y-3 ${
+                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-[#2B323A]/60 pb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-[#8B9DFF]">{entry.version}</span>
+                    <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{entry.title}</span>
                   </div>
-                ))}
+                  {entry.date && <span className="font-mono text-slate-400 whitespace-nowrap">{entry.date}</span>}
+                </div>
+
+                <div className="space-y-2.5">
+                  {entry.sections.map((sec, sIdx) => (
+                    <div key={sIdx} className="space-y-1.5">
+                      {sec.heading && (
+                        <h4 className="font-bold text-[11px] uppercase tracking-wider text-sky-400/90 pt-1">
+                          {sec.heading}
+                        </h4>
+                      )}
+                      <ul className="space-y-1 list-disc pl-4 text-slate-400">
+                        {sec.items.map((item, iIdx) => (
+                          <li key={iIdx}>
+                            {renderFormattedLine(item)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* System Data & Workspace Management */}
-      <Card title="System Data & Workspace Management">
-        <div className="space-y-4 text-xs">
-          <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div>
-              <p className="font-bold text-sm text-[#E98A8A]">Reset Local Workspace State</p>
-              <p className="text-slate-400 mt-0.5">Restores default contracts, machines, schedule, tasks, and MHC audit records.</p>
-            </div>
-            <Button variant="danger" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={onResetData}>
-              Reset State
-            </Button>
+            ))}
           </div>
-
-          <div className={`p-4 rounded-xl border ${
-            isDark ? 'bg-[#141618] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
-          }`}>
-            <div className="flex items-center gap-2 font-bold text-xs text-[#8B9DFF] mb-1">
-              <User className="w-4 h-4" />
-              <span>Engineer Profile Governance</span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-slate-400">
-              Personal identity details, avatar photo management, contact preferences, and certifications have been centralized under <strong>My Profile</strong> in accordance with FSOS Identity Standard v0.7.5.
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };

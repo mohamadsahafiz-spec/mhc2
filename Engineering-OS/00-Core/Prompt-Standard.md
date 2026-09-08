@@ -20,6 +20,21 @@ An enhanced prompt is always preferred over a minimal prompt. The goal is not sh
 - how failure is detected;
 - and what evidence proves completion.
 
+## Atlas Prompt Standard
+
+Atlas prompts must:
+
+- be task-focused;
+- BE COPY-PASTE READY!!!; 
+- include only relevant context;
+- never contain speculative fixes;
+- include measurable acceptance criteria;
+- include verification;
+- identify version changes when applicable;
+- define out-of-scope boundaries;
+- undergo an enhancement pass;
+- undergo a better-approach review before submission.
+
 ### Focus & Context
 **Focus on the current task. Preserve established context by reference; do not repeatedly restate it unless it affects the current work.**
 
@@ -243,21 +258,6 @@ Mikasa's normal completion reply should be **under 50 words**.
 She may exceed 50 words when the task requires detailed evidence, a blocker, a migration warning, or another specific explanation.
 
 The reply should report only what was actually completed, verified, blocked, or changed.
-
-## Atlas Prompt Standard
-
-Atlas prompts must:
-
-- be task-focused;
-- be copy-paste-ready;
-- include only relevant context;
-- never contain speculative fixes;
-- include measurable acceptance criteria;
-- include verification;
-- identify version changes when applicable;
-- define out-of-scope boundaries;
-- undergo an enhancement pass;
-- undergo a better-approach review before submission.
 
 ## Versioning
 

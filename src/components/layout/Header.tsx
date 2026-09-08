@@ -58,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'machines': return 'Machine Passport';
       case 'analytics': return 'Operational Analytics';
       case 'users': return 'User Management & Multi-Engineer Directory';
-      case 'settings': return 'Internal Architecture Milestone Changelog';
+      case 'settings': return 'System Settings & Operational Backup';
       case 'profile': return 'My Engineer Profile';
       default: return 'Field Operations System';
     }

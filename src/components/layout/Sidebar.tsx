@@ -9,6 +9,7 @@ import {
   Users,
   User,
   History,
+  Database,
   Bot,
   Sparkles,
   Zap,
@@ -106,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'profile', label: 'My Profile', icon: <User className="w-4 h-4" /> },
         { id: 'users', label: 'Users', icon: <Users className="w-4 h-4" /> },
-        { id: 'settings', label: 'Changelog', icon: <History className="w-4 h-4" /> },
+        { id: 'settings', label: 'Backup & Settings', icon: <Database className="w-4 h-4" /> },
       ]
     }
   ];

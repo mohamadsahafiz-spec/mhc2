@@ -22,10 +22,10 @@
   - Restores physical canonical binary images into `ImageStore` IndexedDB (`evidence_images`) first, followed by alias mapping references (`ref:<canonicalKey>`).
   - Resets sync telemetry state (`lastSyncTime = null`) to prevent cross-device sequence collisions.
   - Automatically re-evaluates and reconciles active engineer identity and triggers clean application restart.
-- **Unified Settings Module UI (`SettingsModule.tsx`)**:
-  - Added primary "Export Portable Backup (.fsosbackup)" action alongside legacy Core and 2x JSON options.
-  - Unified file picker accepting `.fsosbackup`, `.zip`, and `.json` files.
-  - Comprehensive modal preview displaying canonical count, alias reference count, raw binary storage size, and domain records before confirmation.
+- **Backup UI Separation & Export Simplification (`SettingsModule.tsx`)**:
+  - Separated Backup & Storage from Changelog using dedicated sub-navigation tabs; Changelog returns to dedicated version/history display.
+  - Simplified export UI: presents one clear primary action (`Export Portable Backup (.fsosbackup)`) without competing legacy JSON export choices.
+  - Maintained full legacy JSON restore compatibility alongside `.fsosbackup` portable archives in the unified restore flow.
 - **Exhaustive Unit & Integration Test Suite (`portableBackup.test.ts`)**:
   - Verified: (1) Archive structure and manifest, (2) Raw binary media extraction, (3) Alias reference mapping without binary bloat, (4) Round-trip export and restore fidelity, (5) Corrupt archive rejection, (6) Pre-restore snapshot generation.
 - **Authoritative Version Synchronization**:
