@@ -1462,8 +1462,12 @@ export const ImageStore = {
     const allStoredKeys = Array.from(allStoredKeySet);
 
     // 1. Determine authoritative reachable keys
-    let reachableKeys = activeReachableKeySet;
-    if (!reachableKeys) {
+    let reachableKeys: Set<string>;
+    if (activeReachableKeySet) {
+      reachableKeys = new Set<string>(
+        Array.from(activeReachableKeySet).filter(k => !isGhostMediaKey(k))
+      );
+    } else {
       const keysCollected: string[] = [];
       if (typeof localStorage !== 'undefined') {
         const storageKeys = [
@@ -1494,7 +1498,9 @@ export const ImageStore = {
             const rawVal = localStorage.getItem(sk);
             if (rawVal) {
               const parsed = JSON.parse(rawVal);
-              keysCollected.push(...this.collectIdbKeys(parsed));
+              const collected = this.collectIdbKeys(parsed);
+              const validKeys = collected.filter(k => !isGhostMediaKey(k));
+              keysCollected.push(...validKeys);
             }
           } catch {}
         }
@@ -1502,10 +1508,10 @@ export const ImageStore = {
       reachableKeys = new Set<string>(keysCollected);
     }
 
-    // 2. Identify all unreferenced/unseen keys
+    // 2. Identify all unreferenced/unseen keys (including all ghost media keys)
     const unseenKeys: string[] = [];
     for (const key of allStoredKeys) {
-      if (!reachableKeys.has(key)) {
+      if (!reachableKeys.has(key) || isGhostMediaKey(key)) {
         unseenKeys.push(key);
       }
     }
@@ -1669,4 +1675,37 @@ export function mergeSessionsPreservingImages<S extends { id: string }>(incoming
       return preserveHydratedImagesInternal(inc, prev);
     });
   });
+}
+
+/**
+ * Determines if a media key is one of the Founder-visible Stage 02 Beam Profile images.
+ */
+export function isFounderVisibleBeamProfileKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const k = key.toLowerCase();
+  if (k.includes('stage02') && k.includes('beamprofile')) return true;
+  if (k.includes('beamprofilerecord') && k.includes('readings')) return true;
+  if (k.includes('beamprofile') || k.includes('beam_profile') || k.includes('laserprofile')) return true;
+  return false;
+}
+
+/**
+ * Identifies unseen ghost media keys (such as focusOptimization, productProcess, stageCalibration)
+ * that must be permanently deleted from IndexedDB and runtime memory caches.
+ */
+export function isGhostMediaKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const k = key.toLowerCase();
+
+  // Preserved: Beam Profile keys
+  if (isFounderVisibleBeamProfileKey(key)) return false;
+
+  // Targeted ghost media patterns
+  if (k.includes('focusoptimization') || k.includes('focus_optimization') || k.includes('focusrecord') || k.includes('focusmatrix')) return true;
+  if (k.includes('productprocess') || k.includes('product_process') || k.includes('processrecord') || k.includes('microvia') || k.includes('topvia') || k.includes('bottomvia')) return true;
+  if (k.includes('stagecalibration') || k.includes('stage_calibration') || k.includes('agccalibration')) return true;
+  if (k.includes('temperatureevidence') || k.includes('temperature_result')) return true;
+  if (k.includes('laserinspection')) return true;
+
+  return false;
 }

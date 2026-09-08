@@ -17,9 +17,16 @@ import {
   CURRENT_BACKUP_SCHEMA_VERSION,
   CURRENT_MEDIA_BACKUP_SCHEMA_VERSION
 } from '../types/backup';
-import { StorageService, STORAGE_KEYS, safeJsonStringify } from './persistence';
+import {
+  StorageService,
+  STORAGE_KEYS,
+  safeJsonStringify,
+  sanitizeMhcSession,
+  sanitizeMachine,
+  stripGhostMediaFromObject
+} from './persistence';
 import { SyncEngine } from './syncEngine';
-import { ImageStore } from './imageStore';
+import { ImageStore, isGhostMediaKey } from './imageStore';
 import { reconcileMhcSessionIdentities } from './mhcIdentityReconciler';
 
 /**
@@ -736,24 +743,24 @@ export async function restoreCompleteBackup(
     if (typeof localStorage !== 'undefined') {
       const d = validation.coreValidation.envelope.data;
 
-      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines));
+      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines.map(sanitizeMachine)));
       if (Array.isArray(d.customers)) localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(d.customers));
       if (Array.isArray(d.plants)) localStorage.setItem(STORAGE_KEYS.PLANTS, safeJsonStringify(d.plants));
       if (Array.isArray(d.lines)) localStorage.setItem(STORAGE_KEYS.LINES, safeJsonStringify(d.lines));
       if (Array.isArray(d.contracts)) localStorage.setItem(STORAGE_KEYS.CONTRACTS, safeJsonStringify(d.contracts));
       if (Array.isArray(d.schedule)) localStorage.setItem(STORAGE_KEYS.SCHEDULE, safeJsonStringify(d.schedule));
-      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions));
-      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports));
-      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records));
+      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions.map(sanitizeMhcSession)));
+      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records.map(stripGhostMediaFromObject)));
       if (Array.isArray(d.tasks)) localStorage.setItem(STORAGE_KEYS.TASKS, safeJsonStringify(d.tasks));
       if (Array.isArray(d.alerts)) localStorage.setItem(STORAGE_KEYS.ALERTS, safeJsonStringify(d.alerts));
       if (Array.isArray(d.baselines)) localStorage.setItem(STORAGE_KEYS.BASELINES, safeJsonStringify(d.baselines));
       if (Array.isArray(d.investigations)) localStorage.setItem(STORAGE_KEYS.INVESTIGATIONS, safeJsonStringify(d.investigations));
-      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates));
-      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts));
-      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts));
-      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates));
-      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts));
+      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts.map(stripGhostMediaFromObject)));
       if (Array.isArray(d.recommended_parts)) localStorage.setItem(STORAGE_KEYS.RECOMMENDED_PARTS, safeJsonStringify(d.recommended_parts));
       if (d.branding && typeof d.branding === 'object') localStorage.setItem(STORAGE_KEYS.BRANDING, safeJsonStringify(d.branding));
       if (d.profile && typeof d.profile === 'object') localStorage.setItem(STORAGE_KEYS.PROFILE, safeJsonStringify(d.profile));
@@ -764,11 +771,17 @@ export async function restoreCompleteBackup(
     return { success: false, error: errMsg };
   }
 
-  // 4. RESTORE MEDIA IMAGES NON-DESTRUCTIVELY INTO INDEXEDDB
+  // 4. RESTORE MEDIA IMAGES NON-DESTRUCTIVELY INTO INDEXEDDB (Filter ghost media)
   let restoredImageCount = 0;
   if (mediaEnvelope && mediaEnvelope.images && typeof mediaEnvelope.images === 'object') {
     try {
-      const mediaResult = await ImageStore.restoreImages(mediaEnvelope.images);
+      const nonGhostImages: Record<string, string> = {};
+      for (const [k, v] of Object.entries(mediaEnvelope.images)) {
+        if (!isGhostMediaKey(k)) {
+          nonGhostImages[k] = v;
+        }
+      }
+      const mediaResult = await ImageStore.restoreImages(nonGhostImages);
       restoredImageCount = mediaResult.restoredCount;
       if (mediaResult.errors.length > 0) {
         console.warn('[BackupEngine] Some media images encountered restore errors:', mediaResult.errors);
@@ -871,12 +884,14 @@ export async function createPortableBackupZip(customBackupId?: string): Promise<
   // Track unique payload strings -> canonical key/filename to avoid duplicate binary files in the archive
   const payloadToCanonicalMap = new Map<string, { key: string; filename: string }>();
 
-  // Pass 1: Identify all explicit ref: aliases and canonical payload candidates
+  // Pass 1: Identify all explicit ref: aliases and canonical payload candidates (filtering ghost media)
   for (const [key, rawVal] of Object.entries(rawEntries)) {
     if (typeof rawVal !== 'string' || rawVal.length === 0) continue;
+    if (isGhostMediaKey(key)) continue;
 
     if (rawVal.startsWith('ref:')) {
       const targetKey = rawVal.substring(4);
+      if (isGhostMediaKey(targetKey)) continue;
       mediaIndex.entries[key] = {
         type: 'alias',
         targetKey
@@ -1186,24 +1201,24 @@ export async function restorePortableBackup(
     if (typeof localStorage !== 'undefined') {
       const d = validation.coreValidation.envelope.data;
 
-      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines));
+      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines.map(sanitizeMachine)));
       if (Array.isArray(d.customers)) localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(d.customers));
       if (Array.isArray(d.plants)) localStorage.setItem(STORAGE_KEYS.PLANTS, safeJsonStringify(d.plants));
       if (Array.isArray(d.lines)) localStorage.setItem(STORAGE_KEYS.LINES, safeJsonStringify(d.lines));
       if (Array.isArray(d.contracts)) localStorage.setItem(STORAGE_KEYS.CONTRACTS, safeJsonStringify(d.contracts));
       if (Array.isArray(d.schedule)) localStorage.setItem(STORAGE_KEYS.SCHEDULE, safeJsonStringify(d.schedule));
-      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions));
-      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports));
-      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records));
+      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions.map(sanitizeMhcSession)));
+      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records.map(stripGhostMediaFromObject)));
       if (Array.isArray(d.tasks)) localStorage.setItem(STORAGE_KEYS.TASKS, safeJsonStringify(d.tasks));
       if (Array.isArray(d.alerts)) localStorage.setItem(STORAGE_KEYS.ALERTS, safeJsonStringify(d.alerts));
       if (Array.isArray(d.baselines)) localStorage.setItem(STORAGE_KEYS.BASELINES, safeJsonStringify(d.baselines));
       if (Array.isArray(d.investigations)) localStorage.setItem(STORAGE_KEYS.INVESTIGATIONS, safeJsonStringify(d.investigations));
-      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates));
-      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts));
-      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts));
-      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates));
-      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts));
+      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates.map(stripGhostMediaFromObject)));
+      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts.map(stripGhostMediaFromObject)));
       if (Array.isArray(d.recommended_parts)) localStorage.setItem(STORAGE_KEYS.RECOMMENDED_PARTS, safeJsonStringify(d.recommended_parts));
       if (d.branding && typeof d.branding === 'object') localStorage.setItem(STORAGE_KEYS.BRANDING, safeJsonStringify(d.branding));
       if (d.profile && typeof d.profile === 'object') localStorage.setItem(STORAGE_KEYS.PROFILE, safeJsonStringify(d.profile));
@@ -1214,12 +1229,13 @@ export async function restorePortableBackup(
     return { success: false, error: errMsg };
   }
 
-  // 4. RESTORE MEDIA NON-DESTRUCTIVELY (Canonical first, then Alias pointers)
+  // 4. RESTORE MEDIA NON-DESTRUCTIVELY (Canonical first, then Alias pointers - filtering ghost media)
   let restoredImageCount = 0;
   if (validation.mediaIndex?.entries && validation.rawMediaFiles) {
     try {
       // First pass: Canonical images
       for (const [key, entry] of Object.entries(validation.mediaIndex.entries)) {
+        if (isGhostMediaKey(key)) continue;
         if (entry.type === 'canonical' && validation.rawMediaFiles[key]) {
           const mimeType = entry.mimeType || 'image/jpeg';
           const dataUrl = binaryToDataUrl(validation.rawMediaFiles[key], mimeType);
@@ -1230,7 +1246,8 @@ export async function restorePortableBackup(
 
       // Second pass: Alias references
       for (const [key, entry] of Object.entries(validation.mediaIndex.entries)) {
-        if (entry.type === 'alias' && entry.targetKey) {
+        if (isGhostMediaKey(key)) continue;
+        if (entry.type === 'alias' && entry.targetKey && !isGhostMediaKey(entry.targetKey)) {
           await ImageStore.saveImage(key, `ref:${entry.targetKey}`);
           restoredImageCount++;
         }

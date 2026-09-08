@@ -110,6 +110,7 @@ function AppLayout() {
   useEffect(() => {
     // 1. Targeted startup image hydration & unseen media purge (runs independently of SyncEngine!)
     ImageStore.hydrateAppState().then(async () => {
+      StorageService.sanitizeLocalStorageGhostMedia();
       await ImageStore.purgeUnseenMedia();
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();

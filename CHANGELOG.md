@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v1.7.6 — DELETE UNSEEN GHOST MEDIA (2026-09-08)
+
+### Unseen Ghost Media Elimination & Persistent Storage Stripping
+- **Targeted Ghost Media Detection & Deletion Engine (`imageStore.ts`)**:
+  - Implemented `isFounderVisibleBeamProfileKey()` and `isGhostMediaKey()` to explicitly classify media entries into legitimate Founder-visible images vs unseen ghost media.
+  - Preserves strictly the 16 legitimate Founder-visible Stage 02 Beam Profile images (`MHC-SESS-*__stage02_laserProfile_beamProfileRecord_readings_*`).
+  - Permanently purges unseen ghost media entries including `focusOptimizationRecord_*`, `productProcessRecord_*`, `stageCalibrationData_*`, `agcCalibration`, `temperatureEvidence`, and `laserInspection` from IndexedDB and all runtime memory caches.
+- **LocalStorage & Data Structure Ghost Reference Sanitization (`persistence.ts`)**:
+  - Implemented `stripGhostMediaFromObject()`, `stripFocusOptimizationRecordImages()`, and `stripProductProcessRecordImages()` to recursively strip ghost media URL references from MHC sessions, machines, drafts, reports, and templates.
+  - Added `StorageService.sanitizeLocalStorageGhostMedia()` to clean all persistent localStorage keys on application startup and during data ingestion.
+- **Automated Restore & Export Ghost Media Cleansing (`backupEngine.ts`)**:
+  - Updated `createPortableBackupZip()`, `restorePortableBackup()`, and `restoreCompleteBackup()` to filter out ghost media references and binaries.
+  - Existing backups restored into FSOS are automatically cleaned so ghost media cannot survive or recreate in storage.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.6`.
+
 ## v1.7.5 — FIX BACKUP SIZE REGRESSION (2026-09-08)
 
 ### Media Alias Preservation & Deduplicated Portable Backup Architecture

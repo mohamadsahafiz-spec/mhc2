@@ -225,83 +225,185 @@ function syncEnqueueList<T extends { id?: string }>(tableName: string, storageKe
   }
 }
 
-function sanitizeMachine(m: Machine): Machine {
-  if (!m) return m;
-  if (!m.temperatureRecords || !Array.isArray(m.temperatureRecords)) return m;
+export function stripFocusOptimizationRecordImages(record: any): any {
+  if (!record || typeof record !== 'object') return record;
+  const copy: any = { ...record };
+  delete copy.matrixImageUrl;
 
-  const sanitizedTempRecords = m.temperatureRecords.map((rec) => {
-    const rawCount = rec.rawRecordsCount || (Array.isArray(rec.records) ? rec.records.length : 0);
-    const cleanedRec: SavedTemperatureRecord = {
-      ...rec,
-      rawRecordsCount: rawCount,
-      records: [] // Strip heavy raw records array from localStorage/D1
-    };
-
-    if (cleanedRec.channelData && typeof cleanedRec.channelData === 'object') {
-      const rehydratedMap: Record<number, Array<{ ts: Date; val: number }>> = {};
-      Object.entries(cleanedRec.channelData).forEach(([chStr, pts]) => {
-        const ch = parseInt(chStr, 10);
-        if (!isNaN(ch) && Array.isArray(pts)) {
-          const datePts: Array<{ ts: Date; val: number }> = pts.map((p: any) => {
-            const rawTs = p?.ts ?? p?.x ?? p?.timestamp ?? p?.time ?? p?.date ?? (Array.isArray(p) ? p[0] : p);
-            let tsDate: Date;
-            if (rawTs instanceof Date) {
-              tsDate = rawTs;
-            } else if (typeof rawTs === 'number') {
-              tsDate = new Date(rawTs < 1e11 ? rawTs * 1000 : rawTs);
-            } else if (typeof rawTs === 'string') {
-              const trimmed = rawTs.trim();
-              if (/^\d+(\.\d+)?$/.test(trimmed)) {
-                const num = Number(trimmed);
-                tsDate = new Date(num < 1e11 ? num * 1000 : num);
-              } else {
-                const normalized = trimmed.includes(' ') && !trimmed.includes('T')
-                  ? trimmed.replace(' ', 'T')
-                  : trimmed;
-                tsDate = new Date(normalized);
-              }
-            } else {
-              tsDate = new Date();
-            }
-
-            const valNum = typeof p?.val === 'number'
-              ? p.val
-              : typeof p?.y === 'number'
-              ? p.y
-              : typeof p?.value === 'number'
-              ? p.value
-              : typeof p?.temp === 'number'
-              ? p.temp
-              : typeof p?.temperature === 'number'
-              ? p.temperature
-              : Number(p?.val ?? 0);
-
-            return {
-              ts: isNaN(tsDate.getTime()) ? new Date() : tsDate,
-              val: isNaN(valNum) ? 0 : valNum
-            };
-          });
-
-          rehydratedMap[ch] = datePts.length > 1500
-            ? TemperatureEngine.downsamplePoints(datePts, 1500)
-            : datePts;
+  const cleanLaser = (laser: any) => {
+    if (!laser || typeof laser !== 'object') return laser;
+    const lCopy = { ...laser };
+    if (lCopy.positions && typeof lCopy.positions === 'object') {
+      const pClean: any = {};
+      for (const [pKey, pVal] of Object.entries(lCopy.positions)) {
+        if (pVal && typeof pVal === 'object') {
+          const { imageDataUrl, ...pRest } = pVal as any;
+          pClean[pKey] = pRest;
+        } else {
+          pClean[pKey] = pVal;
         }
-      });
-      cleanedRec.channelData = rehydratedMap;
+      }
+      lCopy.positions = pClean;
     }
-
-    return cleanedRec;
-  });
-
-  return {
-    ...m,
-    temperatureRecords: sanitizedTempRecords
+    return lCopy;
   };
+
+  if (copy.laser1) copy.laser1 = cleanLaser(copy.laser1);
+  if (copy.laser2) copy.laser2 = cleanLaser(copy.laser2);
+  return copy;
+}
+
+export function stripProductProcessRecordImages(record: any): any {
+  if (!record || typeof record !== 'object') return record;
+  const copy: any = { ...record };
+  delete copy.microViaCrossSectionImageUrl;
+
+  const cleanVia = (via: any) => {
+    if (!via || typeof via !== 'object') return via;
+    const { viaImageDataUrl, ...vRest } = via as any;
+    return vRest;
+  };
+
+  if (copy.laser1Via) copy.laser1Via = cleanVia(copy.laser1Via);
+  if (copy.laser2Via) copy.laser2Via = cleanVia(copy.laser2Via);
+  return copy;
+}
+
+export function stripGhostMediaFromObject<T>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => stripGhostMediaFromObject(item)) as unknown as T;
+  }
+  const copy: any = { ...obj };
+
+  // 1. Clean focusOptimizationRecord / focusOptimizationRecords
+  if (copy.focusOptimizationRecord) {
+    copy.focusOptimizationRecord = stripFocusOptimizationRecordImages(copy.focusOptimizationRecord);
+  }
+  if (Array.isArray(copy.focusOptimizationRecords)) {
+    copy.focusOptimizationRecords = copy.focusOptimizationRecords.map(stripFocusOptimizationRecordImages);
+  }
+
+  // 2. Clean productProcessRecord / productProcessRecords
+  if (copy.productProcessRecord) {
+    copy.productProcessRecord = stripProductProcessRecordImages(copy.productProcessRecord);
+  }
+  if (Array.isArray(copy.productProcessRecords)) {
+    copy.productProcessRecords = copy.productProcessRecords.map(stripProductProcessRecordImages);
+  }
+
+  // 3. Clean stageCalibrationData
+  if (copy.stageCalibrationData && typeof copy.stageCalibrationData === 'object') {
+    const cleanedStageData: Record<string, any> = {};
+    for (const [stKey, stVal] of Object.entries(copy.stageCalibrationData)) {
+      if (stVal && typeof stVal === 'object') {
+        const { evidenceImage, ...rest } = stVal as any;
+        cleanedStageData[stKey] = rest;
+      } else {
+        cleanedStageData[stKey] = stVal;
+      }
+    }
+    copy.stageCalibrationData = cleanedStageData;
+  }
+
+  // 4. Clean stage03 temperatureEvidence
+  if (Array.isArray(copy.temperatureEvidence)) {
+    copy.temperatureEvidence = copy.temperatureEvidence.map((te: any) => {
+      if (!te || typeof te !== 'object') return te;
+      const { imageDataUrl, ...rest } = te;
+      return rest;
+    });
+  }
+
+  return copy as T;
+}
+
+export function sanitizeMachine(m: Machine): Machine {
+  if (!m) return m;
+  let updated: any = { ...m };
+
+  if (Array.isArray(updated.focusOptimizationRecords)) {
+    updated.focusOptimizationRecords = updated.focusOptimizationRecords.map(stripFocusOptimizationRecordImages);
+  }
+
+  if (Array.isArray(updated.productProcessRecords)) {
+    updated.productProcessRecords = updated.productProcessRecords.map(stripProductProcessRecordImages);
+  }
+
+  if (updated.temperatureRecords && Array.isArray(updated.temperatureRecords)) {
+    const sanitizedTempRecords = updated.temperatureRecords.map((rec: any) => {
+      const rawCount = rec.rawRecordsCount || (Array.isArray(rec.records) ? rec.records.length : 0);
+      const cleanedRec: SavedTemperatureRecord = {
+        ...rec,
+        rawRecordsCount: rawCount,
+        records: [] // Strip heavy raw records array from localStorage/D1
+      };
+
+      if (cleanedRec.channelData && typeof cleanedRec.channelData === 'object') {
+        const rehydratedMap: Record<number, Array<{ ts: Date; val: number }>> = {};
+        Object.entries(cleanedRec.channelData).forEach(([chStr, pts]) => {
+          const ch = parseInt(chStr, 10);
+          if (!isNaN(ch) && Array.isArray(pts)) {
+            const datePts: Array<{ ts: Date; val: number }> = pts.map((p: any) => {
+              const rawTs = p?.ts ?? p?.x ?? p?.timestamp ?? p?.time ?? p?.date ?? (Array.isArray(p) ? p[0] : p);
+              let tsDate: Date;
+              if (rawTs instanceof Date) {
+                tsDate = rawTs;
+              } else if (typeof rawTs === 'number') {
+                tsDate = new Date(rawTs < 1e11 ? rawTs * 1000 : rawTs);
+              } else if (typeof rawTs === 'string') {
+                const trimmed = rawTs.trim();
+                if (/^\d+(\.\d+)?$/.test(trimmed)) {
+                  const num = Number(trimmed);
+                  tsDate = new Date(num < 1e11 ? num * 1000 : num);
+                } else {
+                  const normalized = trimmed.includes(' ') && !trimmed.includes('T')
+                    ? trimmed.replace(' ', 'T')
+                    : trimmed;
+                  tsDate = new Date(normalized);
+                }
+              } else {
+                tsDate = new Date();
+              }
+
+              const valNum = typeof p?.val === 'number'
+                ? p.val
+                : typeof p?.y === 'number'
+                ? p.y
+                : typeof p?.value === 'number'
+                ? p.value
+                : typeof p?.temp === 'number'
+                ? p.temp
+                : typeof p?.temperature === 'number'
+                ? p.temperature
+                : Number(p?.val ?? 0);
+
+              return {
+                ts: isNaN(tsDate.getTime()) ? new Date() : tsDate,
+                val: isNaN(valNum) ? 0 : valNum
+              };
+            });
+
+            rehydratedMap[ch] = datePts.length > 1500
+              ? TemperatureEngine.downsamplePoints(datePts, 1500)
+              : datePts;
+          }
+        });
+        cleanedRec.channelData = rehydratedMap;
+      }
+
+      return cleanedRec;
+    });
+
+    updated.temperatureRecords = sanitizedTempRecords;
+  }
+
+  return updated as Machine;
 }
 
 export function sanitizeMhcSession(s: MHCSession): MHCSession {
   if (!s || typeof s !== 'object') return s;
-  const copy: any = { ...s };
+  let copy: any = { ...s };
 
   // Reconcile and strip redundant plural focusOptimizationRecords from session
   if (Array.isArray(copy.focusOptimizationRecords)) {
@@ -318,6 +420,9 @@ export function sanitizeMhcSession(s: MHCSession): MHCSession {
     }
     delete copy.productProcessRecords;
   }
+
+  // Strip unseen ghost media
+  copy = stripGhostMediaFromObject(copy);
 
   return copy as MHCSession;
 }
@@ -669,6 +774,53 @@ export const StorageService = {
     const current = StorageService.getMachines();
     const updated = current.filter(m => m.id !== machineId);
     StorageService.saveMachines(updated);
+  },
+
+  sanitizeLocalStorageGhostMedia: () => {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      // 1. MHC Sessions
+      const rawSessions = localStorage.getItem(KEYS.MHC_SESSIONS);
+      if (rawSessions) {
+        const parsed = JSON.parse(rawSessions);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map(sanitizeMhcSession);
+          localStorage.setItem(KEYS.MHC_SESSIONS, JSON.stringify(sanitized));
+        }
+      }
+
+      // 2. Machines
+      const rawMachines = localStorage.getItem(KEYS.MACHINES);
+      if (rawMachines) {
+        const parsed = JSON.parse(rawMachines);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map(sanitizeMachine);
+          localStorage.setItem(KEYS.MACHINES, JSON.stringify(sanitized));
+        }
+      }
+
+      // 3. Drafts, Templates, Reports
+      const otherKeys = [
+        KEYS.MHC_REPORT_DRAFTS,
+        KEYS.MHC_WORKSPACE_DRAFTS,
+        KEYS.MHC_WORKSPACE_TEMPLATES,
+        KEYS.DRAFTS,
+        KEYS.TEMPLATES,
+        KEYS.REPORTS
+      ];
+      for (const k of otherKeys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const sanitized = parsed.map(stripGhostMediaFromObject);
+            localStorage.setItem(k, JSON.stringify(sanitized));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[StorageService] Error sanitizing local storage ghost media:', e);
+    }
   },
 
   getAllLocalData: (): Record<string, any[]> => {
