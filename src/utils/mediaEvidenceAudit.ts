@@ -225,8 +225,9 @@ export async function auditMediaEvidence(
   imagesMap?: Record<string, string>,
   activeCoreData?: any
 ): Promise<MediaEvidenceAuditReport> {
-  // 1. Retrieve all stored images (from passed map or IndexedDB + cache)
+  // 1. Retrieve all stored images and raw storage entries (from passed map or IndexedDB + cache)
   const images: Record<string, string> = imagesMap || (await ImageStore.getAllImages());
+  const rawEntries = await ImageStore.getAllRawStoredEntries();
   const allKeys = Object.keys(images);
 
   // 2. Collect all active reachable idb: keys from Core Data
@@ -248,10 +249,14 @@ export async function auditMediaEvidence(
 
   // 4. Build duplicate groups
   const duplicateGroups: DuplicateGroupSummary[] = [];
-  const keyToDuplicateGroupMap = new Map<string, { groupId: string; count: number }>();
+  const keyToDuplicateGroupMap = new Map<string, { groupId: string; count: number; canonicalKey?: string; isAliasPointer?: boolean }>();
   let duplicateGroupCounter = 1;
   let totalDuplicateWastedBytes = 0;
+  let totalPhysicalDuplicateWastedBytes = 0;
+  let totalActualReclaimedDuplicateBytes = 0;
   let totalDuplicateEntriesCount = 0;
+  let consolidatedAliasesCount = 0;
+  let unconsolidatedDuplicatesCount = 0;
 
   for (const [payload, keys] of payloadToKeysMap.entries()) {
     if (keys.length > 1) {
@@ -260,6 +265,42 @@ export async function auditMediaEvidence(
       const byteSizePerEntry = getPayloadByteSize(payload);
       const totalBytes = keys.length * byteSizePerEntry;
       const wastedBytes = (keys.length - 1) * byteSizePerEntry;
+
+      // Check physical raw storage for these keys
+      // Pick canonical key (prefer MHC or shortest key)
+      const sortedKeys = [...keys].sort((a, b) => {
+        const aMhc = a.includes('MHC');
+        const bMhc = b.includes('MHC');
+        if (aMhc && !bMhc) return -1;
+        if (!aMhc && bMhc) return 1;
+        if (a.length !== b.length) return a.length - b.length;
+        return a.localeCompare(b);
+      });
+      const canonicalKey = sortedKeys[0];
+      const aliasKeys = sortedKeys.slice(1);
+
+      let physicalCopiesCount = 0;
+      let aliasPointersCount = 0;
+
+      for (const k of keys) {
+        const rawVal = rawEntries[k];
+        const isRef = typeof rawVal === 'string' && rawVal.startsWith('ref:');
+        if (isRef) {
+          aliasPointersCount++;
+          consolidatedAliasesCount++;
+          const pointerSize = rawVal.length;
+          totalActualReclaimedDuplicateBytes += Math.max(0, byteSizePerEntry - pointerSize);
+        } else {
+          physicalCopiesCount++;
+        }
+      }
+
+      const isConsolidated = physicalCopiesCount <= 1 && aliasPointersCount > 0;
+      const groupPhysicalWastedBytes = Math.max(0, (physicalCopiesCount - 1) * byteSizePerEntry);
+      totalPhysicalDuplicateWastedBytes += groupPhysicalWastedBytes;
+      if (physicalCopiesCount > 1) {
+        unconsolidatedDuplicatesCount += (physicalCopiesCount - 1);
+      }
 
       totalDuplicateWastedBytes += wastedBytes;
       totalDuplicateEntriesCount += keys.length;
@@ -271,12 +312,18 @@ export async function auditMediaEvidence(
         count: keys.length,
         totalBytes,
         wastedBytes,
-        sampleKey: keys[0],
-        keys
+        physicalWastedBytes: groupPhysicalWastedBytes,
+        isConsolidated,
+        canonicalKey,
+        aliasKeys,
+        sampleKey: canonicalKey,
+        keys: sortedKeys
       });
 
       for (const k of keys) {
-        keyToDuplicateGroupMap.set(k, { groupId, count: keys.length });
+        const rawVal = rawEntries[k];
+        const isRef = typeof rawVal === 'string' && rawVal.startsWith('ref:');
+        keyToDuplicateGroupMap.set(k, { groupId, count: keys.length, canonicalKey, isAliasPointer: isRef });
       }
     }
   }
@@ -287,6 +334,7 @@ export async function auditMediaEvidence(
   // 5. Build individual entry audits
   const entries: MediaEvidenceEntryAudit[] = [];
   let totalStorageBytes = 0;
+  let physicalStorageBytes = 0;
   let activeReferencedRecords = 0;
   let orphanedRecords = 0;
 
@@ -297,7 +345,11 @@ export async function auditMediaEvidence(
 
   for (const key of allKeys) {
     const payload = images[key] || '';
+    const rawVal = rawEntries[key];
+    const isReferencePointer = typeof rawVal === 'string' && rawVal.startsWith('ref:');
+    const referenceTargetKey = isReferencePointer ? rawVal.substring(4) : undefined;
     const byteSize = getPayloadByteSize(payload);
+    const actualPhysicalBytes = isReferencePointer ? (rawVal?.length || 0) : byteSize;
     const charLength = payload.length;
     const payloadType = detectPayloadType(payload);
     const { category, sourceClassification } = classifyMediaCategory(key);
@@ -311,6 +363,7 @@ export async function auditMediaEvidence(
     }
 
     totalStorageBytes += byteSize;
+    physicalStorageBytes += actualPhysicalBytes;
 
     const bucket = categoryBuckets.get(category)!;
     bucket.count += 1;
@@ -329,6 +382,8 @@ export async function auditMediaEvidence(
       isReferenced,
       isOrphaned,
       isDuplicate,
+      isReferencePointer,
+      referenceTargetKey,
       duplicateGroupId: dupInfo?.groupId,
       duplicateCount: dupInfo ? dupInfo.count : 1
     });
@@ -361,13 +416,17 @@ export async function auditMediaEvidence(
   const summary: MediaEvidenceAuditSummary = {
     totalRecords: allKeys.length,
     totalStorageBytes,
+    physicalStorageBytes,
     activeReferencedRecords,
     orphanedRecords,
     missingReferencedRecords: missingReferencedKeys.length,
     duplicateRecords: totalDuplicateEntriesCount,
     uniquePayloadCount: payloadToKeysMap.size,
     duplicateGroupsCount: duplicateGroups.length,
-    potentialDuplicateSavingsBytes: totalDuplicateWastedBytes
+    consolidatedAliasesCount,
+    unconsolidatedDuplicatesCount,
+    potentialDuplicateSavingsBytes: totalPhysicalDuplicateWastedBytes,
+    actualReclaimedDuplicateBytes: totalActualReclaimedDuplicateBytes
   };
 
   return {

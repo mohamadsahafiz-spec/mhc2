@@ -51,6 +51,7 @@ import {
 import {
   MediaEvidenceAuditReport,
   MediaEvidenceCategory,
+  MediaDeduplicationResult,
   OrphanedMediaCleanupResult
 } from '../../types/mediaAudit';
 import {
@@ -111,6 +112,10 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
   const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [orphansCleanupResult, setOrphansCleanupResult] = useState<OrphanedMediaCleanupResult | null>(null);
 
+  // P1.3.8 Safe Media Deduplication & Physical Storage Reclaim
+  const [deduplicating, setDeduplicating] = useState(false);
+  const [deduplicationResult, setDeduplicationResult] = useState<MediaDeduplicationResult | null>(null);
+
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(key);
@@ -131,6 +136,28 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
       console.error('[SettingsModule] Image audit error:', err);
     } finally {
       setAuditing(false);
+    }
+  };
+
+  const handleDeduplicateMedia = async () => {
+    try {
+      setDeduplicating(true);
+      setDeduplicationResult(null);
+      const res = await ImageStore.consolidateDuplicatePayloads();
+      setDeduplicationResult(res);
+
+      // Re-run forensic audit to refresh live report
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
+    } catch (err: any) {
+      console.error('[SettingsModule] Deduplication error:', err);
+      alert(`Deduplication error: ${err?.message || err}`);
+    } finally {
+      setDeduplicating(false);
     }
   };
 
@@ -470,7 +497,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
           </button>
         </div>
         <div className="text-[11px] font-mono text-slate-500">
-          FSOS v1.7.1
+          FSOS v1.7.2
         </div>
       </div>
 
@@ -492,7 +519,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                     <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
                       <Package className="w-4 h-4" />
                       <span>Export Portable Backup (.fsosbackup)</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v1.7.1</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v1.7.2</span>
                     </div>
                     <p className="text-slate-400 leading-relaxed">
                       Complete operational backup including structured data and deduplicated media.
@@ -906,12 +933,56 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                 size="sm"
                 icon={auditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
                 onClick={handleAuditImages}
-                disabled={auditing || cleaning}
+                disabled={auditing || cleaning || deduplicating}
               >
                 {auditing ? 'Running Forensic Scan...' : 'Audit Media Store'}
               </Button>
+              {forensicReport && forensicReport.duplicates.length > 0 && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={deduplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                  onClick={handleDeduplicateMedia}
+                  disabled={auditing || cleaning || deduplicating}
+                >
+                  {deduplicating ? 'Consolidating Media...' : 'Consolidate Duplicate Payloads'}
+                </Button>
+              )}
             </div>
           </div>
+
+          {/* Post-Deduplication Status Banner */}
+          {deduplicationResult && (
+            <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+              isDark ? 'bg-emerald-950/30 border-emerald-500/50' : 'bg-emerald-50 border-emerald-300'
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Media Deduplication & Canonical Consolidation Completed</span>
+                </div>
+                <div className="text-slate-300 text-xs font-mono flex flex-wrap items-center gap-3 pt-0.5">
+                  <span>Groups Consolidated: <strong className="text-emerald-400">{deduplicationResult.consolidatedGroupsCount}</strong></span>
+                  <span>•</span>
+                  <span>Entries Deduplicated: <strong className="text-emerald-400">{deduplicationResult.deduplicatedEntriesCount}</strong></span>
+                  <span>•</span>
+                  <span>Storage Reclaimed: <strong className="text-emerald-400">{formatBytes(deduplicationResult.reclaimedBytes)}</strong></span>
+                  <span>•</span>
+                  <span>Unique Physical Payloads: <strong className="text-sky-400">{deduplicationResult.uniquePayloadsRemaining}</strong></span>
+                  <span>•</span>
+                  <span>Preserved References: <strong className="text-emerald-400">{deduplicationResult.totalLogicalReferencesPreserved} (100%)</strong></span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeduplicationResult(null)}
+                className="self-end md:self-center text-slate-400 hover:text-slate-200"
+              >
+                Dismiss
+              </Button>
+            </div>
+          )}
 
           {/* Post-Cleanup Status Banner */}
           {orphansCleanupResult && (
@@ -1016,14 +1087,18 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 font-mono text-[11px]">
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Total Stored Records</div>
+                      <div className="text-slate-400 text-[10px]">Total Logical Records</div>
                       <div className="font-bold text-sky-400 text-lg mt-0.5">{forensicReport.summary.totalRecords}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Physical IndexedDB entries</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">IndexedDB image references</div>
                     </div>
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Total Storage Volume</div>
-                      <div className="font-bold text-indigo-400 text-lg mt-0.5">{formatBytes(forensicReport.summary.totalStorageBytes)}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">{forensicReport.summary.totalStorageBytes.toLocaleString()} UTF-8 bytes</div>
+                      <div className="text-slate-400 text-[10px]">Physical IndexedDB Size</div>
+                      <div className="font-bold text-indigo-400 text-lg mt-0.5">
+                        {formatBytes(forensicReport.summary.physicalStorageBytes || forensicReport.summary.totalStorageBytes)}
+                      </div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">
+                        Hydrated: {formatBytes(forensicReport.summary.totalStorageBytes)}
+                      </div>
                     </div>
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="text-slate-400 text-[10px]">Active Referenced</div>
@@ -1043,21 +1118,27 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="text-slate-400 text-[10px]">Unique Payload Count</div>
                       <div className="font-bold text-sky-300 text-base mt-0.5">{forensicReport.summary.uniquePayloadCount}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Distinct visual payloads</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">Distinct physical payloads</div>
                     </div>
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Duplicate Payload Entries</div>
-                      <div className={`font-bold text-base mt-0.5 ${forensicReport.summary.duplicateRecords > 0 ? 'text-amber-300' : 'text-slate-400'}`}>
-                        {forensicReport.summary.duplicateRecords} ({forensicReport.summary.duplicateGroupsCount} groups)
+                      <div className="text-slate-400 text-[10px]">Duplicate Groups & Aliases</div>
+                      <div className="font-bold text-base mt-0.5 text-slate-200">
+                        {forensicReport.summary.duplicateGroupsCount} groups ({forensicReport.summary.consolidatedAliasesCount || 0} alias pointers)
                       </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Identical content under different keys</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">
+                        {forensicReport.summary.unconsolidatedDuplicatesCount ? `${forensicReport.summary.unconsolidatedDuplicatesCount} unconsolidated copies` : 'All duplicates consolidated as pointers'}
+                      </div>
                     </div>
                     <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Duplicate Storage Overhead</div>
-                      <div className={`font-bold text-base mt-0.5 ${forensicReport.summary.potentialDuplicateSavingsBytes > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
-                        {formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}
+                      <div className="text-slate-400 text-[10px]">Deduplication Storage Reclaimed</div>
+                      <div className="font-bold text-base mt-0.5 text-emerald-400">
+                        {formatBytes(forensicReport.summary.actualReclaimedDuplicateBytes || 0)}
                       </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Potential deduplication savings</div>
+                      <div className="text-slate-500 text-[9px] mt-0.5">
+                        {forensicReport.summary.potentialDuplicateSavingsBytes > 0
+                          ? `Remaining reclaimable: ${formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}`
+                          : '100% physical duplicate storage eliminated'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1259,11 +1340,31 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
               {activeForensicTab === 'duplicates' && (
                 <div className="space-y-3">
                   <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
-                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
-                      <span className="font-bold text-xs">Identical Payload Groups ({forensicReport.duplicates.length} groups)</span>
-                      <span className="font-mono text-[11px] text-amber-400">
-                        Total Wasted Storage: {formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}
-                      </span>
+                    <div className="p-3 border-b border-[#2B323A]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs">Identical Payload Groups ({forensicReport.duplicates.length} groups)</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                          {forensicReport.summary.consolidatedAliasesCount || 0} Aliases Active
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-[11px] text-amber-400">
+                          {forensicReport.summary.potentialDuplicateSavingsBytes > 0
+                            ? `Unconsolidated Overhead: ${formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}`
+                            : `Reclaimed Storage: ${formatBytes(forensicReport.summary.actualReclaimedDuplicateBytes || 0)}`}
+                        </span>
+                        {forensicReport.duplicates.some(d => d.wastedBytes > 0) && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={deduplicating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
+                            onClick={handleDeduplicateMedia}
+                            disabled={auditing || cleaning || deduplicating}
+                          >
+                            {deduplicating ? 'Consolidating...' : 'Consolidate All'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {forensicReport.duplicates.length === 0 ? (
@@ -1276,7 +1377,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                         {forensicReport.duplicates.map((dup) => (
                           <div key={dup.groupId} className="p-3 space-y-2">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
                                   {dup.groupId}
                                 </span>
@@ -1284,28 +1385,60 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                                   {dup.payloadType}
                                 </span>
                                 <span className="text-slate-300 font-bold">{dup.count} references</span>
+                                {dup.isConsolidated || dup.wastedBytes === 0 ? (
+                                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-sans font-medium">
+                                    ✓ Consolidated (Zero Overhead)
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-sans font-medium">
+                                    ⚠ Unconsolidated Physical Copies
+                                  </span>
+                                )}
                               </div>
                               <div className="text-right">
                                 <span className="text-slate-400 text-[10px]">Single: {formatBytes(dup.byteSizePerEntry)} | </span>
-                                <span className="text-slate-300 font-bold">Total: {formatBytes(dup.totalBytes)} | </span>
-                                <span className="text-amber-400 font-bold">Duplicate Overhead: {formatBytes(dup.wastedBytes)}</span>
+                                <span className="text-slate-300 font-bold">Total Hydrated: {formatBytes(dup.totalBytes)} | </span>
+                                <span className={dup.wastedBytes > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold'}>
+                                  {dup.wastedBytes > 0 ? `Overhead: ${formatBytes(dup.wastedBytes)}` : `Physical IDB: ${formatBytes(dup.physicalStorageBytes || dup.byteSizePerEntry)}`}
+                                </span>
                               </div>
                             </div>
                             <div className="space-y-1 text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded-lg border border-[#2B323A]/40">
-                              <div className="text-slate-500 font-sans text-[9px] uppercase tracking-wider">Referencing Keys:</div>
-                              {dup.keys.map((k) => (
-                                <div key={k} className="flex items-center justify-between gap-2 truncate">
-                                  <span className="truncate text-slate-300">{k}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyKey(k)}
-                                    className="text-slate-500 hover:text-slate-300 shrink-0"
-                                    title="Copy key"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ))}
+                              <div className="text-slate-500 font-sans text-[9px] uppercase tracking-wider flex items-center justify-between">
+                                <span>Referencing Keys & Storage Role:</span>
+                                <span>Canonical: {dup.canonicalKey}</span>
+                              </div>
+                              {dup.keys.map((k) => {
+                                const isCanonical = k === dup.canonicalKey;
+                                return (
+                                  <div key={k} className="flex items-center justify-between gap-2 truncate py-0.5">
+                                    <div className="flex items-center gap-2 truncate">
+                                      {isCanonical ? (
+                                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-sans shrink-0">
+                                          Canonical Master
+                                        </span>
+                                      ) : dup.isConsolidated || dup.wastedBytes === 0 ? (
+                                        <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[9px] font-sans shrink-0">
+                                          Alias (ref: pointer)
+                                        </span>
+                                      ) : (
+                                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-sans shrink-0">
+                                          Physical Copy
+                                        </span>
+                                      )}
+                                      <span className={`truncate ${isCanonical ? 'text-emerald-200 font-bold' : 'text-slate-300'}`}>{k}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyKey(k)}
+                                      className="text-slate-500 hover:text-slate-300 shrink-0"
+                                      title="Copy key"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}

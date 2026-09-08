@@ -244,7 +244,7 @@ export const ImageStore = {
     if (dataUrl.startsWith('ref:')) {
       // Explicit reference pointer saved
       const targetKey = dataUrl.substring(4);
-      const targetVal = imageMemoryCache.get(targetKey);
+      const targetVal = imageMemoryCache.get(targetKey) || rawStoredValues.get(targetKey);
       if (targetVal && !targetVal.startsWith('ref:')) {
         setMemoryCache(id, targetVal);
       }
@@ -264,6 +264,15 @@ export const ImageStore = {
     let canonKey = payloadToCanonicalKey.get(dataUrl);
     if (!canonKey) {
       for (const [k, v] of imageMemoryCache.entries()) {
+        if (v === dataUrl && !v.startsWith('ref:')) {
+          canonKey = k;
+          payloadToCanonicalKey.set(dataUrl, k);
+          break;
+        }
+      }
+    }
+    if (!canonKey) {
+      for (const [k, v] of rawStoredValues.entries()) {
         if (v === dataUrl && !v.startsWith('ref:')) {
           canonKey = k;
           payloadToCanonicalKey.set(dataUrl, k);
@@ -1128,12 +1137,39 @@ export const ImageStore = {
       return { restoredCount: 0, errors: ['Invalid images dictionary payload.'] };
     }
 
-    const entries = Object.entries(images).filter(
+    const rawEntries = Object.entries(images).filter(
       ([k, v]) => typeof k === 'string' && typeof v === 'string' && v.length > 0
     );
 
-    if (entries.length === 0) {
+    if (rawEntries.length === 0) {
       return { restoredCount: 0, errors: [] };
+    }
+
+    // Deduplicate incoming entries so identical payloads are stored as canonical + ref: pointers
+    const payloadToFirstKey = new Map<string, string>();
+    const preparedEntries: Array<[string, string]> = [];
+
+    for (const [key, val] of rawEntries) {
+      if (val.startsWith('ref:')) {
+        preparedEntries.push([key, val]);
+        continue;
+      }
+
+      const existingCanonKey = payloadToFirstKey.get(val) || payloadToCanonicalKey.get(val);
+      if (existingCanonKey && existingCanonKey !== key) {
+        // Map as reference pointer to canonical
+        const refVal = `ref:${existingCanonKey}`;
+        preparedEntries.push([key, refVal]);
+        rawStoredValues.set(key, refVal);
+        setMemoryCache(key, val);
+      } else {
+        // First instance becomes canonical
+        payloadToFirstKey.set(val, key);
+        payloadToCanonicalKey.set(val, key);
+        preparedEntries.push([key, val]);
+        rawStoredValues.set(key, val);
+        setMemoryCache(key, val);
+      }
     }
 
     const BATCH_SIZE = 50;
@@ -1141,11 +1177,11 @@ export const ImageStore = {
 
     try {
       if (typeof indexedDB === 'undefined') {
-        restoredCount = entries.length;
+        restoredCount = preparedEntries.length;
       } else {
         const db = await openDB();
-        for (let i = 0; i < entries.length; i += BATCH_SIZE) {
-          const batch = entries.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < preparedEntries.length; i += BATCH_SIZE) {
+          const batch = preparedEntries.slice(i, i + BATCH_SIZE);
           await new Promise<void>((resolve, reject) => {
             try {
               const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -1176,8 +1212,8 @@ export const ImageStore = {
     this.invalidateRuntimeCaches();
 
     // Populate memory cache and notify reactive listeners
-    const restoredKeys = entries.map(([k, v]) => {
-      setMemoryCache(k, v);
+    const restoredKeys = rawEntries.map(([k, v]) => {
+      setMemoryCache(k, v.startsWith('ref:') ? (images[v.substring(4)] || v) : v);
       persistedInIdbKeys.add(k);
       return k;
     });

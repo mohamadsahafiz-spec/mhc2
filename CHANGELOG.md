@@ -1,5 +1,27 @@
 # FSOS CHANGELOG
 
+## v1.7.2 — MEDIA DEDUPLICATION & CANONICAL CONSOLIDATION (2026-09-08)
+
+### Media Evidence Forensic Investigation & Physical Storage Consolidation
+- **Forensic Investigation of Duplicate Payload Groups**:
+  - Investigated the 32 duplicate payload groups reported by Media Evidence Diagnostics across 73 IndexedDB records and 41 unique payloads.
+  - Resolved physical duplication causes:
+    1. Sample dataset initial seeding wrote identical test images under discrete record keys prior to canonical pointer architecture.
+    2. Cold memory caches during multi-session workflows previously skipped canonical mapping lookups.
+- **Physical vs. Logical Storage Separation (`mediaEvidenceAudit.ts`, `mediaAudit.ts`)**:
+  - Updated forensic audit engine to differentiate physical IndexedDB storage footprint (evaluating raw stored `ref:<canonicalKey>` pointers vs. full payloads) from logical hydrated runtime volume.
+  - Calculated exact duplicate overhead, consolidated alias counts, and actual reclaimed storage.
+- **Deduplication Hardening Across Ingestion & Restore (`imageStore.ts`)**:
+  - Hardened `saveImage` to inspect raw IndexedDB storage directly for existing canonical hashes even when runtime memory cache is cold.
+  - Hardened `restoreImages` to deduplicate incoming payloads during full backup restoration, converting identical payloads into lightweight `ref:<canonicalKey>` pointers.
+  - Provided idempotent, safe `consolidateDuplicatePayloads()` operation to convert all legacy physical duplicate records into canonical references with 100% logical reference preservation.
+- **Settings & Media Evidence Diagnostics UI Enhancement (`SettingsModule.tsx`)**:
+  - Added dedicated "Consolidate Duplicate Payloads" action with real-time feedback banner detailing consolidated groups, entries, and reclaimed storage.
+  - Enhanced Duplicate Payload Analysis tab with clear badges for `[Canonical Master]`, `[Alias Pointer (ref:...)]`, and `[Physical Copy]`.
+  - Added live indicators of physical storage volume vs. hydrated volume in the Media Store Summary.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `src/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.7.2`.
+
 ## v1.7.1 — PORTABLE COMPLETE BACKUP V1 (.FSOSBACKUP) (2026-09-08)
 
 ### Portable Complete Backup (.fsosbackup) Architecture

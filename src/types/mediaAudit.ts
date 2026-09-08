@@ -50,6 +50,10 @@ export interface DuplicateGroupSummary {
   count: number;
   totalBytes: number;
   wastedBytes: number;
+  isConsolidated?: boolean;
+  canonicalKey?: string;
+  aliasKeys?: string[];
+  physicalWastedBytes?: number;
   sampleKey: string;
   keys: string[];
 }
@@ -57,13 +61,17 @@ export interface DuplicateGroupSummary {
 export interface MediaEvidenceAuditSummary {
   totalRecords: number;
   totalStorageBytes: number;
+  physicalStorageBytes?: number;
   activeReferencedRecords: number;
   orphanedRecords: number;
   missingReferencedRecords: number;
   duplicateRecords: number;
   uniquePayloadCount: number;
   duplicateGroupsCount: number;
+  consolidatedAliasesCount?: number;
+  unconsolidatedDuplicatesCount?: number;
   potentialDuplicateSavingsBytes: number;
+  actualReclaimedDuplicateBytes?: number;
 }
 
 export interface MediaEvidenceAuditReport {
