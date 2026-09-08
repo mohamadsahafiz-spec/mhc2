@@ -30,8 +30,11 @@ import { getAuthoritativeChangelog } from '../../utils/changelogParser';
 import {
   exportFullBackup,
   exportCompleteArchive,
+  exportPortableBackup,
   validateCompleteBackup,
-  restoreCompleteBackup
+  restoreCompleteBackup,
+  validatePortableBackupArchive,
+  restorePortableBackup
 } from '../../utils/backupEngine';
 import {
   ImageStore,
@@ -49,7 +52,10 @@ import {
   MediaEvidenceCategory,
   OrphanedMediaCleanupResult
 } from '../../types/mediaAudit';
-import { FSOSCompleteBackupValidationResult } from '../../types/backup';
+import {
+  FSOSCompleteBackupValidationResult,
+  FSOSPortableBackupValidationResult
+} from '../../types/backup';
 
 interface SettingsProps {
   onResetData: () => void;
@@ -64,6 +70,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   // Backup & Restore State
   const coreFileInputRef = useRef<HTMLInputElement>(null);
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
+  const [exportingPortable, setExportingPortable] = useState(false);
   const [exportingCore, setExportingCore] = useState(false);
   const [exportingComplete, setExportingComplete] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
@@ -72,6 +79,10 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   const [mediaFileText, setMediaFileText] = useState<string>('');
   const [selectedCoreFileName, setSelectedCoreFileName] = useState<string>('');
   const [selectedMediaFileName, setSelectedMediaFileName] = useState<string>('');
+
+  const [selectedArchiveType, setSelectedArchiveType] = useState<'portable' | 'legacy'>('portable');
+  const [portableZipBytes, setPortableZipBytes] = useState<Uint8Array | null>(null);
+  const [portableValidation, setPortableValidation] = useState<FSOSPortableBackupValidationResult | null>(null);
 
   const [validating, setValidating] = useState(false);
   const [completeValidation, setCompleteValidation] = useState<FSOSCompleteBackupValidationResult | null>(null);
@@ -190,6 +201,23 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     setCompleteValidation(result);
   };
 
+  const handleExportPortableBackup = async () => {
+    try {
+      setExportingPortable(true);
+      setExportSuccess(null);
+      const res = await exportPortableBackup();
+      setExportSuccess(
+        `Portable Complete Backup exported: ${res.filename} (${formatBytes(res.totalBytes)}, ${res.manifest.mediaSummary.canonicalMediaFiles} canonical files, ${res.manifest.mediaSummary.aliasReferences} alias refs)`
+      );
+      setTimeout(() => setExportSuccess(null), 8000);
+    } catch (err: any) {
+      console.error('[SettingsModule] Portable backup export error:', err);
+      alert(`Portable backup export failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setExportingPortable(false);
+    }
+  };
+
   const handleExportCoreBackup = () => {
     try {
       setExportingCore(true);
@@ -230,30 +258,67 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
     setValidating(true);
     setRestoreError(null);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        setCoreFileText(text);
-        runValidation(text, mediaFileText);
-        setShowPreviewModal(true);
-      } catch (err: any) {
-        console.error('[SettingsModule] Core file load error:', err);
-      } finally {
+    const isPortable = file.name.endsWith('.fsosbackup') || file.name.endsWith('.zip');
+
+    if (isPortable) {
+      setSelectedArchiveType('portable');
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const buffer = event.target?.result as ArrayBuffer;
+          const zipBytes = new Uint8Array(buffer);
+          setPortableZipBytes(zipBytes);
+          const valRes = await validatePortableBackupArchive(zipBytes);
+          setPortableValidation(valRes);
+          setCompleteValidation(null);
+          setShowPreviewModal(true);
+        } catch (err: any) {
+          console.error('[SettingsModule] Portable archive load error:', err);
+          alert(`Failed to parse portable backup archive: ${err?.message || err}`);
+        } finally {
+          setValidating(false);
+          if (coreFileInputRef.current) {
+            coreFileInputRef.current.value = '';
+          }
+        }
+      };
+      reader.onerror = () => {
         setValidating(false);
+        alert('Failed to read selected .fsosbackup file.');
         if (coreFileInputRef.current) {
           coreFileInputRef.current.value = '';
         }
-      }
-    };
-    reader.onerror = () => {
-      setValidating(false);
-      alert('Failed to read selected core backup file.');
-      if (coreFileInputRef.current) {
-        coreFileInputRef.current.value = '';
-      }
-    };
-    reader.readAsText(file);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      setSelectedArchiveType('legacy');
+      setPortableZipBytes(null);
+      setPortableValidation(null);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const text = event.target?.result as string;
+          setCoreFileText(text);
+          runValidation(text, mediaFileText);
+          setShowPreviewModal(true);
+        } catch (err: any) {
+          console.error('[SettingsModule] Core file load error:', err);
+        } finally {
+          setValidating(false);
+          if (coreFileInputRef.current) {
+            coreFileInputRef.current.value = '';
+          }
+        }
+      };
+      reader.onerror = () => {
+        setValidating(false);
+        alert('Failed to read selected core backup file.');
+        if (coreFileInputRef.current) {
+          coreFileInputRef.current.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,26 +361,42 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
   };
 
   const handleConfirmRestore = async () => {
-    if (!completeValidation?.coreValidation?.envelope) return;
-
-    try {
-      setRestoring(true);
-      setRestoreError(null);
-
-      const res = await restoreCompleteBackup(
-        completeValidation.coreValidation.envelope,
-        completeValidation.mediaValidation?.envelope
-      );
-
-      if (!res.success) {
-        setRestoreError(res.error || 'Restore failed.');
+    if (selectedArchiveType === 'portable') {
+      if (!portableZipBytes || !portableValidation?.valid) return;
+      try {
+        setRestoring(true);
+        setRestoreError(null);
+        const res = await restorePortableBackup(portableZipBytes);
+        if (!res.success) {
+          setRestoreError(res.error || 'Restore failed.');
+          setRestoring(false);
+        }
+      } catch (err: any) {
+        console.error('[SettingsModule] Portable restore error:', err);
+        setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
         setRestoring(false);
       }
-      // If successful, restoreCompleteBackup reloads window automatically
-    } catch (err: any) {
-      console.error('[SettingsModule] Complete restore error:', err);
-      setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
-      setRestoring(false);
+    } else {
+      if (!completeValidation?.coreValidation?.envelope) return;
+
+      try {
+        setRestoring(true);
+        setRestoreError(null);
+
+        const res = await restoreCompleteBackup(
+          completeValidation.coreValidation.envelope,
+          completeValidation.mediaValidation?.envelope
+        );
+
+        if (!res.success) {
+          setRestoreError(res.error || 'Restore failed.');
+          setRestoring(false);
+        }
+      } catch (err: any) {
+        console.error('[SettingsModule] Complete restore error:', err);
+        setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
+        setRestoring(false);
+      }
     }
   };
 
@@ -371,10 +452,11 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <div>
                 <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
                   <Package className="w-4 h-4" />
-                  <span>Export Backup & Complete Archive</span>
+                  <span>Export Portable Backup (.fsosbackup)</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v1.7.1</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Export FSOS core operational data or a Complete Archive containing both Core Data and Media Evidence (photos & attachments) sharing a verified paired Backup ID.
+                  Creates a single unified portable archive containing structured JSON operational data, media catalog indices, and deduplicated raw binary images (zero Base64 bloat).
                 </p>
                 <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-400/90 font-mono">
                   <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
@@ -384,23 +466,34 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
 
               <div className="pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2">
                 <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={exportingCore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  onClick={handleExportCoreBackup}
-                  disabled={exportingCore || exportingComplete}
-                >
-                  {exportingCore ? 'Exporting...' : 'Export Core Backup'}
-                </Button>
-                <Button
                   variant="primary"
                   size="sm"
-                  icon={exportingComplete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
-                  onClick={handleExportCompleteArchive}
-                  disabled={exportingCore || exportingComplete}
+                  icon={exportingPortable ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
+                  onClick={handleExportPortableBackup}
+                  disabled={exportingPortable || exportingCore || exportingComplete}
                 >
-                  {exportingComplete ? 'Exporting Archive...' : 'Export Complete Archive'}
+                  {exportingPortable ? 'Packaging .fsosbackup...' : 'Export Portable Backup (.fsosbackup)'}
                 </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={exportingCore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    onClick={handleExportCoreBackup}
+                    disabled={exportingPortable || exportingCore || exportingComplete}
+                  >
+                    {exportingCore ? 'Exporting...' : 'Core JSON'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={exportingComplete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    onClick={handleExportCompleteArchive}
+                    disabled={exportingPortable || exportingCore || exportingComplete}
+                  >
+                    {exportingComplete ? 'Exporting...' : 'Legacy Archive (JSON)'}
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -414,7 +507,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                   <span>Restore Backup & Complete Archive</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  Restores an FSOS core backup or a paired Complete Archive. Validates schema, domain record counts, and media backup IDs before applying a non-destructive restore.
+                  Restores a Portable Complete Backup (<code className="text-emerald-400/90">.fsosbackup</code>) or legacy Core / Media JSON archive. Pre-validates schema, domain record counts, and media files before restoring.
                 </p>
                 <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -427,7 +520,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                   type="file"
                   ref={coreFileInputRef}
                   onChange={handleCoreFileChange}
-                  accept=".json,application/json"
+                  accept=".fsosbackup,.zip,.json,application/json"
                   className="hidden"
                 />
                 <input
@@ -445,7 +538,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                   onClick={() => coreFileInputRef.current?.click()}
                   disabled={validating}
                 >
-                  {validating ? 'Validating...' : 'Select Backup JSON'}
+                  {validating ? 'Validating...' : 'Select Backup (.fsosbackup / .json)'}
                 </Button>
               </div>
             </div>
@@ -464,7 +557,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
       </Card>
 
       {/* Restore Validation & Confirmation Modal */}
-      {showPreviewModal && completeValidation && (
+      {showPreviewModal && (selectedArchiveType === 'portable' ? !!portableValidation : !!completeValidation) && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl p-6 space-y-5 my-8 ${
             isDark ? 'bg-[#181B1F] border-[#2E353F] text-slate-200' : 'bg-white border-slate-300 text-slate-900'
@@ -474,10 +567,14 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               <div>
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <FileJson className="w-5 h-5 text-sky-400" />
-                  <span>Restore Archive Preview</span>
+                  <span>
+                    {selectedArchiveType === 'portable'
+                      ? 'Restore Portable Complete Backup (.fsosbackup)'
+                      : 'Restore Archive Preview (Legacy JSON)'}
+                  </span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Core File: <span className="font-mono font-semibold text-slate-300">{selectedCoreFileName}</span>
+                  File: <span className="font-mono font-semibold text-slate-300">{selectedCoreFileName}</span>
                 </p>
               </div>
               <button
@@ -489,81 +586,151 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               </button>
             </div>
 
-            {/* Media Attachment Selector in Modal */}
-            <div className={`p-3.5 rounded-xl border text-xs space-y-2.5 ${
-              isDark ? 'bg-[#14171A] border-[#252B33]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Media Evidence Pack (Optional)</span>
-                </span>
+            {/* Legacy Media Attachment Selector (Only shown if legacy JSON format) */}
+            {selectedArchiveType === 'legacy' && completeValidation && (
+              <div className={`p-3.5 rounded-xl border text-xs space-y-2.5 ${
+                isDark ? 'bg-[#14171A] border-[#252B33]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Media Evidence Pack (Optional)</span>
+                  </span>
+                  {selectedMediaFileName ? (
+                    <button
+                      onClick={handleRemoveMediaFile}
+                      className="text-[11px] text-rose-400 hover:underline font-mono"
+                    >
+                      Remove Media File
+                    </button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Upload className="w-3 h-3" />}
+                      onClick={() => mediaFileInputRef.current?.click()}
+                    >
+                      Attach Media JSON
+                    </Button>
+                  )}
+                </div>
+
                 {selectedMediaFileName ? (
-                  <button
-                    onClick={handleRemoveMediaFile}
-                    className="text-[11px] text-rose-400 hover:underline font-mono"
-                  >
-                    Remove Media File
-                  </button>
+                  <div className="flex items-center justify-between font-mono text-[11px] bg-sky-950/30 border border-sky-800/40 p-2 rounded-lg text-sky-300">
+                    <span>Attached: {selectedMediaFileName}</span>
+                    <span>{completeValidation.mediaValidation?.imageCount || 0} images</span>
+                  </div>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<Upload className="w-3 h-3" />}
-                    onClick={() => mediaFileInputRef.current?.click()}
-                  >
-                    Attach Media JSON
-                  </Button>
+                  <p className="text-slate-400 text-[11px]">
+                    No media pack attached. Restoration will proceed with <strong>Core Data only</strong>. Existing images on this device will remain preserved.
+                  </p>
                 )}
               </div>
-
-              {selectedMediaFileName ? (
-                <div className="flex items-center justify-between font-mono text-[11px] bg-sky-950/30 border border-sky-800/40 p-2 rounded-lg text-sky-300">
-                  <span>Attached: {selectedMediaFileName}</span>
-                  <span>{completeValidation.mediaValidation?.imageCount || 0} images</span>
-                </div>
-              ) : (
-                <p className="text-slate-400 text-[11px]">
-                  No media pack attached. Restoration will proceed with <strong>Core Data only</strong>. Existing images on this device will remain preserved.
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Validation State Banner */}
-            {completeValidation.valid ? (
-              <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              }`}>
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                <div className="space-y-1 text-xs">
-                  <p className="font-bold">
-                    {completeValidation.hasMedia ? 'Complete Archive Verification Passed' : 'Core Backup Verification Passed'}
-                  </p>
-                  <p className="text-[11px] leading-relaxed opacity-90">
-                    {completeValidation.hasMedia
-                      ? `Core schema and media evidence dictionary are valid and share matching Backup ID (${completeValidation.coreValidation.manifest?.backupId}).`
-                      : 'The envelope structure, schema version, and operational domain records are valid and ready for restoration.'}
-                  </p>
+            {selectedArchiveType === 'portable' ? (
+              portableValidation?.valid ? (
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                  <div className="space-y-1 text-xs">
+                    <p className="font-bold">Portable Complete Backup Verification Passed</p>
+                    <p className="text-[11px] leading-relaxed opacity-90">
+                      Archive structure, schema version, domain records, and binary media catalog are valid and ready for restoration.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}>
+                  <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+                  <div className="space-y-1 text-xs">
+                    <p className="font-bold">Portable Backup Verification Failed</p>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                      {portableValidation?.errors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )
             ) : (
-              <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800'
+              completeValidation?.valid ? (
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                  <div className="space-y-1 text-xs">
+                    <p className="font-bold">
+                      {completeValidation.hasMedia ? 'Complete Archive Verification Passed' : 'Core Backup Verification Passed'}
+                    </p>
+                    <p className="text-[11px] leading-relaxed opacity-90">
+                      {completeValidation.hasMedia
+                        ? `Core schema and media evidence dictionary are valid and share matching Backup ID (${completeValidation.coreValidation.manifest?.backupId}).`
+                        : 'The envelope structure, schema version, and operational domain records are valid and ready for restoration.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
+                  isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}>
+                  <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+                  <div className="space-y-1 text-xs">
+                    <p className="font-bold">Archive Verification Failed</p>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                      {completeValidation?.errors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Manifest Metadata */}
+            {selectedArchiveType === 'portable' && portableValidation?.manifest && (
+              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                isDark ? 'bg-[#121417] border-[#252B33]' : 'bg-slate-50 border-slate-200'
               }`}>
-                <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
-                <div className="space-y-1 text-xs">
-                  <p className="font-bold">Archive Verification Failed</p>
-                  <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                    {completeValidation.errors.map((err, idx) => (
-                      <li key={idx}>{err}</li>
-                    ))}
-                  </ul>
+                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Portable Archive Metadata</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block">Archive Format:</span>
+                    <span className="text-sky-400 font-bold">{portableValidation.manifest.format} v{portableValidation.manifest.formatVersion}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">App Version:</span>
+                    <span className="text-slate-300 font-bold">{portableValidation.manifest.appVersion || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Canonical Media:</span>
+                    <span className="text-emerald-400 font-bold">
+                      {portableValidation.canonicalCount} files ({formatBytes(portableValidation.manifest.mediaSummary?.totalMediaBytes || 0)})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Alias References:</span>
+                    <span className="text-sky-300 font-bold">
+                      {portableValidation.aliasCount} refs (0 byte bloat)
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-500 block">Created At (UTC):</span>
+                    <span className="text-slate-300">{portableValidation.manifest.createdAt}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-500 block">Backup ID:</span>
+                    <span className="text-slate-400 truncate block">{portableValidation.manifest.backupId}</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Manifest Metadata */}
-            {completeValidation.coreValidation.manifest && (
+            {selectedArchiveType === 'legacy' && completeValidation?.coreValidation.manifest && (
               <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
                 isDark ? 'bg-[#121417] border-[#252B33]' : 'bg-slate-50 border-slate-200'
               }`}>
@@ -605,7 +772,11 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
             <div className="space-y-2">
               <p className="font-bold text-xs uppercase tracking-wider text-slate-400">Domain Record Counts</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                {Object.entries(completeValidation.coreValidation.domainCounts).map(([domain, count]) => (
+                {Object.entries(
+                  selectedArchiveType === 'portable'
+                    ? (portableValidation?.coreValidation?.domainCounts || portableValidation?.manifest?.domainCounts || {})
+                    : (completeValidation?.coreValidation.domainCounts || {})
+                ).map(([domain, count]) => (
                   <div
                     key={domain}
                     className={`p-2 rounded-lg border flex items-center justify-between ${
@@ -626,23 +797,25 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
               }`}>
                 <p className="text-slate-300">
                   <strong className="text-sky-400">Media Policy:</strong>{' '}
-                  {completeValidation.hasMedia
-                    ? 'Media images will be non-destructively restored into IndexedDB using their exact original keys. Existing images on this device will not be deleted.'
-                    : 'Core Data only. Existing IndexedDB images will remain untouched on this device.'}
+                  {selectedArchiveType === 'portable'
+                    ? `Restores ${portableValidation?.canonicalCount || 0} canonical media files and ${portableValidation?.aliasCount || 0} reference aliases non-destructively into IndexedDB.`
+                    : (completeValidation?.hasMedia
+                      ? 'Media images will be non-destructively restored into IndexedDB using their exact original keys. Existing images on this device will not be deleted.'
+                      : 'Core Data only. Existing IndexedDB images will remain untouched on this device.')}
                 </p>
                 <p className="text-amber-400/90 font-medium">
                   <strong className="text-amber-300">Replacement Notice:</strong> Restoring this backup will replace current core FSOS data on this device. An automatic safety snapshot of your current core data will be downloaded before restoration begins.
                 </p>
               </div>
 
-              {completeValidation.warnings.length > 0 && (
+              {((selectedArchiveType === 'portable' ? portableValidation?.warnings : completeValidation?.warnings) || []).length > 0 && (
                 <div className="p-3 rounded-lg border border-amber-800/40 bg-amber-950/20 text-amber-300 text-[11px] space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                     <span>Non-Fatal Warnings:</span>
                   </div>
                   <ul className="list-disc pl-4 space-y-0.5 opacity-90">
-                    {completeValidation.warnings.map((w, idx) => (
+                    {(selectedArchiveType === 'portable' ? portableValidation?.warnings : completeValidation?.warnings)?.map((w, idx) => (
                       <li key={idx}>{w}</li>
                     ))}
                   </ul>
@@ -672,9 +845,16 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData }) => {
                 size="sm"
                 icon={restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                 onClick={handleConfirmRestore}
-                disabled={!completeValidation.valid || restoring}
+                disabled={
+                  (selectedArchiveType === 'portable' ? !portableValidation?.valid : !completeValidation?.valid) ||
+                  restoring
+                }
               >
-                {restoring ? 'Restoring Archive...' : 'Confirm & Restore Archive'}
+                {restoring
+                  ? 'Restoring Archive...'
+                  : selectedArchiveType === 'portable'
+                    ? 'Confirm & Restore Portable Backup'
+                    : 'Confirm & Restore Archive'}
               </Button>
             </div>
           </div>

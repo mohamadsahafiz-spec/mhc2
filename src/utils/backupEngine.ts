@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../constants/version';
+import * as fflate from 'fflate';
 import {
   FSOSBackupManifest,
   FSOSFullBackupData,
@@ -8,6 +9,11 @@ import {
   FSOSMediaBackupEnvelope,
   FSOSMediaBackupValidationResult,
   FSOSCompleteBackupValidationResult,
+  FSOSPortableBackupManifest,
+  FSOSPortableMediaIndex,
+  FSOSPortableBackupValidationResult,
+  PORTABLE_BACKUP_FORMAT,
+  CURRENT_PORTABLE_BACKUP_FORMAT_VERSION,
   CURRENT_BACKUP_SCHEMA_VERSION,
   CURRENT_MEDIA_BACKUP_SCHEMA_VERSION
 } from '../types/backup';
@@ -44,6 +50,18 @@ export function getMediaBackupFilename(prefix = 'fsos-media-backup'): string {
 }
 
 /**
+ * Generate formatted filename for Portable Complete Backups (.fsosbackup).
+ * Example: fsos-portable-backup-2026-09-08-033000.fsosbackup
+ */
+export function getPortableBackupFilename(prefix = 'fsos-portable-backup'): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const timeStr = `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  return `${prefix}-${dateStr}-${timeStr}.fsosbackup`;
+}
+
+/**
  * Triggers a browser file download using a temporary anchor element.
  */
 export function triggerFileDownload(content: string, filename: string): void {
@@ -59,6 +77,110 @@ export function triggerFileDownload(content: string, filename: string): void {
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/**
+ * Triggers a binary file download (e.g. for .fsosbackup ZIP archives).
+ */
+export function triggerBinaryFileDownload(
+  bytes: Uint8Array | Blob,
+  filename: string,
+  mimeType = 'application/octet-stream'
+): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const blob = bytes instanceof Blob ? bytes : new Blob([bytes], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Converts a data URL (or raw SVG string) into a raw binary Uint8Array and metadata.
+ */
+export function dataUrlToBinary(dataUrl: string): { bytes: Uint8Array; mimeType: string; extension: string } {
+  if (typeof dataUrl !== 'string') {
+    return { bytes: new Uint8Array(0), mimeType: 'application/octet-stream', extension: 'bin' };
+  }
+
+  const trimmed = dataUrl.trim();
+  if (trimmed.startsWith('data:')) {
+    const commaIdx = trimmed.indexOf(',');
+    if (commaIdx === -1) {
+      return { bytes: new Uint8Array(0), mimeType: 'application/octet-stream', extension: 'bin' };
+    }
+    const meta = trimmed.substring(5, commaIdx);
+    const isBase64 = meta.includes(';base64');
+    const mimeType = meta.split(';')[0] || 'application/octet-stream';
+    const rawPayload = trimmed.substring(commaIdx + 1);
+
+    let bytes: Uint8Array;
+    if (isBase64) {
+      try {
+        const binaryStr = atob(rawPayload);
+        bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+      } catch {
+        bytes = new TextEncoder().encode(rawPayload);
+      }
+    } else {
+      try {
+        const decoded = decodeURIComponent(rawPayload);
+        bytes = new TextEncoder().encode(decoded);
+      } catch {
+        bytes = new TextEncoder().encode(rawPayload);
+      }
+    }
+
+    let extension = 'bin';
+    if (mimeType.includes('png')) extension = 'png';
+    else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg';
+    else if (mimeType.includes('webp')) extension = 'webp';
+    else if (mimeType.includes('svg')) extension = 'svg';
+
+    return { bytes, mimeType, extension };
+  } else if (trimmed.startsWith('<svg') || trimmed.includes('</svg>')) {
+    const bytes = new TextEncoder().encode(trimmed);
+    return { bytes, mimeType: 'image/svg+xml', extension: 'svg' };
+  } else {
+    const bytes = new TextEncoder().encode(trimmed);
+    return { bytes, mimeType: 'text/plain', extension: 'txt' };
+  }
+}
+
+/**
+ * Converts a raw binary Uint8Array back into a standard data URL (or SVG string).
+ */
+export function binaryToDataUrl(bytes: Uint8Array, mimeType: string): string {
+  if (!bytes || bytes.byteLength === 0) return '';
+  if (mimeType === 'image/svg+xml' || mimeType === 'text/plain') {
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  let binary = '';
+  const len = bytes.byteLength;
+  const chunkSize = 0x8000; // 32KB chunking to prevent stack limits
+  for (let i = 0; i < len; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, Math.min(i + chunkSize, len))));
+  }
+  const base64 = btoa(binary);
+  return `data:${mimeType};base64,${base64}`;
+}
+
+/**
+ * Deterministically sanitizes an IndexedDB key to a clean, unique file path for archive media/.
+ */
+export function sanitizeMediaFilename(key: string, extension: string): string {
+  const cleanKey = key.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `${cleanKey}.${extension}`;
+}
+
 
 /**
  * Generates an in-memory FSOSFullBackupEnvelope snapshot of all current local operational data.
@@ -694,3 +816,451 @@ export async function restoreCompleteBackup(
     restoredImageCount
   };
 }
+
+/**
+ * Creates an in-memory ZIP container (.fsosbackup) containing structured JSON data,
+ * a media index, and deduplicated raw binary canonical media files.
+ * Streams media sequentially without accumulating uncompressed Base64 JSON strings.
+ */
+export async function createPortableBackupZip(customBackupId?: string): Promise<{
+  zipBytes: Uint8Array;
+  manifest: FSOSPortableBackupManifest;
+  backupId: string;
+}> {
+  const backupId = customBackupId || generateBackupId();
+  const coreEnvelope = generateFullBackupEnvelope(backupId);
+  const rawEntries = await ImageStore.getAllRawStoredEntries();
+
+  const manifest: FSOSPortableBackupManifest = {
+    format: PORTABLE_BACKUP_FORMAT,
+    formatVersion: CURRENT_PORTABLE_BACKUP_FORMAT_VERSION,
+    backupId,
+    createdAt: new Date().toISOString(),
+    appVersion: APP_VERSION,
+    archiveType: 'complete',
+    schemas: {
+      coreSchemaVersion: CURRENT_BACKUP_SCHEMA_VERSION,
+      mediaIndexSchemaVersion: '1.0.0'
+    },
+    domainCounts: coreEnvelope.manifest.domainCounts,
+    mediaSummary: {
+      totalLogicalKeys: 0,
+      canonicalMediaFiles: 0,
+      aliasReferences: 0,
+      totalMediaBytes: 0
+    }
+  };
+
+  const mediaIndex: FSOSPortableMediaIndex = {
+    version: '1.0.0',
+    entries: {}
+  };
+
+  // Classify entries and prepare sequential items
+  let totalMediaBytes = 0;
+  let canonicalCount = 0;
+  let aliasCount = 0;
+
+  const canonicalBinaries: Array<{
+    key: string;
+    filename: string;
+    mimeType: string;
+    bytes: Uint8Array;
+  }> = [];
+
+  for (const [key, rawVal] of Object.entries(rawEntries)) {
+    if (typeof rawVal !== 'string' || rawVal.length === 0) continue;
+
+    if (rawVal.startsWith('ref:')) {
+      const targetKey = rawVal.substring(4);
+      mediaIndex.entries[key] = {
+        type: 'alias',
+        targetKey
+      };
+      aliasCount++;
+    } else {
+      const { bytes, mimeType, extension } = dataUrlToBinary(rawVal);
+      const filename = sanitizeMediaFilename(key, extension);
+      mediaIndex.entries[key] = {
+        type: 'canonical',
+        filename,
+        mimeType,
+        byteSize: bytes.byteLength
+      };
+      canonicalCount++;
+      totalMediaBytes += bytes.byteLength;
+      canonicalBinaries.push({
+        key,
+        filename,
+        mimeType,
+        bytes
+      });
+    }
+  }
+
+  manifest.mediaSummary = {
+    totalLogicalKeys: canonicalCount + aliasCount,
+    canonicalMediaFiles: canonicalCount,
+    aliasReferences: aliasCount,
+    totalMediaBytes
+  };
+
+  const zipChunks: Uint8Array[] = [];
+  const zip = new fflate.Zip((err, chunk, isFinal) => {
+    if (err) throw err;
+    if (chunk) zipChunks.push(chunk);
+  });
+
+  // 1. manifest.json
+  const manifestU8 = fflate.strToU8(safeJsonStringify(manifest, 2));
+  const manifestFile = new fflate.ZipDeflate('manifest.json', { level: 6 });
+  zip.add(manifestFile);
+  manifestFile.push(manifestU8, true);
+
+  // 2. data/core.json
+  const coreU8 = fflate.strToU8(safeJsonStringify(coreEnvelope.data, 2));
+  const coreFile = new fflate.ZipDeflate('data/core.json', { level: 6 });
+  zip.add(coreFile);
+  coreFile.push(coreU8, true);
+
+  // 3. data/media_index.json
+  const mediaIndexU8 = fflate.strToU8(safeJsonStringify(mediaIndex, 2));
+  const mediaIndexFile = new fflate.ZipDeflate('data/media_index.json', { level: 6 });
+  zip.add(mediaIndexFile);
+  mediaIndexFile.push(mediaIndexU8, true);
+
+  // 4. media/ canonical binary files sequentially
+  for (const item of canonicalBinaries) {
+    // Media files are already compressed formats (JPEG/PNG/WebP), so ZipPassThrough is fast & memory-efficient
+    const mediaFile = new fflate.ZipPassThrough(`media/${item.filename}`);
+    zip.add(mediaFile);
+    mediaFile.push(item.bytes, true);
+  }
+
+  // Finalize zip
+  zip.end();
+
+  // Combine chunks into single Uint8Array
+  let totalLength = 0;
+  for (const c of zipChunks) totalLength += c.byteLength;
+  const zipBytes = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const c of zipChunks) {
+    zipBytes.set(c, offset);
+    offset += c.byteLength;
+  }
+
+  return {
+    zipBytes,
+    manifest,
+    backupId
+  };
+}
+
+/**
+ * Exports a Portable Complete Backup (.fsosbackup) and triggers browser download.
+ */
+export async function exportPortableBackup(
+  customBackupId?: string,
+  customFilename?: string
+): Promise<{
+  filename: string;
+  backupId: string;
+  manifest: FSOSPortableBackupManifest;
+  totalBytes: number;
+}> {
+  const { zipBytes, manifest, backupId } = await createPortableBackupZip(customBackupId);
+  const filename = customFilename || getPortableBackupFilename('fsos-portable-backup');
+  triggerBinaryFileDownload(zipBytes, filename, 'application/octet-stream');
+  return {
+    filename,
+    backupId,
+    manifest,
+    totalBytes: zipBytes.byteLength
+  };
+}
+
+/**
+ * Validates a Portable Complete Backup (.fsosbackup) archive without performing any mutations.
+ * Returns structured validation metrics and domain/media summaries.
+ */
+export function validatePortableBackupArchive(zipBytes: Uint8Array): Promise<FSOSPortableBackupValidationResult> {
+  return new Promise((resolve) => {
+    const warnings: string[] = [];
+    const errors: string[] = [];
+
+    if (!zipBytes || zipBytes.byteLength === 0) {
+      return resolve({
+        valid: false,
+        canonicalCount: 0,
+        aliasCount: 0,
+        warnings: [],
+        errors: ['The selected archive file is empty. Please provide a valid .fsosbackup file.']
+      });
+    }
+
+    fflate.unzip(zipBytes, (err, unzipped) => {
+      if (err) {
+        return resolve({
+          valid: false,
+          canonicalCount: 0,
+          aliasCount: 0,
+          warnings: [],
+          errors: [`Failed to unpack archive: ${err.message || 'Invalid ZIP format'}. Not a valid FSOS backup.`]
+        });
+      }
+
+      // Check manifest.json
+      const manifestFile = unzipped['manifest.json'];
+      if (!manifestFile) {
+        return resolve({
+          valid: false,
+          canonicalCount: 0,
+          aliasCount: 0,
+          warnings: [],
+          errors: ['Archive is missing "manifest.json". This is not a valid FSOS Portable Backup container.']
+        });
+      }
+
+      let manifest: FSOSPortableBackupManifest;
+      try {
+        const manifestStr = fflate.strFromU8(manifestFile);
+        manifest = JSON.parse(manifestStr);
+      } catch (mErr: any) {
+        return resolve({
+          valid: false,
+          canonicalCount: 0,
+          aliasCount: 0,
+          warnings: [],
+          errors: [`Malformed manifest.json: ${mErr?.message || 'JSON Parse Error'}`]
+        });
+      }
+
+      if (manifest.format !== PORTABLE_BACKUP_FORMAT) {
+        errors.push(`Invalid backup format "${(manifest as any).format}". Expected "${PORTABLE_BACKUP_FORMAT}".`);
+      }
+      if (manifest.formatVersion !== CURRENT_PORTABLE_BACKUP_FORMAT_VERSION) {
+        errors.push(`Unsupported formatVersion ${manifest.formatVersion}. Expected version ${CURRENT_PORTABLE_BACKUP_FORMAT_VERSION}.`);
+      }
+      if (!manifest.backupId) {
+        errors.push('Manifest is missing "backupId".');
+      }
+
+      // Check data/core.json
+      const coreFile = unzipped['data/core.json'];
+      let coreValidation: FSOSBackupValidationResult | undefined;
+      if (!coreFile) {
+        errors.push('Archive is missing "data/core.json".');
+      } else {
+        try {
+          const coreStr = fflate.strFromU8(coreFile);
+          const coreData = JSON.parse(coreStr);
+          const wrappedCore = safeJsonStringify({
+            manifest: {
+              backupId: manifest.backupId || 'portable',
+              backupVersion: manifest.schemas?.coreSchemaVersion || CURRENT_BACKUP_SCHEMA_VERSION,
+              appVersion: manifest.appVersion || APP_VERSION,
+              createdAt: manifest.createdAt || new Date().toISOString(),
+              environment: 'FSOS_WEB_CLIENT',
+              domainCounts: manifest.domainCounts || {},
+              includesImages: false,
+              includesRawTemperature: false
+            },
+            data: coreData
+          });
+          coreValidation = validateBackup(wrappedCore);
+          warnings.push(...coreValidation.warnings);
+          errors.push(...coreValidation.errors);
+        } catch (cErr: any) {
+          errors.push(`Malformed data/core.json: ${cErr?.message || 'JSON Parse Error'}`);
+        }
+      }
+
+      // Check data/media_index.json
+      const mediaIndexFile = unzipped['data/media_index.json'];
+      let mediaIndex: FSOSPortableMediaIndex | undefined;
+      let canonicalCount = 0;
+      let aliasCount = 0;
+      const rawMediaFiles: Record<string, Uint8Array> = {};
+
+      if (!mediaIndexFile) {
+        errors.push('Archive is missing "data/media_index.json".');
+      } else {
+        try {
+          const indexStr = fflate.strFromU8(mediaIndexFile);
+          mediaIndex = JSON.parse(indexStr);
+        } catch (iErr: any) {
+          errors.push(`Malformed data/media_index.json: ${iErr?.message || 'JSON Parse Error'}`);
+        }
+      }
+
+      if (mediaIndex && mediaIndex.entries) {
+        for (const [key, entry] of Object.entries(mediaIndex.entries)) {
+          if (entry.type === 'canonical') {
+            canonicalCount++;
+            if (!entry.filename) {
+              errors.push(`Canonical entry "${key}" is missing "filename".`);
+            } else {
+              const mediaPath = `media/${entry.filename}`;
+              const bin = unzipped[mediaPath];
+              if (!bin) {
+                errors.push(`Media file "${mediaPath}" referenced by key "${key}" is missing from archive.`);
+              } else {
+                rawMediaFiles[key] = bin;
+              }
+            }
+          } else if (entry.type === 'alias') {
+            aliasCount++;
+            if (!entry.targetKey) {
+              errors.push(`Alias entry "${key}" is missing "targetKey".`);
+            }
+          }
+        }
+      }
+
+      const valid = errors.length === 0;
+
+      resolve({
+        valid,
+        manifest,
+        coreValidation,
+        mediaIndex,
+        rawMediaFiles,
+        canonicalCount,
+        aliasCount,
+        warnings,
+        errors
+      });
+    });
+  });
+}
+
+/**
+ * Restores a Portable Complete Backup (.fsosbackup) archive safely.
+ * Strict flow: Validate first -> Pre-restore safety snapshot -> Core replace -> Media restore -> Sync reset -> Reconcile -> Reload.
+ */
+export async function restorePortableBackup(
+  zipBytes: Uint8Array,
+  options?: { skipReload?: boolean; skipSafetyDownload?: boolean }
+): Promise<{ success: boolean; safetyBackupFilename?: string; restoredImageCount?: number; error?: string }> {
+  // 1. VALIDATE FIRST (ZERO MUTATIONS IF INVALID)
+  const validation = await validatePortableBackupArchive(zipBytes);
+  if (!validation.valid || !validation.coreValidation?.envelope) {
+    const errMsg = `Portable Archive validation failed: ${validation.errors.join('; ')}`;
+    console.error('[BackupEngine] Portable restore aborted:', errMsg);
+    return { success: false, error: errMsg };
+  }
+
+  // 2. AUTOMATIC CORE SAFETY BACKUP (DOWNLOAD CURRENT STATE BEFORE MUTATING)
+  let safetyFilename: string | undefined;
+  if (!options?.skipSafetyDownload) {
+    try {
+      const safetyEnvelope = generateFullBackupEnvelope();
+      safetyFilename = getBackupFilename('fsos-pre-restore-safety-snapshot');
+      const safetyContent = safeJsonStringify(safetyEnvelope, 2);
+      triggerFileDownload(safetyContent, safetyFilename);
+    } catch (err: any) {
+      const errMsg = `Safety pre-restore backup generation failed (${err?.message || err}). Restore aborted to prevent unrecoverable data loss.`;
+      console.error('[BackupEngine] Restore aborted:', errMsg);
+      return { success: false, error: errMsg };
+    }
+  }
+
+  // 3. RESTORE CORE DATA TO LOCAL STORAGE
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const d = validation.coreValidation.envelope.data;
+
+      if (Array.isArray(d.machines)) localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(d.machines));
+      if (Array.isArray(d.customers)) localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(d.customers));
+      if (Array.isArray(d.plants)) localStorage.setItem(STORAGE_KEYS.PLANTS, safeJsonStringify(d.plants));
+      if (Array.isArray(d.lines)) localStorage.setItem(STORAGE_KEYS.LINES, safeJsonStringify(d.lines));
+      if (Array.isArray(d.contracts)) localStorage.setItem(STORAGE_KEYS.CONTRACTS, safeJsonStringify(d.contracts));
+      if (Array.isArray(d.schedule)) localStorage.setItem(STORAGE_KEYS.SCHEDULE, safeJsonStringify(d.schedule));
+      if (Array.isArray(d.mhc_sessions)) localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(d.mhc_sessions));
+      if (Array.isArray(d.reports)) localStorage.setItem(STORAGE_KEYS.REPORTS, safeJsonStringify(d.reports));
+      if (Array.isArray(d.mhc_records)) localStorage.setItem(STORAGE_KEYS.MHC_RECORDS, safeJsonStringify(d.mhc_records));
+      if (Array.isArray(d.tasks)) localStorage.setItem(STORAGE_KEYS.TASKS, safeJsonStringify(d.tasks));
+      if (Array.isArray(d.alerts)) localStorage.setItem(STORAGE_KEYS.ALERTS, safeJsonStringify(d.alerts));
+      if (Array.isArray(d.baselines)) localStorage.setItem(STORAGE_KEYS.BASELINES, safeJsonStringify(d.baselines));
+      if (Array.isArray(d.investigations)) localStorage.setItem(STORAGE_KEYS.INVESTIGATIONS, safeJsonStringify(d.investigations));
+      if (Array.isArray(d.templates)) localStorage.setItem(STORAGE_KEYS.TEMPLATES, safeJsonStringify(d.templates));
+      if (Array.isArray(d.drafts)) localStorage.setItem(STORAGE_KEYS.DRAFTS, safeJsonStringify(d.drafts));
+      if (Array.isArray(d.mhc_report_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_REPORT_DRAFTS, safeJsonStringify(d.mhc_report_drafts));
+      if (Array.isArray(d.mhc_workspace_templates)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_TEMPLATES, safeJsonStringify(d.mhc_workspace_templates));
+      if (Array.isArray(d.mhc_workspace_drafts)) localStorage.setItem(STORAGE_KEYS.MHC_WORKSPACE_DRAFTS, safeJsonStringify(d.mhc_workspace_drafts));
+      if (Array.isArray(d.recommended_parts)) localStorage.setItem(STORAGE_KEYS.RECOMMENDED_PARTS, safeJsonStringify(d.recommended_parts));
+      if (d.branding && typeof d.branding === 'object') localStorage.setItem(STORAGE_KEYS.BRANDING, safeJsonStringify(d.branding));
+      if (d.profile && typeof d.profile === 'object') localStorage.setItem(STORAGE_KEYS.PROFILE, safeJsonStringify(d.profile));
+    }
+  } catch (err: any) {
+    const errMsg = `Direct localStorage write failed: ${err?.message || err}`;
+    console.error('[BackupEngine] Write failure during restore:', errMsg);
+    return { success: false, error: errMsg };
+  }
+
+  // 4. RESTORE MEDIA NON-DESTRUCTIVELY (Canonical first, then Alias pointers)
+  let restoredImageCount = 0;
+  if (validation.mediaIndex?.entries && validation.rawMediaFiles) {
+    try {
+      // First pass: Canonical images
+      for (const [key, entry] of Object.entries(validation.mediaIndex.entries)) {
+        if (entry.type === 'canonical' && validation.rawMediaFiles[key]) {
+          const mimeType = entry.mimeType || 'image/jpeg';
+          const dataUrl = binaryToDataUrl(validation.rawMediaFiles[key], mimeType);
+          await ImageStore.saveImage(key, dataUrl);
+          restoredImageCount++;
+        }
+      }
+
+      // Second pass: Alias references
+      for (const [key, entry] of Object.entries(validation.mediaIndex.entries)) {
+        if (entry.type === 'alias' && entry.targetKey) {
+          await ImageStore.saveImage(key, `ref:${entry.targetKey}`);
+          restoredImageCount++;
+        }
+      }
+    } catch (mErr: any) {
+      console.warn('[BackupEngine] Media restoration error during portable restore:', mErr);
+    }
+  }
+
+  // 5. RESET SYNC STATE
+  try {
+    SyncEngine.resetLocalSyncState();
+  } catch (err: any) {
+    console.warn('[BackupEngine] SyncEngine resetLocalSyncState warning:', err);
+  }
+
+  // 6. IDENTITY RECONCILIATION
+  try {
+    const rawMachines = StorageService.getMachines();
+    const rawCustomers = StorageService.getCustomers();
+    const recCust = StorageService.reconcileCustomerIdentities(rawMachines, rawCustomers);
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.MACHINES, safeJsonStringify(recCust.machines));
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, safeJsonStringify(recCust.customers));
+    }
+
+    const rawSessions = StorageService.getMhcSessions(false);
+    const recSessions = reconcileMhcSessionIdentities(rawSessions, recCust.machines);
+    if (recSessions.modified && typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.MHC_SESSIONS, safeJsonStringify(recSessions.sessions));
+    }
+  } catch (err: any) {
+    console.warn('[BackupEngine] Post-restore identity reconciliation warning:', err);
+  }
+
+  // 7. RELOAD APPLICATION
+  if (!options?.skipReload && typeof window !== 'undefined' && typeof window.location?.reload === 'function') {
+    window.location.reload();
+  }
+
+  return {
+    success: true,
+    safetyBackupFilename: safetyFilename,
+    restoredImageCount
+  };
+}
+

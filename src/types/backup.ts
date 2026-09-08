@@ -24,6 +24,8 @@ import { RecommendedPart } from './parts';
 
 export const CURRENT_BACKUP_SCHEMA_VERSION = '1.0.0';
 export const CURRENT_MEDIA_BACKUP_SCHEMA_VERSION = '1.0.0';
+export const PORTABLE_BACKUP_FORMAT = 'FSOS_PORTABLE_BACKUP';
+export const CURRENT_PORTABLE_BACKUP_FORMAT_VERSION = 1;
 
 export interface FSOSBackupManifest {
   backupId: string;
@@ -107,3 +109,49 @@ export interface FSOSCompleteBackupValidationResult {
   warnings: string[];
   errors: string[];
 }
+
+export interface FSOSPortableBackupManifest {
+  format: 'FSOS_PORTABLE_BACKUP';
+  formatVersion: number;
+  backupId: string;
+  createdAt: string;
+  appVersion: string;
+  archiveType: 'complete';
+  schemas: {
+    coreSchemaVersion: string;
+    mediaIndexSchemaVersion: string;
+  };
+  domainCounts: Record<string, number>;
+  mediaSummary: {
+    totalLogicalKeys: number;
+    canonicalMediaFiles: number;
+    aliasReferences: number;
+    totalMediaBytes: number;
+  };
+}
+
+export interface FSOSPortableMediaIndexEntry {
+  type: 'canonical' | 'alias';
+  filename?: string;
+  mimeType?: string;
+  byteSize?: number;
+  targetKey?: string;
+}
+
+export interface FSOSPortableMediaIndex {
+  version: string;
+  entries: Record<string, FSOSPortableMediaIndexEntry>;
+}
+
+export interface FSOSPortableBackupValidationResult {
+  valid: boolean;
+  manifest?: FSOSPortableBackupManifest;
+  coreValidation?: FSOSBackupValidationResult;
+  mediaIndex?: FSOSPortableMediaIndex;
+  rawMediaFiles?: Record<string, Uint8Array>;
+  canonicalCount: number;
+  aliasCount: number;
+  warnings: string[];
+  errors: string[];
+}
+

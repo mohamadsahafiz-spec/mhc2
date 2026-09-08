@@ -438,7 +438,7 @@ export const ImageStore = {
       const db = await openDB();
       const allStored = await this.getAllRawStoredEntries();
       const dependentAliases = Object.entries(allStored).filter(
-        ([k, v]) => k !== id && (v === `ref:${id}` || v.startsWith(`ref:${id}`))
+        ([k, v]) => k !== id && typeof v === 'string' && (v === `ref:${id}` || v.startsWith(`ref:${id}`))
       );
 
       if (dependentAliases.length > 0 && storedVal && !storedVal.startsWith('ref:')) {
@@ -1310,6 +1310,7 @@ export const ImageStore = {
       inFlightReads.delete(key);
       notFoundInIdbKeys.add(key);
       deferredReconciliationKeys.delete(key);
+      rawStoredValues.delete(key);
     }
 
     // 2. Delete from IndexedDB store (if supported)
@@ -1354,6 +1355,7 @@ export const ImageStore = {
       inFlightReads.delete(key);
       notFoundInIdbKeys.add(key);
       deferredReconciliationKeys.delete(key);
+      rawStoredValues.delete(key);
     }
 
     let deletedCount = 0;
@@ -1403,6 +1405,8 @@ export const ImageStore = {
     notFoundInIdbKeys.clear();
     deferredReconciliationKeys.clear();
     queuedNotificationKeys.clear();
+    rawStoredValues.clear();
+    payloadToCanonicalKey.clear();
     if (typeof indexedDB !== 'undefined') {
       try {
         const db = await openDB();

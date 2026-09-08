@@ -1,5 +1,36 @@
 # FSOS CHANGELOG
 
+## v1.7.1 — PORTABLE COMPLETE BACKUP V1 (.FSOSBACKUP) (2026-09-08)
+
+### Portable Complete Backup (.fsosbackup) Architecture
+- **Single-File Portable Archive Container (`exportPortableBackup`, `restorePortableBackup`, `backupEngine.ts`)**:
+  - Implemented standard ZIP archive packaging using browser-native, streaming-capable `fflate` engine.
+  - Archive file format structure:
+    - `manifest.json`: Top-level archive envelope metadata, format version, domain counts, and media summary metrics.
+    - `data/core.json`: Full FSOS structured JSON operational data (Machines, MHC Sessions, Reports, Templates, Profile).
+    - `data/media_index.json`: Complete logical media catalog preserving category metadata, format, canonical vs. alias classification, and canonical key mappings.
+    - `media/<canonicalKey>.<ext>`: Raw binary image files without Base64 encoding overhead (zero Base64 bloat).
+- **Canonical Deduplication & Reference Preservation**:
+  - Preserved the existing `ImageStore` canonical/reference model: duplicate image payloads are written as physical raw binaries *only once* under their canonical key.
+  - Logical reference keys (`ref:<canonicalKey>`) are cataloged as lightweight metadata entries in `data/media_index.json` without allocating duplicate binary payloads in the archive.
+- **Pre-Restoration Non-Destructive Validation (`validatePortableBackupArchive`)**:
+  - Validates ZIP archive integrity, manifest schema, domain records, and media index before applying any state mutations.
+  - Checks for required archive entries and confirms binary media presence for all canonical references.
+  - Automatically executes an automatic pre-restore safety snapshot of the current local state prior to mutation.
+- **Progressive, Memory-Safe Restoration Flow**:
+  - Restores Core Data state into `localStorage`.
+  - Restores physical canonical binary images into `ImageStore` IndexedDB (`evidence_images`) first, followed by alias mapping references (`ref:<canonicalKey>`).
+  - Resets sync telemetry state (`lastSyncTime = null`) to prevent cross-device sequence collisions.
+  - Automatically re-evaluates and reconciles active engineer identity and triggers clean application restart.
+- **Unified Settings Module UI (`SettingsModule.tsx`)**:
+  - Added primary "Export Portable Backup (.fsosbackup)" action alongside legacy Core and 2x JSON options.
+  - Unified file picker accepting `.fsosbackup`, `.zip`, and `.json` files.
+  - Comprehensive modal preview displaying canonical count, alias reference count, raw binary storage size, and domain records before confirmation.
+- **Exhaustive Unit & Integration Test Suite (`portableBackup.test.ts`)**:
+  - Verified: (1) Archive structure and manifest, (2) Raw binary media extraction, (3) Alias reference mapping without binary bloat, (4) Round-trip export and restore fidelity, (5) Corrupt archive rejection, (6) Pre-restore snapshot generation.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version surfaces across `src/constants/version.ts`, `src/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.7.1`.
+
 ## v1.7.0 — SAFE ORPHANED MEDIA RECONCILIATION & CLEANUP (2026-09-07)
 
 ### Safe Orphaned Media Reconciliation & Storage Reclaim
