@@ -1510,16 +1510,21 @@ export const ImageStore = {
       }
     }
 
-    // 3. For all reachable keys, ensure any 'ref:' pointer is resolved to full canonical payload
+    // 3. For any reachable alias whose target key is being deleted (in unseenKeys), promote the alias to hold the full canonical payload
+    const unseenSet = new Set<string>(unseenKeys);
     const updatesToPersist: Array<{ key: string; value: string }> = [];
     for (const key of reachableKeys) {
       const rawVal = raw[key];
       if (typeof rawVal === 'string' && rawVal.startsWith('ref:')) {
-        const resolvedPayload = allImages[key] || imageMemoryCache.get(key);
-        if (resolvedPayload && !resolvedPayload.startsWith('ref:')) {
-          updatesToPersist.push({ key, value: resolvedPayload });
-          rawStoredValues.set(key, resolvedPayload);
-          setMemoryCache(key, resolvedPayload);
+        const targetKey = rawVal.substring(4);
+        if (unseenSet.has(targetKey)) {
+          // Target canonical key is being deleted; promote this surviving alias so data is preserved
+          const resolvedPayload = allImages[key] || imageMemoryCache.get(key);
+          if (resolvedPayload && !resolvedPayload.startsWith('ref:')) {
+            updatesToPersist.push({ key, value: resolvedPayload });
+            rawStoredValues.set(key, resolvedPayload);
+            setMemoryCache(key, resolvedPayload);
+          }
         }
       }
     }

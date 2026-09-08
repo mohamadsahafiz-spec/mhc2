@@ -856,7 +856,7 @@ export async function createPortableBackupZip(customBackupId?: string): Promise<
     entries: {}
   };
 
-  // Classify entries and prepare sequential items
+  // Classify entries and prepare sequential items with strict payload deduplication
   let totalMediaBytes = 0;
   let canonicalCount = 0;
   let aliasCount = 0;
@@ -868,6 +868,10 @@ export async function createPortableBackupZip(customBackupId?: string): Promise<
     bytes: Uint8Array;
   }> = [];
 
+  // Track unique payload strings -> canonical key/filename to avoid duplicate binary files in the archive
+  const payloadToCanonicalMap = new Map<string, { key: string; filename: string }>();
+
+  // Pass 1: Identify all explicit ref: aliases and canonical payload candidates
   for (const [key, rawVal] of Object.entries(rawEntries)) {
     if (typeof rawVal !== 'string' || rawVal.length === 0) continue;
 
@@ -879,22 +883,33 @@ export async function createPortableBackupZip(customBackupId?: string): Promise<
       };
       aliasCount++;
     } else {
-      const { bytes, mimeType, extension } = dataUrlToBinary(rawVal);
-      const filename = sanitizeMediaFilename(key, extension);
-      mediaIndex.entries[key] = {
-        type: 'canonical',
-        filename,
-        mimeType,
-        byteSize: bytes.byteLength
-      };
-      canonicalCount++;
-      totalMediaBytes += bytes.byteLength;
-      canonicalBinaries.push({
-        key,
-        filename,
-        mimeType,
-        bytes
-      });
+      const existing = payloadToCanonicalMap.get(rawVal);
+      if (existing) {
+        // Identical binary payload already exported under canonical key; record as alias
+        mediaIndex.entries[key] = {
+          type: 'alias',
+          targetKey: existing.key
+        };
+        aliasCount++;
+      } else {
+        const { bytes, mimeType, extension } = dataUrlToBinary(rawVal);
+        const filename = sanitizeMediaFilename(key, extension);
+        mediaIndex.entries[key] = {
+          type: 'canonical',
+          filename,
+          mimeType,
+          byteSize: bytes.byteLength
+        };
+        canonicalCount++;
+        totalMediaBytes += bytes.byteLength;
+        canonicalBinaries.push({
+          key,
+          filename,
+          mimeType,
+          bytes
+        });
+        payloadToCanonicalMap.set(rawVal, { key, filename });
+      }
     }
   }
 

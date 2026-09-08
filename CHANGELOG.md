@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v1.7.5 — FIX BACKUP SIZE REGRESSION (2026-09-08)
+
+### Media Alias Preservation & Deduplicated Portable Backup Architecture
+- **Restored Canonical Alias Preservation in Media Purge (`imageStore.ts`)**:
+  - Corrected `ImageStore.purgeUnseenMedia()` to preserve surviving `ref:...` alias pointers in IndexedDB rather than expanding them into duplicate full binary payloads.
+  - Ensured alias promotion to canonical payload only occurs if the referenced target key is actively being deleted.
+- **Single-Pass Deduplicated Binary Export in Portable Backup (`backupEngine.ts`)**:
+  - Updated `createPortableBackupZip()` with an active payload-to-canonical deduplication map during backup serialization.
+  - Guaranteed that each unique image binary payload is written exactly once to the `media/` folder inside the `.fsosbackup` ZIP archive.
+  - Recorded all secondary keys with matching payloads as lightweight `alias` references in `manifest.json` and `data/media_index.json`, preventing ZIP archive bloat.
+- **Strict Data and MHC Logic Isolation**:
+  - Maintained complete integrity of existing Founder-visible images, machine passports, and MHC session stages with zero data or localStorage mutation.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.5`.
+
 ## v1.7.4 — DELETE UNSEEN MEDIA FROM EXISTING INDEXEDDB (2026-09-08)
 
 ### Existing IndexedDB Media Store Cleanup & Active Image Preservation

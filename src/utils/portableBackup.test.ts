@@ -123,6 +123,38 @@ describe('FSOS v1.7.1 Portable Complete Backup v1 Engine (.fsosbackup)', () => {
     expect(indexParsed.entries['WD-PORT-001__beamProfileRecords_0'].targetKey).toBe('MHC-SESS-1__beamProfile');
   });
 
+  it('guarantees identical physical payloads are exported to media/ only once and mapped as aliases', async () => {
+    const samplePng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+    // Simulate 3 separate keys having identical raw binary payload (e.g. before in-store consolidation)
+    vi.spyOn(ImageStore, 'getAllRawStoredEntries').mockResolvedValue({
+      'KEY_ALPHA': samplePng,
+      'KEY_BETA': samplePng,
+      'KEY_GAMMA': samplePng
+    });
+
+    const { zipBytes, manifest } = await createPortableBackupZip();
+    expect(manifest.mediaSummary.totalLogicalKeys).toBe(3);
+    expect(manifest.mediaSummary.canonicalMediaFiles).toBe(1);
+    expect(manifest.mediaSummary.aliasReferences).toBe(2);
+
+    const unzipped = fflate.unzipSync(zipBytes);
+    const filenames = Object.keys(unzipped);
+
+    // Only 1 file in media/
+    const mediaFiles = filenames.filter(f => f.startsWith('media/'));
+    expect(mediaFiles).toHaveLength(1);
+    expect(mediaFiles[0]).toBe('media/KEY_ALPHA.png');
+
+    const mediaIndexStr = fflate.strFromU8(unzipped['data/media_index.json']);
+    const indexParsed: FSOSPortableMediaIndex = JSON.parse(mediaIndexStr);
+    expect(indexParsed.entries['KEY_ALPHA'].type).toBe('canonical');
+    expect(indexParsed.entries['KEY_BETA'].type).toBe('alias');
+    expect(indexParsed.entries['KEY_BETA'].targetKey).toBe('KEY_ALPHA');
+    expect(indexParsed.entries['KEY_GAMMA'].type).toBe('alias');
+    expect(indexParsed.entries['KEY_GAMMA'].targetKey).toBe('KEY_ALPHA');
+  });
+
   it('validates a well-formed portable backup archive successfully', async () => {
     const testMachine = {
       id: 'WD-PORT-002',

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ImageStore } from './imageStore';
 import { auditMediaEvidence, cleanupOrphanedMedia } from './mediaEvidenceAudit';
 
@@ -102,5 +102,34 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
       expect(simulatedStore[key]).toBeDefined();
       expect(simulatedStore[key]).toContain(SAMPLE_FOUNDER_IMAGE);
     }
+  });
+
+  it('guarantees surviving ref: alias pointers are NOT converted into full binary payloads by purgeUnseenMedia', async () => {
+    const rawStore: Record<string, string> = {
+      'CANONICAL_TARGET_1': 'data:image/png;base64,REAL_CANONICAL_PAYLOAD_DATA',
+      'REACHABLE_ALIAS_1': 'ref:CANONICAL_TARGET_1',
+      'ORPHAN_TO_PURGE': 'data:image/png;base64,UNREFERENCED_PAYLOAD'
+    };
+
+    const reachableSet = new Set(['CANONICAL_TARGET_1', 'REACHABLE_ALIAS_1']);
+
+    vi.spyOn(ImageStore, 'getAllRawStoredEntries').mockResolvedValue(rawStore);
+    vi.spyOn(ImageStore, 'getAllImages').mockResolvedValue({
+      'CANONICAL_TARGET_1': 'data:image/png;base64,REAL_CANONICAL_PAYLOAD_DATA',
+      'REACHABLE_ALIAS_1': 'data:image/png;base64,REAL_CANONICAL_PAYLOAD_DATA'
+    });
+    vi.spyOn(ImageStore, 'deleteImageKeys').mockImplementation(async (keys) => {
+      for (const k of keys) delete rawStore[k];
+      return { deletedCount: keys.length, errors: [] };
+    });
+
+    const result = await ImageStore.purgeUnseenMedia(reachableSet);
+
+    expect(result.deletedCount).toBe(1);
+    expect(result.deletedKeys).toContain('ORPHAN_TO_PURGE');
+
+    // Crucial check: REACHABLE_ALIAS_1 must remain 'ref:CANONICAL_TARGET_1' and NOT be materialized into full binary!
+    expect(rawStore['REACHABLE_ALIAS_1']).toBe('ref:CANONICAL_TARGET_1');
+    expect(rawStore['CANONICAL_TARGET_1']).toBe('data:image/png;base64,REAL_CANONICAL_PAYLOAD_DATA');
   });
 });
