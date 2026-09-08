@@ -299,6 +299,29 @@ function sanitizeMachine(m: Machine): Machine {
   };
 }
 
+export function sanitizeMhcSession(s: MHCSession): MHCSession {
+  if (!s || typeof s !== 'object') return s;
+  const copy: any = { ...s };
+
+  // Reconcile and strip redundant plural focusOptimizationRecords from session
+  if (Array.isArray(copy.focusOptimizationRecords)) {
+    if (!copy.focusOptimizationRecord && copy.focusOptimizationRecords.length > 0) {
+      copy.focusOptimizationRecord = copy.focusOptimizationRecords[0];
+    }
+    delete copy.focusOptimizationRecords;
+  }
+
+  // Reconcile and strip redundant plural productProcessRecords from session
+  if (Array.isArray(copy.productProcessRecords)) {
+    if (!copy.productProcessRecord && copy.productProcessRecords.length > 0) {
+      copy.productProcessRecord = copy.productProcessRecords[0];
+    }
+    delete copy.productProcessRecords;
+  }
+
+  return copy as MHCSession;
+}
+
 export const StorageService = {
   getCustomers: (): Customer[] => {
     // Check if legacy 'fsos_customer_list' exists in localStorage
@@ -537,7 +560,8 @@ export const StorageService = {
     const validSessions = Array.isArray(raw)
       ? raw.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
       : [];
-    const hydrated = validSessions.map(s => ImageStore.hydrateImagesSync(s));
+    const sanitized = validSessions.map(sanitizeMhcSession);
+    const hydrated = sanitized.map(s => ImageStore.hydrateImagesSync(s));
 
     if (reconcileWithMachines) {
       const activeMachines = StorageService.getMachines();
@@ -576,8 +600,9 @@ export const StorageService = {
       ? data.filter((s: any) => s && typeof s === 'object' && typeof s.id === 'string' && s.id.length > 0 && !('_reactName' in s) && !('nativeEvent' in s) && !('view' in s))
       : [];
     const processedSessions = validSessions.map(s => {
-      const recordId = s.id;
-      return ImageStore.extractAndStoreImagesSync(s, recordId);
+      const sanitized = sanitizeMhcSession(s);
+      const recordId = sanitized.id;
+      return ImageStore.extractAndStoreImagesSync(sanitized, recordId);
     });
     syncEnqueueList('mhc_sessions', KEYS.MHC_SESSIONS, processedSessions);
     setStorage(KEYS.MHC_SESSIONS, processedSessions);

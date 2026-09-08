@@ -88,9 +88,6 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
     if (session.focusOptimizationRecord) {
       return ImageStore.hydrateImagesSync(session.focusOptimizationRecord);
     }
-    if (session.focusOptimizationRecords && session.focusOptimizationRecords.length > 0) {
-      return ImageStore.hydrateImagesSync(session.focusOptimizationRecords[0]);
-    }
     return FocusOptimizationEngine.createDefaultRecord(
       session.startDate || getLocalDateString(),
       session.engineerName || 'Lead Field Engineer'
@@ -232,8 +229,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
         ...session,
         focusExecutionState: 'NOT_REQUIRED',
         focusSkippedReason: skippedReason.trim(),
-        focusOptimizationRecord: undefined,
-        focusOptimizationRecords: []
+        focusOptimizationRecord: undefined
       };
       onUpdateSession(updated);
       if (showNotification) showNotification('Focus Optimization status saved as Not Required.');
@@ -242,8 +238,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
         ...session,
         focusExecutionState: 'PERFORMED',
         focusSkippedReason: undefined,
-        focusOptimizationRecord: record,
-        focusOptimizationRecords: [record]
+        focusOptimizationRecord: record
       };
       onUpdateSession(updated);
       if (showNotification) showNotification('Focus Optimization draft saved.');
@@ -266,8 +261,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       ...session,
       focusExecutionState: 'NOT_REQUIRED',
       focusSkippedReason: trimmed,
-      focusOptimizationRecord: undefined,
-      focusOptimizationRecords: []
+      focusOptimizationRecord: undefined
     };
 
     let sessionWithProgress = updatedSession;
@@ -313,8 +307,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       ...session,
       focusExecutionState: 'PERFORMED',
       focusSkippedReason: undefined,
-      focusOptimizationRecord: completedRecord,
-      focusOptimizationRecords: [completedRecord]
+      focusOptimizationRecord: completedRecord
     };
 
     if (session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED') {

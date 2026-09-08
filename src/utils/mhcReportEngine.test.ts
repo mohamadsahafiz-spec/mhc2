@@ -1070,7 +1070,6 @@ describe('mhcReportEngine', () => {
     const session = createDummySession('SESS-NO-CURRENT-VIA');
     session.machineId = 'MC-TEST-001';
     session.productProcessRecord = undefined;
-    session.productProcessRecords = [];
     session.stage06_productQuality = undefined;
 
     const mockMachine: any = {

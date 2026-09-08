@@ -165,9 +165,7 @@ export function createNewMhcSession(machine: Machine, customerName?: string, eng
       followUpRequired: false,
       productionReleaseVerdict: 'APPROVED'
     },
-    productProcessRecords: [],
     productProcessRecord: undefined,
-    focusOptimizationRecords: [],
     focusOptimizationRecord: undefined,
     focusExecutionState: undefined,
     focusSkippedReason: undefined

@@ -575,9 +575,7 @@ export function buildMhcReportDocument(
 
   // 08 FOCUS OPTIMIZATION
   // Authoritative Focus Optimization records from Machine Passport or explicit Session
-  const explicitSessionFocusRecord = session.focusOptimizationRecord
-    || (session as any).focusOptimizationRecords?.[0]
-    || null;
+  const explicitSessionFocusRecord = session.focusOptimizationRecord || (session as any).focusOptimizationRecords?.[0] || null;
   const passportFocusRecord = matchedMachine?.focusOptimizationRecords?.[0] || null;
 
   // Determine execution state: explicit choice takes precedence
@@ -707,10 +705,10 @@ export function buildMhcReportDocument(
 
   // 09 POWER OFFSET & CALIBRATION
   // Authoritative Machine Passport Product Identity / Process Parameters
-  const sessionProductProcess = (session as any).productProcessRecord || (session as any).productProcessRecords?.[0];
+  const sessionProductProcess = session.productProcessRecord || (session as any).productProcessRecords?.[0];
   const passportProductProcess = matchedMachine?.productProcessRecords?.[0];
   const latestProductProcess = sessionProductProcess || passportProductProcess;
-  const prevProductProcess = (session as any).productProcessRecords?.[1] || matchedMachine?.productProcessRecords?.[1] || (previousSession as any)?.productProcessRecord || (previousSession as any)?.productProcessRecords?.[0];
+  const prevProductProcess = (session as any).productProcessRecords?.[1] || matchedMachine?.productProcessRecords?.[1] || previousSession?.productProcessRecord;
 
   const p1RecipePower = (latestProductProcess?.phase1?.powerWatts !== undefined && latestProductProcess?.phase1?.powerWatts !== null)
     ? latestProductProcess.phase1.powerWatts

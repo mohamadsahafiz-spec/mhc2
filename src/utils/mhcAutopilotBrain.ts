@@ -680,7 +680,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   addItem('03_focus', 'Focus Optimization', 'DAY 2', () => {
     const st = statuses['03_focus'];
     const isDisp = isActivityDispositioned(session, '03_focus');
-    const focusRec = session.focusOptimizationRecord || session.focusOptimizationRecords?.[0];
+    const focusRec = session.focusOptimizationRecord;
 
     if (session.focusExecutionState === 'NOT_REQUIRED' && st === 'COMPLETED') {
       return {
@@ -885,7 +885,7 @@ export function auditMhcSession(session?: MHCSession | null): MhcReadinessAuditR
   addItem('06_via', 'Product & Process / Via', 'DAY 3', () => {
     const st = statuses['06_via'];
     const isDisp = isActivityDispositioned(session, '06_via');
-    const procRec = session.productProcessRecord || session.productProcessRecords?.[0];
+    const procRec = session.productProcessRecord;
     if (procRec && procRec.overallResult === 'FAIL') {
       return {
         status: 'NEEDS_REVIEW',

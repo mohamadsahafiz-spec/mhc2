@@ -83,17 +83,6 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
       return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
     }
 
-    if (session.productProcessRecords && session.productProcessRecords.length > 0) {
-      const isDirectPassportRef = passportRecord && session.productProcessRecords[0].id === passportRecord.id;
-      if (!isDirectPassportRef) {
-        return ImageStore.hydrateImagesSync(session.productProcessRecords[0]);
-      }
-      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(session.productProcessRecords[0]));
-      cloned.id = sessionRecordId;
-      cloned.date = session.startDate || getLocalDateString();
-      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
-    }
-
     if (passportRecord) {
       // Deep clone Machine Passport record to seed Product/Recipe/Process info without mutating Passport
       const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(passportRecord));
@@ -301,7 +290,6 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     const updated: MHCSession = {
       ...session,
       productProcessRecord: evaluatedRecord,
-      productProcessRecords: [evaluatedRecord],
       stage02_laserProfile: {
         ...(session.stage02_laserProfile || { laserId: 'lh1', profileInfo: '', measurementInfo: '', supportingEvidence: '', images: [] }),
         productName: evaluatedRecord.productName || session.stage02_laserProfile?.productName || '',
@@ -337,7 +325,6 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     let updatedSession: MHCSession = {
       ...session,
       productProcessRecord: evaluatedRecord,
-      productProcessRecords: [evaluatedRecord],
       stage02_laserProfile: {
         ...(session.stage02_laserProfile || { laserId: 'lh1', profileInfo: '', measurementInfo: '', supportingEvidence: '', images: [] }),
         productName: evaluatedRecord.productName || session.stage02_laserProfile?.productName || '',

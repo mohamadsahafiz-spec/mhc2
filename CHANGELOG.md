@@ -1,5 +1,25 @@
 # FSOS CHANGELOG
 
+## v1.7.3 — REMOVE UNNECESSARY MEDIA REFERENCES (2026-09-08)
+
+### Media Evidence Source Investigation & Unnecessary Reference Elimination
+- **Investigation of Duplicate & Redundant Media References**:
+  - Traced the origin of reported duplicate/alias relationships across IndexedDB media records down to root data creation paths.
+  - Identified and eliminated unintended duplicate schema arrays on `MHCSession`:
+    - `session.focusOptimizationRecords` (plural array) was an unintended duplicate mirror of `session.focusOptimizationRecord` (singular), which generated 14 redundant physical wafer drill image keys per session.
+    - `session.productProcessRecords` (plural array) was an unintended duplicate mirror of `session.productProcessRecord` (singular), which generated redundant synthetic micro-via cross-section image keys per session.
+  - Identified and optimized Machine Passport vs MHC Stage 02 synchronization:
+    - Updated `MhcLaserBeamActivity.tsx` to pass the session's canonical media references when saving evaluated beam profile records to `machine.beamProfileRecords`, eliminating redundant binary extraction passes.
+- **Structural Schema Cleansing & Ingestion Sanitization (`types/index.ts`, `persistence.ts`)**:
+  - Removed redundant `focusOptimizationRecords` and `productProcessRecords` plural fields from the `MHCSession` interface.
+  - Implemented `sanitizeMhcSession` in `persistence.ts` to migrate legacy sessions, cleanly removing redundant plural records while preserving single authoritative records and all Founder-visible data.
+  - Updated `MhcFocusOptimizationActivity.tsx`, `MhcProductProcessActivity.tsx`, `MhcAutopilot.tsx`, `mhcAutopilotBrain.ts`, and `mhcReportEngine.ts` to operate strictly on the single authoritative record paths.
+- **Automated Orphaned Media Reconciliation**:
+  - Unreferenced legacy media keys resulting from the eliminated redundant schema properties are safely identified and cleaned up by `cleanupOrphanedMedia()`.
+  - All legitimate operational data, historical machine timeline records, and Founder-visible beam profile, wafer drill, and micro-via images remain fully preserved.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, and `CHANGELOG.md` to `v1.7.3`.
+
 ## v1.7.2 — MEDIA DEDUPLICATION & CANONICAL CONSOLIDATION (2026-09-08)
 
 ### Media Evidence Forensic Investigation & Physical Storage Consolidation

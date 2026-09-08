@@ -402,8 +402,9 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
 
     // Update Machine Passport record
     try {
+      const evaluatedRecordForMachine = updatedSession.stage02_laserProfile?.beamProfileRecord || evaluatedRecord;
       const existingMachineRecords = machine.beamProfileRecords || [];
-      const newMachineRecords = [evaluatedRecord, ...existingMachineRecords.filter(r => r.id !== evaluatedRecord.id)];
+      const newMachineRecords = [evaluatedRecordForMachine, ...existingMachineRecords.filter(r => r.id !== evaluatedRecord.id)];
       const updatedMachine: Machine = {
         ...machine,
         beamProfileRecords: newMachineRecords
