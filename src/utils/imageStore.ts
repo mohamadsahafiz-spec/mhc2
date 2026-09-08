@@ -608,6 +608,9 @@ export const ImageStore = {
       }
       if (data.startsWith('data:image/') || data.startsWith('data:application/') || (data.startsWith('<svg') && data.length > 50)) {
         const imageKey = `idb:${recordId}_${pathPrefix || 'img'}`;
+        if (isGhostMediaKey(imageKey)) {
+          return undefined as unknown as T;
+        }
         this.saveImage(imageKey, data);
         notFoundInIdbKeys.delete(imageKey);
         return imageKey as unknown as T;
@@ -1683,29 +1686,31 @@ export function mergeSessionsPreservingImages<S extends { id: string }>(incoming
 export function isFounderVisibleBeamProfileKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false;
   const k = key.toLowerCase();
-  if (k.includes('stage02') && k.includes('beamprofile')) return true;
-  if (k.includes('beamprofilerecord') && k.includes('readings')) return true;
-  if (k.includes('beamprofile') || k.includes('beam_profile') || k.includes('laserprofile')) return true;
+  if (k.includes('stage02') && (k.includes('beamprofile') || k.includes('beamprofilerecord') || k.includes('laserprofile')) && k.includes('readings')) return true;
+  if (k.includes('mhc-sess') && (k.includes('stage02') || k.includes('laserprofile')) && (k.includes('beamprofile') || k.includes('beamprofilerecord'))) return true;
   return false;
 }
 
 /**
- * Identifies unseen ghost media keys (such as focusOptimization, productProcess, stageCalibration)
+ * Identifies unseen ghost media keys (such as agcData, inspectionFindings, focusOptimization, productProcess, stageCalibration, machine beamProfileRecords)
  * that must be permanently deleted from IndexedDB and runtime memory caches.
  */
 export function isGhostMediaKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false;
   const k = key.toLowerCase();
 
-  // Preserved: Beam Profile keys
+  // Preserved: Legitimate Founder-visible Stage 02 Beam Profile keys
   if (isFounderVisibleBeamProfileKey(key)) return false;
 
   // Targeted ghost media patterns
+  if (k.includes('agcdata') || k.includes('agc_data') || k.includes('agccalibration') || k.includes('agc1') || k.includes('agc2')) return true;
+  if (k.includes('inspectionfindings') || k.includes('inspection_findings') || k.includes('findings') || k.includes('laserinspection')) return true;
+  if (k.includes('evidenceimage') || k.includes('evidence_image') || k.includes('evidenceimages')) return true;
   if (k.includes('focusoptimization') || k.includes('focus_optimization') || k.includes('focusrecord') || k.includes('focusmatrix')) return true;
   if (k.includes('productprocess') || k.includes('product_process') || k.includes('processrecord') || k.includes('microvia') || k.includes('topvia') || k.includes('bottomvia')) return true;
-  if (k.includes('stagecalibration') || k.includes('stage_calibration') || k.includes('agccalibration')) return true;
+  if (k.includes('stagecalibration') || k.includes('stage_calibration')) return true;
   if (k.includes('temperatureevidence') || k.includes('temperature_result')) return true;
-  if (k.includes('laserinspection')) return true;
+  if (k.includes('beamprofilerecords') && !k.includes('stage02')) return true;
 
   return false;
 }

@@ -269,6 +269,24 @@ export function stripProductProcessRecordImages(record: any): any {
   return copy;
 }
 
+export function stripBeamProfileRecordImages(record: any): any {
+  if (!record || typeof record !== 'object') return record;
+  const copy: any = { ...record };
+  if (copy.readings && typeof copy.readings === 'object') {
+    const cleanedReadings: Record<string, any> = {};
+    for (const [rKey, rVal] of Object.entries(copy.readings)) {
+      if (rVal && typeof rVal === 'object') {
+        const { imageDataUrl, ...rRest } = rVal as any;
+        cleanedReadings[rKey] = rRest;
+      } else {
+        cleanedReadings[rKey] = rVal;
+      }
+    }
+    copy.readings = cleanedReadings;
+  }
+  return copy;
+}
+
 export function stripGhostMediaFromObject<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) {
@@ -315,6 +333,47 @@ export function stripGhostMediaFromObject<T>(obj: T): T {
     });
   }
 
+  // 5. Clean agcData (evidenceImage)
+  if (copy.agcData && typeof copy.agcData === 'object') {
+    const cleanedAgcData: Record<string, any> = {};
+    for (const [agcKey, agcVal] of Object.entries(copy.agcData)) {
+      if (agcVal && typeof agcVal === 'object') {
+        const { evidenceImage, ...rest } = agcVal as any;
+        cleanedAgcData[agcKey] = rest;
+      } else {
+        cleanedAgcData[agcKey] = agcVal;
+      }
+    }
+    copy.agcData = cleanedAgcData;
+  }
+
+  // 6. Clean inspectionFindings (findings[].evidenceImage)
+  if (copy.inspectionFindings && typeof copy.inspectionFindings === 'object') {
+    const cleanedFindings: Record<string, any> = {};
+    for (const [lhKey, lhVal] of Object.entries(copy.inspectionFindings)) {
+      if (lhVal && typeof lhVal === 'object') {
+        const lhObj: any = { ...lhVal };
+        if (Array.isArray(lhObj.findings)) {
+          lhObj.findings = lhObj.findings.map((f: any) => {
+            if (!f || typeof f !== 'object') return f;
+            const { evidenceImage, ...fRest } = f;
+            return fRest;
+          });
+        }
+        cleanedFindings[lhKey] = lhObj;
+      } else {
+        cleanedFindings[lhKey] = lhVal;
+      }
+    }
+    copy.inspectionFindings = cleanedFindings;
+  }
+
+  // 7. Clean laserInspection
+  if (copy.laserInspection && typeof copy.laserInspection === 'object') {
+    const { evidenceImages, evidenceImage, ...lRest } = copy.laserInspection as any;
+    copy.laserInspection = lRest;
+  }
+
   return copy as T;
 }
 
@@ -328,6 +387,10 @@ export function sanitizeMachine(m: Machine): Machine {
 
   if (Array.isArray(updated.productProcessRecords)) {
     updated.productProcessRecords = updated.productProcessRecords.map(stripProductProcessRecordImages);
+  }
+
+  if (Array.isArray(updated.beamProfileRecords)) {
+    updated.beamProfileRecords = updated.beamProfileRecords.map(stripBeamProfileRecordImages);
   }
 
   if (updated.temperatureRecords && Array.isArray(updated.temperatureRecords)) {
