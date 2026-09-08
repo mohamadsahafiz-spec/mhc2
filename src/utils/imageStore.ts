@@ -833,12 +833,14 @@ export const ImageStore = {
     return resolved;
   },
 
-  // Targeted startup hydration for active machines and recent/draft MHC sessions
+  // Targeted startup hydration for active machines, MHC sessions, branding, and profiles
   async hydrateAppState(): Promise<void> {
     if (typeof localStorage === 'undefined') return;
     try {
-      const machinesRaw = localStorage.getItem('fsos_machines');
-      const sessionsRaw = localStorage.getItem('fsos_mhc_sessions');
+      const machinesRaw = localStorage.getItem('fso_v04_machines') || localStorage.getItem('fsos_machines');
+      const sessionsRaw = localStorage.getItem('fso_v080_mhc_sessions') || localStorage.getItem('fsos_mhc_sessions');
+      const brandingRaw = localStorage.getItem('fso_v04_branding');
+      const profileRaw = localStorage.getItem('fso_v072_profile');
 
       const keysToHydrate: string[] = [];
       if (machinesRaw) {
@@ -851,11 +853,19 @@ export const ImageStore = {
         try {
           const parsedSessions = JSON.parse(sessionsRaw);
           const sessionsArray = Array.isArray(parsedSessions) ? parsedSessions : [];
-          // Hydrate the 5 most recent sessions and any non-completed draft session
-          const activeSessions = sessionsArray.filter((s: any, idx: number) =>
-            s.completionStatus !== 'COMPLETED' || idx < 5
-          );
-          keysToHydrate.push(...this.collectIdbKeys(activeSessions));
+          keysToHydrate.push(...this.collectIdbKeys(sessionsArray));
+        } catch {}
+      }
+      if (brandingRaw) {
+        try {
+          const parsedBranding = JSON.parse(brandingRaw);
+          keysToHydrate.push(...this.collectIdbKeys(parsedBranding));
+        } catch {}
+      }
+      if (profileRaw) {
+        try {
+          const parsedProfile = JSON.parse(profileRaw);
+          keysToHydrate.push(...this.collectIdbKeys(parsedProfile));
         } catch {}
       }
 
@@ -1431,6 +1441,122 @@ export const ImageStore = {
 
     notifyListeners(keys);
     return { deletedCount, errors };
+  },
+
+  /**
+   * Authoritative purge for unreferenced and unseen media entries in IndexedDB and memory caches.
+   * "If I can't see it, delete it."
+   * Strictly preserves all 16 Founder-visible images and active Core Data references.
+   */
+  async purgeUnseenMedia(activeReachableKeySet?: Set<string>): Promise<{
+    scannedCount: number;
+    deletedCount: number;
+    remainingCount: number;
+    deletedKeys: string[];
+    errors: string[];
+  }> {
+    await flushPendingWrites();
+    const raw = await this.getAllRawStoredEntries();
+    const allImages = await this.getAllImages();
+    const allStoredKeySet = new Set<string>([...Object.keys(raw), ...Object.keys(allImages), ...imageMemoryCache.keys()]);
+    const allStoredKeys = Array.from(allStoredKeySet);
+
+    // 1. Determine authoritative reachable keys
+    let reachableKeys = activeReachableKeySet;
+    if (!reachableKeys) {
+      const keysCollected: string[] = [];
+      if (typeof localStorage !== 'undefined') {
+        const storageKeys = [
+          'fso_v04_machines',
+          'fso_v080_mhc_sessions',
+          'fso_v04_branding',
+          'fso_v072_profile',
+          'fso_v04_reports',
+          'fso_v04_templates',
+          'fso_v04_drafts',
+          'fso_v080_mhc_report_drafts',
+          'fso_v090_mhc_workspace_templates',
+          'fso_v090_mhc_workspace_drafts',
+          'fso_v04_investigations',
+          'fso_v04_baselines',
+          'fso_v04_tasks',
+          'fso_v04_alerts',
+          'fso_v04_mhc_records',
+          'fso_v04_customers',
+          'fso_v04_plants',
+          'fso_v04_lines',
+          'fso_v04_contracts',
+          'fso_v04_schedule',
+          'fso_v090_recommended_parts'
+        ];
+        for (const sk of storageKeys) {
+          try {
+            const rawVal = localStorage.getItem(sk);
+            if (rawVal) {
+              const parsed = JSON.parse(rawVal);
+              keysCollected.push(...this.collectIdbKeys(parsed));
+            }
+          } catch {}
+        }
+      }
+      reachableKeys = new Set<string>(keysCollected);
+    }
+
+    // 2. Identify all unreferenced/unseen keys
+    const unseenKeys: string[] = [];
+    for (const key of allStoredKeys) {
+      if (!reachableKeys.has(key)) {
+        unseenKeys.push(key);
+      }
+    }
+
+    // 3. For all reachable keys, ensure any 'ref:' pointer is resolved to full canonical payload
+    const updatesToPersist: Array<{ key: string; value: string }> = [];
+    for (const key of reachableKeys) {
+      const rawVal = raw[key];
+      if (typeof rawVal === 'string' && rawVal.startsWith('ref:')) {
+        const resolvedPayload = allImages[key] || imageMemoryCache.get(key);
+        if (resolvedPayload && !resolvedPayload.startsWith('ref:')) {
+          updatesToPersist.push({ key, value: resolvedPayload });
+          rawStoredValues.set(key, resolvedPayload);
+          setMemoryCache(key, resolvedPayload);
+        }
+      }
+    }
+
+    // 4. Batch delete all unseen keys from IndexedDB and evict from all caches
+    const { deletedCount, errors } = await this.deleteImageKeys(unseenKeys);
+
+    // 5. If any remaining reachable keys needed payload re-canonicalization, persist them
+    if (updatesToPersist.length > 0 && typeof indexedDB !== 'undefined') {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          for (const item of updatesToPersist) {
+            store.put(item.value, item.key);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err: any) {
+        errors.push(err?.message || String(err));
+      }
+    }
+
+    this.invalidateRuntimeCaches();
+
+    const remaining = await this.getAllRawStoredEntries();
+    const remainingCount = Object.keys(remaining).length;
+
+    return {
+      scannedCount: allStoredKeys.length,
+      deletedCount,
+      remainingCount,
+      deletedKeys: unseenKeys,
+      errors
+    };
   },
 
   async clearAll(): Promise<void> {

@@ -108,8 +108,9 @@ function AppLayout() {
 
   // Load state from StorageService & IDB on mount
   useEffect(() => {
-    // 1. Targeted startup image hydration (runs independently of SyncEngine!)
-    ImageStore.hydrateAppState().then(() => {
+    // 1. Targeted startup image hydration & unseen media purge (runs independently of SyncEngine!)
+    ImageStore.hydrateAppState().then(async () => {
+      await ImageStore.purgeUnseenMedia();
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
@@ -117,7 +118,7 @@ function AppLayout() {
       setMachines(prev => mergeMachinesPreservingImages(rec.machines, prev));
       setCustomers(rec.customers);
     }).catch(err => {
-      console.warn('[App] Error during startup image hydration:', err);
+      console.warn('[App] Error during startup image hydration / media purge:', err);
     });
 
     // 2. Reactive listener for asynchronous ImageStore hydration

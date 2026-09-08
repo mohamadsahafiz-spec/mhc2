@@ -226,9 +226,10 @@ export async function auditMediaEvidence(
   activeCoreData?: any
 ): Promise<MediaEvidenceAuditReport> {
   // 1. Retrieve all stored images and raw storage entries (from passed map or IndexedDB + cache)
+  const rawEntries = imagesMap ? {} : await ImageStore.getAllRawStoredEntries();
   const images: Record<string, string> = imagesMap || (await ImageStore.getAllImages());
-  const rawEntries = await ImageStore.getAllRawStoredEntries();
-  const allKeys = Object.keys(images);
+  const allStoredKeySet = new Set<string>([...Object.keys(images), ...Object.keys(rawEntries)]);
+  const allKeys = Array.from(allStoredKeySet);
 
   // 2. Collect all active reachable idb: keys from Core Data
   const reachableCoreKeys = collectAllReachableCoreIdbKeys(activeCoreData);
@@ -236,8 +237,8 @@ export async function auditMediaEvidence(
   // 3. Map payloads to detect duplicates
   const payloadToKeysMap = new Map<string, string[]>();
   for (const key of allKeys) {
-    const payload = images[key];
-    if (typeof payload === 'string') {
+    const payload = images[key] || rawEntries[key];
+    if (typeof payload === 'string' && !payload.startsWith('ref:')) {
       const existing = payloadToKeysMap.get(payload);
       if (existing) {
         existing.push(key);
@@ -511,8 +512,10 @@ export async function cleanupOrphanedMedia(
   activeCoreData?: any
 ): Promise<OrphanedMediaCleanupResult> {
   // 1. Authoritative Current Scan
+  const rawEntries = imagesMap ? {} : await ImageStore.getAllRawStoredEntries();
   const currentImages: Record<string, string> = imagesMap || (await ImageStore.getAllImages());
-  const currentAllKeys = Object.keys(currentImages);
+  const allStoredKeySet = new Set<string>([...Object.keys(currentImages), ...Object.keys(rawEntries)]);
+  const currentAllKeys = Array.from(allStoredKeySet);
   const currentReachableKeys = collectAllReachableCoreIdbKeys(activeCoreData);
 
   // 2. Identify ONLY proven orphan keys (present in IndexedDB, NOT in active Core Data)
@@ -522,7 +525,7 @@ export async function cleanupOrphanedMedia(
   for (const key of currentAllKeys) {
     if (!currentReachableKeys.has(key)) {
       provenOrphanKeys.push(key);
-      const payload = currentImages[key] || '';
+      const payload = currentImages[key] || rawEntries[key] || '';
       reclaimedBytes += getPayloadByteSize(payload);
     }
   }
@@ -540,17 +543,24 @@ export async function cleanupOrphanedMedia(
     };
   }
 
-  // 4. Safe Batch Deletion (Never clearAll / never wipe store)
-  const { deletedCount, errors } = await ImageStore.deleteImageKeys(provenOrphanKeys);
+  let deletedCount = 0;
+  let errors: string[] = [];
 
-  // In memory/test environments where imagesMap was passed directly:
-  if (imagesMap) {
+  if (!imagesMap) {
+    const purgeRes = await ImageStore.purgeUnseenMedia(currentReachableKeys);
+    deletedCount = purgeRes.deletedCount;
+    errors = purgeRes.errors;
+  } else {
+    // In memory/test environments where imagesMap was passed directly:
+    const delRes = await ImageStore.deleteImageKeys(provenOrphanKeys);
+    deletedCount = delRes.deletedCount;
+    errors = delRes.errors;
     for (const k of provenOrphanKeys) {
       delete imagesMap[k];
     }
   }
 
-  // 5. Post-cleanup inventory calculation
+  // 4. Post-cleanup inventory calculation
   const remainingImages = imagesMap || (await ImageStore.getAllImages());
   const remainingKeys = Object.keys(remainingImages);
   const postReachableKeys = collectAllReachableCoreIdbKeys(activeCoreData);

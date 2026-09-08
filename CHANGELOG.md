@@ -1,5 +1,22 @@
 # FSOS CHANGELOG
 
+## v1.7.4 — DELETE UNSEEN MEDIA FROM EXISTING INDEXEDDB (2026-09-08)
+
+### Existing IndexedDB Media Store Cleanup & Active Image Preservation
+- **Live IndexedDB Unseen Media Purge Engine (`imageStore.ts`)**:
+  - Implemented `ImageStore.purgeUnseenMedia()` to execute direct batch deletion against existing live IndexedDB media storage.
+  - Enforces the Founder directive: *"If I can't see it, delete it."*
+  - Re-evaluates authoritative reachable keys across all active FSOS Core Data structures (active machine passports, MHC sessions, reports, templates, drafts, profiles, branding, and signatures).
+  - Deletes all unseen, orphaned, and ghost media entries from physical IndexedDB storage and clears runtime memory caches.
+  - Resolves any remaining referenced alias pointers (`ref:...`) to canonical payloads before deleting targets to guarantee zero broken references.
+- **Automated Startup & Audit Storage Cleansing (`App.tsx`, `mediaEvidenceAudit.ts`)**:
+  - Wired automated `purgeUnseenMedia()` execution on application startup and targeted state hydration in `App.tsx`.
+  - Updated `cleanupOrphanedMedia()` and `auditMediaEvidence()` to scan both raw storage entries and resolved images, purging ghost records and reflecting exact physical storage state.
+- **Strict 16 Founder-Visible Image Preservation**:
+  - Guaranteed zero mutation or loss for all 16 legitimate Founder-visible images across Machine Passports and MHC Session Stages.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.4`.
+
 ## v1.7.3 — REMOVE UNNECESSARY MEDIA REFERENCES (2026-09-08)
 
 ### Media Evidence Source Investigation & Unnecessary Reference Elimination
