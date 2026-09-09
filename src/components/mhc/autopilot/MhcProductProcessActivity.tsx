@@ -141,12 +141,21 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
   const [activeHead, setActiveHead] = useState<'lh1' | 'lh2'>('lh1');
   const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
 
-  // Sync state if session updates externally
+  // Reactive subscription to ImageStore to re-render when IndexedDB hydration finishes
+  const [imageStoreVersion, setImageStoreVersion] = useState(0);
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
+  // Sync state if session updates externally or ImageStore finishes IDB hydration
   useEffect(() => {
     if (session.productProcessRecord) {
       setRecord(ImageStore.hydrateImagesSync(session.productProcessRecord));
     }
-  }, [session.productProcessRecord]);
+  }, [session.productProcessRecord, imageStoreVersion]);
 
   // Recalculate evaluation when measurements or specs change
   const evaluatedRecord = useMemo<ProductProcessRecord>(() => {

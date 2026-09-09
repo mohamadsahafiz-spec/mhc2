@@ -53,6 +53,14 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     return (machine?.focusOptimizationRecords || []).map(r => ImageStore.hydrateImagesSync(r));
   });
 
+  const [imageStoreVersion, setImageStoreVersion] = useState(0);
+  React.useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
   // Helper to preserve already-hydrated image data when new record arrays arrive
   const mergeHydratedRecords = React.useCallback((
     incoming: FocusOptimizationRecord[],
@@ -123,7 +131,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
     return () => {
       isMounted = false;
     };
-  }, [machine?.focusOptimizationRecords, mergeHydratedRecords]);
+  }, [machine?.focusOptimizationRecords, mergeHydratedRecords, imageStoreVersion]);
 
   const records = useMemo(() => {
     const base = hydratedRecords.length > 0 ? hydratedRecords : (machine?.focusOptimizationRecords || []);

@@ -101,12 +101,21 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
     session.autopilotProgress?.activityNotes?.[activeCode] || ''
   );
 
-  // Sync state if session prop updates from outside
+  // Reactive subscription to ImageStore to re-render when IndexedDB hydration finishes
+  const [imageStoreVersion, setImageStoreVersion] = useState(0);
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
+  // Sync state if session prop updates from outside or ImageStore resolves IDB images
   useEffect(() => {
     if (session.focusOptimizationRecord) {
       setRecord(ImageStore.hydrateImagesSync(session.focusOptimizationRecord));
     }
-  }, [session.focusOptimizationRecord]);
+  }, [session.focusOptimizationRecord, imageStoreVersion]);
 
   useEffect(() => {
     if (session.focusExecutionState) {

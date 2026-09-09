@@ -197,6 +197,23 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
     for (const key of preservedBeamProfileKeys) {
       expect(ImageStore.isFounderVisibleBeamProfileKey(key)).toBe(true);
       expect(ImageStore.isGhostMediaKey(key)).toBe(false);
+      expect(ImageStore.isAuthoritativeDomainMediaKey(key)).toBe(true);
+    }
+
+    const preservedFocusAndProductKeys = [
+      'idb:MHC-SESS-1786717133921__focusOptimizationRecord_laser1_positions_0_imageDataUrl',
+      'idb:MHC-SESS-1786717133921__focusOptimizationRecord_laser2_positions_0_imageDataUrl',
+      'idb:MHC-SESS-1786717133921__focusMatrix',
+      'idb:WD-44367__focusOptimizationRecords_0_laser1_positions_0_imageDataUrl',
+      'idb:MHC-SESS-1786717133921__productProcessRecord_laser1Via_viaImageDataUrl',
+      'idb:MHC-SESS-1786717133921__productProcessRecord_laser2Via_viaImageDataUrl',
+      'idb:MHC-SESS-1786717133921__microVia',
+      'idb:WD-44367__productProcessRecords_0_laser1Via_viaImageDataUrl'
+    ];
+
+    for (const key of preservedFocusAndProductKeys) {
+      expect(ImageStore.isAuthoritativeDomainMediaKey(key)).toBe(true);
+      expect(ImageStore.isGhostMediaKey(key)).toBe(false);
     }
   });
 

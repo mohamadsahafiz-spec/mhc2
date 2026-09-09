@@ -1614,6 +1614,10 @@ export const ImageStore = {
 
   isFounderVisibleBeamProfileKey(key: string): boolean {
     return isFounderVisibleBeamProfileKey(key);
+  },
+
+  isAuthoritativeDomainMediaKey(key: string): boolean {
+    return isAuthoritativeDomainMediaKey(key);
   }
 };
 
@@ -1710,23 +1714,37 @@ export function isFounderVisibleBeamProfileKey(key: string): boolean {
 }
 
 /**
- * Identifies unseen ghost media keys (such as agcData, inspectionFindings, focusOptimization, productProcess, stageCalibration)
+ * Determines if a media key is authoritative domain media (Beam Profile, Focus Optimization, Product & Process, Passport, Signatures, etc.).
+ */
+export function isAuthoritativeDomainMediaKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const k = key.toLowerCase();
+  if (isFounderVisibleBeamProfileKey(key)) return true;
+  // Focus Optimization
+  if (k.includes('focusoptimization') || k.includes('focus_optimization') || k.includes('focusrecord') || k.includes('focus_record') || k.includes('focusmatrix') || k.includes('defocus') || k.includes('waferdrill')) return true;
+  // Product & Process
+  if (k.includes('productprocess') || k.includes('product_process') || k.includes('processrecord') || k.includes('microvia') || k.includes('topvia') || k.includes('bottomvia') || k.includes('viaimage') || k.includes('via_image') || k.includes('via_top') || k.includes('via_bottom') || k.includes('crosssection')) return true;
+  // Machine Passport Photos & Signatures
+  if (k.includes('passport') || k.includes('signature') || k.includes('photoref') || k.includes('photo_ref') || k.includes('photourl') || k.includes('photo_url') || k.includes('mach_photo') || k.includes('machine_photo')) return true;
+  return false;
+}
+
+/**
+ * Identifies unseen ghost media keys (such as obsolete agcData, inspectionFindings, ephemeral intermediate autopilot caches)
  * that must be permanently deleted from IndexedDB and runtime memory caches.
- * Note: Valid Beam Profile media (Stage 02 and Machine records) is preserved and safe.
+ * Note: Authoritative domain media (Beam Profile, Focus Optimization, Product & Process, Machine Passport) is preserved.
  */
 export function isGhostMediaKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false;
   const k = key.toLowerCase();
 
-  // Preserved: Legitimate Founder-visible Beam Profile keys
-  if (isFounderVisibleBeamProfileKey(key)) return false;
+  // Preserved: Authoritative domain media (Beam Profile, Focus Optimization, Product & Process, etc.)
+  if (isAuthoritativeDomainMediaKey(key)) return false;
 
-  // Targeted ghost media patterns
+  // Targeted ghost media patterns (obsolete / ephemeral autopilot caches)
   if (k.includes('agcdata') || k.includes('agc_data') || k.includes('agccalibration') || (k.includes('agc') && k.includes('evidence'))) return true;
   if (k.includes('inspectionfindings') || k.includes('inspection_findings') || k.includes('findings') || k.includes('laserinspection')) return true;
   if (k.includes('evidenceimage') || k.includes('evidence_image') || k.includes('evidenceimages')) return true;
-  if (k.includes('focusoptimization') || k.includes('focus_optimization') || k.includes('focusrecord') || k.includes('focusmatrix')) return true;
-  if (k.includes('productprocess') || k.includes('product_process') || k.includes('processrecord') || k.includes('microvia') || k.includes('topvia') || k.includes('bottomvia')) return true;
   if (k.includes('stagecalibration') || k.includes('stage_calibration')) return true;
   if (k.includes('temperatureevidence') || k.includes('temperature_result')) return true;
 

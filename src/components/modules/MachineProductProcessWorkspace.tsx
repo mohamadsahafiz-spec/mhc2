@@ -4,6 +4,7 @@ import { Machine } from '../../types';
 import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC, ViaSpecification } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
 import { StorageService } from '../../utils/persistence';
+import { ImageStore } from '../../utils/imageStore';
 import { useTheme } from '../../context/ThemeContext';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -23,10 +24,18 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
+  const [imageStoreVersion, setImageStoreVersion] = useState(0);
+  React.useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
   const records = useMemo(() => {
-    const raw = machine?.productProcessRecords || [];
+    const raw = (machine?.productProcessRecords || []).map(r => ImageStore.hydrateImagesSync(r));
     return [...raw].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [machine?.productProcessRecords]);
+  }, [machine?.productProcessRecords, imageStoreVersion]);
   const latestRecord = records[0] || null;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -536,8 +545,8 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
 
               <div className="flex items-center gap-4">
                 <div className="w-24 h-24 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
-                  {latestRecord.laser1Via.viaImageDataUrl ? (
-                    <img src={latestRecord.laser1Via.viaImageDataUrl} alt="Laser 1 Via" className="w-full h-full object-cover" />
+                  {ImageStore.resolveImage(latestRecord.laser1Via.viaImageDataUrl) ? (
+                    <img src={ImageStore.resolveImage(latestRecord.laser1Via.viaImageDataUrl)} alt="Laser 1 Via" className="w-full h-full object-cover" />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-slate-600" />
                   )}
@@ -588,8 +597,8 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
 
               <div className="flex items-center gap-4">
                 <div className="w-24 h-24 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
-                  {latestRecord.laser2Via.viaImageDataUrl ? (
-                    <img src={latestRecord.laser2Via.viaImageDataUrl} alt="Laser 2 Via" className="w-full h-full object-cover" />
+                  {ImageStore.resolveImage(latestRecord.laser2Via.viaImageDataUrl) ? (
+                    <img src={ImageStore.resolveImage(latestRecord.laser2Via.viaImageDataUrl)} alt="Laser 2 Via" className="w-full h-full object-cover" />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-slate-600" />
                   )}
