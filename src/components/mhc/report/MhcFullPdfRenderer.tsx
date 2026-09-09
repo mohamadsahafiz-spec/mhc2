@@ -1689,15 +1689,19 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="grid grid-cols-12 gap-2.5 items-center py-2">
                             {/* Beam Profile Image */}
                             <div className="col-span-5 aspect-4/3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center p-1 overflow-hidden shadow-inner">
-                              {sourceCp?.imageDataUrl ? (
-                                <img 
-                                  src={sourceCp.imageDataUrl} 
-                                  alt={`${head.headName} Laser Source Beam`} 
-                                  className="h-full w-full object-contain"
-                                />
-                              ) : (
-                                <div className="text-[8px] font-mono text-slate-400 text-center">No Image Recorded</div>
-                              )}
+                              {(() => {
+                                const raw = sourceCp?.imageDataUrl;
+                                const resolved = raw ? (ImageStore.resolveImage(raw) || (raw.startsWith('idb:') ? undefined : raw)) : undefined;
+                                return resolved ? (
+                                  <img 
+                                    src={resolved} 
+                                    alt={`${head.headName} Laser Source Beam`} 
+                                    className="h-full w-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="text-[8px] font-mono text-slate-400 text-center">No Image Recorded</div>
+                                );
+                              })()}
                             </div>
 
                             {/* Measurement & Prominent Specification */}
@@ -1740,15 +1744,19 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                           <div className="grid grid-cols-12 gap-2.5 items-center py-2">
                             {/* Beam Profile Image */}
                             <div className="col-span-5 aspect-4/3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center p-1 overflow-hidden shadow-inner">
-                              {flatTopCp?.imageDataUrl ? (
-                                <img 
-                                  src={flatTopCp.imageDataUrl} 
-                                  alt={`${head.headName} Flat Top Beam`} 
-                                  className="h-full w-full object-contain"
-                                />
-                              ) : (
-                                <div className="text-[8px] font-mono text-slate-400 text-center">No Image Recorded</div>
-                              )}
+                              {(() => {
+                                const raw = flatTopCp?.imageDataUrl;
+                                const resolved = raw ? (ImageStore.resolveImage(raw) || (raw.startsWith('idb:') ? undefined : raw)) : undefined;
+                                return resolved ? (
+                                  <img 
+                                    src={resolved} 
+                                    alt={`${head.headName} Flat Top Beam`} 
+                                    className="h-full w-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="text-[8px] font-mono text-slate-400 text-center">No Image Recorded</div>
+                                );
+                              })()}
                             </div>
 
                             {/* Measurement & Prominent Specification */}
@@ -1791,6 +1799,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         <div className="grid grid-cols-6 gap-1.5">
                           {maskCps.map((cp) => {
                             const maskLabel = cp.checkpointId.replace(/^[67]C-?/, '');
+                            const rawMaskImg = cp.imageDataUrl;
+                            const resolvedMaskImg = rawMaskImg ? (ImageStore.resolveImage(rawMaskImg) || (rawMaskImg.startsWith('idb:') ? undefined : rawMaskImg)) : undefined;
                             return (
                               <div 
                                 key={cp.checkpointId}
@@ -1808,9 +1818,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
                                 {/* Mask Beam Image Thumbnail */}
                                 <div className="my-1 h-9 w-full bg-slate-950 rounded border border-slate-800 flex items-center justify-center p-0.5 overflow-hidden">
-                                  {cp.imageDataUrl ? (
+                                  {resolvedMaskImg ? (
                                     <img 
-                                      src={cp.imageDataUrl} 
+                                      src={resolvedMaskImg} 
                                       alt={`Mask ${cp.checkpointId}`} 
                                       className="h-full w-full object-contain"
                                     />

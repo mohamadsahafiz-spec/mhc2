@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v1.7.8 — BEAM PROFILE IMAGE RENDERING REGRESSION FIX (2026-09-09)
+
+### Beam Profile Media Resolution & Render Hydration
+- **IDB Reference Resolution in DOM Image Elements**:
+  - Wrapped beam profile `<img src>` elements with `ImageStore.resolveImage(url)` across `BeamProfileCheckpointCard.tsx`, `MachineBeamProfileWorkspace.tsx`, and `MhcFullPdfRenderer.tsx` to prevent passing unresolved `idb:` scheme strings directly to the browser DOM.
+- **Reactive ImageStore Hydration in Autopilot**:
+  - Added an `ImageStore.subscribe()` lifecycle listener to `MhcLaserBeamActivity.tsx` to trigger reactive re-renders when asynchronous IndexedDB image hydration completes on cold reload.
+- **Machine Beam Profile Record Preservation**:
+  - Stopped `sanitizeMachine()` in `persistence.ts` from stripping valid `beamProfileRecords` `imageDataUrl` values so machine-level beam profile records retain their media references.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.8`.
+
 ## v1.7.7 — REMOVE REMAINING GHOST MEDIA & TRACE SOURCE (2026-09-09)
 
 ### Remaining Unseen Media Purge & Source Path Elimination

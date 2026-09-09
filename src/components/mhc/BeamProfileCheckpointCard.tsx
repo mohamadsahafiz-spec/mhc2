@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Upload, RefreshCw } from 'lucide-react';
 import { BeamCheckpointSpec } from '../../types/beamProfile';
+import { ImageStore } from '../../utils/imageStore';
 
 interface BeamProfileCheckpointCardProps {
   spec: BeamCheckpointSpec;
@@ -31,6 +32,9 @@ export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps>
     : isSource
     ? 'Laser Source'
     : 'Flat Top Optics';
+
+  const rawImg = reading.imageDataUrl;
+  const resolvedImg = rawImg ? (ImageStore.resolveImage(rawImg) || (rawImg.startsWith('idb:') ? undefined : rawImg)) : undefined;
 
   return (
     <div
@@ -114,7 +118,7 @@ export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps>
             }}
           />
 
-          {reading.imageDataUrl ? (
+          {resolvedImg ? (
             <div
               className={`w-10 h-10 rounded-lg border relative overflow-hidden group cursor-pointer ${
                 isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-100 border-slate-300'
@@ -123,7 +127,7 @@ export const BeamProfileCheckpointCard: React.FC<BeamProfileCheckpointCardProps>
               title="Click to replace beam profile image"
             >
               <img
-                src={reading.imageDataUrl}
+                src={resolvedImg}
                 alt={spec.stageLabel}
                 className="w-full h-full object-cover"
               />

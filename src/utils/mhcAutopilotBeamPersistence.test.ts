@@ -233,4 +233,35 @@ describe('MHC Autopilot Beam Profile Persistence & Unified Laser Architecture', 
     expect(advanced.stage02_laserProfile?.beamProfileRecord?.readings['7B'].pass).toBe(false);
     expect(advanced.stage02_laserProfile?.beamProfileRecord?.readings['7B'].measuredDiameterMm).toBe(5.80);
   });
+
+  it('5. Verifies sanitizeMachine preserves valid beamProfileRecords and their imageDataUrls', async () => {
+    const { sanitizeMachine } = await import('./persistence');
+    const { ImageStore } = await import('./imageStore');
+
+    const testMachine: any = {
+      id: 'M-TEST-BEAM',
+      name: 'Test Machine',
+      serialNumber: 'SN-999',
+      beamProfileRecords: [
+        {
+          id: 'BP-REC-01',
+          date: '2026-09-09',
+          readings: {
+            '6A': { checkpointId: '6A', measuredDiameterMm: 3.50, pass: true, imageDataUrl: 'data:image/png;base64,sample6A' },
+            '6B': { checkpointId: '6B', measuredDiameterMm: 4.20, pass: true, imageDataUrl: 'idb:valid_6b_key' }
+          }
+        }
+      ]
+    };
+
+    const sanitized = sanitizeMachine(testMachine);
+    expect(sanitized.beamProfileRecords).toBeDefined();
+    expect(sanitized.beamProfileRecords.length).toBe(1);
+    expect(sanitized.beamProfileRecords[0].readings['6A'].imageDataUrl).toBe('data:image/png;base64,sample6A');
+    expect(sanitized.beamProfileRecords[0].readings['6B'].imageDataUrl).toBe('idb:valid_6b_key');
+
+    // Verify resolveImage behavior
+    const resolvedDirect = ImageStore.resolveImage('data:image/png;base64,sample6A');
+    expect(resolvedDirect).toBe('data:image/png;base64,sample6A');
+  });
 });

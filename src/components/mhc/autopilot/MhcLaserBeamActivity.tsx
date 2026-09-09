@@ -117,13 +117,24 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
     return null;
   }, [machine, session.id]);
 
+  // Reactive subscription to ImageStore to re-render when IndexedDB hydration finishes
+  const [imageStoreVersion, setImageStoreVersion] = useState(0);
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
   // Helper to extract baseline diameter & image for a checkpoint
   const getPreviousData = (chkId: CheckpointId) => {
     if (!previousRecord || !previousRecord.readings) return { prevDiameter: null, prevImage: null };
     const r = previousRecord.readings[chkId];
+    const prevRaw = r?.imageDataUrl;
+    const prevImg = prevRaw ? (ImageStore.resolveImage(prevRaw) || (prevRaw.startsWith('idb:') ? null : prevRaw)) : null;
     return {
       prevDiameter: r?.measuredDiameterMm ?? null,
-      prevImage: r?.imageDataUrl || null
+      prevImage: prevImg
     };
   };
 
@@ -145,7 +156,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
     });
 
     return { vals, imgs };
-  }, [session.stage02_laserProfile]);
+  }, [session.stage02_laserProfile, imageStoreVersion]);
 
   const [values, setValues] = useState<Record<CheckpointId, number | null>>(
     initialValuesAndImages.vals as Record<CheckpointId, number | null>

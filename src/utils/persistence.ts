@@ -389,10 +389,6 @@ export function sanitizeMachine(m: Machine): Machine {
     updated.productProcessRecords = updated.productProcessRecords.map(stripProductProcessRecordImages);
   }
 
-  if (Array.isArray(updated.beamProfileRecords)) {
-    updated.beamProfileRecords = updated.beamProfileRecords.map(stripBeamProfileRecordImages);
-  }
-
   if (updated.temperatureRecords && Array.isArray(updated.temperatureRecords)) {
     const sanitizedTempRecords = updated.temperatureRecords.map((rec: any) => {
       const rawCount = rec.rawRecordsCount || (Array.isArray(rec.records) ? rec.records.length : 0);

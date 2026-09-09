@@ -537,13 +537,15 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map(s => {
                   const r = latestRecord.readings[s.id];
+                  const rawUrl = r?.imageDataUrl;
+                  const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
                     <div key={s.id} className={`p-2 rounded-xl border flex flex-col items-center text-center ${
                       isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'
                     }`}>
                       <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative">
-                        {r?.imageDataUrl ? (
-                          <img src={r.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-slate-600" />
                         )}
@@ -572,13 +574,15 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map(s => {
                   const r = latestRecord.readings[s.id];
+                  const rawUrl = r?.imageDataUrl;
+                  const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
                     <div key={s.id} className={`p-2 rounded-xl border flex flex-col items-center text-center ${
                       isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'
                     }`}>
                       <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative">
-                        {r?.imageDataUrl ? (
-                          <img src={r.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-slate-600" />
                         )}
@@ -973,10 +977,12 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map(s => {
                   const r = selectedRecordDetail.readings[s.id];
+                  const rawUrl = r?.imageDataUrl;
+                  const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
                     <div key={s.id} className="p-2 rounded bg-slate-950 border border-slate-800 text-center">
                       <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden">
-                        {r?.imageDataUrl && <img src={r.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
+                        {imgUrl && <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate">{s.stageLabel}</span>
                       <span className="text-xs font-mono font-bold block">{r?.measuredDiameterMm ?? '—'}mm</span>
@@ -992,10 +998,12 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map(s => {
                   const r = selectedRecordDetail.readings[s.id];
+                  const rawUrl = r?.imageDataUrl;
+                  const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
                     <div key={s.id} className="p-2 rounded bg-slate-950 border border-slate-800 text-center">
                       <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden">
-                        {r?.imageDataUrl && <img src={r.imageDataUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
+                        {imgUrl && <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate">{s.stageLabel}</span>
                       <span className="text-xs font-mono font-bold block">{r?.measuredDiameterMm ?? '—'}mm</span>
