@@ -276,7 +276,7 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
     expect(rawStore['idb:GENUINE_ORPHAN_GHOST_2']).toBeUndefined();
   });
 
-  it('FSOS v1.8.1: persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage, preventing valid media deletion during purge', async () => {
+  it('FSOS v2.2.10: persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage, preventing valid media deletion during purge', async () => {
     const { StorageService, STORAGE_KEYS } = await import('./persistence');
 
     const canonicalKey = 'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl';
@@ -336,7 +336,7 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
     expect(purgeResult.deletedKeys).not.toContain(canonicalKey);
   });
 
-  it('FSOS v1.8.1: saveMachines persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage', async () => {
+  it('FSOS v2.2.10: saveMachines persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage', async () => {
     const { StorageService, STORAGE_KEYS } = await import('./persistence');
 
     const machinePhotoKey = 'idb:WD-44367__photoUrl';

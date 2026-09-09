@@ -4,18 +4,18 @@ import { getAuthoritativeChangelog, parseChangelog } from './changelogParser';
 describe('Authoritative Changelog Parser', () => {
   it('loads and parses the root CHANGELOG.md directly', () => {
     const entries = getAuthoritativeChangelog();
-    expect(entries.length).toBe(154);
+    expect(entries.length).toBe(155);
 
-    // Latest entry should be v1.8.1
+    // Latest entry should be v2.3.0
     const first = entries[0];
-    expect(first.version).toBe('v1.8.1');
+    expect(first.version).toBe('v2.3.0');
     expect(first.date).toBeTruthy();
     expect(first.title).toBeTruthy();
     expect(first.sections.length).toBeGreaterThan(0);
 
-    // Oldest entry should be v0.1.0
+    // Oldest entry should be v1.0.0
     const last = entries[entries.length - 1];
-    expect(last.version).toBe('v0.1.0');
+    expect(last.version).toBe('v1.0.0');
     expect(last.title).toBeTruthy();
   });
 
@@ -28,7 +28,7 @@ describe('Authoritative Changelog Parser', () => {
       expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(entry.sections.length).toBeGreaterThan(0);
     }
-    expect(versionSet.size).toBe(154);
+    expect(versionSet.size).toBe(155);
   });
 
   it('verifies all 16 normalized releases are present with full structured sections', () => {
@@ -36,9 +36,9 @@ describe('Authoritative Changelog Parser', () => {
     const versions = entries.map((e) => e.version);
 
     const normalized16 = [
-      'v1.2.7', 'v1.2.6', 'v1.2.3', 'v1.2.2', 'v1.2.1',
-      'v1.1.21', 'v1.1.20', 'v1.1.19', 'v1.1.18', 'v1.1.17',
-      'v1.1.12', 'v1.0.15', 'v1.0.14', 'v1.0.1', 'v1.0.0', 'v0.9.1',
+      'v1.9.5', 'v1.9.4', 'v1.9.1', 'v1.9.0', 'v1.8.10',
+      'v1.8.9', 'v1.8.8', 'v1.8.7', 'v1.8.6', 'v1.8.5',
+      'v1.8.1', 'v1.4.10', 'v1.4.9', 'v1.3.8', 'v1.3.7', 'v1.3.6',
     ];
 
     for (const v of normalized16) {
@@ -73,20 +73,24 @@ describe('Authoritative Changelog Parser', () => {
     expect(entries[0].sections[1].heading).toBe('Verification');
   });
 
-  it('contains historical v1.2.11 and v1.3.0 entries', () => {
+  it('contains historical standardized entries across milestone ranges', () => {
     const entries = getAuthoritativeChangelog();
     const versions = entries.map((e) => e.version);
 
-    expect(versions).toContain('v1.3.1');
-    expect(versions).toContain('v1.3.0');
-    expect(versions).toContain('v1.2.11');
-    expect(versions).toContain('v1.2.10');
-    expect(versions).toContain('v1.2.5');
-    expect(versions).toContain('v1.1.15');
-    expect(versions).toContain('v1.0.37');
-    expect(versions).toContain('v1.0.14');
-    expect(versions).toContain('v0.9.0 Phase 2.1');
-    expect(versions).toContain('v0.7.5');
-    expect(versions).toContain('v0.1.0');
+    expect(versions).toContain('v2.3.0');
+    expect(versions).toContain('v2.2.10');
+    expect(versions).toContain('v2.0.0');
+    expect(versions).toContain('v1.10.10');
+    expect(versions).toContain('v1.10.8');
+    expect(versions).toContain('v1.10.7');
+    expect(versions).toContain('v1.9.9');
+    expect(versions).toContain('v1.9.8');
+    expect(versions).toContain('v1.9.3');
+    expect(versions).toContain('v1.8.4');
+    expect(versions).toContain('v1.6.10');
+    expect(versions).toContain('v1.4.9');
+    expect(versions).toContain('v1.3.5');
+    expect(versions).toContain('v1.2.8');
+    expect(versions).toContain('v1.0.0');
   });
 });
