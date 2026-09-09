@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v1.8.1 — HYDRATED IMAGE PERSISTENCE BOUNDARY & MEDIA PURGE PRESERVATION FIX (2026-09-09)
+
+### Hydrated Image Persistence Boundary
+- **Canonical IDB Reference Preservation on Save**:
+  - Enforced `ImageStore.extractAndStoreImagesSync()` across all persistence save paths (`saveMhcSessions`, `saveMachines`, `saveMhcRecords`, `saveReports`, `saveDrafts`, `saveTemplates`, `saveInvestigations`, `saveBranding`, `saveProfile`, `saveMhcReportDrafts`, `saveMhcWorkspaceTemplates`, `saveMhcWorkspaceDrafts`) in `persistence.ts`.
+  - Guaranteed that in-memory hydrated `data:image/...` strings are converted back to canonical `idb:` pointer keys before writing to `localStorage`.
+- **Reachability Scanner Preservation**:
+  - Ensured structured `localStorage` records retain canonical `idb:` references, allowing `collectIdbKeys()` to discover active media references and preventing valid images from being purged by `purgeUnseenMedia()`.
+- **Non-Destructive Local Storage Sanitization & Remote Updates**:
+  - Updated `sanitizeLocalStorageGhostMedia()` and `SyncEngine.registerRemoteUpdateCallback()` to pass records through `extractAndStoreImagesSync()`, ensuring neither cleanup passes nor remote cloud sync writes raw base64 payloads to structured storage.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.8.1`.
+
 ## v1.8.0 — STARTUP MEDIA RECONCILIATION & REACHABILITY SCANNING FIX (2026-09-09)
 
 ### Startup Media Reconciliation & Reachability

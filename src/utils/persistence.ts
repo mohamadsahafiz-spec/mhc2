@@ -573,14 +573,22 @@ export const StorageService = {
 
   getMhcRecords: (): MHCRecord[] => getStorage(KEYS.MHC_RECORDS, []),
   saveMhcRecords: (data: MHCRecord[]) => {
-    syncEnqueueList('mhc_records', KEYS.MHC_RECORDS, data);
-    setStorage(KEYS.MHC_RECORDS, data);
+    const processed = data.map(r => {
+      const recId = r.id || `mhc_${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(r, recId);
+    });
+    syncEnqueueList('mhc_records', KEYS.MHC_RECORDS, processed);
+    setStorage(KEYS.MHC_RECORDS, processed);
   },
 
   getReports: (): ExecutiveReport[] => getStorage(KEYS.REPORTS, []),
   saveReports: (data: ExecutiveReport[]) => {
-    syncEnqueueList('reports', KEYS.REPORTS, data);
-    setStorage(KEYS.REPORTS, data);
+    const processed = data.map(r => {
+      const recId = r.id || `rep_${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(r, recId);
+    });
+    syncEnqueueList('reports', KEYS.REPORTS, processed);
+    setStorage(KEYS.REPORTS, processed);
   },
 
   getTasks: (): FieldEngineerTask[] => getStorage(KEYS.TASKS, []),
@@ -597,8 +605,12 @@ export const StorageService = {
 
   getInvestigations: (): QualityInvestigation[] => getStorage(KEYS.INVESTIGATIONS, []),
   saveInvestigations: (data: QualityInvestigation[]) => {
-    syncEnqueueList('investigations', KEYS.INVESTIGATIONS, data);
-    setStorage(KEYS.INVESTIGATIONS, data);
+    const processed = data.map(inv => {
+      const recId = inv.id || `inv_${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(inv, recId);
+    });
+    syncEnqueueList('investigations', KEYS.INVESTIGATIONS, processed);
+    setStorage(KEYS.INVESTIGATIONS, processed);
   },
 
   getBaselines: (): BaselineCheck[] => getStorage(KEYS.BASELINES, []),
@@ -609,21 +621,35 @@ export const StorageService = {
 
   getTemplates: (): ReportTemplate[] => getStorage(KEYS.TEMPLATES, []),
   saveTemplates: (data: ReportTemplate[]) => {
-    syncEnqueueList('templates', KEYS.TEMPLATES, data);
-    setStorage(KEYS.TEMPLATES, data);
+    const processed = data.map(t => {
+      const recId = t.id || `tmpl_${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(t, recId);
+    });
+    syncEnqueueList('templates', KEYS.TEMPLATES, processed);
+    setStorage(KEYS.TEMPLATES, processed);
   },
 
   getDrafts: (): ReportDraft[] => getStorage(KEYS.DRAFTS, []),
   saveDrafts: (data: ReportDraft[]) => {
-    syncEnqueueList('drafts', KEYS.DRAFTS, data);
-    setStorage(KEYS.DRAFTS, data);
+    const processed = data.map(d => {
+      const recId = d.id || `draft_${Date.now()}`;
+      return ImageStore.extractAndStoreImagesSync(d, recId);
+    });
+    syncEnqueueList('drafts', KEYS.DRAFTS, processed);
+    setStorage(KEYS.DRAFTS, processed);
   },
 
   getBranding: (): FounderBrandingConfig => getStorage(KEYS.BRANDING, INITIAL_FOUNDER_BRANDING),
-  saveBranding: (data: FounderBrandingConfig) => setStorage(KEYS.BRANDING, data),
+  saveBranding: (data: FounderBrandingConfig) => {
+    const processed = ImageStore.extractAndStoreImagesSync(data, 'branding');
+    setStorage(KEYS.BRANDING, processed);
+  },
 
   getProfile: (): EngineerProfile => getStorage(KEYS.PROFILE, INITIAL_ENGINEER_PROFILE),
-  saveProfile: (data: EngineerProfile) => setStorage(KEYS.PROFILE, data),
+  saveProfile: (data: EngineerProfile) => {
+    const processed = ImageStore.extractAndStoreImagesSync(data, 'profile');
+    setStorage(KEYS.PROFILE, processed);
+  },
 
   getNotifications: (): NotificationItem[] => getStorage(KEYS.NOTIFICATIONS, []),
   saveNotifications: (data: NotificationItem[]) => setStorage(KEYS.NOTIFICATIONS, data),
@@ -762,7 +788,10 @@ export const StorageService = {
       if (rawSessions) {
         const parsed = JSON.parse(rawSessions);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.map(sanitizeMhcSession);
+          const sanitized = parsed.map(s => {
+            const clean = sanitizeMhcSession(s);
+            return clean && clean.id ? ImageStore.extractAndStoreImagesSync(clean, clean.id) : clean;
+          });
           localStorage.setItem(KEYS.MHC_SESSIONS, JSON.stringify(sanitized));
         }
       }
@@ -772,7 +801,10 @@ export const StorageService = {
       if (rawMachines) {
         const parsed = JSON.parse(rawMachines);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.map(sanitizeMachine);
+          const sanitized = parsed.map(m => {
+            const clean = sanitizeMachine(m);
+            return clean && clean.id ? ImageStore.extractAndStoreImagesSync(clean, clean.id) : clean;
+          });
           localStorage.setItem(KEYS.MACHINES, JSON.stringify(sanitized));
         }
       }
@@ -789,11 +821,21 @@ export const StorageService = {
       for (const k of otherKeys) {
         const raw = localStorage.getItem(k);
         if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const sanitized = parsed.map(stripGhostMediaFromObject);
-            localStorage.setItem(k, JSON.stringify(sanitized));
-          }
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const sanitized = parsed.map(item => {
+                if (!item || typeof item !== 'object') return item;
+                const recId = item.id || `rec_${Date.now()}`;
+                return ImageStore.extractAndStoreImagesSync(stripGhostMediaFromObject(item), recId);
+              });
+              localStorage.setItem(k, JSON.stringify(sanitized));
+            } else if (parsed && typeof parsed === 'object') {
+              const recId = parsed.id || `rec_${Date.now()}`;
+              const sanitized = ImageStore.extractAndStoreImagesSync(stripGhostMediaFromObject(parsed), recId);
+              localStorage.setItem(k, JSON.stringify(sanitized));
+            }
+          } catch (_) {}
         }
       }
     } catch (e) {
@@ -868,26 +910,26 @@ SyncEngine.registerLocalDataProvider(() => StorageService.getAllLocalData());
 SyncEngine.registerRemoteUpdateCallback((tableName, remoteRecords) => {
   if (!Array.isArray(remoteRecords) || remoteRecords.length === 0) return;
 
-  const keyMap: Record<string, { key: string; get: () => any[]; save: (data: any[]) => void }> = {
-    machines: { key: KEYS.MACHINES, get: StorageService.getMachines, save: StorageService.saveMachines },
-    mhc_sessions: { key: KEYS.MHC_SESSIONS, get: StorageService.getMhcSessions, save: StorageService.saveMhcSessions },
-    reports: { key: KEYS.REPORTS, get: StorageService.getReports, save: StorageService.saveReports },
-    customers: { key: KEYS.CUSTOMERS, get: StorageService.getCustomers, save: StorageService.saveCustomers },
-    plants: { key: KEYS.PLANTS, get: StorageService.getPlants, save: StorageService.savePlants },
-    lines: { key: KEYS.LINES, get: StorageService.getLines, save: StorageService.saveLines },
-    contracts: { key: KEYS.CONTRACTS, get: StorageService.getContracts, save: StorageService.saveContracts },
-    schedule: { key: KEYS.SCHEDULE, get: StorageService.getSchedule, save: StorageService.saveSchedule },
-    mhc_records: { key: KEYS.MHC_RECORDS, get: StorageService.getMhcRecords, save: StorageService.saveMhcRecords },
-    tasks: { key: KEYS.TASKS, get: StorageService.getTasks, save: StorageService.saveTasks },
-    alerts: { key: KEYS.ALERTS, get: StorageService.getAlerts, save: StorageService.saveAlerts },
-    baselines: { key: KEYS.BASELINES, get: StorageService.getBaselines, save: StorageService.saveBaselines },
-    investigations: { key: KEYS.INVESTIGATIONS, get: StorageService.getInvestigations, save: StorageService.saveInvestigations },
-    templates: { key: KEYS.TEMPLATES, get: StorageService.getTemplates, save: StorageService.saveTemplates },
-    drafts: { key: KEYS.DRAFTS, get: StorageService.getDrafts, save: StorageService.saveDrafts },
-    mhc_report_drafts: { key: KEYS.MHC_REPORT_DRAFTS, get: StorageService.getMhcReportDrafts, save: StorageService.saveMhcReportDrafts },
-    mhc_workspace_templates: { key: KEYS.MHC_WORKSPACE_TEMPLATES, get: StorageService.getMhcWorkspaceTemplates, save: StorageService.saveMhcWorkspaceTemplates },
-    mhc_workspace_drafts: { key: KEYS.MHC_WORKSPACE_DRAFTS, get: StorageService.getMhcWorkspaceDrafts, save: StorageService.saveMhcWorkspaceDrafts },
-    recommended_parts: { key: KEYS.RECOMMENDED_PARTS, get: StorageService.getRecommendedParts, save: StorageService.saveRecommendedParts }
+  const keyMap: Record<string, { key: string; get: () => any[]; extract?: boolean }> = {
+    machines: { key: KEYS.MACHINES, get: StorageService.getMachines, extract: true },
+    mhc_sessions: { key: KEYS.MHC_SESSIONS, get: StorageService.getMhcSessions, extract: true },
+    reports: { key: KEYS.REPORTS, get: StorageService.getReports, extract: true },
+    customers: { key: KEYS.CUSTOMERS, get: StorageService.getCustomers },
+    plants: { key: KEYS.PLANTS, get: StorageService.getPlants },
+    lines: { key: KEYS.LINES, get: StorageService.getLines },
+    contracts: { key: KEYS.CONTRACTS, get: StorageService.getContracts },
+    schedule: { key: KEYS.SCHEDULE, get: StorageService.getSchedule },
+    mhc_records: { key: KEYS.MHC_RECORDS, get: StorageService.getMhcRecords, extract: true },
+    tasks: { key: KEYS.TASKS, get: StorageService.getTasks },
+    alerts: { key: KEYS.ALERTS, get: StorageService.getAlerts },
+    baselines: { key: KEYS.BASELINES, get: StorageService.getBaselines },
+    investigations: { key: KEYS.INVESTIGATIONS, get: StorageService.getInvestigations, extract: true },
+    templates: { key: KEYS.TEMPLATES, get: StorageService.getTemplates, extract: true },
+    drafts: { key: KEYS.DRAFTS, get: StorageService.getDrafts, extract: true },
+    mhc_report_drafts: { key: KEYS.MHC_REPORT_DRAFTS, get: StorageService.getMhcReportDrafts, extract: true },
+    mhc_workspace_templates: { key: KEYS.MHC_WORKSPACE_TEMPLATES, get: StorageService.getMhcWorkspaceTemplates, extract: true },
+    mhc_workspace_drafts: { key: KEYS.MHC_WORKSPACE_DRAFTS, get: StorageService.getMhcWorkspaceDrafts, extract: true },
+    recommended_parts: { key: KEYS.RECOMMENDED_PARTS, get: StorageService.getRecommendedParts }
   };
 
   const config = keyMap[tableName];
@@ -916,6 +958,13 @@ SyncEngine.registerRemoteUpdateCallback((tableName, remoteRecords) => {
   });
 
   if (updated) {
-    setStorage(config.key, nextList);
+    const processed = config.extract
+      ? nextList.map(item => {
+          if (!item || typeof item !== 'object') return item;
+          const recId = item.id || `rec_${Date.now()}`;
+          return ImageStore.extractAndStoreImagesSync(item, recId);
+        })
+      : nextList;
+    setStorage(config.key, processed);
   }
 });

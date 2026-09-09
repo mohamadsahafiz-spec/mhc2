@@ -1,3 +1,30 @@
+class MockLocalStorage {
+  private store: Record<string, string> = {};
+  getItem(key: string): string | null {
+    return this.store[key] !== undefined ? this.store[key] : null;
+  }
+  setItem(key: string, value: string): void {
+    this.store[key] = String(value);
+  }
+  removeItem(key: string): void {
+    delete this.store[key];
+  }
+  clear(): void {
+    this.store = {};
+  }
+  get length(): number {
+    return Object.keys(this.store).length;
+  }
+  key(index: number): string | null {
+    const keys = Object.keys(this.store);
+    return keys[index] || null;
+  }
+}
+
+const mockStorage = new MockLocalStorage();
+(globalThis as any).localStorage = mockStorage;
+(global as any).localStorage = mockStorage;
+
 import { describe, it, expect, vi } from 'vitest';
 import { ImageStore } from './imageStore';
 import { auditMediaEvidence, cleanupOrphanedMedia } from './mediaEvidenceAudit';
@@ -230,5 +257,94 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
     expect(purgeResult.deletedKeys).toContain('idb:GENUINE_ORPHAN_GHOST_2');
     expect(rawStore['idb:GENUINE_ORPHAN_GHOST_1']).toBeUndefined();
     expect(rawStore['idb:GENUINE_ORPHAN_GHOST_2']).toBeUndefined();
+  });
+
+  it('FSOS v1.8.1: persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage, preventing valid media deletion during purge', async () => {
+    const { StorageService, STORAGE_KEYS } = await import('./persistence');
+
+    const canonicalKey = 'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl';
+    const base64Data = 'data:image/png;base64,BEAM_6A_PAYLOAD_FOUNDER_VALID';
+
+    // 1. Prime ImageStore with canonical key
+    await ImageStore.saveImage(canonicalKey, base64Data);
+
+    // 2. Simulate session loaded into memory and hydrated
+    const hydratedSession: any = {
+      id: 'MHC-SESS-1786717133921',
+      machineId: 'WD-44367',
+      stage02_laserProfile: {
+        beamProfileRecord: {
+          readings: {
+            '6A': { imageDataUrl: base64Data } // In-memory hydrated base64
+          }
+        }
+      }
+    };
+
+    // 3. Save via StorageService.saveMhcSessions
+    StorageService.saveMhcSessions([hydratedSession]);
+
+    // 4. Inspect raw localStorage content
+    const rawSaved = mockStorage.getItem(STORAGE_KEYS.MHC_SESSIONS);
+    expect(rawSaved).not.toBeNull();
+    const parsedSessions = JSON.parse(rawSaved!);
+    const savedSession = parsedSessions.find((s: any) => s.id === 'MHC-SESS-1786717133921');
+
+    // Verify localStorage retains the canonical idb: reference instead of base64
+    expect(savedSession.stage02_laserProfile.beamProfileRecord.readings['6A'].imageDataUrl).toBe(canonicalKey);
+
+    // 5. Reachability scan discovers the canonical key from stored Core Data
+    const coreData = StorageService.getAllLocalData();
+    const reachableKeys = ImageStore.collectIdbKeys(coreData);
+    expect(reachableKeys).toContain(canonicalKey);
+
+    // 6. Purge preserves the key
+    const rawStore: Record<string, string> = {
+      [canonicalKey]: base64Data,
+      'idb:GHOST_ORPHAN_KEY': 'data:image/png;base64,GHOST'
+    };
+
+    vi.spyOn(ImageStore, 'getAllRawStoredEntries').mockResolvedValue(rawStore);
+    vi.spyOn(ImageStore, 'getAllImages').mockResolvedValue(rawStore);
+    vi.spyOn(ImageStore, 'deleteImageKeys').mockImplementation(async (keys) => {
+      for (const k of keys) delete rawStore[k];
+      return { deletedCount: keys.length, errors: [] };
+    });
+
+    const purgeResult = await ImageStore.purgeUnseenMedia(new Set(reachableKeys));
+
+    expect(rawStore[canonicalKey]).toBe(base64Data);
+    expect(rawStore['idb:GHOST_ORPHAN_KEY']).toBeUndefined();
+    expect(purgeResult.deletedKeys).toContain('idb:GHOST_ORPHAN_KEY');
+    expect(purgeResult.deletedKeys).not.toContain(canonicalKey);
+  });
+
+  it('FSOS v1.8.1: saveMachines persistence boundary converts hydrated base64 images back to canonical idb: references before writing to localStorage', async () => {
+    const { StorageService, STORAGE_KEYS } = await import('./persistence');
+
+    const machinePhotoKey = 'idb:WD-44367__photoUrl';
+    const photoBase64 = 'data:image/png;base64,WD44367_PHOTO_PAYLOAD';
+
+    await ImageStore.saveImage(machinePhotoKey, photoBase64);
+
+    const hydratedMachine: any = {
+      id: 'WD-44367',
+      name: 'Drill WD-44367',
+      serialNumber: 'SN-44367',
+      photoUrl: photoBase64
+    };
+
+    StorageService.saveMachines([hydratedMachine]);
+
+    const rawSaved = mockStorage.getItem(STORAGE_KEYS.MACHINES);
+    expect(rawSaved).not.toBeNull();
+    const parsedMachines = JSON.parse(rawSaved!);
+    const savedMachine = parsedMachines.find((m: any) => m.id === 'WD-44367');
+
+    expect(savedMachine.photoUrl).toBe(machinePhotoKey);
+
+    const coreData = StorageService.getAllLocalData();
+    const reachableKeys = ImageStore.collectIdbKeys(coreData);
+    expect(reachableKeys).toContain(machinePhotoKey);
   });
 });
