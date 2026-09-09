@@ -172,4 +172,63 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
       expect(ImageStore.isGhostMediaKey(key)).toBe(false);
     }
   });
+
+  it('FSOS v1.8.0: startup purgeUnseenMedia preserves all active machine and session idb: media references', async () => {
+    const rawStore: Record<string, string> = {
+      'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl': 'data:image/png;base64,BEAM_6A_DATA',
+      'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl': 'data:image/png;base64,BEAM_6B_DATA',
+      'idb:WD-44367__photo': 'data:image/png;base64,MACHINE_PHOTO_DATA',
+      'idb:GENUINE_ORPHAN_GHOST_1': 'data:image/png;base64,ORPHAN_DATA_1',
+      'idb:GENUINE_ORPHAN_GHOST_2': 'data:image/png;base64,ORPHAN_DATA_2'
+    };
+
+    const activeCoreData: any = {
+      machines: [
+        {
+          id: 'WD-44367',
+          name: 'Machine WD-44367',
+          photoUrl: 'idb:WD-44367__photo'
+        }
+      ],
+      mhc_sessions: [
+        {
+          id: 'MHC-SESS-1786717133921',
+          machineId: 'WD-44367',
+          stage02_laserProfile: {
+            beamProfileRecord: {
+              readings: {
+                '6A': { imageDataUrl: 'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl' },
+                '6B': { imageDataUrl: 'idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl' }
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const reachableKeys = ImageStore.collectIdbKeys(activeCoreData);
+    expect(reachableKeys).toContain('idb:WD-44367__photo');
+    expect(reachableKeys).toContain('idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl');
+    expect(reachableKeys).toContain('idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl');
+
+    vi.spyOn(ImageStore, 'getAllRawStoredEntries').mockResolvedValue(rawStore);
+    vi.spyOn(ImageStore, 'getAllImages').mockResolvedValue(rawStore);
+    vi.spyOn(ImageStore, 'deleteImageKeys').mockImplementation(async (keys) => {
+      for (const k of keys) delete rawStore[k];
+      return { deletedCount: keys.length, errors: [] };
+    });
+
+    const purgeResult = await ImageStore.purgeUnseenMedia(new Set(reachableKeys));
+
+    // Active records are preserved
+    expect(rawStore['idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl']).toBe('data:image/png;base64,BEAM_6A_DATA');
+    expect(rawStore['idb:MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl']).toBe('data:image/png;base64,BEAM_6B_DATA');
+    expect(rawStore['idb:WD-44367__photo']).toBe('data:image/png;base64,MACHINE_PHOTO_DATA');
+
+    // Unreferenced ghosts are deleted
+    expect(purgeResult.deletedKeys).toContain('idb:GENUINE_ORPHAN_GHOST_1');
+    expect(purgeResult.deletedKeys).toContain('idb:GENUINE_ORPHAN_GHOST_2');
+    expect(rawStore['idb:GENUINE_ORPHAN_GHOST_1']).toBeUndefined();
+    expect(rawStore['idb:GENUINE_ORPHAN_GHOST_2']).toBeUndefined();
+  });
 });

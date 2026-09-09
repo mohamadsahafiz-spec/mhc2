@@ -1467,9 +1467,7 @@ export const ImageStore = {
     // 1. Determine authoritative reachable keys
     let reachableKeys: Set<string>;
     if (activeReachableKeySet) {
-      reachableKeys = new Set<string>(
-        Array.from(activeReachableKeySet).filter(k => !isGhostMediaKey(k))
-      );
+      reachableKeys = new Set<string>(activeReachableKeySet);
     } else {
       const keysCollected: string[] = [];
       if (typeof localStorage !== 'undefined') {
@@ -1496,14 +1494,25 @@ export const ImageStore = {
           'fso_v04_schedule',
           'fso_v090_recommended_parts'
         ];
-        for (const sk of storageKeys) {
+
+        // Authoritatively scan all operational storage keys and all fso/fsos localStorage entries
+        const allTargetKeys = new Set<string>(storageKeys);
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const lk = localStorage.key(i);
+            if (lk && (lk.startsWith('fso_') || lk.startsWith('fsos_'))) {
+              allTargetKeys.add(lk);
+            }
+          }
+        } catch {}
+
+        for (const sk of allTargetKeys) {
           try {
             const rawVal = localStorage.getItem(sk);
             if (rawVal) {
               const parsed = JSON.parse(rawVal);
               const collected = this.collectIdbKeys(parsed);
-              const validKeys = collected.filter(k => !isGhostMediaKey(k));
-              keysCollected.push(...validKeys);
+              keysCollected.push(...collected);
             }
           } catch {}
         }
@@ -1511,10 +1520,10 @@ export const ImageStore = {
       reachableKeys = new Set<string>(keysCollected);
     }
 
-    // 2. Identify all unreferenced/unseen keys (including all ghost media keys)
+    // 2. Identify all unreferenced/unseen keys
     const unseenKeys: string[] = [];
     for (const key of allStoredKeys) {
-      if (!reachableKeys.has(key) || isGhostMediaKey(key)) {
+      if (!reachableKeys.has(key)) {
         unseenKeys.push(key);
       }
     }

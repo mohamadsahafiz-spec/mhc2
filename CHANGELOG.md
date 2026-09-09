@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v1.8.0 — STARTUP MEDIA RECONCILIATION & REACHABILITY SCANNING FIX (2026-09-09)
+
+### Startup Media Reconciliation & Reachability
+- **Identity & Session Reconciliation Pre-Purge**:
+  - Reordered the startup lifecycle sequence in `App.tsx` so machine and MHC session identity reconciliation completes before `purgeUnseenMedia()` executes.
+  - Ensured all active parent records are linked and valid references are recognized prior to reachability evaluation.
+- **Authoritative Reachability Key Inclusion**:
+  - Updated `purgeUnseenMedia()` in `imageStore.ts` to scan all active Core Data records (machines, MHC sessions, reports, drafts, templates, branding, and profile) into the authoritative `reachableKeys` set.
+  - Eliminated faulty ghost-filter exclusions on reachable keys so valid media referenced by active records is never classified as unseen or deleted.
+- **Non-Destructive Local Storage Sanitization**:
+  - Preserved valid media keys in `persistence.ts` during startup localStorage sanitization, preventing unintended property stripping.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.8.0`.
+
 ## v1.7.9 — IMAGE HYDRATION & REAL MEDIA GHOST CLASSIFICATION FIX (2026-09-09)
 
 ### Image Hydration & Ghost Classification Refinement

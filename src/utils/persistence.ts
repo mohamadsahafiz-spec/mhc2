@@ -294,84 +294,11 @@ export function stripGhostMediaFromObject<T>(obj: T): T {
   }
   const copy: any = { ...obj };
 
-  // 1. Clean focusOptimizationRecord / focusOptimizationRecords
-  if (copy.focusOptimizationRecord) {
-    copy.focusOptimizationRecord = stripFocusOptimizationRecordImages(copy.focusOptimizationRecord);
-  }
-  if (Array.isArray(copy.focusOptimizationRecords)) {
-    copy.focusOptimizationRecords = copy.focusOptimizationRecords.map(stripFocusOptimizationRecordImages);
-  }
-
-  // 2. Clean productProcessRecord / productProcessRecords
-  if (copy.productProcessRecord) {
-    copy.productProcessRecord = stripProductProcessRecordImages(copy.productProcessRecord);
-  }
-  if (Array.isArray(copy.productProcessRecords)) {
-    copy.productProcessRecords = copy.productProcessRecords.map(stripProductProcessRecordImages);
-  }
-
-  // 3. Clean stageCalibrationData
-  if (copy.stageCalibrationData && typeof copy.stageCalibrationData === 'object') {
-    const cleanedStageData: Record<string, any> = {};
-    for (const [stKey, stVal] of Object.entries(copy.stageCalibrationData)) {
-      if (stVal && typeof stVal === 'object') {
-        const { evidenceImage, ...rest } = stVal as any;
-        cleanedStageData[stKey] = rest;
-      } else {
-        cleanedStageData[stKey] = stVal;
-      }
+  // Strip accidental React synthetic event / fiber properties without affecting media keys
+  for (const k of Object.keys(copy)) {
+    if (k.startsWith('__react') || k.startsWith('_react') || k === 'nativeEvent' || k === 'view' || k === 'target') {
+      delete copy[k];
     }
-    copy.stageCalibrationData = cleanedStageData;
-  }
-
-  // 4. Clean stage03 temperatureEvidence
-  if (Array.isArray(copy.temperatureEvidence)) {
-    copy.temperatureEvidence = copy.temperatureEvidence.map((te: any) => {
-      if (!te || typeof te !== 'object') return te;
-      const { imageDataUrl, ...rest } = te;
-      return rest;
-    });
-  }
-
-  // 5. Clean agcData (evidenceImage)
-  if (copy.agcData && typeof copy.agcData === 'object') {
-    const cleanedAgcData: Record<string, any> = {};
-    for (const [agcKey, agcVal] of Object.entries(copy.agcData)) {
-      if (agcVal && typeof agcVal === 'object') {
-        const { evidenceImage, ...rest } = agcVal as any;
-        cleanedAgcData[agcKey] = rest;
-      } else {
-        cleanedAgcData[agcKey] = agcVal;
-      }
-    }
-    copy.agcData = cleanedAgcData;
-  }
-
-  // 6. Clean inspectionFindings (findings[].evidenceImage)
-  if (copy.inspectionFindings && typeof copy.inspectionFindings === 'object') {
-    const cleanedFindings: Record<string, any> = {};
-    for (const [lhKey, lhVal] of Object.entries(copy.inspectionFindings)) {
-      if (lhVal && typeof lhVal === 'object') {
-        const lhObj: any = { ...lhVal };
-        if (Array.isArray(lhObj.findings)) {
-          lhObj.findings = lhObj.findings.map((f: any) => {
-            if (!f || typeof f !== 'object') return f;
-            const { evidenceImage, ...fRest } = f;
-            return fRest;
-          });
-        }
-        cleanedFindings[lhKey] = lhObj;
-      } else {
-        cleanedFindings[lhKey] = lhVal;
-      }
-    }
-    copy.inspectionFindings = cleanedFindings;
-  }
-
-  // 7. Clean laserInspection
-  if (copy.laserInspection && typeof copy.laserInspection === 'object') {
-    const { evidenceImages, evidenceImage, ...lRest } = copy.laserInspection as any;
-    copy.laserInspection = lRest;
   }
 
   return copy as T;
@@ -380,14 +307,6 @@ export function stripGhostMediaFromObject<T>(obj: T): T {
 export function sanitizeMachine(m: Machine): Machine {
   if (!m) return m;
   let updated: any = { ...m };
-
-  if (Array.isArray(updated.focusOptimizationRecords)) {
-    updated.focusOptimizationRecords = updated.focusOptimizationRecords.map(stripFocusOptimizationRecordImages);
-  }
-
-  if (Array.isArray(updated.productProcessRecords)) {
-    updated.productProcessRecords = updated.productProcessRecords.map(stripProductProcessRecordImages);
-  }
 
   if (updated.temperatureRecords && Array.isArray(updated.temperatureRecords)) {
     const sanitizedTempRecords = updated.temperatureRecords.map((rec: any) => {
