@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Aperture,
   Plus,
@@ -45,6 +45,15 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+
+  // Reactive subscription to ImageStore to re-render when IndexedDB hydration finishes
+  const [, setImageStoreVersion] = useState(0);
+  useEffect(() => {
+    const unsub = ImageStore.subscribe(() => {
+      setImageStoreVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
 
   const records = useMemo(() => {
     const raw = machine?.beamProfileRecords || [];

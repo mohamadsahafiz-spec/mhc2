@@ -1694,7 +1694,6 @@ export function mergeSessionsPreservingImages<S extends { id: string }>(incoming
 export function isFounderVisibleBeamProfileKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false;
   const k = key.toLowerCase();
-  if (k.includes('wd-44367') && k.includes('beamprofilerecords')) return false;
   if (k.includes('stage02') && (k.includes('beamprofile') || k.includes('laserprofile'))) return true;
   if (k.includes('mhc') && (k.includes('beamprofile') || k.includes('laserprofile'))) return true;
   if (k.includes('beamprofile') || k.includes('beam_profile') || k.includes('laserprofile')) return true;
@@ -1702,17 +1701,15 @@ export function isFounderVisibleBeamProfileKey(key: string): boolean {
 }
 
 /**
- * Identifies unseen ghost media keys (such as agcData, inspectionFindings, focusOptimization, productProcess, stageCalibration, machine beamProfileRecords)
+ * Identifies unseen ghost media keys (such as agcData, inspectionFindings, focusOptimization, productProcess, stageCalibration)
  * that must be permanently deleted from IndexedDB and runtime memory caches.
+ * Note: Valid Beam Profile media (Stage 02 and Machine records) is preserved and safe.
  */
 export function isGhostMediaKey(key: string): boolean {
   if (!key || typeof key !== 'string') return false;
   const k = key.toLowerCase();
 
-  // Targeted ghost machine duplicates
-  if (k.includes('wd-44367') && k.includes('beamprofilerecords')) return true;
-
-  // Preserved: Legitimate Founder-visible Stage 02 Beam Profile keys
+  // Preserved: Legitimate Founder-visible Beam Profile keys
   if (isFounderVisibleBeamProfileKey(key)) return false;
 
   // Targeted ghost media patterns

@@ -1,5 +1,16 @@
 # FSOS CHANGELOG
 
+## v1.7.9 — IMAGE HYDRATION & REAL MEDIA GHOST CLASSIFICATION FIX (2026-09-09)
+
+### Image Hydration & Ghost Classification Refinement
+- **Reactive ImageStore Hydration in Machine Beam Profile Workspace**:
+  - Added an `ImageStore.subscribe()` reactive listener to `MachineBeamProfileWorkspace.tsx` to automatically trigger component re-render when IndexedDB asynchronous image hydration completes on cold reload, resolving the 16 preserved Beam Profile images.
+- **Real Media Ghost Classification Rule Refinement**:
+  - Removed the hardcoded `wd-44367 + beamProfileRecords` ghost media exclusion in `imageStore.ts`.
+  - Enforced the architectural rule that media owned by an active valid Beam Profile record is safe and never classified as ghost based solely on machine ID, naming pattern, or `.bin` extension.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.9`.
+
 ## v1.7.8 — BEAM PROFILE IMAGE RENDERING REGRESSION FIX (2026-09-09)
 
 ### Beam Profile Media Resolution & Render Hydration
