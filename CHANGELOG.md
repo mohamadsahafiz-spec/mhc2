@@ -1,5 +1,25 @@
 # FSOS CHANGELOG
 
+## v1.7.7 — REMOVE REMAINING GHOST MEDIA & TRACE SOURCE (2026-09-09)
+
+### Remaining Unseen Media Purge & Source Path Elimination
+- **Source Path Root Cause Identification & Interception**:
+  - Identified source paths where non-Founder-visible evidence images (from `MhcAgcActivity`, `MhcLaserInspectionActivity`, `MhcStageCalibrationActivity`, and machine `beamProfileRecords`) were passed to `extractAndStoreImagesSync()` during machine and session saves.
+  - Hardened `ImageStore.extractAndStoreImagesSync()` to evaluate `isGhostMediaKey()` and immediately reject storage of non-Founder-visible ghost media keys.
+- **Targeted Ghost Media Deletion Engine (`imageStore.ts`)**:
+  - Expanded `isGhostMediaKey()` to comprehensively classify and delete the 6 remaining unseen media entries:
+    - `MHC-SESS-1786717133921__agcData_agc1_evidenceImage`
+    - `MHC-SESS-1786717133921__agcData_agc2_evidenceImage`
+    - `MHC-SESS-1786717133921__inspectionFindings_lh2_findings_0_evidenceImage`
+    - `MHC-SESS-1786879186339__agcData_agc1_evidenceImage`
+    - `MHC-SESS-1786879186339__agcData_agc2_evidenceImage`
+    - `WD-44367__beamProfileRecords_0_readings_6B_imageDataUrl`
+  - Preserved strictly the 16 legitimate Founder-visible Stage 02 Beam Profile images.
+- **LocalStorage & Core Data Ghost Reference Stripping (`persistence.ts`)**:
+  - Enhanced `stripGhostMediaFromObject()` and added `stripBeamProfileRecordImages()` to remove `agcData.evidenceImage`, `inspectionFindings.*.findings[].evidenceImage`, `laserInspection` evidence, and machine `beamProfileRecords.*.imageDataUrl` references from persisted data and backups.
+- **Authoritative Version Synchronization**:
+  - Synchronized all FSOS version declarations across `src/constants/version.ts`, `package.json`, `metadata.json`, `SettingsModule.tsx`, and `CHANGELOG.md` to `v1.7.7`.
+
 ## v1.7.6 — DELETE UNSEEN GHOST MEDIA (2026-09-08)
 
 ### Unseen Ghost Media Elimination & Persistent Storage Stripping

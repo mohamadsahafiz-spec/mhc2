@@ -132,4 +132,44 @@ describe('v1.7.4 Delete Unseen Media from Existing Storage', () => {
     expect(rawStore['REACHABLE_ALIAS_1']).toBe('ref:CANONICAL_TARGET_1');
     expect(rawStore['CANONICAL_TARGET_1']).toBe('data:image/png;base64,REAL_CANONICAL_PAYLOAD_DATA');
   });
+
+  it('FSOS v1.7.7: verifies the 6 remaining ghost media keys are flagged and purged while the 16 Stage 02 Beam Profile keys are preserved', () => {
+    const remaining6GhostKeys = [
+      'MHC-SESS-1786717133921__agcData_agc1_evidenceImage',
+      'MHC-SESS-1786717133921__agcData_agc2_evidenceImage',
+      'MHC-SESS-1786717133921__inspectionFindings_lh2_findings_0_evidenceImage',
+      'MHC-SESS-1786879186339__agcData_agc1_evidenceImage',
+      'MHC-SESS-1786879186339__agcData_agc2_evidenceImage',
+      'WD-44367__beamProfileRecords_0_readings_6B_imageDataUrl'
+    ];
+
+    for (const key of remaining6GhostKeys) {
+      expect(ImageStore.isGhostMediaKey(key)).toBe(true);
+      expect(ImageStore.isFounderVisibleBeamProfileKey(key)).toBe(false);
+    }
+
+    const stage02BeamProfile16Keys = [
+      'MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl',
+      'MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl',
+      'MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_7A_imageDataUrl',
+      'MHC-SESS-1786717133921__stage02_laserProfile_beamProfileRecord_readings_7B_imageDataUrl',
+      'MHC-SESS-1786879186339__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl',
+      'MHC-SESS-1786879186339__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl',
+      'MHC-SESS-1786879186339__stage02_laserProfile_beamProfileRecord_readings_7A_imageDataUrl',
+      'MHC-SESS-1786879186339__stage02_laserProfile_beamProfileRecord_readings_7B_imageDataUrl',
+      'MHC-SESS-1786900000001__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl',
+      'MHC-SESS-1786900000001__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl',
+      'MHC-SESS-1786900000001__stage02_laserProfile_beamProfileRecord_readings_7A_imageDataUrl',
+      'MHC-SESS-1786900000001__stage02_laserProfile_beamProfileRecord_readings_7B_imageDataUrl',
+      'MHC-SESS-1786900000002__stage02_laserProfile_beamProfileRecord_readings_6A_imageDataUrl',
+      'MHC-SESS-1786900000002__stage02_laserProfile_beamProfileRecord_readings_6B_imageDataUrl',
+      'MHC-SESS-1786900000002__stage02_laserProfile_beamProfileRecord_readings_7A_imageDataUrl',
+      'MHC-SESS-1786900000002__stage02_laserProfile_beamProfileRecord_readings_7B_imageDataUrl'
+    ];
+
+    for (const key of stage02BeamProfile16Keys) {
+      expect(ImageStore.isFounderVisibleBeamProfileKey(key)).toBe(true);
+      expect(ImageStore.isGhostMediaKey(key)).toBe(false);
+    }
+  });
 });
