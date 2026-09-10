@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v2.3.1 — FSOS Major Audit Release Closure (2026-09-10)
+
+### Audit & Architecture
+- **Report Overflow & Continuation Pagination**: Implemented deterministic overflow page budgeting for Sections 13–15 in `mhcReportEngine.ts` and dynamic container mapping in `MhcFullPdfRenderer.tsx`. Preserved standard 10-page layout while safely supporting continuation pages up to 13+ pages for high-volume findings, spare parts, and extended remarks without data clipping.
+- **Section 15 Inviolable Grouping**: Enforced atomic co-location of disposition verdict, next scheduled MHC cycle, Field Service Engineer signoff, Customer Representative signoff, and customer remarks on the final report page.
+- **MHC Active Session Indicator**: Corrected session progress evaluation in `mhcActiveSessionIndicator.ts` so newly initialized cleanroom sessions without meaningful progress do not falsely trigger Active Job status indicators.
+- **Remote D1 Orphan Media Cleanup**: Preserved reference-aware orphan cleanup with strict 24-hour grace periods and alias-promotion draft deletion protection.
+- **Version Authority Consolidation**: Centralized authoritative version declaration in `src/constants/version.ts` across client and server runtimes.
+
+### Verification & Quality
+- Added unit tests for dynamic report pagination and section budgeting (`mhcReportPagination.test.ts`).
+- Standardized test fixtures with full TypeScript type compliance.
+- Verified 30 test suites (209 tests passed), clean TypeScript compilation (`tsc --noEmit`), and production build.
+
 ## v2.3.0 — Version History Standardization (2026-09-09)
 
 ### Engineering

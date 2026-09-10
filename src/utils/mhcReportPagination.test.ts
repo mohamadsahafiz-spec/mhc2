@@ -3,7 +3,7 @@ import {
   computeReportSections13To15PaginationPlan,
   buildMhcReportDocument
 } from './mhcReportEngine';
-import { MHCSession } from '../types';
+import { MHCSession, MHCInspectionFindingItem } from '../types';
 
 describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
   const createBaseSession = (): MHCSession => ({
@@ -24,21 +24,42 @@ describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
     sectionStatuses: {},
     inspectionFindings: {
       lh1: {
-        decision: 'PASS',
+        headId: 'lh1',
+        headName: 'Laser Head 1',
+        decision: 'NO_ISSUE',
+        status: 'COMPLETED',
         findings: [
-          { id: 'f1', component: 'Optics Mirror', conditions: ['Dusty'], engineerNote: 'Cleaned' }
+          {
+            id: 'f1',
+            headId: 'lh1',
+            headName: 'Laser Head 1',
+            component: 'Optics Mirror',
+            conditions: ['Dusty'],
+            actionRecommendation: 'Clean',
+            engineerNote: 'Cleaned',
+            createdAt: '2026-09-10T08:30:00Z'
+          }
         ]
       }
     },
+    stage01_laserHours: [],
+    stage02_laserProfile: { laserId: 'lh1', productName: 'PCB', recipeProgram: 'P1', profileInfo: '', measurementInfo: '', supportingEvidence: '', images: [] },
+    stage03_laserPower: [],
+    stage04_opticsBeam: { cleanlinessScore: 100, beamWaistMm: 0.1, focusOffsetMm: 0, symmetryRatio: 1, m2Value: 1.1, beforeCondition: '', afterCondition: '', inspectionResult: 'PASS', images: [], notes: '' },
+    stage05_cooling: { chillerTempCelsius: 22, chillerFlowLpm: 3.5, diConductivityUs: 0.5, coolingCondition: 'GOOD', thermalCondition: 'GOOD', beforeCondition: '', afterCondition: '', result: 'PASS', notes: '' },
+    stage06_productQuality: { sampleId: 'S1', viaDiameterUm: 50, viaShape: 'ROUND', viaOffsetUm: 0, padQuality: 'GOOD', visualVerification: 'PASS', beforeInspectionNotes: '', afterInspectionNotes: '', beforeImages: [], afterImages: [], result: 'PASS', notes: '' },
     stage07_spareParts: [
-      { id: 'p1', partName: 'Optical Filter', quantity: 1, action: 'REPLACED', costIndicator: 'FOC' } as any,
-      { id: 'r1', partName: 'Chiller Pump', quantity: 1, action: 'RECOMMENDED', costIndicator: 'BILLABLE' } as any
+      { id: 'p1', partName: 'Optical Filter', quantity: 1, action: 'REPLACED', costIndicator: 'CUSTOMER_COST', category: 'Optics', reason: 'Preventive' },
+      { id: 'r1', partName: 'Chiller Pump', quantity: 1, action: 'RECOMMENDED', costIndicator: 'CUSTOMER_COST', category: 'Cooling', reason: 'High hours' }
     ],
     stage08_engineerRemarks: {
       generalFindings: 'All systems operating within acceptable limits',
-      recommendations: 'Perform regular inspection every 90 days.'
-    },
-    customerApproved: true
+      observedIssues: 'None',
+      correctiveActions: 'None',
+      recommendations: 'Perform regular inspection every 90 days.',
+      followUpRequired: false,
+      productionReleaseVerdict: 'APPROVED'
+    }
   });
 
   it('Standard Report: retains exactly 10 pages with Sections 13, 14, 15 unified on Page 10', () => {
@@ -73,16 +94,20 @@ describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
   it('Extreme Findings Overflow: splits large findings across Page 10 and Page 11 safely without clipping', () => {
     const session = createBaseSession();
     // 16 findings
-    const findingsList = Array.from({ length: 16 }, (_, i) => ({
+    const findingsList: MHCInspectionFindingItem[] = Array.from({ length: 16 }, (_, i) => ({
       id: `f-${i + 1}`,
+      headId: i < 8 ? 'lh1' : 'lh2',
+      headName: i < 8 ? 'Laser Head 1' : 'Laser Head 2',
       component: `Component ${i + 1}`,
       conditions: ['Observed wear', 'Calibration shift'],
-      engineerNote: `Detailed engineering inspection observation for component ${i + 1}. Checked thoroughly.`
+      actionRecommendation: 'Monitor',
+      engineerNote: `Detailed engineering inspection observation for component ${i + 1}. Checked thoroughly.`,
+      createdAt: '2026-09-10T08:30:00Z'
     }));
 
     session.inspectionFindings = {
-      lh1: { decision: 'PASS', findings: findingsList.slice(0, 8) },
-      lh2: { decision: 'PASS', findings: findingsList.slice(8) }
+      lh1: { headId: 'lh1', headName: 'Laser Head 1', decision: 'ISSUE_FOUND', status: 'COMPLETED', findings: findingsList.slice(0, 8) },
+      lh2: { headId: 'lh2', headName: 'Laser Head 2', decision: 'ISSUE_FOUND', status: 'COMPLETED', findings: findingsList.slice(8) }
     };
     if (session.stage08_engineerRemarks) {
       session.stage08_engineerRemarks.generalFindings = 'Multiple subsystems required maintenance and readjustment.';
@@ -120,16 +145,20 @@ describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
     const session = createBaseSession();
     
     // 22 findings
-    const findingsList = Array.from({ length: 22 }, (_, i) => ({
+    const findingsList: MHCInspectionFindingItem[] = Array.from({ length: 22 }, (_, i) => ({
       id: `f-${i + 1}`,
+      headId: i < 11 ? 'lh1' : 'lh2',
+      headName: i < 11 ? 'Laser Head 1' : 'Laser Head 2',
       component: `Subsystem Part ${i + 1}`,
       conditions: ['Degradation', 'Out of tolerance'],
-      engineerNote: `Extended note for component ${i + 1}`
+      actionRecommendation: 'Recommended replacement',
+      engineerNote: `Extended note for component ${i + 1}`,
+      createdAt: '2026-09-10T08:30:00Z'
     }));
 
     session.inspectionFindings = {
-      lh1: { decision: 'PASS', findings: findingsList.slice(0, 11) },
-      lh2: { decision: 'PASS', findings: findingsList.slice(11) }
+      lh1: { headId: 'lh1', headName: 'Laser Head 1', decision: 'ISSUE_FOUND', status: 'COMPLETED', findings: findingsList.slice(0, 11) },
+      lh2: { headId: 'lh2', headName: 'Laser Head 2', decision: 'ISSUE_FOUND', status: 'COMPLETED', findings: findingsList.slice(11) }
     };
 
     // 8 consumed parts + 8 recommended parts + long recommendations text
@@ -138,22 +167,29 @@ describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
         id: `cp-${i}`,
         partName: `Consumed Module ${i + 1}`,
         quantity: i + 1,
-        action: 'REPLACED',
-        costIndicator: 'BILLABLE'
-      } as any)),
+        action: 'REPLACED' as const,
+        costIndicator: 'CUSTOMER_COST' as const,
+        category: 'Consumables',
+        reason: 'Service replace'
+      })),
       ...Array.from({ length: 8 }, (_, i) => ({
         id: `rp-${i}`,
         partName: `Recommended Spare ${i + 1}`,
         quantity: 2,
-        action: 'RECOMMENDED',
-        costIndicator: 'BILLABLE',
+        action: 'RECOMMENDED' as const,
+        costIndicator: 'CUSTOMER_COST' as const,
+        category: 'Spares',
         reason: 'Critical redundancy'
-      } as any))
+      }))
     ];
 
     session.stage08_engineerRemarks = {
       generalFindings: 'Full optical and mechanical overhaul performed across both laser paths.',
-      recommendations: 'Comprehensive maintenance cycle must be accelerated to 45-day intervals. Optical bench realignment recommended during next scheduled factory downtime.'
+      observedIssues: 'Thermal drift and optical degradation noted.',
+      correctiveActions: 'Realigned optical path and cleaned mirrors.',
+      recommendations: 'Comprehensive maintenance cycle must be accelerated to 45-day intervals. Optical bench realignment recommended during next scheduled factory downtime.',
+      followUpRequired: true,
+      productionReleaseVerdict: 'CONDITIONAL_RELEASE'
     };
 
     const doc = buildMhcReportDocument(session);
@@ -205,16 +241,23 @@ describe('MHC Report Sections 13–15 Overflow Pagination Architecture', () => {
     const standardDoc = buildMhcReportDocument(session);
     
     // Overflow session
-    const overflowSession = {
+    const overflowSession: MHCSession = {
       ...createBaseSession(),
       inspectionFindings: {
         lh1: {
-          decision: 'PASS' as const,
+          headId: 'lh1',
+          headName: 'Laser Head 1',
+          decision: 'ISSUE_FOUND',
+          status: 'COMPLETED',
           findings: Array.from({ length: 25 }, (_, i) => ({
             id: `f-${i}`,
+            headId: 'lh1',
+            headName: 'Laser Head 1',
             component: `Component ${i}`,
             conditions: ['Alert'],
-            engineerNote: 'Checked'
+            actionRecommendation: 'Monitor',
+            engineerNote: 'Checked',
+            createdAt: '2026-09-10T08:30:00Z'
           }))
         }
       }
