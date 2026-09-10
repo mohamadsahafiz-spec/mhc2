@@ -27,6 +27,7 @@ import {
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
+import { APP_VERSION } from '../../constants/version';
 import { getAuthoritativeChangelog } from '../../utils/changelogParser';
 import {
   exportFullBackup,
@@ -497,7 +498,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
           </button>
         </div>
         <div className="text-[11px] font-mono text-slate-500">
-          FSOS v2.3.0
+          FSOS {APP_VERSION}
         </div>
       </div>
 
@@ -519,7 +520,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
                     <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
                       <Package className="w-4 h-4" />
                       <span>Export Portable Backup (.fsosbackup)</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">v2.3.0</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">{APP_VERSION}</span>
                     </div>
                     <p className="text-slate-400 leading-relaxed">
                       Complete operational backup including structured data and deduplicated media.

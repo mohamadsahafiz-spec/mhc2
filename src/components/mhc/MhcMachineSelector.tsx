@@ -18,6 +18,7 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { LaserEngine } from '../../utils/laserEngine';
+import { hasMeaningfulMhcProgress } from '../../utils/mhcAutopilotBrain';
 
 interface MhcMachineSelectorProps {
   machines: Machine[];
@@ -148,7 +149,7 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
                 </div>
               </div>
 
-              {activeSess && (
+              {activeSess && hasMeaningfulMhcProgress(activeSess) && (
                 <div className="mt-3 p-2 bg-emerald-950/30 border border-emerald-800/40 rounded-lg flex items-center justify-between text-xs">
                   <span className="text-emerald-300 font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3 text-emerald-400" />

@@ -1334,3 +1334,112 @@ export function resolveEffectiveAutopilotSession(
 
   return target;
 }
+
+/**
+ * Determines whether an MHC session contains meaningful inspection progress/data.
+ * Returns false for:
+ *  - null / undefined
+ *  - Completed sessions (historical records)
+ *  - Newly created / freshly initialized empty sessions with 0 inspection data
+ * Returns true for:
+ *  - IN_PROGRESS sessions that have recorded inspection data, completed activities,
+ *    or actively modified telemetry/findings.
+ */
+export function hasMeaningfulMhcProgress(session?: MHCSession | null): boolean {
+  if (!session || typeof session !== 'object') return false;
+  if (session.completionStatus === 'COMPLETED') return false;
+
+  // 1. Check Autopilot readiness / completed activities
+  const progress = session.autopilotProgress;
+  if (progress) {
+    if (typeof progress.readinessScore === 'number' && progress.readinessScore > 0) {
+      return true;
+    }
+
+    if (progress.activityStatuses) {
+      const statuses = Object.entries(progress.activityStatuses);
+      const hasCompletedOrReview = statuses.some(
+        ([_, status]) => status === 'COMPLETED' || status === 'NEEDS_REVIEW'
+      );
+      if (hasCompletedOrReview) return true;
+
+      // If user progressed beyond initial activity code '01'
+      if (progress.currentActivityCode && progress.currentActivityCode !== '01') {
+        return true;
+      }
+    }
+
+    // Any recorded activity notes
+    if (progress.activityNotes && Object.values(progress.activityNotes).some(note => typeof note === 'string' && note.trim().length > 0)) {
+      return true;
+    }
+
+    // Any dispositions recorded
+    if (progress.dispositions && Object.keys(progress.dispositions).length > 0) {
+      return true;
+    }
+  }
+
+  // 2. Check individual inspection stage payloads
+  if (session.stage01_laserHours && session.stage01_laserHours.length > 0) return true;
+  if (session.stage03_laserPower && session.stage03_laserPower.length > 0) return true;
+  if (session.stage02_laserProfile?.beamProfileRecord) return true;
+
+  // Inspection findings (Activity 02)
+  if (session.inspectionFindings) {
+    const findingsValues = Object.values(session.inspectionFindings);
+    const hasFindings = findingsValues.some(
+      h => (h && h.decision && h.decision !== 'UNANSWERED') || (h && h.findings && h.findings.length > 0)
+    );
+    if (hasFindings) return true;
+  }
+
+  // Stage & Coordinate calibration data (Activity 03)
+  if (session.stageCalibrationData && Object.keys(session.stageCalibrationData).length > 0) return true;
+
+  // Focus optimization record (Activity 04)
+  if (session.focusOptimizationRecord || session.focusExecutionState) return true;
+
+  // AGC data (Activity 05)
+  if (session.agcData && Object.keys(session.agcData).length > 0) return true;
+
+  // Product & Process / Via quality (Activity 06)
+  if (session.productProcessRecord) return true;
+
+  // Temperature / Telemetry evidence (Activity 06)
+  if (session.temperatureEvidenceData && (
+    session.temperatureEvidenceData.hasValidTemperatureAnalysis ||
+    session.temperatureEvidenceData.temperatureRecordId ||
+    (session.temperatureEvidenceData.evidences && session.temperatureEvidenceData.evidences.length > 0) ||
+    session.temperatureEvidenceData.engineerNote
+  )) {
+    return true;
+  }
+
+  // Spare parts recommendations (Activity 07)
+  if (session.stage07_spareParts && session.stage07_spareParts.length > 0) return true;
+
+  // Engineer findings & remarks (Activity 08)
+  if (session.stage08_engineerRemarks) {
+    const { generalFindings, observedIssues, correctiveActions, recommendations } = session.stage08_engineerRemarks;
+    if (
+      (generalFindings && generalFindings.trim().length > 0) ||
+      (observedIssues && observedIssues.trim().length > 0) ||
+      (correctiveActions && correctiveActions.trim().length > 0) ||
+      (recommendations && recommendations.trim().length > 0)
+    ) {
+      return true;
+    }
+  }
+
+  // Any completed section in sectionStatuses beyond initial '01'
+  if (session.sectionStatuses) {
+    const completedSections = Object.entries(session.sectionStatuses).filter(
+      ([code, status]) => status === 'COMPLETED'
+    );
+    if (completedSections.length > 0) return true;
+  }
+
+  return false;
+}
+

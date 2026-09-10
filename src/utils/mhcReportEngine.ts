@@ -91,6 +91,446 @@ function resolveLaserHeadIdentifier(
   return trimmed;
 }
 
+export interface ReportFindingItem {
+  source: string;
+  component: string;
+  conditions: string[];
+  engineerNote?: string;
+  actionRecommendation?: string;
+}
+
+export interface ReportPage13To15Layout {
+  pageNumber: number;
+  pageRunningHeader?: string;
+  hasFindings: boolean;
+  findingsSlice?: {
+    start: number;
+    end: number;
+    items: ReportFindingItem[];
+    isContinued: boolean;
+    includeGeneralNote: boolean;
+  };
+  hasSpareParts: boolean;
+  sparePartsIsContinued?: boolean;
+  includeRecommendations?: boolean;
+  includePartsTables?: boolean;
+  hasBuyoff: boolean;
+}
+
+export interface ReportPaginationPlan {
+  totalPages: number;
+  section13StartPage: number;
+  section14StartPage: number;
+  section15StartPage: number;
+  pages: ReportPage13To15Layout[];
+}
+
+export function computeReportSections13To15PaginationPlan(
+  findingsData?: MhcReportFindingsData,
+  sparePartsData?: MhcReportSparePartsData,
+  buyoffData?: MhcReportBuyoffData
+): ReportPaginationPlan {
+  const allFindings: ReportFindingItem[] = [];
+
+  (findingsData?.heads || []).forEach(h => {
+    (h.findingsList || []).forEach(f => {
+      allFindings.push({
+        source: h.headName,
+        component: f.component,
+        conditions: f.conditions,
+        engineerNote: f.engineerNote,
+        actionRecommendation: f.actionRecommendation
+      });
+    });
+  });
+
+  const generalFindingsNote = findingsData?.generalFindingsNote;
+  const consumedParts = sparePartsData?.consumedParts || [];
+  const recommendedParts = sparePartsData?.recommendedParts || [];
+  const recommendationsText = sparePartsData?.engineerRecommendationsText || 
+    (sparePartsData?.recommendations && sparePartsData.recommendations.length > 0 ? sparePartsData.recommendations.join(' • ') : '');
+
+  const findingsCount = allFindings.length;
+  const partsRowsCount = Math.max(consumedParts.length, recommendedParts.length);
+  const recsLen = recommendationsText.length;
+
+  const hFindings = 85 + (findingsCount > 0 ? findingsCount * 28 : 20) + (generalFindingsNote ? 35 : 0);
+  const hRecs = 60 + Math.ceil(recsLen / 80) * 16;
+  const hPartsTables = 40 + (partsRowsCount > 0 ? partsRowsCount * 24 : 30);
+  const hSpareParts = hRecs + hPartsTables + 30;
+  const hBuyoff = 310;
+
+  const totalCombinedHeight = hFindings + hSpareParts + hBuyoff;
+
+  // Case 1: Standard load fits within single Page 10 (Total 10 pages)
+  if (totalCombinedHeight <= 820 && findingsCount <= 6 && partsRowsCount <= 4 && recsLen <= 400) {
+    return {
+      totalPages: 10,
+      section13StartPage: 10,
+      section14StartPage: 10,
+      section15StartPage: 10,
+      pages: [
+        {
+          pageNumber: 10,
+          pageRunningHeader: 'SECTIONS 13–15 — FINDINGS, RECOMMENDATIONS & BUYOFF',
+          hasFindings: true,
+          findingsSlice: {
+            start: 0,
+            end: findingsCount,
+            items: allFindings,
+            isContinued: false,
+            includeGeneralNote: true
+          },
+          hasSpareParts: true,
+          sparePartsIsContinued: false,
+          includeRecommendations: true,
+          includePartsTables: true,
+          hasBuyoff: true
+        }
+      ]
+    };
+  }
+
+  // Case 2+: Overflow handling with deterministic page budgeting
+  const pages: ReportPage13To15Layout[] = [];
+
+  if (findingsCount <= 8) {
+    const findingsWithPartsHeight = hFindings + hPartsTables;
+    if (findingsWithPartsHeight <= 750) {
+      // Page 10: Findings + Spare Parts Tables
+      pages.push({
+        pageNumber: 10,
+        pageRunningHeader: 'SECTIONS 13–14 — FINDINGS & SPARE PARTS',
+        hasFindings: true,
+        findingsSlice: {
+          start: 0,
+          end: findingsCount,
+          items: allFindings,
+          isContinued: false,
+          includeGeneralNote: true
+        },
+        hasSpareParts: true,
+        sparePartsIsContinued: false,
+        includeRecommendations: false,
+        includePartsTables: true,
+        hasBuyoff: false
+      });
+      // Page 11: Recommendations + Inviolable Buyoff
+      pages.push({
+        pageNumber: 11,
+        pageRunningHeader: 'SECTIONS 14–15 — RECOMMENDATIONS & BUYOFF',
+        hasFindings: false,
+        hasSpareParts: true,
+        sparePartsIsContinued: true,
+        includeRecommendations: true,
+        includePartsTables: false,
+        hasBuyoff: true
+      });
+      return {
+        totalPages: 11,
+        section13StartPage: 10,
+        section14StartPage: 10,
+        section15StartPage: 11,
+        pages
+      };
+    } else {
+      // Page 10: Findings only
+      pages.push({
+        pageNumber: 10,
+        pageRunningHeader: 'SECTION 13 — FINDINGS & OBSERVATIONS',
+        hasFindings: true,
+        findingsSlice: {
+          start: 0,
+          end: findingsCount,
+          items: allFindings,
+          isContinued: false,
+          includeGeneralNote: true
+        },
+        hasSpareParts: false,
+        hasBuyoff: false
+      });
+
+      if (hSpareParts + hBuyoff <= 800) {
+        // Page 11: Spare Parts + Buyoff
+        pages.push({
+          pageNumber: 11,
+          pageRunningHeader: 'SECTIONS 14–15 — SPARE PARTS & BUYOFF',
+          hasFindings: false,
+          hasSpareParts: true,
+          sparePartsIsContinued: false,
+          includeRecommendations: true,
+          includePartsTables: true,
+          hasBuyoff: true
+        });
+        return {
+          totalPages: 11,
+          section13StartPage: 10,
+          section14StartPage: 11,
+          section15StartPage: 11,
+          pages
+        };
+      } else {
+        // Page 11: Spare Parts; Page 12: Buyoff
+        pages.push({
+          pageNumber: 11,
+          pageRunningHeader: 'SECTION 14 — SPARE PARTS & RECOMMENDATIONS',
+          hasFindings: false,
+          hasSpareParts: true,
+          sparePartsIsContinued: false,
+          includeRecommendations: true,
+          includePartsTables: true,
+          hasBuyoff: false
+        });
+        pages.push({
+          pageNumber: 12,
+          pageRunningHeader: 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS',
+          hasFindings: false,
+          hasSpareParts: false,
+          hasBuyoff: true
+        });
+        return {
+          totalPages: 12,
+          section13StartPage: 10,
+          section14StartPage: 11,
+          section15StartPage: 12,
+          pages
+        };
+      }
+    }
+  }
+
+  // findingsCount > 8: Split findings across pages
+  if (findingsCount <= 18) {
+    const slice1 = allFindings.slice(0, 10);
+    const slice2 = allFindings.slice(10);
+
+    // Page 10: Findings 1–10
+    pages.push({
+      pageNumber: 10,
+      pageRunningHeader: 'SECTION 13 — FINDINGS & OBSERVATIONS',
+      hasFindings: true,
+      findingsSlice: {
+        start: 0,
+        end: 10,
+        items: slice1,
+        isContinued: false,
+        includeGeneralNote: false
+      },
+      hasSpareParts: false,
+      hasBuyoff: false
+    });
+
+    const hSlice2Findings = 85 + slice2.length * 28 + (generalFindingsNote ? 35 : 0);
+
+    if (hSlice2Findings + hSpareParts + hBuyoff <= 800) {
+      // Page 11: Findings Slice 2 + Spare Parts + Buyoff
+      pages.push({
+        pageNumber: 11,
+        pageRunningHeader: 'SECTIONS 13–15 — FINDINGS (CONT.), SPARE PARTS & BUYOFF',
+        hasFindings: true,
+        findingsSlice: {
+          start: 10,
+          end: findingsCount,
+          items: slice2,
+          isContinued: true,
+          includeGeneralNote: true
+        },
+        hasSpareParts: true,
+        sparePartsIsContinued: false,
+        includeRecommendations: true,
+        includePartsTables: true,
+        hasBuyoff: true
+      });
+      return {
+        totalPages: 11,
+        section13StartPage: 10,
+        section14StartPage: 11,
+        section15StartPage: 11,
+        pages
+      };
+    } else if (hSlice2Findings + hSpareParts <= 650) {
+      // Page 11: Findings Slice 2 + Spare Parts; Page 12: Buyoff
+      pages.push({
+        pageNumber: 11,
+        pageRunningHeader: 'SECTIONS 13–14 — FINDINGS (CONT.) & SPARE PARTS',
+        hasFindings: true,
+        findingsSlice: {
+          start: 10,
+          end: findingsCount,
+          items: slice2,
+          isContinued: true,
+          includeGeneralNote: true
+        },
+        hasSpareParts: true,
+        sparePartsIsContinued: false,
+        includeRecommendations: true,
+        includePartsTables: true,
+        hasBuyoff: false
+      });
+      pages.push({
+        pageNumber: 12,
+        pageRunningHeader: 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS',
+        hasFindings: false,
+        hasSpareParts: false,
+        hasBuyoff: true
+      });
+      return {
+        totalPages: 12,
+        section13StartPage: 10,
+        section14StartPage: 11,
+        section15StartPage: 12,
+        pages
+      };
+    } else {
+      // Page 11: Findings Slice 2 alone
+      pages.push({
+        pageNumber: 11,
+        pageRunningHeader: 'SECTION 13 — FINDINGS & OBSERVATIONS (CONTINUED)',
+        hasFindings: true,
+        findingsSlice: {
+          start: 10,
+          end: findingsCount,
+          items: slice2,
+          isContinued: true,
+          includeGeneralNote: true
+        },
+        hasSpareParts: false,
+        hasBuyoff: false
+      });
+
+      if (hSpareParts + hBuyoff <= 800) {
+        // Page 12: Spare Parts + Buyoff
+        pages.push({
+          pageNumber: 12,
+          pageRunningHeader: 'SECTIONS 14–15 — SPARE PARTS & BUYOFF',
+          hasFindings: false,
+          hasSpareParts: true,
+          sparePartsIsContinued: false,
+          includeRecommendations: true,
+          includePartsTables: true,
+          hasBuyoff: true
+        });
+        return {
+          totalPages: 12,
+          section13StartPage: 10,
+          section14StartPage: 12,
+          section15StartPage: 12,
+          pages
+        };
+      } else {
+        // Page 12: Spare Parts; Page 13: Buyoff
+        pages.push({
+          pageNumber: 12,
+          pageRunningHeader: 'SECTION 14 — SPARE PARTS & RECOMMENDATIONS',
+          hasFindings: false,
+          hasSpareParts: true,
+          sparePartsIsContinued: false,
+          includeRecommendations: true,
+          includePartsTables: true,
+          hasBuyoff: false
+        });
+        pages.push({
+          pageNumber: 13,
+          pageRunningHeader: 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS',
+          hasFindings: false,
+          hasSpareParts: false,
+          hasBuyoff: true
+        });
+        return {
+          totalPages: 13,
+          section13StartPage: 10,
+          section14StartPage: 12,
+          section15StartPage: 13,
+          pages
+        };
+      }
+    }
+  }
+
+  // findingsCount > 18: Multi-page findings breakdown
+  const slice1 = allFindings.slice(0, 10);
+  const slice2 = allFindings.slice(10, 22);
+
+  // Page 10: Findings 1–10
+  pages.push({
+    pageNumber: 10,
+    pageRunningHeader: 'SECTION 13 — FINDINGS & OBSERVATIONS',
+    hasFindings: true,
+    findingsSlice: {
+      start: 0,
+      end: 10,
+      items: slice1,
+      isContinued: false,
+      includeGeneralNote: false
+    },
+    hasSpareParts: false,
+    hasBuyoff: false
+  });
+
+  // Page 11: Findings 11–22 (or remaining)
+  pages.push({
+    pageNumber: 11,
+    pageRunningHeader: 'SECTION 13 — FINDINGS & OBSERVATIONS (CONTINUED)',
+    hasFindings: true,
+    findingsSlice: {
+      start: 10,
+      end: Math.min(22, findingsCount),
+      items: slice2,
+      isContinued: true,
+      includeGeneralNote: true
+    },
+    hasSpareParts: false,
+    hasBuyoff: false
+  });
+
+  if (hSpareParts + hBuyoff <= 800) {
+    // Page 12: Spare Parts + Buyoff
+    pages.push({
+      pageNumber: 12,
+      pageRunningHeader: 'SECTIONS 14–15 — SPARE PARTS & BUYOFF',
+      hasFindings: false,
+      hasSpareParts: true,
+      sparePartsIsContinued: false,
+      includeRecommendations: true,
+      includePartsTables: true,
+      hasBuyoff: true
+    });
+    return {
+      totalPages: 12,
+      section13StartPage: 10,
+      section14StartPage: 12,
+      section15StartPage: 12,
+      pages
+    };
+  } else {
+    // Page 12: Spare Parts; Page 13: Buyoff
+    pages.push({
+      pageNumber: 12,
+      pageRunningHeader: 'SECTION 14 — SPARE PARTS & RECOMMENDATIONS',
+      hasFindings: false,
+      hasSpareParts: true,
+      sparePartsIsContinued: false,
+      includeRecommendations: true,
+      includePartsTables: true,
+      hasBuyoff: false
+    });
+    pages.push({
+      pageNumber: 13,
+      pageRunningHeader: 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS',
+      hasFindings: false,
+      hasSpareParts: false,
+      hasBuyoff: true
+    });
+    return {
+      totalPages: 13,
+      section13StartPage: 10,
+      section14StartPage: 12,
+      section15StartPage: 13,
+      pages
+    };
+  }
+}
+
 export function buildMhcReportDocument(
   rawSession: MHCSession,
   previousSessionRaw?: MHCSession,
@@ -1683,22 +2123,11 @@ export function buildMhcReportDocument(
   };
 
   // GENERATE INDEX (02) - DYNAMICALLY REFLECTS ACTUAL RENDERED SECTIONS (§01–§15)
-  const orderedSectionsList: MhcReportSection[] = [
-    coverSection,
-    executiveSummarySection,
-    laserHoursSection,
-    laserPowerSection,
-    beamProfileSection,
-    focusOptimizationSection,
-    powerOffsetSection,
-    stageCalibrationSection,
-    agcSection,
-    temperatureSection,
-    laserProductProfileSection,
-    findingsSection,
-    sparePartsSection,
-    buyoffSection
-  ];
+  const paginationPlan = computeReportSections13To15PaginationPlan(
+    findingsData,
+    sparePartsData,
+    buyoffData
+  );
 
   const getSectionPageNumber = (code: MhcReportSectionCode): number => {
     switch (code) {
@@ -1714,24 +2143,12 @@ export function buildMhcReportDocument(
       case '10': return 7;
       case '11': return 8;
       case '12': return 9;
-      case '13': return 10;
-      case '14': return 10;
-      case '15': return 10;
+      case '13': return paginationPlan.section13StartPage;
+      case '14': return paginationPlan.section14StartPage;
+      case '15': return paginationPlan.section15StartPage;
       default: return 1;
     }
   };
-
-  const indexEntries: MhcReportIndexEntry[] = orderedSectionsList.map(sec => ({
-    code: sec.code,
-    title: sec.title,
-    displayOrder: sec.displayOrder,
-    category: getSectionCategory(sec.code),
-    pageNumber: getSectionPageNumber(sec.code),
-    isVisible: sec.isVisible,
-    status: sec.status
-  }));
-
-  const indexData: MhcReportIndexData = { entries: indexEntries };
 
   const indexSection: MhcReportSection<MhcReportIndexData> = {
     code: '02',
@@ -1739,7 +2156,7 @@ export function buildMhcReportDocument(
     displayOrder: 2,
     isVisible: options?.sectionVisibilityOverrides?.['02'] ?? true,
     status: 'COMPLETE',
-    data: indexData
+    data: { entries: [] }
   };
 
   sectionsMap['02'] = indexSection;
@@ -1761,6 +2178,20 @@ export function buildMhcReportDocument(
     sparePartsSection,
     buyoffSection
   ];
+
+  const indexEntries: MhcReportIndexEntry[] = allOrderedSections
+    .filter(sec => sec.code !== '02')
+    .map(sec => ({
+      code: sec.code,
+      title: sec.title,
+      displayOrder: sec.displayOrder,
+      category: getSectionCategory(sec.code),
+      pageNumber: getSectionPageNumber(sec.code),
+      isVisible: sec.isVisible,
+      status: sec.status
+    }));
+
+  indexSection.data = { entries: indexEntries };
 
   return {
     reportId,
@@ -1785,7 +2216,7 @@ export function buildMhcReportDocument(
       previousSessionId: previousSession?.id,
       previousSessionDate: previousSession?.completedDate || previousSession?.startDate,
       totalSectionsCount: allOrderedSections.length,
-      totalPagesCount: Math.max(...indexEntries.map(e => e.pageNumber || 1), 10)
+      totalPagesCount: paginationPlan.totalPages
     },
     indexEntries,
     sections: sectionsMap,

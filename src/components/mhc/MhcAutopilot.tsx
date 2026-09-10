@@ -41,7 +41,8 @@ import {
   advanceAutopilotActivity,
   flagDownstreamNeedsReview,
   findLatestResumableMhcSession,
-  resolveEffectiveAutopilotSession
+  resolveEffectiveAutopilotSession,
+  hasMeaningfulMhcProgress
 } from '../../utils/mhcAutopilotBrain';
 import { MhcLaserHoursActivity } from './autopilot/MhcLaserHoursActivity';
 import { MhcLaserPowerActivity } from './autopilot/MhcLaserPowerActivity';
@@ -1226,7 +1227,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     const custMachines = machines.filter(m => m.customerId === c.id || m.customerName === c.name);
                     const machineCount = custMachines.length;
                     const hasActiveSessions = custMachines.some(m => 
-                      mhcSessions.some(s => s.machineId === m.id && s.completionStatus !== 'COMPLETED')
+                      mhcSessions.some(s => s.machineId === m.id && hasMeaningfulMhcProgress(s))
                     );
                     return (
                       <button
@@ -1342,7 +1343,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 <div className="space-y-2">
                   {filteredMachines.map((m) => {
                     const isSelected = localSelectedMachine?.id === m.id;
-                    const hasIncomplete = mhcSessions.some(s => s.machineId === m.id && s.completionStatus !== 'COMPLETED');
+                    const hasActiveSession = mhcSessions.some(s => s.machineId === m.id && hasMeaningfulMhcProgress(s));
                     return (
                       <button
                         key={m.id}
@@ -1372,7 +1373,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           </div>
                         </div>
                         <div className="text-right flex items-center gap-2">
-                          {hasIncomplete ? (
+                          {hasActiveSession ? (
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                               <span>Active Session</span>

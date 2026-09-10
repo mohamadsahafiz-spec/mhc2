@@ -1,3 +1,5 @@
+import { APP_VERSION } from './constants/version';
+
 export interface Env {
   DB?: any;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
@@ -120,7 +122,7 @@ export default {
     if (path.startsWith("/api/")) {
       try {
         if (path === "/api/health") {
-          const version = env?.APP_VERSION || "1.1.1";
+          const version = APP_VERSION;
           const cfMeta = env?.CF_VERSION_METADATA;
           return json({
             status: "ok",
@@ -153,7 +155,7 @@ export default {
           if (request.method === "GET") {
             const countRes = await db.prepare("SELECT COUNT(*) as total FROM records WHERE is_deleted = 0").first();
             const serverRecordCount = Number(countRes?.total ?? 0);
-            const version = env?.APP_VERSION || "1.1.1";
+            const version = APP_VERSION;
             const cfMeta = env?.CF_VERSION_METADATA;
             return json({
               status: "online",
@@ -563,6 +565,81 @@ export default {
               serverTimestamp: nowIso
             });
           }
+        }
+
+        if (path === "/api/images/cleanup-orphans" && request.method === "POST") {
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          const body: any = await request.json().catch(() => ({}));
+          const gracePeriodHours = typeof body.gracePeriodHours === "number" && body.gracePeriodHours >= 0
+            ? body.gracePeriodHours
+            : 24;
+
+          // 1. Query active records only: SELECT data FROM records WHERE is_deleted = 0
+          let activeRows: any[] = [];
+          try {
+            const res = await db.prepare("SELECT data FROM records WHERE is_deleted = 0").all();
+            activeRows = res?.results || [];
+          } catch (e) {
+            console.warn("[Worker] Error fetching active records for image cleanup:", e);
+          }
+
+          // 2. Parse active record JSON and extract all reachable idb: references
+          const reachableImageIds = new Set<string>();
+          for (const row of activeRows) {
+            if (!row || typeof row.data !== "string" || !row.data) continue;
+            const matches = row.data.match(/idb:[a-zA-Z0-9_\-.:/]+/g);
+            if (matches) {
+              for (const match of matches) {
+                const cleanId = match.startsWith("ref:") ? match.slice(4) : match;
+                reachableImageIds.add(cleanId);
+              }
+            }
+          }
+
+          // 3. Find candidate image IDs from image_chunks older than grace period
+          const cutoffDate = new Date(Date.now() - gracePeriodHours * 60 * 60 * 1000).toISOString();
+          let candidateRows: any[] = [];
+          try {
+            const candRes = await db.prepare(
+              "SELECT DISTINCT image_id, created_at FROM image_chunks WHERE created_at <= ?"
+            ).bind(cutoffDate).all();
+            candidateRows = candRes?.results || [];
+          } catch (e) {
+            console.warn("[Worker] Error fetching candidate image chunks for cleanup:", e);
+          }
+
+          // 4. Identify orphan image IDs: in image_chunks, older than grace period, NOT in reachableImageIds
+          const orphanIds: string[] = [];
+          for (const row of candidateRows) {
+            if (row && row.image_id && !reachableImageIds.has(row.image_id)) {
+              orphanIds.push(row.image_id);
+            }
+          }
+
+          // 5. Delete orphan image chunks safely in batches (50 per batch)
+          const BATCH_SIZE = 50;
+          let deletedChunksCount = 0;
+          for (let i = 0; i < orphanIds.length; i += BATCH_SIZE) {
+            const batch = orphanIds.slice(i, i + BATCH_SIZE);
+            const placeholders = batch.map(() => "?").join(", ");
+            const deleteStmt = db.prepare(`DELETE FROM image_chunks WHERE image_id IN (${placeholders})`).bind(...batch);
+            const res = await deleteStmt.run();
+            deletedChunksCount += Number(res?.meta?.changes ?? batch.length);
+          }
+
+          return json({
+            success: true,
+            scannedRecords: activeRows.length,
+            reachableImagesCount: reachableImageIds.size,
+            candidateImagesCount: candidateRows.length,
+            deletedOrphanImagesCount: orphanIds.length,
+            deletedChunksCount,
+            gracePeriodHours,
+            cutoffTimestamp: cutoffDate,
+            serverTimestamp: new Date().toISOString()
+          });
         }
 
         if (path === "/api/record") {

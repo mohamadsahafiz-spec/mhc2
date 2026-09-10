@@ -27,7 +27,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
 import { MHCSession, MhcReportDocument, MhcReportSectionCode } from '../../../types';
-import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
+import { buildMhcReportDocument, computeReportSections13To15PaginationPlan } from '../../../utils/mhcReportEngine';
 import { APP_VERSION } from '../../../constants/version';
 import { LaserEngine } from '../../../utils/laserEngine';
 import { ImageStore } from '../../../utils/imageStore';
@@ -204,6 +204,14 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
   const totalPages = baseDoc.metadata.totalPagesCount || 10;
 
+  const paginationPlan = useMemo(() => {
+    return computeReportSections13To15PaginationPlan(
+      sections['13']?.data,
+      sections['14']?.data,
+      sections['15']?.data
+    );
+  }, [sections]);
+
   // Group index entries by page number for the approved vertical presentation
   const groupedIndexPages = useMemo(() => {
     const pageMap = new Map<number, typeof baseDoc.indexEntries>();
@@ -233,7 +241,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 7: return 'Stage & Sensor Calibration';
       case 8: return 'Thermal Environment';
       case 9: return 'Product Process & Via Quality';
-      case 10: return 'Certification & Sign-Off';
+      case 10: return totalPages > 10 ? 'Inspection Findings & Observations' : 'Certification & Sign-Off';
+      case 11: return totalPages > 11 ? 'Spare Parts & Recommendations' : 'Certification & Sign-Off';
+      case 12: return 'Certification & Sign-Off';
       default: return 'Subsystem Diagnostics';
     }
   };
@@ -241,7 +251,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
   // Authoritative running header resolver deriving from authoritative indexEntries metadata
   const getPageRunningHeader = (pageNum: number): string => {
     const pageEntries = baseDoc.indexEntries.filter((e) => (e.pageNumber || 1) === pageNum);
-    if (pageEntries.length === 0) return '';
+    if (pageEntries.length === 0) {
+      if (pageNum === 10) return totalPages > 10 ? 'SECTION 13 — FINDINGS & OBSERVATIONS' : 'SECTIONS 13–15 — FINDINGS, RECOMMENDATIONS & BUYOFF';
+      if (pageNum === 11) return totalPages > 11 ? 'SECTION 14 — SPARE PARTS & RECOMMENDATIONS' : 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS';
+      if (pageNum >= 12) return 'SECTION 15 — BUYOFF & OFFICIAL APPROVALS';
+      return '';
+    }
     const startCode = pageEntries[0].code;
     const endCode = pageEntries[pageEntries.length - 1].code;
     const prefix = pageEntries.length > 1 ? `SECTIONS ${startCode}–${endCode}` : `SECTION ${startCode}`;
@@ -264,7 +279,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 9:
         return `${prefix} — PRODUCT PROCESS & VIA QUALITY`;
       case 10:
-        return `${prefix} — FINDINGS, RECOMMENDATIONS & BUYOFF`;
+        return totalPages > 10 ? `${prefix} — FINDINGS & OBSERVATIONS` : `${prefix} — FINDINGS, RECOMMENDATIONS & BUYOFF`;
       default:
         return `${prefix} — ${getPageGroupTitle(pageNum).toUpperCase()}`;
     }
@@ -3021,323 +3036,323 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </div>
 
           {/* =========================================================================
-              PAGE 10: FINDINGS (13), PARTS & RECOMMENDATIONS (14), BUYOFF (15)
+              DYNAMIC PAGES 10+: FINDINGS (13), PARTS & RECOMMENDATIONS (14), BUYOFF (15)
+              (Standard reports render exactly Page 10; Overflow sessions render safe continuation pages)
              ========================================================================= */}
-          <div className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
-              <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
-              <span>{getPageRunningHeader(10)}</span>
-            </div>
-
-            {/* Content Body */}
-            <div className="space-y-4 my-2 flex-1 min-h-0">
-              
-              {/* SECTION 13: FINDINGS & OBSERVATIONS */}
-              <div className="space-y-1.5">
-                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      13 FINDINGS &amp; OBSERVATIONS
-                    </h2>
-                    <span className="text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                      TOTAL RECORDED: {sections['13']?.data?.totalFindingsCount ?? 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['13']?.status || 'NOT_COLLECTED')}
-                  </div>
+          {paginationPlan.pages.map((pLayout) => {
+            const pageNum = pLayout.pageNumber;
+            return (
+              <div 
+                key={`mhc-page-${pageNum}`}
+                className="mhc-a4-page w-[210mm] h-[297mm] bg-white text-slate-900 px-[20mm] py-[15mm] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-slate-200 print:shadow-none print:m-0 print:border-none font-sans box-border"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs font-mono text-slate-500 shrink-0">
+                  <span>FSOS MHC REPORT • {metadata.reportNumber}</span>
+                  <span>{pLayout.pageRunningHeader || getPageRunningHeader(pageNum)}</span>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
-                  {(() => {
-                    const allFindings: Array<{
-                      source: string;
-                      component: string;
-                      conditions: string[];
-                      engineerNote?: string;
-                      actionRecommendation?: string;
-                    }> = [];
+                {/* Content Body */}
+                <div className="space-y-4 my-2 flex-1 min-h-0">
+                  
+                  {/* SECTION 13: FINDINGS & OBSERVATIONS */}
+                  {pLayout.hasFindings && (
+                    <div className="space-y-1.5">
+                      <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                            {pLayout.findingsSlice?.isContinued ? '13 FINDINGS & OBSERVATIONS (CONTINUED)' : '13 FINDINGS & OBSERVATIONS'}
+                          </h2>
+                          <span className="text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                            TOTAL RECORDED: {sections['13']?.data?.totalFindingsCount ?? 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {renderStatusBadge(sections['13']?.status || 'NOT_COLLECTED')}
+                        </div>
+                      </div>
 
-                    (sections['13']?.data?.heads || []).forEach(h => {
-                      (h.findingsList || []).forEach(f => {
-                        allFindings.push({
-                          source: h.headName,
-                          component: f.component,
-                          conditions: f.conditions,
-                          engineerNote: f.engineerNote,
-                          actionRecommendation: f.actionRecommendation
-                        });
-                      });
-                    });
+                      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                        {(() => {
+                          const itemsToRender = pLayout.findingsSlice?.items || [];
 
-                    if (allFindings.length > 0) {
-                      return (
-                        <div className="space-y-1.5">
-                          <table className="w-full text-left text-[11px] border-collapse bg-white rounded border border-slate-200">
-                            <thead>
-                              <tr className="border-b border-slate-200 font-mono text-[9.5px] text-slate-600 font-bold bg-slate-50/70">
-                                <th className="py-1 px-2">SOURCE / MODULE</th>
-                                <th className="py-1 px-2">COMPONENT</th>
-                                <th className="py-1 px-2">OBSERVED CONDITION</th>
-                                <th className="py-1 px-2">ENGINEER OBSERVATION / NOTE</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 font-sans">
-                              {allFindings.map((f, idx) => (
-                                <tr key={idx}>
-                                  <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{f.source}</td>
-                                  <td className="py-1 px-2 font-mono text-[10.5px] text-slate-700">{f.component}</td>
-                                  <td className="py-1 px-2 text-slate-600 text-[10.5px]">
-                                    {f.conditions && f.conditions.length > 0 ? f.conditions.join(', ') : '—'}
-                                  </td>
-                                  <td className="py-1 px-2 text-slate-700 text-[10.5px]">{f.engineerNote || '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                          if (itemsToRender.length > 0) {
+                            return (
+                              <div className="space-y-1.5">
+                                <table className="w-full text-left text-[11px] border-collapse bg-white rounded border border-slate-200">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 font-mono text-[9.5px] text-slate-600 font-bold bg-slate-50/70">
+                                      <th className="py-1 px-2">SOURCE / MODULE</th>
+                                      <th className="py-1 px-2">COMPONENT</th>
+                                      <th className="py-1 px-2">OBSERVED CONDITION</th>
+                                      <th className="py-1 px-2">ENGINEER OBSERVATION / NOTE</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 font-sans">
+                                    {itemsToRender.map((f, idx) => (
+                                      <tr key={idx}>
+                                        <td className="py-1 px-2 font-bold text-slate-800 text-[10.5px]">{f.source}</td>
+                                        <td className="py-1 px-2 font-mono text-[10.5px] text-slate-700">{f.component}</td>
+                                        <td className="py-1 px-2 text-slate-600 text-[10.5px]">
+                                          {f.conditions && f.conditions.length > 0 ? f.conditions.join(', ') : '—'}
+                                        </td>
+                                        <td className="py-1 px-2 text-slate-700 text-[10.5px]">{f.engineerNote || '—'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
 
-                          {sections['13']?.data?.generalFindingsNote && (
-                            <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
-                              <strong>General Observations: </strong>{sections['13'].data.generalFindingsNote}
+                                {pLayout.findingsSlice?.includeGeneralNote && sections['13']?.data?.generalFindingsNote && (
+                                  <div className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
+                                    <strong>General Observations: </strong>{sections['13'].data.generalFindingsNote}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="flex items-center justify-between text-slate-500 py-0.5">
+                              <span className="italic text-[11px]">
+                                {sections['13']?.data?.generalFindingsNote 
+                                  ? `General Observations: ${sections['13'].data.generalFindingsNote}`
+                                  : '—'}
+                              </span>
+                              <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                ALL SUBSYSTEMS NOMINAL
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="flex items-center justify-between text-slate-500 py-0.5">
-                        <span className="italic text-[11px]">
-                          {sections['13']?.data?.generalFindingsNote 
-                            ? `General Observations: ${sections['13'].data.generalFindingsNote}`
-                            : '—'}
-                        </span>
-                        <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                          ALL SUBSYSTEMS NOMINAL
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* SECTION 14: SPARE PARTS & RECOMMENDATIONS */}
-              <div className="space-y-1.5">
-                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      14 SPARE PARTS &amp; RECOMMENDATIONS
-                    </h2>
-                    {sections['14']?.data?.followUpRequired !== undefined && (
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                        sections['14'].data.followUpRequired 
-                          ? 'text-amber-800 bg-amber-50 border-amber-200' 
-                          : 'text-slate-600 bg-slate-100 border-slate-200'
-                      }`}>
-                        FOLLOW-UP: {sections['14'].data.followUpRequired ? 'REQUIRED' : 'NONE'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {renderStatusBadge(sections['14']?.status || 'NOT_COLLECTED')}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {/* Engineering Recommendations */}
-                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                    <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
-                      ENGINEERING RECOMMENDATIONS &amp; FUTURE ACTION PLAN
-                    </span>
-                    <div className="bg-white p-2 rounded border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
-                      {sections['14']?.data?.engineerRecommendationsText || 
-                       (sections['14']?.data?.recommendations && sections['14'].data.recommendations.length > 0 ? sections['14'].data.recommendations.join(' • ') : null) || 
-                       '—'}
-                    </div>
-                  </div>
-
-                  {/* Consumed & Recommended Spare Parts */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Consumed / Replaced Parts */}
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                      <span className="font-mono text-slate-600 font-bold uppercase text-[9.5px] block">
-                        CONSUMED PARTS (SERVICE EXECUTION)
-                      </span>
-                      {sections['14']?.data?.consumedParts && sections['14'].data.consumedParts.length > 0 ? (
-                        <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
-                          <thead>
-                            <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-600 font-bold bg-slate-50/70">
-                              <th className="py-0.5 px-1.5">PART NAME</th>
-                              <th className="py-0.5 px-1.5">QTY</th>
-                              <th className="py-0.5 px-1.5">ACTION</th>
-                              <th className="py-0.5 px-1.5 text-right">COSTING</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {sections['14'].data.consumedParts.map(sp => (
-                              <tr key={sp.id}>
-                                <td className="py-1 px-1.5 font-bold text-slate-800 text-[10.5px]">{sp.partName}</td>
-                                <td className="py-1 px-1.5 font-mono text-[10.5px] text-slate-700">{sp.quantity}</td>
-                                <td className="py-1 px-1.5 font-bold text-cyan-900 text-[10.5px]">{sp.action}</td>
-                                <td className="py-1 px-1.5 text-right font-mono text-[9.5px] text-slate-600 font-medium">{sp.costIndicator}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
-                      )}
-                    </div>
-
-                    {/* Recommended Spare Parts */}
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                      <span className="font-mono text-slate-600 font-bold uppercase text-[9.5px] block">
-                        RECOMMENDED SPARE PARTS (PROCUREMENT / STOCK)
-                      </span>
-                      {sections['14']?.data?.recommendedParts && sections['14'].data.recommendedParts.length > 0 ? (
-                        <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
-                          <thead>
-                            <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-600 font-bold bg-slate-50/70">
-                              <th className="py-0.5 px-1.5">RECOMMENDED ITEM</th>
-                              <th className="py-0.5 px-1.5">QTY</th>
-                              <th className="py-0.5 px-1.5 text-right">TRIGGER / REASON</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {sections['14'].data.recommendedParts.map(rec => (
-                              <tr key={rec.id}>
-                                <td className="py-1 px-1.5 font-bold text-slate-800 text-[10.5px]">{rec.partName}</td>
-                                <td className="py-1 px-1.5 font-mono text-[10.5px] text-slate-700">{rec.quantity || 1}</td>
-                                <td className="py-1 px-1.5 text-right text-slate-700 text-[10px] truncate max-w-[130px]">{rec.reason || '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 15: BUYOFF & OFFICIAL APPROVALS */}
-              <div className="space-y-1.5 pt-1">
-                <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                      15 BUYOFF &amp; OFFICIAL APPROVALS
-                    </h2>
-                    <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                      PRODUCTION RELEASE: {releaseStatus}
-                    </span>
-                  </div>
-                  {renderStatusBadge(releaseStatus)}
-                </div>
-
-                <div className="space-y-2">
-                  {/* Next MHC Scheduling Box */}
-                  <div className="p-2 rounded-lg bg-slate-900 text-white flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-bold text-[9px] uppercase px-2 py-0.5 rounded">
-                        NEXT SCHEDULED MHC
-                      </div>
-                      <div className="text-[11px]">
-                        <span className="text-slate-400">Target Due Date: </span>
-                        <strong className="text-cyan-300 font-mono text-xs">
-                          {sections['15']?.data?.nextMhcSchedule?.nextDueDate || 'Quarterly Cycle (90 Days)'}
-                        </strong>
+                          );
+                        })()}
                       </div>
                     </div>
-                    <div className="text-[10px] font-mono text-slate-400">
-                      Cycle: <span className="text-slate-200 font-bold">90-Day Standard Interval</span>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Dual Sign-off Blocks */}
-                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-sans">
-                    <div className="grid grid-cols-2 gap-3">
-                      
-                      {/* Engineer Signature Block */}
-                      <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                        <div>
-                          <div className="text-[9.5px] font-mono text-slate-500 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
-                            <span>FIELD SERVICE ENGINEER</span>
-                            <span className="text-emerald-700 font-mono text-[8px] bg-emerald-50 px-1 rounded border border-emerald-200 font-bold">VERIFIED</span>
-                          </div>
-                          <div className="space-y-0.5 pt-1">
-                            <strong className="text-slate-900 text-xs block">{engineerName}</strong>
-                            <div className="text-[10.5px] text-slate-600">{sections['15']?.data?.engineerSignoff?.title || 'Senior Field Service Engineer'}</div>
-                            <div className="text-[9.5px] font-mono text-slate-500">Date: {sections['15']?.data?.engineerSignoff?.date || inspectionDate}</div>
-                          </div>
-                        </div>
-                        <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
-                          {sections['15']?.data?.engineerSignoff?.signatureDataUrl ? (
-                            <img src={sections['15'].data.engineerSignoff.signatureDataUrl} alt="Engineer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
-                          ) : (
-                            <span>[ COMPLETED &amp; SIGNED BY ENGINEER ]</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Customer Signoff Block */}
-                      <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                        <div>
-                          <div className="text-[9.5px] font-mono text-slate-500 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
-                            <span>CUSTOMER ACCEPTANCE REPRESENTATIVE</span>
-                            <span className={`font-mono text-[8px] font-bold px-1 rounded border ${
-                              releaseStatus === 'APPROVED' 
-                                ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
-                                : 'text-amber-700 bg-amber-50 border-amber-200'
+                  {/* SECTION 14: SPARE PARTS & RECOMMENDATIONS */}
+                  {pLayout.hasSpareParts && (
+                    <div className="space-y-1.5">
+                      <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                            {pLayout.sparePartsIsContinued ? '14 SPARE PARTS & RECOMMENDATIONS (CONTINUED)' : '14 SPARE PARTS & RECOMMENDATIONS'}
+                          </h2>
+                          {sections['14']?.data?.followUpRequired !== undefined && (
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                              sections['14'].data.followUpRequired 
+                                ? 'text-amber-800 bg-amber-50 border-amber-200' 
+                                : 'text-slate-600 bg-slate-100 border-slate-200'
                             }`}>
-                              {releaseStatus === 'APPROVED' ? 'ACCEPTED' : 'PENDING'}
+                              FOLLOW-UP: {sections['14'].data.followUpRequired ? 'REQUIRED' : 'NONE'}
                             </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {renderStatusBadge(sections['14']?.status || 'NOT_COLLECTED')}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Engineering Recommendations */}
+                        {pLayout.includeRecommendations && (
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                            <span className="font-mono text-slate-500 font-bold uppercase text-[9px] block">
+                              ENGINEERING RECOMMENDATIONS &amp; FUTURE ACTION PLAN
+                            </span>
+                            <div className="bg-white p-2 rounded border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
+                              {sections['14']?.data?.engineerRecommendationsText || 
+                               (sections['14']?.data?.recommendations && sections['14'].data.recommendations.length > 0 ? sections['14'].data.recommendations.join(' • ') : null) || 
+                               '—'}
+                            </div>
                           </div>
-                          <div className="space-y-0.5 pt-1">
-                            <strong className="text-slate-900 text-xs block">
-                              {sections['15']?.data?.customerSignoff?.name && sections['15'].data.customerSignoff.name !== 'Customer Representative' 
-                                ? sections['15'].data.customerSignoff.name 
-                                : (releaseStatus === 'APPROVED' ? 'Customer Representative' : 'Pending Customer Sign-off')}
-                            </strong>
-                            <div className="text-[10.5px] text-slate-600">
-                              {sections['15']?.data?.customerSignoff?.title || customerCompany}
+                        )}
+
+                        {/* Consumed & Recommended Spare Parts */}
+                        {pLayout.includePartsTables && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Consumed / Replaced Parts */}
+                            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                              <span className="font-mono text-slate-600 font-bold uppercase text-[9.5px] block">
+                                CONSUMED PARTS (SERVICE EXECUTION)
+                              </span>
+                              {sections['14']?.data?.consumedParts && sections['14'].data.consumedParts.length > 0 ? (
+                                <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-600 font-bold bg-slate-50/70">
+                                      <th className="py-0.5 px-1.5">PART NAME</th>
+                                      <th className="py-0.5 px-1.5">QTY</th>
+                                      <th className="py-0.5 px-1.5">ACTION</th>
+                                      <th className="py-0.5 px-1.5 text-right">COSTING</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {sections['14'].data.consumedParts.map(sp => (
+                                      <tr key={sp.id}>
+                                        <td className="py-1 px-1.5 font-bold text-slate-800 text-[10.5px]">{sp.partName}</td>
+                                        <td className="py-1 px-1.5 font-mono text-[10.5px] text-slate-700">{sp.quantity}</td>
+                                        <td className="py-1 px-1.5 font-bold text-cyan-900 text-[10.5px]">{sp.action}</td>
+                                        <td className="py-1 px-1.5 text-right font-mono text-[9.5px] text-slate-600 font-medium">{sp.costIndicator}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
+                              )}
                             </div>
-                            <div className="text-[9.5px] font-mono text-slate-500">
-                              Date: {sections['15']?.data?.customerSignoff?.date || '—'}
+
+                            {/* Recommended Spare Parts */}
+                            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                              <span className="font-mono text-slate-600 font-bold uppercase text-[9.5px] block">
+                                RECOMMENDED SPARE PARTS (PROCUREMENT / STOCK)
+                              </span>
+                              {sections['14']?.data?.recommendedParts && sections['14'].data.recommendedParts.length > 0 ? (
+                                <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded border border-slate-200">
+                                  <thead>
+                                    <tr className="border-b border-slate-200 font-mono text-[9px] text-slate-600 font-bold bg-slate-50/70">
+                                      <th className="py-0.5 px-1.5">RECOMMENDED ITEM</th>
+                                      <th className="py-0.5 px-1.5">QTY</th>
+                                      <th className="py-0.5 px-1.5 text-right">TRIGGER / REASON</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {sections['14'].data.recommendedParts.map(rec => (
+                                      <tr key={rec.id}>
+                                        <td className="py-1 px-1.5 font-bold text-slate-800 text-[10.5px]">{rec.partName}</td>
+                                        <td className="py-1 px-1.5 font-mono text-[10.5px] text-slate-700">{rec.quantity || 1}</td>
+                                        <td className="py-1 px-1.5 text-right text-slate-700 text-[10px] truncate max-w-[130px]">{rec.reason || '—'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="text-slate-500 italic text-[10.5px] bg-white p-1.5 rounded border border-slate-200">—</p>
+                              )}
                             </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECTION 15: BUYOFF & OFFICIAL APPROVALS */}
+                  {pLayout.hasBuyoff && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="border-b-2 border-slate-900 pb-1 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                            15 BUYOFF &amp; OFFICIAL APPROVALS
+                          </h2>
+                          <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            PRODUCTION RELEASE: {releaseStatus}
+                          </span>
+                        </div>
+                        {renderStatusBadge(releaseStatus)}
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Next MHC Scheduling Box */}
+                        <div className="p-2 rounded-lg bg-slate-900 text-white flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-bold text-[9px] uppercase px-2 py-0.5 rounded">
+                              NEXT SCHEDULED MHC
+                            </div>
+                            <div className="text-[11px]">
+                              <span className="text-slate-400">Target Due Date: </span>
+                              <strong className="text-cyan-300 font-mono text-xs">
+                                {sections['15']?.data?.nextMhcSchedule?.nextDueDate || 'Quarterly Cycle (90 Days)'}
+                              </strong>
+                            </div>
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-400">
+                            Cycle: <span className="text-slate-200 font-bold">90-Day Standard Interval</span>
                           </div>
                         </div>
-                        <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
-                          {sections['15']?.data?.customerSignoff?.signatureDataUrl ? (
-                            <img src={sections['15'].data.customerSignoff.signatureDataUrl} alt="Customer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
-                          ) : (
-                            <span>{releaseStatus === 'APPROVED' ? '[ CUSTOMER APPROVED ]' : '[ PENDING CUSTOMER REVIEW & SIGN-OFF ]'}</span>
+
+                        {/* Dual Sign-off Blocks */}
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-sans">
+                          <div className="grid grid-cols-2 gap-3">
+                            
+                            {/* Engineer Signature Block */}
+                            <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                              <div>
+                                <div className="text-[9.5px] font-mono text-slate-500 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
+                                  <span>FIELD SERVICE ENGINEER</span>
+                                  <span className="text-emerald-700 font-mono text-[8px] bg-emerald-50 px-1 rounded border border-emerald-200 font-bold">VERIFIED</span>
+                                </div>
+                                <div className="space-y-0.5 pt-1">
+                                  <strong className="text-slate-900 text-xs block">{engineerName}</strong>
+                                  <div className="text-[10.5px] text-slate-600">{sections['15']?.data?.engineerSignoff?.title || 'Senior Field Service Engineer'}</div>
+                                  <div className="text-[9.5px] font-mono text-slate-500">Date: {sections['15']?.data?.engineerSignoff?.date || inspectionDate}</div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
+                                {sections['15']?.data?.engineerSignoff?.signatureDataUrl ? (
+                                  <img src={sections['15'].data.engineerSignoff.signatureDataUrl} alt="Engineer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span>[ COMPLETED &amp; SIGNED BY ENGINEER ]</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Customer Signoff Block */}
+                            <div className="p-2.5 rounded bg-white border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                              <div>
+                                <div className="text-[9.5px] font-mono text-slate-500 font-bold uppercase border-b border-slate-100 pb-1 flex justify-between items-center">
+                                  <span>CUSTOMER ACCEPTANCE REPRESENTATIVE</span>
+                                  <span className={`font-mono text-[8px] font-bold px-1 rounded border ${
+                                    releaseStatus === 'APPROVED' 
+                                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                                      : 'text-amber-700 bg-amber-50 border-amber-200'
+                                  }`}>
+                                    {releaseStatus === 'APPROVED' ? 'ACCEPTED' : 'PENDING'}
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5 pt-1">
+                                  <strong className="text-slate-900 text-xs block">
+                                    {sections['15']?.data?.customerSignoff?.name && sections['15'].data.customerSignoff.name !== 'Customer Representative' 
+                                      ? sections['15'].data.customerSignoff.name 
+                                      : (releaseStatus === 'APPROVED' ? 'Customer Representative' : 'Pending Customer Sign-off')}
+                                  </strong>
+                                  <div className="text-[10.5px] text-slate-600">
+                                    {sections['15']?.data?.customerSignoff?.title || customerCompany}
+                                  </div>
+                                  <div className="text-[9.5px] font-mono text-slate-500">
+                                    Date: {sections['15']?.data?.customerSignoff?.date || '—'}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-dashed border-slate-200 text-center font-mono text-[9px] text-slate-500">
+                                {sections['15']?.data?.customerSignoff?.signatureDataUrl ? (
+                                  <img src={sections['15'].data.customerSignoff.signatureDataUrl} alt="Customer Signature" className="h-8 max-w-full mx-auto object-contain" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span>{releaseStatus === 'APPROVED' ? '[ CUSTOMER APPROVED ]' : '[ PENDING CUSTOMER REVIEW & SIGN-OFF ]'}</span>
+                                )}
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {sections['15']?.data?.customerSignoff?.comments && (
+                            <div className="mt-2 p-1.5 rounded bg-white border border-slate-200 text-[10px] text-slate-600">
+                              <strong>Customer Remarks: </strong>{sections['15'].data.customerSignoff.comments}
+                            </div>
                           )}
                         </div>
                       </div>
-
                     </div>
+                  )}
 
-                    {sections['15']?.data?.customerSignoff?.comments && (
-                      <div className="mt-2 p-1.5 rounded bg-white border border-slate-200 text-[10px] text-slate-600">
-                        <strong>Customer Remarks: </strong>{sections['15'].data.customerSignoff.comments}
-                      </div>
-                    )}
-                  </div>
                 </div>
+
+                {/* Footer */}
+                <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
+                  <span>CONFIDENTIAL — {customerCompany}</span>
+                  <span>Page {pageNum} of {totalPages}</span>
+                </div>
+
               </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0 mt-auto">
-              <span>CONFIDENTIAL — {customerCompany}</span>
-              <span>Page 10 of {totalPages}</span>
-            </div>
-
-          </div>
+            );
+          })}
 
         </div>
       </div>
