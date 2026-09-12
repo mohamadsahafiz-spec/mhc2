@@ -9,10 +9,42 @@
 - **Remote D1 Orphan Media Cleanup**: Preserved reference-aware orphan cleanup with strict 24-hour grace periods and alias-promotion draft deletion protection.
 - **Version Authority Consolidation**: Centralized authoritative version declaration in `src/constants/version.ts` across client and server runtimes.
 
+### FSOS Major Audit Scope
+
+| Step | Audit Area | Owner | Type | Goal |
+|---|---|---|---|---|
+| 1 | Version Authority | Mikasa + Atlas | 🔍 Read-only | Reduce version locations to the minimum truly required |
+| 2 | Persistence & Data Integrity | Mikasa + Atlas | 🔍 Read-only | Find proven risks, legacy traps, and unsafe coupling |
+| 3 | Machine Passport ↔ Autopilot | Mikasa + Atlas | 🔍 Read-only | Verify sibling boundaries, shared data, identity, sessions |
+| 4 | Large File / Responsibility | Mikasa + Atlas | 🔍 Read-only | Find genuinely mixed responsibilities/duplication—not split by size |
+| 5 | D1 Migration History | Mikasa + Atlas | 🔍 Read-only | Verify migration consistency; never rewrite blindly |
+| 6 | test_artifacts/ Hygiene | Mikasa + Atlas | 🔍 Read-only | Separate fixtures/reference evidence from disposable generated clutter |
+| 7 | Engineering OS | Founder + Atlas | 🧠 Discussion | Make it smaller, clearer, and harder to misunderstand |
+| 8 | Consolidation | Atlas + Founder | 📋 Review | One master list: fix / remove / keep / investigate |
+| 9 | Approved Fixes | Mikasa | 🔧 Implementation | Small verified batches only |
+| 10 | Final Verification & Release | All | ✅ Verification | Regression checks → changelog → correct version bump |
+
+### Major Audit Outcome Summary
+- **Version Authority**: Consolidated to the approved minimum in `src/constants/version.ts`.
+- **Repository Hygiene**: Reviewed generated artifacts; removed disposable test artifacts with prevention rules in place.
+- **D1 Migrations & Schema**: Audited historical migrations (`0000_init.sql`–`0002_fix_sync_history.sql`) and schema; deliberately preserved without blind rewriting.
+- **Persistence & Storage**: Audited data integrity; preserved canonical `idb:` extraction and storage safeguards.
+- **Remote Media Ownership**: Reviewed remote media references; preserved reference-aware orphan cleanup with a 24-hour grace period and draft alias protection.
+- **Lifecycle Boundaries**: Audited MHC Session, Autopilot, and Machine Passport lifecycle boundaries; corrected false Active Session indication for empty new sessions.
+- **Draft & Media Safety**: Verified draft discard media safety through existing alias-promotion protection.
+- **Report Architecture & Continuation Pagination**: Audited report rendering; implemented deterministic continuation pagination for extreme content. Standard reports remain 10 pages; overflow reports dynamically expand to preserve all content without clipping.
+- **Atomic §15 Inviolability**: Maintained atomic co-location of disposition verdict, scheduling, signatures, and customer remarks on the final page.
+- **Code & UI Boundaries**: Maintained UI/UX and architectural stability without unauthorized redesigns. Note: Engineering OS Step 7 was handled via separate architectural discussions.
+- **TypeScript Standardization**: Corrected test fixture type discrepancies in `mhcReportPagination.test.ts`.
+
 ### Verification & Quality
 - Added unit tests for dynamic report pagination and section budgeting (`mhcReportPagination.test.ts`).
 - Standardized test fixtures with full TypeScript type compliance.
-- Verified 30 test suites (209 tests passed), clean TypeScript compilation (`tsc --noEmit`), and production build.
+- **Final Regression Verification Baseline**:
+  - Vitest: 30/30 test files passed (209/209 unit tests passed).
+  - TypeScript: `tsc --noEmit` passed with 0 errors.
+  - Production Build: Passed (`vite build` + `esbuild` server bundle).
+  - Release Version: `v2.3.1` (`CFW-20260910-1055`).
 
 ## v2.3.0 — Version History Standardization (2026-09-09)
 
