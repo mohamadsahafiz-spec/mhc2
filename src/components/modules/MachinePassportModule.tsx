@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { Machine, MHCRecord, Customer, MachineMhcSpecs } from '../../types';
 import { StorageService } from '../../utils/persistence';
+import { hasMeaningfulMhcProgress } from '../../utils/mhcAutopilotBrain';
 import { MachineTemperatureWorkspace } from './MachineTemperatureWorkspace';
 import { MachineLaserPowerWorkspace } from './MachineLaserPowerWorkspace';
 import { MachineBeamProfileWorkspace } from './MachineBeamProfileWorkspace';
@@ -107,6 +108,14 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
   const machineMetrics: MachineMetrics = React.useMemo(() => {
     return LaserEngine.calculateMachineMetrics(selectedMachine);
   }, [selectedMachine]);
+
+  // Check for active in-progress session for selected machine
+  const resumableSession = React.useMemo(() => {
+    if (!selectedMachine?.id) return null;
+    const sessions = StorageService.getMhcSessions(true);
+    return sessions.find(s => s.machineId === selectedMachine.id && s.completionStatus === 'IN_PROGRESS') || null;
+  }, [selectedMachine?.id]);
+  const isResumableActive = resumableSession ? hasMeaningfulMhcProgress(resumableSession) : false;
 
   // Physical Meter Verification Modal State
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -1152,250 +1161,153 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
         </div>
       )}
 
-      {/* Layer 1 — Customer Workspace */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Building2 className={`w-5 h-5 ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-600'}`} />
-            <h2 className={`text-sm font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-              Customer Workspace
-            </h2>
-            <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
-              isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF] border-[#8B9DFF]/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-            }`}>
-              {customers.length} Accounts
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-mono hidden md:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Select Customer Account to inspect plant equipment
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Plus className="w-3.5 h-3.5" />}
-              onClick={handleOpenAddCustomer}
-            >
-              Add Customer
-            </Button>
-          </div>
-        </div>
+      {/* Fleet Navigator / Context Bar */}
+      <div className={`p-4 rounded-xl border space-y-3.5 ${
+        isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+      }`}>
+        {/* Top Row: Customer Selection + Utility Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Customer Account Switcher */}
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <div className="flex items-center gap-1.5 font-mono text-xs font-semibold">
+              <Building2 className={`w-4 h-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
+              <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Customer:</span>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {customers.map((c) => {
-            const isSelected = c.id === activeCustomerId;
-            const isMenuOpen = activeCustomerMenuId === c.id;
-            return (
-              <div
-                key={c.id}
-                onClick={() => handleSelectCustomer(c.id)}
-                className={`p-4 rounded-2xl border text-left transition-all duration-200 relative group cursor-pointer ${
-                  isSelected
-                    ? isDark
-                      ? 'bg-gradient-to-br from-[#1E2228] to-[#16181C] border-[#8B9DFF] shadow-lg shadow-[#8B9DFF]/10 ring-1 ring-[#8B9DFF]/50'
-                      : 'bg-white border-indigo-600 shadow-md ring-1 ring-indigo-500/30'
-                    : isDark
-                      ? 'bg-[#14171A] border-[#2B323A] hover:bg-[#1A1D21] hover:border-slate-600'
-                      : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-slate-300'
+            <div className="relative inline-block">
+              <select
+                value={activeCustomerId}
+                onChange={(e) => handleSelectCustomer(e.target.value)}
+                aria-label="Select Customer Account"
+                className={`px-3 py-1.5 text-xs font-bold font-mono rounded-lg border appearance-none pr-8 cursor-pointer transition-colors ${
+                  isDark
+                    ? 'bg-[#1C2026] text-white border-[#3D4754] hover:border-slate-400'
+                    : 'bg-white text-slate-900 border-slate-300 hover:border-slate-400 shadow-2xs'
                 }`}
               >
-                {isSelected && (
-                  <div className={`absolute top-0 right-0 w-16 h-16 pointer-events-none opacity-20 rounded-tr-2xl overflow-hidden ${
-                    isDark ? 'bg-[#8B9DFF] blur-xl' : 'bg-indigo-500 blur-xl'
-                  }`} />
-                )}
-
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0 flex-1 pr-1">
-                    <h3 className={`text-sm font-bold truncate ${
-                      isSelected
-                        ? isDark ? 'text-white' : 'text-slate-900'
-                        : isDark ? 'text-slate-200' : 'text-slate-800'
-                    }`}>
-                      {c.name}
-                    </h3>
-                    <p className={`text-xs flex items-center gap-1 font-medium mt-0.5 ${
-                      isDark ? 'text-slate-400' : 'text-slate-500'
-                    }`}>
-                      <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                      <span className="truncate">{c.site}</span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-md border ${
-                      c.status === 'OPTIMAL'
-                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
-                        : c.status === 'WARNING'
-                          ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                          : 'bg-rose-500/10 text-rose-500 border-rose-500/30'
-                    }`}>
-                      {c.status}
-                    </span>
-
-                    {/* Customer Overflow Menu Button (⋮) */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveCustomerMenuId(isMenuOpen ? null : c.id);
-                        }}
-                        className={`p-1 rounded-lg border transition-colors ${
-                          isDark
-                            ? 'bg-[#1E2227] border-[#2B323A] text-slate-300 hover:text-white hover:bg-[#282E36]'
-                            : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`}
-                        title="Customer Actions"
-                      >
-                        <MoreVertical className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Customer Actions Dropdown Menu */}
-                      {isMenuOpen && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-20"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveCustomerMenuId(null);
-                            }}
-                          />
-                          <div
-                            className={`absolute right-0 top-8 w-48 rounded-xl border shadow-xl z-30 py-1 text-xs font-semibold ${
-                              isDark
-                                ? 'bg-[#1E2227] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
-                                : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
-                            }`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="py-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveCustomerMenuId(null);
-                                  handleOpenEditCustomer(c);
-                                }}
-                                className={`w-full px-3 py-2 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-[#8B9DFF]" />
-                                Edit Customer
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveCustomerMenuId(null);
-                                  handleOpenRenameCustomer(c);
-                                }}
-                                className={`w-full px-3 py-2 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                              >
-                                <Type className="w-3.5 h-3.5 text-[#8ECDF7]" />
-                                Rename Customer
-                              </button>
-                            </div>
-                            <div className="py-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveCustomerMenuId(null);
-                                  handleArchiveCustomer(c);
-                                }}
-                                className={`w-full px-3 py-2 text-left flex items-center gap-2 transition-colors ${
-                                  isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                              >
-                                <Archive className="w-3.5 h-3.5 text-amber-500" />
-                                Archive Account
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveCustomerMenuId(null);
-                                  handleOpenDeleteCustomer(c);
-                                }}
-                                className={`w-full px-3 py-2 text-left flex items-center gap-2 text-rose-500 transition-colors ${
-                                  isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                                }`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                Delete Customer
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`pt-2.5 mt-2 border-t flex items-center justify-between text-xs font-mono ${
-                  isDark ? 'border-[#2B323A]/60 text-slate-400' : 'border-slate-200 text-slate-600'
-                }`}>
-                  <span className="flex items-center gap-1 font-semibold">
-                    <Cpu className="w-3.5 h-3.5 text-[#8B9DFF]" />
-                    {c.machineCount} {c.machineCount === 1 ? 'Asset' : 'Assets'}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-emerald-500">{c.avgHealth}% Health</span>
-                    {c.pmDueCount > 0 ? (
-                      <span className="text-amber-500 font-bold">{c.pmDueCount} PM Due</span>
-                    ) : (
-                      <span className="text-slate-400 text-[11px]">0 Alerts</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Part 4 — Add Customer Card */}
-          <button
-            type="button"
-            onClick={handleOpenAddCustomer}
-            className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[110px] transition-all group ${
-              isDark
-                ? 'border-[#2B323A] hover:border-[#8B9DFF] bg-[#14171A]/40 hover:bg-[#1A1D21]'
-                : 'border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-white'
-            }`}
-          >
-            <div className={`p-2 rounded-full transition-transform group-hover:scale-110 ${
-              isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'
-            }`}>
-              <Plus className="w-4 h-4" />
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.machineCount} {c.machineCount === 1 ? 'unit' : 'units'})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
             </div>
-            <span className={`text-xs font-bold font-mono ${
-              isDark ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-indigo-600'
-            }`}>
-              Add Customer
-            </span>
-          </button>
-        </div>
-      </div>
 
-      {/* Layer 2 — Machine Workspace */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Cpu className={`w-4 h-4 ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-600'}`} />
-            <h3 className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              Managed Laser Fleet
-            </h3>
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-              isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF] border-[#8B9DFF]/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-            }`}>
-              {activeCustomer?.name}
-            </span>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-              isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
-            }`}>
-              {filteredMachines.length} {filteredMachines.length === 1 ? 'Machine' : 'Machines'}
-            </span>
+            {activeCustomer?.site && (
+              <span className={`text-[11px] font-mono hidden md:inline-flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <MapPin className="w-3 h-3 text-slate-400" />
+                {activeCustomer.site}
+              </span>
+            )}
+
+            {/* Customer Action Menu */}
+            {activeCustomer && (
+              <div className="relative inline-block">
+                <button
+                  type="button"
+                  aria-label="Customer options"
+                  onClick={() => setActiveCustomerMenuId(activeCustomerMenuId === activeCustomer.id ? null : activeCustomer.id)}
+                  className={`p-1.5 rounded-md border transition-colors ${
+                    isDark
+                      ? 'bg-[#1C2026] border-[#3D4754] text-slate-300 hover:text-white'
+                      : 'bg-white border-slate-300 text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Customer Actions"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+
+                {activeCustomerMenuId === activeCustomer.id && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setActiveCustomerMenuId(null)}
+                    />
+                    <div
+                      className={`absolute left-0 top-8 w-48 rounded-xl border shadow-xl z-30 py-1 text-xs font-semibold ${
+                        isDark
+                          ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
+                          : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100'
+                      }`}
+                    >
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCustomerMenuId(null);
+                            handleOpenEditCustomer(activeCustomer);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                          Edit Customer Info
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCustomerMenuId(null);
+                            handleOpenRenameCustomer(activeCustomer);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <Type className="w-3.5 h-3.5 text-slate-400" />
+                          Rename Customer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCustomerMenuId(null);
+                            handleArchiveCustomer(activeCustomer);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <Archive className="w-3.5 h-3.5 text-amber-500" />
+                          Archive Account
+                        </button>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCustomerMenuId(null);
+                            handleOpenDeleteCustomer(activeCustomer as any);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 ${
+                            isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
+                          }`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                          Delete Customer
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleOpenAddCustomer}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ${
+                isDark
+                  ? 'border-dashed border-slate-700 hover:border-slate-500 text-slate-400 hover:text-slate-200'
+                  : 'border-dashed border-slate-300 hover:border-slate-500 text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Plus className="w-3 h-3" />
+              New Customer
+            </button>
           </div>
 
+          {/* Right utility buttons */}
           <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
             <input
               type="file"
@@ -1407,329 +1319,91 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             <Button
               size="sm"
               variant="outline"
-              icon={<Upload className="w-3.5 h-3.5 text-indigo-500" />}
+              icon={<Upload className="w-3.5 h-3.5 text-slate-400" />}
               onClick={handleTriggerImportFile}
-              className="text-xs h-7 px-2.5 font-sans"
+              className="text-xs h-8 px-2.5 font-sans"
+              title="Import Laser Monitor JSON"
             >
-              Import Laser Monitor JSON
+              Import JSON
             </Button>
             <Button
               size="sm"
               variant="outline"
-              icon={<Download className="w-3.5 h-3.5 text-sky-500" />}
+              icon={<Download className="w-3.5 h-3.5 text-slate-400" />}
               onClick={handleExportJson}
-              className="text-xs h-7 px-2.5 font-sans"
+              className="text-xs h-8 px-2.5 font-sans"
+              title="Export Laser Lifecycle JSON"
             >
-              Export Laser Lifecycle JSON
+              Export JSON
             </Button>
-            <span className={`px-2 py-0.5 rounded border text-[11px] font-semibold ${
-              isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            }`}>
-              {filteredMachines.filter(m => m.status === 'OPERATIONAL').length}/{filteredMachines.length} Operational
-            </span>
-            <span className={`text-[11px] hidden md:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {activeCustomer?.site || 'Cleanroom Site'}
-            </span>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Plus className="w-3.5 h-3.5" />}
+              onClick={handleOpenAdd}
+              className="text-xs h-8 px-3 font-sans"
+            >
+              Add Machine
+            </Button>
           </div>
         </div>
 
-        {filteredMachines.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <Card className="p-6 text-center col-span-full sm:col-span-1 lg:col-span-2">
-              <Cpu className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-              <p className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                No laser machines assigned to {activeCustomer?.name}.
-              </p>
-            </Card>
-
-            {/* Add Machine Card */}
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[110px] transition-all group ${
-                isDark
-                  ? 'border-[#2B323A] hover:border-[#8B9DFF] bg-[#14171A]/40 hover:bg-[#1A1D21]'
-                  : 'border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-white'
-              }`}
-            >
-              <div className={`p-2 rounded-full transition-transform group-hover:scale-110 ${
-                isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'
-              }`}>
-                <Plus className="w-4 h-4" />
-              </div>
-              <span className={`text-xs font-bold font-mono ${
-                isDark ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-indigo-600'
-              }`}>
-                Add Machine
+        {/* Machine Quick Switcher Horizontal Pill Bar */}
+        <div className="pt-2.5 border-t border-slate-200 dark:border-[#2B323A]/80">
+          {filteredMachines.length === 0 ? (
+            <div className="py-2 px-3 text-xs font-mono flex items-center justify-between text-slate-500">
+              <span>No machines assigned to {activeCustomer?.name || 'this customer'}.</span>
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                className="text-xs font-bold text-indigo-500 hover:underline inline-flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Add first machine
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className={`text-[10px] font-mono uppercase tracking-wider shrink-0 font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Fleet ({filteredMachines.length}):
               </span>
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {filteredMachines.map((m) => {
-              const isSelected = m.id === selectedMachine?.id;
-              const laserCount = m.laserHeads?.length || m.lasers?.length || 1;
-              const healthStatus = LaserEngine.getMachineHealthStatus(m);
-
-              return (
-                <div
-                  key={m.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSelected}
-                  aria-label={`Select machine ${m.machineNumber || m.machineNo || m.id}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onSelectMachine(m.id);
-                    }
-                  }}
-                  onClick={() => onSelectMachine(m.id)}
-                  className={`p-4 rounded-2xl border text-left transition-all duration-200 relative group cursor-pointer select-none flex flex-col justify-between ${
-                    isSelected
-                      ? isDark
-                        ? 'bg-gradient-to-br from-[#1C212B] to-[#14171E] border-[#8B9DFF] shadow-lg shadow-[#8B9DFF]/15 ring-1.5 ring-[#8B9DFF]/50'
-                        : 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-md'
-                      : isDark
-                        ? 'bg-[#14171A] border-[#2B323A] hover:bg-[#1A1D21] hover:border-slate-600 shadow-xs'
-                        : 'bg-slate-50/90 border-slate-200 hover:bg-white hover:border-slate-300 shadow-2xs'
-                  }`}
-                >
-                  {/* Selected Indicator Accent Stripe on left edge */}
-                  {isSelected && (
-                    <div
-                      className={`absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full ${
-                        isDark ? 'bg-[#8B9DFF]' : 'bg-indigo-600'
-                      }`}
-                    />
-                  )}
-
-                  {/* Header: Machine Number (Dominant Primary Identifier) + Status + Action Menu */}
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <h4 className={`text-base font-bold font-mono tracking-tight truncate ${
-                          isSelected
-                            ? isDark ? 'text-white' : 'text-slate-900'
-                            : isDark ? 'text-slate-100 group-hover:text-white' : 'text-slate-900'
-                        }`}>
-                          {m.machineNumber || m.machineNo || m.id}
-                        </h4>
-                        {isSelected && (
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider ${
-                            isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/40' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                          }`}>
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                            SELECTED
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Operational Status Badge */}
-                        <Badge
-                          variant={
-                            m.status === 'OPERATIONAL'
-                              ? 'emerald'
-                              : m.status === 'NEEDS_CALIBRATION'
-                                ? 'amber'
-                                : m.status === 'MAINTENANCE_DUE'
-                                  ? 'purple'
-                                  : 'rose'
-                          }
-                          className="text-[10px] font-semibold py-0.5"
-                        >
-                          {m.status}
-                        </Badge>
-
-                        {/* Machine 3-Dot Action Menu */}
-                        <div className="relative z-10 shrink-0">
-                          <button
-                            type="button"
-                            aria-label={`Options for ${m.machineNumber || m.id}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMachineCardMenuId(activeMachineCardMenuId === m.id ? null : m.id);
-                            }}
-                            className={`p-1.5 rounded-lg transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center ${
-                              isDark ? 'hover:bg-slate-700 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-800'
-                            }`}
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-
-                          {activeMachineCardMenuId === m.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-20"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMachineCardMenuId(null);
-                                }}
-                              />
-                              <div
-                                className={`absolute right-0 mt-1 w-44 rounded-xl border shadow-xl z-30 py-1 text-xs transition-all ${
-                                  isDark
-                                    ? 'bg-[#1E2227] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
-                                    : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
-                                }`}
-                              >
-                                <div className="py-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMachineCardMenuId(null);
-                                      onSelectMachine(m.id);
-                                      handleOpenEdit();
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5 text-[#8B9DFF]" />
-                                    Edit Specifications
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMachineCardMenuId(null);
-                                      onSelectMachine(m.id);
-                                      setIsRenameModalOpen(true);
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    <Type className="w-3.5 h-3.5 text-[#8ECDF7]" />
-                                    Rename Asset
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMachineCardMenuId(null);
-                                      onSelectMachine(m.id);
-                                      handleDuplicateMachine();
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors ${
-                                      isDark ? 'hover:bg-[#282E36] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    <Copy className="w-3.5 h-3.5 text-amber-400" />
-                                    Duplicate Machine
-                                  </button>
-                                </div>
-                                <div className="py-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMachineCardMenuId(null);
-                                      onSelectMachine(m.id);
-                                      setIsDeleteModalOpen(true);
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 transition-colors ${
-                                      isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                                    }`}
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                    Delete Machine
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Secondary Hierarchy: Machine Model, Serial Number & Laser Count */}
-                    <div className="flex items-center justify-between gap-2 text-xs font-mono mb-2.5">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className={`font-semibold ${
-                          isSelected
-                            ? isDark ? 'text-slate-200' : 'text-slate-800'
-                            : isDark ? 'text-slate-300' : 'text-slate-700'
-                        }`}>
-                          {m.model}
-                        </span>
-                        <span className={`opacity-40 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>•</span>
-                        <span className={`text-[11px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          SN: {m.serialNumber || m.serialNo || 'N/A'}
-                        </span>
-                      </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 font-mono ${
-                        isDark ? 'bg-slate-800/80 text-slate-300 border border-slate-700/60' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        {laserCount} {laserCount === 1 ? 'Laser' : 'Lasers'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Footer: Plant / Location & Health PASS Status */}
-                  <div className={`flex items-center justify-between pt-2.5 border-t text-[11px] font-mono mt-auto ${
-                    isDark ? 'border-[#2B323A]/70' : 'border-slate-200'
-                  }`}>
-                    <span className={`font-medium truncate flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-                      <span className="truncate">{m.plantName || activeCustomer?.site || 'P3 Cleanroom'}</span>
-                      {m.productionLineName && (
-                        <>
-                          <span className="opacity-40">•</span>
-                          <span className="truncate">{m.productionLineName}</span>
-                        </>
-                      )}
-                    </span>
-                    <span className={`font-bold shrink-0 text-[10px] px-2 py-0.5 rounded tracking-wider ${
+              {filteredMachines.map((m) => {
+                const isSelected = m.id === selectedMachine?.id;
+                const healthStatus = LaserEngine.getMachineHealthStatus(m);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => onSelectMachine(m.id)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-2 shrink-0 transition-all ${
+                      isSelected
+                        ? isDark
+                          ? 'bg-[#242A32] border-[#3D4754] text-white shadow-xs font-bold'
+                          : 'bg-white border-slate-400 text-slate-900 shadow-xs font-bold'
+                        : isDark
+                        ? 'bg-[#1C2026] border-[#2B323A] text-slate-400 hover:text-slate-200 hover:bg-[#242A32]'
+                        : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
                       healthStatus === 'PASS'
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-emerald-500'
                         : healthStatus === 'WARNING'
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                    }`}>
-                      {healthStatus}
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
+                    }`} />
+                    <span className="font-bold">{m.machineNumber || m.machineNo || m.id}</span>
+                    <span className={`text-[10px] opacity-75 font-sans ${isSelected ? (isDark ? 'text-slate-300' : 'text-slate-700') : ''}`}>
+                      {m.model}
                     </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Part 1 — Add Machine Card */}
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              aria-label="Register new machine asset"
-              className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2.5 min-h-[125px] transition-all group ${
-                isDark
-                  ? 'border-[#2B323A] hover:border-[#8B9DFF] bg-[#14171A]/40 hover:bg-[#1A1D21]'
-                  : 'border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-white'
-              }`}
-            >
-              <div className={`p-2.5 rounded-full transition-transform group-hover:scale-110 ${
-                isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'
-              }`}>
-                <Plus className="w-4 h-4" />
-              </div>
-              <div className="text-center">
-                <span className={`block text-xs font-bold font-mono ${
-                  isDark ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-indigo-600'
-                }`}>
-                  Add Machine Asset
-                </span>
-                <span className={`block text-[10px] font-mono mt-0.5 ${
-                  isDark ? 'text-slate-500' : 'text-slate-400'
-                }`}>
-                  Register new laser unit
-                </span>
-              </div>
-            </button>
-          </div>
-        )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Layer 2 & 3 & 4 — Machine Hero Cockpit / Empty State */}
+      {/* Machine Passport Workspace / Empty State */}
       {!selectedMachine ? (
         passportSubTab === 'recommended_parts' ? (
           <div className="space-y-4">
@@ -1748,10 +1422,10 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
           <Card className="p-8 text-center space-y-4">
             <Cpu className="w-12 h-12 mx-auto text-slate-400 opacity-60" />
             <h2 className={`text-base font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-              No Machine Selected / Available in Passport
+              No Machine Selected
             </h2>
             <p className={`text-xs max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Register a new machine asset, or manage the authoritative Recommended Parts Master catalog for BMD302W / BMD250WM.
+              Register a new laser machine asset, or manage the authoritative Recommended Parts catalog.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Button
@@ -1775,26 +1449,18 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
         )
       ) : (
         <>
-          <div className={`p-6 rounded-2xl border relative transition-all ${
-            isDark
-              ? 'bg-gradient-to-br from-[#1A1D21] via-[#16181C] to-[#121417] border-[#2B323A] shadow-xl'
-              : 'bg-gradient-to-br from-white via-slate-50/80 to-slate-100/60 border-slate-200/90 shadow-md'
+          {/* Selected Machine Identity Surface */}
+          <div className={`p-5 rounded-2xl border transition-all ${
+            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
           }`}>
-            {/* Accent background mesh wrapper with overflow-hidden */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-              <div className={`absolute -right-12 -top-12 w-64 h-64 rounded-full blur-3xl ${
-                isDark ? 'bg-[#8B9DFF]/5' : 'bg-indigo-500/5'
-              }`} />
-            </div>
-
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-              {/* Machine Core Identity (Layer 5 Rank 1 & 2) */}
-              <div className="space-y-3 flex-1 min-w-0">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              {/* Identity & Metadata */}
+              <div className="space-y-2 flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] font-bold tracking-wider uppercase border ${
-                    isDark ? 'bg-[#8B9DFF]/15 border-[#8B9DFF]/40 text-[#8B9DFF]' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded border ${
+                    isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
                   }`}>
-                    SELECTED MACHINE
+                    MACHINE PASSPORT
                   </span>
                   <Badge
                     variant={
@@ -1804,360 +1470,408 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                         ? 'amber'
                         : 'rose'
                     }
-                    size="md"
+                    size="sm"
                   >
                     {selectedMachine.status}
                   </Badge>
-                  <span className={`text-xs font-mono flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                    SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-900'}>{selectedMachine.serialNumber || selectedMachine.serialNo || 'N/A'}</strong>
+                  <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{selectedMachine.serialNumber || selectedMachine.serialNo || 'N/A'}</strong>
                   </span>
                 </div>
 
                 <div>
-                  <h1 className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>
+                  <h1 className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
                   </h1>
                   <div className={`flex items-center gap-2 mt-1.5 text-xs font-medium flex-wrap ${
-                    isDark ? 'text-[#94A3B8]' : 'text-slate-600'
+                    isDark ? 'text-slate-400' : 'text-slate-600'
                   }`}>
                     <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {selectedMachine.model}
                     </span>
                     <span className="opacity-40">•</span>
-                    <span className="flex items-center gap-1">
-                      <Building2 className="w-3.5 h-3.5 text-[#8B9DFF]" />
-                      {selectedMachine.customerName}
-                    </span>
+                    <span>{selectedMachine.customerName}</span>
                     <span className="opacity-40">•</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      {selectedMachine.plantName}
-                    </span>
-                    <span className="opacity-40">•</span>
-                    <span className="font-mono text-[11px] opacity-90">{selectedMachine.productionLineName || '—'}</span>
+                    <span>{selectedMachine.plantName || 'Cleanroom'}</span>
+                    {selectedMachine.productionLineName && (
+                      <>
+                        <span className="opacity-40">•</span>
+                        <span className="font-mono text-[11px]">{selectedMachine.productionLineName}</span>
+                      </>
+                    )}
                     {selectedMachine.zone ? (
                       <>
                         <span className="opacity-40">•</span>
-                        <span className="font-mono text-[11px] opacity-90">Zone: {selectedMachine.zone}</span>
+                        <span className="font-mono text-[11px]">Zone: {selectedMachine.zone}</span>
                       </>
                     ) : null}
                   </div>
                 </div>
+              </div>
 
-                {/* Quick Machine Summary Telemetry Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                  <div className={`p-2.5 rounded-xl border text-xs ${
-                    isDark ? 'bg-[#111315]/80 border-[#2B323A]' : 'bg-white/80 border-slate-200 shadow-2xs'
-                  }`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Installed</span>
-                    <span className={`font-mono font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>{selectedMachine.installationDate}</span>
-                  </div>
-                  <div className={`p-2.5 rounded-xl border text-xs ${
-                    isDark ? 'bg-[#111315]/80 border-[#2B323A]' : 'bg-white/80 border-slate-200 shadow-2xs'
-                  }`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Next MHC</span>
-                    <span className={`font-mono font-bold ${isDark ? 'text-[#8ECDF7]' : 'text-sky-800'}`}>{selectedMachine.nextMhcDate}</span>
-                  </div>
-                  <div className={`p-2.5 rounded-xl border text-xs ${
-                    isDark ? 'bg-[#111315]/80 border-[#2B323A]' : 'bg-white/80 border-slate-200 shadow-2xs'
-                  }`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Laser Heads</span>
-                    <span className={`font-mono font-bold ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>{selectedMachine.laserHeads?.length || 0} Active Unit(s)</span>
-                  </div>
-                  <div className={`p-2.5 rounded-xl border text-xs ${
-                    isDark ? 'bg-[#111315]/80 border-[#2B323A]' : 'bg-white/80 border-slate-200 shadow-2xs'
-                  }`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>MHC Logs</span>
-                    <span className={`font-mono font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>{machineMhcs.length} Recorded</span>
-                  </div>
+              {/* Primary Operational Action & Management Dropdown */}
+              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-start lg:justify-end">
+                {/* Primary Action Button */}
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon={<Activity className="w-4 h-4" />}
+                  onClick={() => onOpenMhcForMachine(selectedMachine.id)}
+                  className="font-sans font-semibold"
+                >
+                  {isResumableActive ? 'Continue Health Check' : 'Start Health Check'}
+                </Button>
+
+                {/* Machine Management Actions Menu */}
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    icon={<Settings className="w-4 h-4" />}
+                    onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                  >
+                    Manage Machine
+                  </Button>
+
+                  {isActionMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setIsActionMenuOpen(false)}
+                      />
+                      <div
+                        className={`absolute right-0 mt-1.5 w-52 rounded-xl border shadow-xl z-30 py-1 text-xs font-medium ${
+                          isDark
+                            ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
+                            : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
+                        }`}
+                      >
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsActionMenuOpen(false);
+                              handleOpenEdit();
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                            Edit Machine & Specs
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsActionMenuOpen(false);
+                              handleOpenRename();
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Type className="w-3.5 h-3.5 text-slate-400" />
+                            Rename Asset
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsActionMenuOpen(false);
+                              handleOpenFanOut();
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                            Fan-Out Specs to Fleet
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsActionMenuOpen(false);
+                              handleDuplicateMachine();
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                            Duplicate Machine
+                          </button>
+                        </div>
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsActionMenuOpen(false);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center gap-2 text-rose-500 ${
+                              isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
+                            }`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                            Delete Machine
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Current State Summary Strip */}
+            <div className={`mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono ${
+              isDark ? 'border-[#2B323A]/80' : 'border-slate-200'
+            }`}>
+              <div>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Health Status</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className={`w-2 h-2 rounded-full ${
+                    LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
+                      ? 'bg-emerald-500'
+                      : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
+                      ? 'bg-amber-500'
+                      : 'bg-rose-500'
+                  }`} />
+                  <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                    {LaserEngine.getMachineHealthStatus(selectedMachine)} ({selectedMachine.healthScore}%)
+                  </span>
                 </div>
               </div>
 
-              {/* Health Gauge & Primary Workflow Actions (Layer 5 Rank 3, 4, 5) */}
-              <div className={`flex flex-col sm:flex-row lg:flex-col items-center lg:items-end justify-between gap-5 p-4 lg:p-0 rounded-2xl lg:bg-transparent ${
-                isDark ? 'bg-[#111315]/50 border lg:border-0 border-[#2B323A]' : 'bg-white/60 border lg:border-0 border-slate-200'
-              }`}>
-                {/* Overall Health Status */}
-                <div className="flex flex-col items-start sm:items-end gap-1 font-mono">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">ENGINEERING STATUS</span>
-                  <Badge
-                    variant={
-                      LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
-                        ? 'emerald'
-                        : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
-                        ? 'amber'
-                        : 'rose'
-                    }
-                    size="lg"
-                    className="font-bold text-xs px-3 py-1 tracking-wider"
-                  >
-                    {LaserEngine.getMachineHealthStatus(selectedMachine)}
-                  </Badge>
-                </div>
+              <div>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Laser Configuration</span>
+                <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                  {machineMetrics.laserMetricsList.length} Head(s) Active
+                </span>
+              </div>
 
-                {/* Primary Actions */}
-                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end w-full sm:w-auto">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    icon={<Activity className="w-4 h-4" />}
-                    onClick={() => onOpenMhcForMachine(selectedMachine.id)}
-                  >
-                    Execute Health Check
-                  </Button>
-                </div>
+              <div>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Last MHC Inspection</span>
+                <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                  {selectedMachine.lastMhcDate || 'None recorded'}
+                </span>
+              </div>
+
+              <div>
+                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Next MHC Target</span>
+                <span className={`font-bold block mt-0.5 ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>
+                  {selectedMachine.nextMhcDate || 'Unscheduled'}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Subsystem Navigation & Active Workspace Layout */}
           <div className="flex flex-col xl:flex-row gap-6 items-start">
-            {/* Left-Side Subsystem Navigation Panel */}
+            {/* Left Technical Subsystems Navigator */}
             <nav
-              aria-label="Machine Passport Subsystem Navigation"
-              className={`w-full xl:w-64 2xl:w-72 shrink-0 xl:sticky xl:top-4 rounded-2xl border p-3.5 transition-all ${
-                isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
+              aria-label="Machine Passport Subsystems"
+              className={`w-full xl:w-60 2xl:w-64 shrink-0 xl:sticky xl:top-4 rounded-2xl border p-3 transition-all ${
+                isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
               }`}
             >
-              {/* Navigation Header */}
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-[#2B323A]">
-                <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-lg ${isDark ? 'bg-[#8B9DFF]/15 text-[#8B9DFF]' : 'bg-indigo-50 text-indigo-600'}`}>
-                    <Cpu className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      Subsystems
-                    </h3>
-                    <p className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      Passport Diagnostics
-                    </p>
-                  </div>
+              <div className="pb-2.5 mb-2.5 border-b border-slate-200 dark:border-[#2B323A]">
+                <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">
+                  Engineering Systems
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border font-bold ${
-                  isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
-                }`}>
-                  {selectedMachine.machineNumber}
-                </span>
               </div>
 
-              {/* Categorized Navigation Groups */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-3 xl:gap-3.5">
+              <div className="space-y-3">
                 {/* Group 1: Health & Lifecycle */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/70" />
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Health & Lifecycle
                   </div>
-                  <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('lifecycle')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'lifecycle'
-                          ? isDark
-                            ? 'bg-[#8B9DFF]/15 text-[#8B9DFF] border border-[#8B9DFF]/40 shadow-xs font-bold'
-                            : 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate">Lifecycle & Health</span>
-                      </div>
-                      {passportSubTab === 'lifecycle' && (
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDark ? 'bg-[#8B9DFF]' : 'bg-indigo-600'}`} />
-                      )}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('lifecycle')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'lifecycle'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Zap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Lifecycle & Health</span>
+                    </div>
+                    {passportSubTab === 'lifecycle' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                    )}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('temperature')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'temperature'
-                          ? isDark
-                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/40 shadow-xs font-bold'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Thermometer className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        <span className="truncate">Temperature</span>
-                      </div>
-                      {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-rose-100 text-rose-800 border border-rose-200'
-                        }`}>
-                          {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
-                        </span>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('temperature')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'temperature'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Thermometer className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Temperature</span>
+                    </div>
+                    {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {/* Group 2: Optics & Laser */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/70" />
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Optics & Laser
                   </div>
-                  <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('laser_power')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'laser_power'
-                          ? isDark
-                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 shadow-xs font-bold'
-                            : 'bg-amber-50 text-amber-800 border border-amber-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate">Laser Power</span>
-                      </div>
-                      {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                        }`}>
-                          {selectedMachine.laserPowerRecords?.length}
-                        </span>
-                      )}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('laser_power')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'laser_power'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Zap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Laser Power</span>
+                    </div>
+                    {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {selectedMachine.laserPowerRecords?.length}
+                      </span>
+                    )}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('beam_profile')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'beam_profile'
-                          ? isDark
-                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 shadow-xs font-bold'
-                            : 'bg-cyan-50 text-cyan-800 border border-cyan-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Aperture className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                        <span className="truncate">Beam Profile</span>
-                      </div>
-                      {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-cyan-100 text-cyan-800 border border-cyan-200'
-                        }`}>
-                          {selectedMachine.beamProfileRecords?.length}
-                        </span>
-                      )}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('beam_profile')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'beam_profile'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Aperture className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Beam Profile</span>
+                    </div>
+                    {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {selectedMachine.beamProfileRecords?.length}
+                      </span>
+                    )}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('focus_optimization')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'focus_optimization'
-                          ? isDark
-                            ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40 shadow-xs font-bold'
-                            : 'bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Crosshair className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="truncate">Focus Optimization</span>
-                      </div>
-                      {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                        }`}>
-                          {selectedMachine.focusOptimizationRecords?.length}
-                        </span>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('focus_optimization')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'focus_optimization'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Crosshair className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Focus Optimization</span>
+                    </div>
+                    {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {selectedMachine.focusOptimizationRecords?.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {/* Group 3: Operations & Parts */}
                 <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 px-2.5 py-1 select-none flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Operations & Parts
                   </div>
-                  <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('product_process')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'product_process'
-                          ? isDark
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-xs font-bold'
-                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Layers className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="truncate">Product & Process</span>
-                      </div>
-                      {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}>
-                          {selectedMachine.productProcessRecords?.length}
-                        </span>
-                      )}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('product_process')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'product_process'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Product & Process</span>
+                    </div>
+                    {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {selectedMachine.productProcessRecords?.length}
+                      </span>
+                    )}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPassportSubTab('recommended_parts')}
-                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between text-left ${
-                        passportSubTab === 'recommended_parts'
-                          ? isDark
-                            ? 'bg-purple-500/15 text-purple-300 border border-purple-500/40 shadow-xs font-bold'
-                            : 'bg-purple-50 text-purple-700 border border-purple-200 shadow-xs font-bold'
-                          : isDark
-                          ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Package className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                        <span className="truncate">Recommended Items</span>
-                      </div>
-                      {passportSubTab === 'recommended_parts' && (
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDark ? 'bg-purple-400' : 'bg-purple-600'}`} />
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPassportSubTab('recommended_parts')}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                      passportSubTab === 'recommended_parts'
+                        ? isDark
+                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
+                        : isDark
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Recommended Items</span>
+                    </div>
+                    {passportSubTab === 'recommended_parts' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                    )}
+                  </button>
                 </div>
-              </div>
-
-              {/* Navigation Footer: Health Status Indicator */}
-              <div className="mt-3.5 pt-3 border-t border-slate-200/80 dark:border-[#2B323A]/80 hidden xl:flex items-center justify-between text-[11px] font-mono">
-                <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Health Status</span>
-                <span className={`font-bold text-[10px] px-2 py-0.5 rounded border ${
-                  LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
-                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                    : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                }`}>
-                  {LaserEngine.getMachineHealthStatus(selectedMachine)}
-                </span>
               </div>
             </nav>
 

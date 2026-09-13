@@ -756,7 +756,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   }, [progress.currentActivityCode]);
 
   return (
-    <div className={`fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md flex items-start justify-center ${
+    <div className={`fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center ${
       showReviewCompletionModal ? 'overflow-hidden' : 'overflow-y-auto'
     }`}>
       
@@ -766,7 +766,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-semibold text-xs shadow-xl flex items-center gap-2 border border-emerald-400"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[var(--color-success)] text-slate-950 font-semibold text-xs shadow-xl flex items-center gap-2 border border-emerald-400"
         >
           <CheckCircle2 className="w-4 h-4" />
           <span>{notification}</span>
@@ -774,35 +774,39 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       )}
 
       {/* Main Autopilot Container */}
-      <div className={`w-full max-w-7xl min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-3rem)] my-auto rounded-2xl border shadow-2xl flex flex-col md:flex-row ${
+      <div className={`w-full max-w-7xl min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-3rem)] my-auto rounded-xl border shadow-xl flex flex-col md:flex-row ${
         isDark 
-          ? 'bg-[#0f1319] border-slate-800 text-slate-100 shadow-cyan-950/20' 
-          : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
+          ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-2xl shadow-black/40' 
+          : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-lg shadow-slate-200/50'
       }`}>
 
         {/* LEFT COLUMN: MHC JOURNEY RAIL & SESSION BRAIN */}
         <div className={`w-full md:w-80 shrink-0 p-4 sm:p-5 border-b md:border-b-0 md:border-r flex flex-col justify-between ${
-          isDark ? 'bg-[#0b0d11] border-slate-800/80' : 'bg-slate-50 border-slate-200'
+          isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-[var(--border-default)]'
         }`}>
           <div>
             {/* Header Badge */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-                  <Bot className="w-5 h-5" />
+                <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+                  isDark 
+                    ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--color-primary)]' 
+                    : 'bg-white border-slate-300 text-indigo-600 shadow-xs'
+                }`}>
+                  <Bot className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold tracking-tight">
+                  <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
                     MHC Autopilot
                   </h2>
-                  <p className="text-[11px] text-slate-400">Guided Engineering Journey</p>
+                  <p className="text-[11px] text-[var(--text-muted)] font-mono">Inspection Workstation</p>
                 </div>
               </div>
             </div>
 
             {/* SETUP FLOW STEPS (JOURNEY RAIL) */}
-            <div className="space-y-3 mb-5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold px-1">
+            <div className="space-y-2 mb-5">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] font-bold px-1">
                 SETUP SEQUENCE
               </div>
               
@@ -816,18 +820,18 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       onClick={() => {
                         if (isClickable) setCurrentStep(step.id);
                       }}
-                      className={`w-full text-left p-2 rounded-xl text-xs transition-all flex items-center gap-2.5 border ${
+                      className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2.5 border ${
                         step.status === 'current'
                           ? isDark 
-                            ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 ring-1 ring-cyan-500/30' 
-                            : 'bg-cyan-50 border-cyan-300 text-cyan-900 font-medium'
+                            ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] ring-1 ring-slate-600 font-medium' 
+                            : 'bg-white border-slate-300 text-slate-900 font-medium shadow-xs'
                           : step.status === 'completed'
                           ? isDark
-                            ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/40 cursor-pointer'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100/60 cursor-pointer'
+                            ? 'bg-[var(--surface-surface)]/40 border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-surface)] cursor-pointer'
+                            : 'bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-white cursor-pointer'
                           : isDark
-                          ? 'bg-slate-900/40 border-slate-800/60 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-100/60 border-slate-200 text-slate-400 cursor-not-allowed'
+                          ? 'bg-transparent border-transparent text-[var(--text-subtle)] cursor-not-allowed opacity-50'
+                          : 'bg-transparent border-transparent text-slate-400 cursor-not-allowed opacity-50'
                       }`}
                     >
                       {/* Status Icon */}
@@ -838,8 +842,8 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           </div>
                         )}
                         {step.status === 'current' && (
-                          <div className="w-4 h-4 rounded-full bg-cyan-500/20 border border-cyan-500/60 text-cyan-300 flex items-center justify-center text-[9px] animate-pulse">
-                            ◉
+                          <div className="w-4 h-4 rounded-full bg-cyan-500/20 border border-cyan-500/60 text-cyan-300 flex items-center justify-center text-[9px]">
+                            ●
                           </div>
                         )}
                         {step.status === 'upcoming' && (
@@ -851,7 +855,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold text-[11px] truncate">{step.title}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{step.subtext}</div>
+                        <div className="text-[10px] text-[var(--text-muted)] truncate">{step.subtext}</div>
                       </div>
                     </button>
                   );
@@ -860,15 +864,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             </div>
 
             {/* ACTIVE WORKFLOW SCHEDULE ON RAIL (JOURNEY RAIL BRAIN) */}
-            <div className="pt-3 border-t border-slate-800/60 space-y-2">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold px-1 flex items-center justify-between">
-                <span>WORKFLOW SCHEDULE</span>
-                <span className="text-[9px] text-cyan-400 font-mono px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/50">
+            <div className="pt-3 border-t border-[var(--border-default)] space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] font-bold px-1 flex items-center justify-between">
+                <span>SCHEDULE</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-secondary)]">
                   {readiness.readinessScore}% READY
                 </span>
               </div>
               
-              <div className="space-y-2.5">
+              <div className="space-y-1.5">
                 {MHC_WORKFLOW_SCHEDULE.map((dayGroup) => (
                   <div key={dayGroup.code + dayGroup.day} className="space-y-1">
                     {/* Activity Code Item */}
@@ -889,36 +893,44 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             }}
                             className={`w-full text-left p-1.5 rounded-lg text-[11px] border flex items-center justify-between transition-all ${
                               isCurrentActive
-                                ? 'bg-cyan-950/60 border-cyan-500/70 text-cyan-200 ring-1 ring-cyan-500/40'
+                                ? isDark
+                                  ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] ring-1 ring-slate-600'
+                                  : 'bg-white border-slate-300 text-slate-900 shadow-xs ring-1 ring-slate-400'
                                 : actStatus === 'COMPLETED'
-                                ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/50 cursor-pointer'
+                                ? isDark
+                                  ? 'bg-[var(--surface-surface)]/40 border-[var(--border-subtle)] text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
+                                  : 'bg-white border-slate-200 text-emerald-700 hover:bg-slate-50 cursor-pointer'
                                 : actStatus === 'NEEDS_REVIEW'
-                                ? 'bg-amber-950/30 border-amber-500/40 text-amber-300 hover:bg-amber-950/50 cursor-pointer'
+                                ? isDark
+                                  ? 'bg-amber-950/20 border-amber-500/30 text-amber-300 hover:bg-amber-950/40 cursor-pointer'
+                                  : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100/60 cursor-pointer'
                                 : actStatus === 'IN_PROGRESS'
-                                ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/50 cursor-pointer'
-                                : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed opacity-70'
+                                ? isDark
+                                  ? 'bg-[var(--surface-raised)]/60 border-[var(--border-strong)] text-cyan-300 hover:bg-[var(--surface-raised)] cursor-pointer'
+                                  : 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/60 cursor-pointer'
+                                : 'bg-transparent border-transparent text-[var(--text-subtle)] cursor-not-allowed opacity-50'
                             }`}
                           >
                             <div className="flex items-center gap-1.5 truncate">
                               {/* Status indicator */}
                               <span className="font-mono text-[10px] font-bold">
                                 {actStatus === 'COMPLETED' && <span className="text-emerald-400">✓</span>}
-                                {actStatus === 'IN_PROGRESS' && <span className="text-cyan-400 animate-pulse">◉</span>}
+                                {actStatus === 'IN_PROGRESS' && <span className="text-cyan-400">●</span>}
                                 {actStatus === 'NEEDS_REVIEW' && <span className="text-amber-400 font-bold">⚠</span>}
-                                {actStatus === 'UPCOMING' && <span className="text-slate-400">○</span>}
-                                {actStatus === 'LOCKED' && <span className="text-slate-600">🔒</span>}
+                                {actStatus === 'UPCOMING' && <span className="text-[var(--text-muted)]">○</span>}
+                                {actStatus === 'LOCKED' && <span className="text-[var(--text-subtle)]">🔒</span>}
                               </span>
-                              <span className="font-mono text-[10px] text-cyan-400/90 font-bold">
+                              <span className="font-mono text-[10px] text-[var(--text-muted)] font-bold">
                                 {dayGroup.displayCode || getActivityDisplayCode(dayGroup.code)}
                               </span>
                               <span className="truncate font-medium">{dayGroup.title}</span>
                             </div>
-                            <span className="text-[9px] font-mono text-slate-500 shrink-0">{dayGroup.day}</span>
+                            <span className="text-[9px] font-mono text-[var(--text-muted)] shrink-0">{dayGroup.day}</span>
                           </button>
 
                           {/* Sub items if present */}
                           {isParent && (
-                            <div className="pl-4 space-y-1 pt-0.5 border-l border-slate-800 ml-2">
+                            <div className="pl-4 space-y-1 pt-0.5 border-l border-[var(--border-default)] ml-2">
                               {dayGroup.subItems?.map((sub, sIdx) => {
                                 const subStatus = progress.activityStatuses[sub.code] || 'LOCKED';
                                 const isSubActive = progress.currentActivityCode === sub.code;
@@ -931,26 +943,28 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                                     onClick={() => handleJumpToActivityCode(sub.code)}
                                     className={`w-full text-left px-2 py-1 rounded text-[10px] font-mono flex items-center justify-between border transition-all ${
                                       isSubActive
-                                        ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 font-bold'
+                                        ? isDark
+                                          ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] font-bold'
+                                          : 'bg-white border-slate-300 text-slate-900 font-bold shadow-xs'
                                         : subStatus === 'COMPLETED'
-                                        ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300 hover:bg-emerald-900/40 cursor-pointer'
+                                        ? 'bg-transparent border-transparent text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                                         : subStatus === 'NEEDS_REVIEW'
-                                        ? 'bg-amber-950/20 border-amber-500/30 text-amber-300 hover:bg-amber-900/40 cursor-pointer'
+                                        ? 'bg-transparent border-transparent text-amber-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                                         : subStatus === 'IN_PROGRESS'
-                                        ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-300 hover:bg-cyan-900/40 cursor-pointer'
-                                        : 'bg-slate-950/20 border-slate-800/40 text-slate-600 cursor-not-allowed'
+                                        ? 'bg-transparent border-transparent text-cyan-400 hover:bg-[var(--surface-surface)] cursor-pointer'
+                                        : 'bg-transparent border-transparent text-[var(--text-subtle)] cursor-not-allowed opacity-50'
                                     }`}
                                   >
                                     <div className="flex items-center gap-1.5 truncate">
-                                      <span className="text-slate-600 font-bold">{isLast ? '└─' : '├─'}</span>
+                                      <span className="text-[var(--text-subtle)] font-bold">{isLast ? '└─' : '├─'}</span>
                                       <span className="truncate">{sub.title}</span>
                                     </div>
                                     <span className="shrink-0 font-bold">
                                       {subStatus === 'COMPLETED' && <span className="text-emerald-400">✓</span>}
-                                      {subStatus === 'IN_PROGRESS' && <span className="text-cyan-400 animate-pulse">◉</span>}
+                                      {subStatus === 'IN_PROGRESS' && <span className="text-cyan-400">●</span>}
                                       {subStatus === 'NEEDS_REVIEW' && <span className="text-amber-400">⚠</span>}
-                                      {subStatus === 'UPCOMING' && <span className="text-slate-500">○</span>}
-                                      {subStatus === 'LOCKED' && <span className="text-slate-700">🔒</span>}
+                                      {subStatus === 'UPCOMING' && <span className="text-[var(--text-muted)]">○</span>}
+                                      {subStatus === 'LOCKED' && <span className="text-[var(--text-subtle)]">🔒</span>}
                                     </span>
                                   </button>
                                 );
@@ -967,7 +981,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
           </div>
 
           {/* AUTOPILOT EXIT CONTROL */}
-          <div className="pt-4 border-t border-slate-800/80">
+          <div className="pt-4 border-t border-[var(--border-default)]">
             <button
               id="mhc-autopilot-exit-btn"
               onClick={() => {
@@ -980,14 +994,14 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 }
               }}
               title="Exit Autopilot and return to Daily Work"
-              className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
+              className={`w-full py-2.5 px-3 rounded-lg border text-xs font-mono font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 isDark 
-                  ? 'bg-slate-900 hover:bg-rose-950/40 border-slate-700/80 hover:border-rose-700/80 text-slate-300 hover:text-rose-200' 
-                  : 'bg-white hover:bg-rose-50 border-slate-300 hover:border-rose-300 text-slate-700 hover:text-rose-800'
+                  ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-raised)] border-[var(--border-default)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]' 
+                  : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700 hover:text-slate-900 shadow-xs'
               }`}
             >
-              <LogOut className="w-3.5 h-3.5 text-rose-400" />
-              <span>EXIT AUTOPILOT</span>
+              <LogOut className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+              <span>EXIT WORKSTATION</span>
             </button>
 
             {currentStep === 'session_active' && effectiveSession && effectiveSession.completionStatus !== 'COMPLETED' && (
@@ -998,7 +1012,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   setSessionToDiscard(effectiveSession);
                 }}
                 title="Discard this unwanted draft session"
-                className="w-full mt-2 py-2 px-3 rounded-xl border border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="w-full mt-2 py-2 px-3 rounded-lg border border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[11px] font-mono font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                 <span>Discard Draft Session</span>
@@ -1016,79 +1030,78 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             {currentStep === 'welcome' && (
               <motion.div
                 key="welcome"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="space-y-6 my-auto"
               >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Interactive MHC Autopilot</span>
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-secondary)] text-xs font-mono">
+                  <span>FSOS // MHC WORKSTATION INITIALIZER</span>
                 </div>
 
                 <div className="space-y-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                    Let's build your Machine Health Check.
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Machine Health Check Inspection
                   </h1>
-                  <p className="text-sm text-slate-400 leading-relaxed max-w-xl">
-                    Autopilot guides you step-by-step through account selection, machine selection, and session tracking across Days 1–4 without losing engineering data.
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-xl">
+                    Structured 4-day guided inspection environment for equipment maintenance, optical laser profiling, thermal validation, and customer buyoff.
                   </p>
                 </div>
 
                 {/* FEATURE HIGHLIGHTS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className={`p-3.5 rounded-xl border space-y-1 ${
-                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className={`p-3.5 rounded-lg border space-y-1 ${
+                    isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                   }`}>
-                    <div className="flex items-center gap-2 font-semibold text-xs text-cyan-300">
-                      <Building2 className="w-4 h-4 text-cyan-400" />
-                      <span>Customer & Machine Passport</span>
+                    <div className="flex items-center gap-2 font-semibold text-xs text-[var(--text-primary)]">
+                      <Building2 className="w-4 h-4 text-[var(--color-primary)]" />
+                      <span>Customer &amp; Machine Identity</span>
                     </div>
-                    <p className="text-[11px] text-slate-400">
-                      Instant synchronization with customer accounts and machine passports.
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      Direct binding with equipment passports, laser heads, and historical baseline records.
                     </p>
                   </div>
 
-                  <div className={`p-3.5 rounded-xl border space-y-1 ${
-                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  <div className={`p-3.5 rounded-lg border space-y-1 ${
+                    isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                   }`}>
-                    <div className="flex items-center gap-2 font-semibold text-xs text-emerald-300">
+                    <div className="flex items-center gap-2 font-semibold text-xs text-[var(--text-primary)]">
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>Session Brain & Recovery</span>
+                      <span>Deterministic State Recovery</span>
                     </div>
-                    <p className="text-[11px] text-slate-400">
-                      Auto-detects active incomplete inspections and restores progress seamlessly.
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      Auto-detects active incomplete inspections and restores progress without data loss.
                     </p>
                   </div>
                 </div>
 
                 {/* ONE-CLICK CONTINUE LAST ACTIVITY BANNER (IF RESUMABLE ACTIVITY EXISTS) */}
                 {latestResumableSession && latestResumableMachine && (
-                  <div className={`p-4 rounded-xl border space-y-3 transition-all ${
-                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/70 border-cyan-300'
+                  <div className={`p-4 rounded-lg border space-y-3 transition-all ${
+                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-strong)]' : 'bg-slate-50 border-slate-300 shadow-xs'
                   }`}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                        <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">
-                          Resumable Activity Detected
+                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        <span className="text-xs font-mono font-bold text-[var(--text-primary)] uppercase tracking-wider">
+                          Active Draft Session Detected
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-surface)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                         {latestResumableSession.id}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="min-w-0">
-                        <div className="font-bold text-sm text-slate-100 dark:text-slate-100 flex items-center gap-2">
+                        <div className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
                           <span>{latestResumableMachine.model}</span>
-                          <span className="text-xs font-normal text-slate-400">
+                          <span className="text-xs font-mono font-normal text-[var(--text-muted)]">
                             ({latestResumableMachine.machineNumber || latestResumableMachine.serialNumber})
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400 truncate mt-0.5">
+                        <div className="text-xs text-[var(--text-muted)] truncate mt-0.5 font-mono">
                           {latestResumableCustomer?.name || latestResumableSession.customerName || latestResumableMachine.customerName || 'Customer'} • {latestResumableMachine.plantName} • {latestResumableSession.autopilotProgress?.currentDay || 'DAY 1'} — {latestResumableSession.autopilotProgress?.currentActivityCode || '01'}
                         </div>
                       </div>
@@ -1097,19 +1110,19 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         <button
                           id="mhc-autopilot-continue-last-btn"
                           onClick={handleContinueLatestActivity}
-                          className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+                          className="px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                         >
-                          <Play className="w-4 h-4 fill-slate-950" />
+                          <Play className="w-3.5 h-3.5 fill-current" />
                           <span>Continue Last Activity</span>
                         </button>
 
                         <button
                           id="mhc-autopilot-welcome-complete-btn"
                           onClick={() => setConfirmingWelcomeComplete(true)}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-mono font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>COMPLETE MHC</span>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Complete MHC</span>
                         </button>
 
                         <button
@@ -1118,11 +1131,11 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             e.stopPropagation();
                             setSessionToDiscard(latestResumableSession);
                           }}
-                          className="px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                           title="Discard this unwanted draft session"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                          <span>Discard Draft</span>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Discard</span>
                         </button>
                       </div>
                     </div>
@@ -1132,27 +1145,27 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2.5"
+                        className="p-3.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 space-y-2.5"
                       >
-                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs font-mono">
                           <ShieldCheck className="w-4 h-4 shrink-0" />
                           <span>Confirm Completion for Session {latestResumableSession.id}?</span>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                           This will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive it from active resume detection. All inspection records, logs, and historical data remain safely preserved.
                         </p>
                         <div className="flex items-center gap-2 pt-0.5">
                           <button
                             id="btn-welcome-confirm-complete-yes"
                             onClick={handleConfirmWelcomeComplete}
-                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-950/50 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
                           >
-                            <CheckCircle2 className="w-4 h-4" />
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Yes, Complete MHC</span>
                           </button>
                           <button
                             onClick={() => setConfirmingWelcomeComplete(false)}
-                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] text-xs font-medium border border-[var(--border-default)] cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -1163,20 +1176,20 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 )}
 
                 {/* PRIMARY ACTION */}
-                <div className="pt-4 flex items-center justify-between border-t border-slate-800/60">
-                  <span className="text-xs text-slate-500 font-mono">Step 1 of 4 • Welcome</span>
+                <div className="pt-4 flex items-center justify-between border-t border-[var(--border-default)]">
+                  <span className="text-xs text-[var(--text-muted)] font-mono">Step 1 of 4 • Welcome</span>
                   <button
                     onClick={() => setCurrentStep('customer')}
-                    className={`px-6 py-3 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+                    className={`px-5 py-2.5 rounded-lg font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer ${
                       latestResumableSession
                         ? isDark
-                          ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                          ? 'bg-[var(--surface-raised)] hover:bg-[var(--surface-workspace)] text-[var(--text-primary)] border border-[var(--border-default)]'
                           : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
-                        : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20 hover:scale-[1.02]'
+                        : 'bg-[var(--color-primary)] hover:opacity-90 text-white shadow-xs'
                     }`}
                   >
-                    <span>{latestResumableSession ? 'Start New / Manual Setup' : 'Start Autopilot Setup'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{latestResumableSession ? 'Manual Setup / New Machine' : 'Start Autopilot Setup'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </motion.div>
@@ -1186,42 +1199,42 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             {currentStep === 'customer' && (
               <motion.div
                 key="customer"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="space-y-5 my-auto"
               >
                 <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                  <div className="text-xs font-mono font-bold text-[var(--text-muted)] uppercase tracking-wider">
                     Step 2 of 4 • Customer Account
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Which customer account are you servicing today?
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Select Customer Account
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Select a Customer Passport account to view associated machine assets.
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Choose a Customer Passport account to view associated machine assets.
                   </p>
                 </div>
 
                 {/* SEARCH INPUT */}
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     placeholder="Search by customer name, industry, or contact..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all ${
                       isDark 
-                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                        ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]' 
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
                     }`}
                   />
                 </div>
 
                 {/* CUSTOMER SELECTION LIST */}
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                   {filteredCustomers.map((c) => {
                     const isSelected = selectedCustomer?.id === c.id;
                     const custMachines = machines.filter(m => m.customerId === c.id || m.customerName === c.name);
@@ -1241,33 +1254,37 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                             }
                           }
                         }}
-                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
+                            ? isDark
+                              ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] ring-1 ring-slate-600'
+                              : 'bg-slate-100 border-slate-400 text-slate-900'
                             : isDark
-                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                            ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
                             : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
-                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold ${
+                            isSelected 
+                              ? 'bg-[var(--surface-surface)] border-[var(--border-strong)] text-[var(--text-primary)]' 
+                              : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-muted)]'
                           }`}>
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="font-bold text-xs">{c.name}</div>
-                            <div className="text-[10px] text-slate-400">{c.industry} • {c.contactPerson}</div>
+                            <div className="font-bold text-xs text-[var(--text-primary)]">{c.name}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] font-mono">{c.industry} • {c.contactPerson}</div>
                           </div>
                         </div>
                         <div className="text-right font-mono flex items-center gap-2">
                           {hasActiveSessions && (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                               <span>Active Job</span>
                             </span>
                           )}
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--surface-surface)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                             {machineCount} Assets
                           </span>
                         </div>
@@ -1277,24 +1294,24 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 </div>
 
                 {/* NEXT ACTION */}
-                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
+                <div className="pt-3 flex items-center justify-between border-t border-[var(--border-default)]">
                   <button
                     onClick={() => setCurrentStep('welcome')}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
                     ← Back
                   </button>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-400 hidden sm:inline">
-                      Selected: <strong className="text-cyan-300">{selectedCustomer?.name || 'None'}</strong>
+                    <span className="text-xs font-mono text-[var(--text-muted)] hidden sm:inline">
+                      Selected: <strong className="text-[var(--text-primary)]">{selectedCustomer?.name || 'None'}</strong>
                     </span>
                     <button
                       disabled={!selectedCustomer}
                       onClick={() => setCurrentStep('machine')}
-                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                      className="px-5 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 disabled:opacity-40 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer"
                     >
                       <span>Next: Select Machine</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1305,42 +1322,42 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             {currentStep === 'machine' && (
               <motion.div
                 key="machine"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="space-y-5 my-auto"
               >
                 <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Step 3 of 4 • Target Machine
+                  <div className="text-xs font-mono font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                    Step 3 of 4 • Target Equipment
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Select target machine for {selectedCustomer?.name || 'Customer'}
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Select Target Machine for {selectedCustomer?.name || 'Customer'}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--text-muted)]">
                     Choose the specific machine asset to inspect or continue an active Autopilot session.
                   </p>
                 </div>
 
                 {/* SEARCH INPUT */}
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={machineSearch}
                     onChange={(e) => setMachineSearch(e.target.value)}
                     placeholder="Search by model, serial number, plant..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all ${
                       isDark 
-                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                        ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]' 
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
                     }`}
                   />
                 </div>
 
                 {/* MACHINE SELECTION LIST */}
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                   {filteredMachines.map((m) => {
                     const isSelected = localSelectedMachine?.id === m.id;
                     const hasActiveSession = mhcSessions.some(s => s.machineId === m.id && hasMeaningfulMhcProgress(s));
@@ -1351,38 +1368,42 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           setLocalSelectedMachine(m);
                           onSelectMachine(m);
                         }}
-                        className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                        className={`w-full text-left p-3 rounded-lg border text-xs transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/30'
+                            ? isDark
+                              ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] ring-1 ring-slate-600'
+                              : 'bg-slate-100 border-slate-400 text-slate-900'
                             : isDark
-                            ? 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                            ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
                             : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
-                            isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold ${
+                            isSelected 
+                              ? 'bg-[var(--surface-surface)] border-[var(--border-strong)] text-[var(--text-primary)]' 
+                              : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-muted)]'
                           }`}>
                             <Cpu className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="font-bold text-xs">{m.model}</div>
-                            <div className="text-[10px] text-slate-400">
+                            <div className="font-bold text-xs text-[var(--text-primary)]">{m.model}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] font-mono">
                               SN: {m.serialNumber} • Plant: {m.plantName}
                             </div>
                           </div>
                         </div>
-                        <div className="text-right flex items-center gap-2">
+                        <div className="text-right flex items-center gap-2 font-mono">
                           {hasActiveSession ? (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                               <span>Active Session</span>
                             </span>
                           ) : (
-                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
                               m.status === 'OPERATIONAL' 
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                             }`}>
                               {m.status}
                             </span>
@@ -1394,24 +1415,24 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 </div>
 
                 {/* NEXT ACTION */}
-                <div className="pt-3 flex items-center justify-between border-t border-slate-800/60">
+                <div className="pt-3 flex items-center justify-between border-t border-[var(--border-default)]">
                   <button
                     onClick={() => setCurrentStep('customer')}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
                     ← Back: Customers
                   </button>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-400 hidden sm:inline">
-                      Selected: <strong className="text-cyan-300">{localSelectedMachine?.model} ({localSelectedMachine?.serialNumber})</strong>
+                    <span className="text-xs font-mono text-[var(--text-muted)] hidden sm:inline">
+                      Selected: <strong className="text-[var(--text-primary)]">{localSelectedMachine?.model} ({localSelectedMachine?.serialNumber})</strong>
                     </span>
                     <button
                       disabled={!localSelectedMachine}
                       onClick={() => setCurrentStep('session_check')}
-                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                      className="px-5 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 disabled:opacity-40 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer"
                     >
                       <span>Check Session</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1422,81 +1443,81 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             {currentStep === 'session_check' && (
               <motion.div
                 key="session_check"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="space-y-5 my-auto"
               >
                 <div className="space-y-1">
-                  <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                    Step 4 of 4 • Session Detection
+                  <div className="text-xs font-mono font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                    Step 4 of 4 • Session State Verification
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Session Detection &amp; Brain Recovery
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                    Session Detection &amp; Recovery
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Checking active inspection session history for {localSelectedMachine?.model} ({localSelectedMachine?.machineNumber || localSelectedMachine?.serialNumber}) — {selectedCustomer?.name || localSelectedMachine?.customerName}.
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Inspecting active history for {localSelectedMachine?.model} ({localSelectedMachine?.machineNumber || localSelectedMachine?.serialNumber}) — {selectedCustomer?.name || localSelectedMachine?.customerName}.
                   </p>
                 </div>
 
                 {/* IF INCOMPLETE SESSION EXISTS */}
                 {existingIncompleteSession ? (
-                  <div className={`p-5 rounded-2xl border space-y-4 ${
-                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
+                  <div className={`p-4 rounded-lg border space-y-4 ${
+                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-strong)]' : 'bg-slate-50 border-slate-300'
                   }`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                        <span className="font-bold text-xs text-cyan-300 uppercase tracking-wider">Incomplete Session Found</span>
+                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        <span className="font-mono font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider">Incomplete Session Found</span>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-surface)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                         {existingIncompleteSession.id}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                       <div>
-                        <div className="text-[10px] text-slate-400">Start Date</div>
-                        <div className="font-semibold text-slate-200">{existingIncompleteSession.startDate}</div>
+                        <div className="text-[10px] text-[var(--text-muted)]">Start Date</div>
+                        <div className="font-semibold text-[var(--text-primary)]">{existingIncompleteSession.startDate}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-slate-400">Last Updated</div>
-                        <div className="font-semibold text-slate-200">
+                        <div className="text-[10px] text-[var(--text-muted)]">Last Updated</div>
+                        <div className="font-semibold text-[var(--text-primary)]">
                           {new Date(existingIncompleteSession.lastUpdated).toLocaleDateString()}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-slate-400">Engineer</div>
-                        <div className="font-semibold text-slate-200">{existingIncompleteSession.engineerName || 'Field Engineer'}</div>
+                        <div className="text-[10px] text-[var(--text-muted)]">Engineer</div>
+                        <div className="font-semibold text-[var(--text-primary)]">{existingIncompleteSession.engineerName || 'Field Engineer'}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-slate-400">Readiness</div>
+                        <div className="text-[10px] text-[var(--text-muted)]">Readiness</div>
                         <div className="font-semibold text-cyan-400">
                           {computeAutopilotReadiness(existingIncompleteSession.autopilotProgress).readinessScore}% Complete
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                       An active inspection session was detected for this machine. You can continue the existing session without losing data or start a new clean session.
                     </p>
 
                     {/* ACTIONS */}
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                    <div className="pt-2 flex flex-wrap items-center gap-2.5">
                       <button
                         onClick={handleContinueExisting}
-                        className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                        className="px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                       >
-                        <Play className="w-4 h-4 fill-slate-950" />
+                        <Play className="w-3.5 h-3.5 fill-current" />
                         <span>Continue Existing Session</span>
                       </button>
 
                       <button
                         onClick={handleStartNew}
-                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                        className={`px-3.5 py-2 rounded-lg font-mono font-semibold text-xs border transition-all cursor-pointer ${
                           isDark 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-primary)] border-[var(--border-default)]' 
                             : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
                         }`}
                       >
@@ -1505,9 +1526,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                       <button
                         onClick={() => setCurrentStep('machine')}
-                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                        className={`px-3 py-2 rounded-lg font-mono text-xs border transition-all cursor-pointer ${
                           isDark 
-                            ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700' 
+                            ? 'bg-[var(--surface-workspace)] hover:bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]' 
                             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                         }`}
                       >
@@ -1516,9 +1537,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                       <button
                         onClick={() => setCurrentStep('customer')}
-                        className={`px-4 py-2.5 rounded-xl font-semibold text-xs border transition-all ${
+                        className={`px-3 py-2 rounded-lg font-mono text-xs border transition-all cursor-pointer ${
                           isDark 
-                            ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700' 
+                            ? 'bg-[var(--surface-workspace)] hover:bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]' 
                             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                         }`}
                       >
@@ -1531,16 +1552,16 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           e.stopPropagation();
                           setSessionToDiscard(existingIncompleteSession);
                         }}
-                        className="px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         title="Discard this draft session"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <Trash2 className="w-3.5 h-3.5" />
                         <span>Discard Draft</span>
                       </button>
 
                       <button
                         onClick={handleReviewProgress}
-                        className="px-3 py-2 text-xs text-cyan-300 hover:text-cyan-200 font-semibold transition-colors ml-auto flex items-center gap-1.5"
+                        className="px-3 py-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors ml-auto flex items-center gap-1.5 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5 text-cyan-400" />
                         <span>Review Progress (Read-Only)</span>
@@ -1549,31 +1570,31 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   </div>
                 ) : (
                   /* IF NO INCOMPLETE SESSION FOUND */
-                  <div className={`p-5 rounded-2xl border space-y-4 ${
-                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  <div className={`p-4 rounded-lg border space-y-4 ${
+                    isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                   }`}>
-                    <div className="flex items-center gap-3 text-slate-400">
-                      <Clock className="w-5 h-5 text-slate-500" />
+                    <div className="flex items-center gap-3 text-[var(--text-muted)]">
+                      <Clock className="w-5 h-5 text-[var(--text-muted)]" />
                       <div>
-                        <div className="font-bold text-xs text-slate-200">No Active Session Found for {localSelectedMachine?.model}</div>
-                        <div className="text-[11px] text-slate-400">Ready to launch a new Machine Health Check session for this machine.</div>
+                        <div className="font-bold text-xs text-[var(--text-primary)]">No Active Session Found for {localSelectedMachine?.model}</div>
+                        <div className="text-[11px] text-[var(--text-muted)]">Ready to launch a new Machine Health Check inspection for this equipment.</div>
                       </div>
                     </div>
 
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                    <div className="pt-2 flex flex-wrap items-center gap-2.5">
                       <button
                         onClick={handleStartNew}
-                        className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                        className="px-5 py-2.5 rounded-lg bg-[var(--color-primary)] hover:opacity-90 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-3.5 h-3.5" />
                         <span>Create &amp; Start New MHC Session</span>
                       </button>
 
                       <button
                         onClick={() => setCurrentStep('machine')}
-                        className={`px-4 py-3 rounded-xl font-semibold text-xs border transition-all ${
+                        className={`px-3.5 py-2.5 rounded-lg font-mono text-xs border transition-all cursor-pointer ${
                           isDark 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] border-[var(--border-default)]' 
                             : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
                         }`}
                       >
@@ -1582,13 +1603,13 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                       <button
                         onClick={() => setCurrentStep('customer')}
-                        className={`px-4 py-3 rounded-xl font-semibold text-xs border transition-all ${
+                        className={`px-3.5 py-2.5 rounded-lg font-mono text-xs border transition-all cursor-pointer ${
                           isDark 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                            ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] border-[var(--border-default)]' 
                             : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
                         }`}
                       >
-                        <span>Change Customer Account</span>
+                        <span>Change Customer</span>
                       </button>
                     </div>
                   </div>
@@ -1600,50 +1621,52 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             {currentStep === 'session_active' && (
               <motion.div
                 key="session_active"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-5 my-auto"
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-4 my-auto"
               >
                 {/* TOP HEADER & READ-ONLY TOGGLE */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/60">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[var(--border-default)]">
                   <div className="flex items-center gap-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>Autopilot Active</span>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>INSPECTION ACTIVE</span>
                     </div>
                     {isReadOnlyMode && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold font-mono">
-                        <Eye className="w-3.5 h-3.5 text-amber-400" />
-                        <span>READ-ONLY MODE</span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-bold">
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>READ-ONLY</span>
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="text-xs font-mono text-slate-400 hidden md:inline">
-                      ID: <strong className="text-slate-200">{effectiveSession?.id}</strong>
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <span className="text-xs font-mono text-[var(--text-muted)] hidden md:inline">
+                      SESSION ID: <strong className="text-[var(--text-primary)]">{effectiveSession?.id}</strong>
                     </span>
                     
                     <button
                       onClick={() => setCurrentStep('customer')}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
                         isDark 
-                          ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white' 
+                          ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-workspace)] hover:text-[var(--text-primary)]' 
                           : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <Building2 className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                       <span>Switch Machine</span>
                     </button>
 
                     <button
                       onClick={() => setIsReadOnlyMode(!isReadOnlyMode)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 border transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
                         isReadOnlyMode
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
-                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                          ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25'
+                          : isDark
+                          ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-workspace)]'
+                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {isReadOnlyMode ? (
@@ -1653,7 +1676,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         </>
                       ) : (
                         <>
-                          <Eye className="w-3.5 h-3.5 text-slate-400" />
+                          <Eye className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                           <span>Read-Only Mode</span>
                         </>
                       )}
@@ -1666,11 +1689,11 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           e.stopPropagation();
                           setSessionToDiscard(effectiveSession);
                         }}
-                        className="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-rose-500/30 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all cursor-pointer"
                         title="Discard this unwanted draft session"
                       >
                         <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        <span>Discard Draft</span>
+                        <span>Discard</span>
                       </button>
                     )}
                   </div>
@@ -1678,74 +1701,74 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                 {/* MACHINE & CUSTOMER TITLE */}
                 <div className="space-y-1">
-                  <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-                    {localSelectedMachine.model} ({localSelectedMachine.machineNumber || localSelectedMachine.serialNumber})
+                  <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                    {localSelectedMachine.model} <span className="font-mono text-base font-normal text-[var(--text-muted)]">({localSelectedMachine.machineNumber || localSelectedMachine.serialNumber})</span>
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Customer: <strong className="text-slate-200">{selectedCustomer?.name || localSelectedMachine.customerName}</strong> • Plant: <strong className="text-slate-200">{localSelectedMachine.plantName}</strong> • Start Date: <strong className="text-slate-200">{effectiveSession?.startDate}</strong>
+                  <p className="text-xs text-[var(--text-muted)] font-mono">
+                    Customer: <strong className="text-[var(--text-primary)]">{selectedCustomer?.name || localSelectedMachine.customerName}</strong> • Plant: <strong className="text-[var(--text-primary)]">{localSelectedMachine.plantName}</strong> • Start: <strong className="text-[var(--text-primary)]">{effectiveSession?.startDate}</strong>
                   </p>
                 </div>
 
                 {/* READ-ONLY BANNER IF ACTIVE */}
                 {isReadOnlyMode && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between">
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between font-mono">
                     <div className="flex items-center gap-2">
                       <Eye className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span><strong>Read-Only Review Mode:</strong> Viewing MHC progress without modifying session data.</span>
+                      <span><strong>Read-Only Review:</strong> Inspection session is locked against accidental edits.</span>
                     </div>
                     <button
                       onClick={() => setIsReadOnlyMode(false)}
-                      className="text-[11px] font-bold text-amber-300 hover:text-amber-100 underline decoration-dotted shrink-0"
+                      className="text-xs font-semibold text-amber-400 hover:text-amber-200 underline decoration-dotted shrink-0 cursor-pointer"
                     >
-                      Switch to Editing
+                      Enable Editing
                     </button>
                   </div>
                 )}
 
                 {/* READINESS OVERVIEW BAR */}
-                <div className={`p-4 rounded-xl border space-y-3 ${
-                  isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+                <div className={`p-3.5 rounded-lg border space-y-3 ${
+                  isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                 }`}>
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-300 flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-cyan-400" />
-                      <span>MHC Readiness Analysis</span>
+                  <div className="flex items-center justify-between text-xs font-mono font-semibold">
+                    <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-[var(--color-primary)]" />
+                      <span>MHC INSPECTION READINESS</span>
                     </span>
-                    <span className="font-mono text-cyan-400">{readiness.readinessScore}% Complete</span>
+                    <span className="text-[var(--color-primary)] font-bold">{readiness.readinessScore}% Complete</span>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
+                  <div className="w-full h-2 bg-[var(--surface-workspace)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
                     <div 
-                      className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-300"
                       style={{ width: `${readiness.readinessScore}%` }}
                     />
                   </div>
 
                   {/* Metrics Badges */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
-                    <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-300">
-                      <div className="text-[10px] text-emerald-400/80 font-mono">COMPLETED</div>
-                      <div className="font-bold text-xs">{readiness.completedCount} / {readiness.totalCount}</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                    <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                      <div className="text-[10px] text-[var(--text-muted)]">COMPLETED</div>
+                      <div className="font-bold text-xs text-[var(--text-primary)]">{readiness.completedCount} / {readiness.totalCount}</div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-cyan-950/30 border border-cyan-500/30 text-cyan-300">
-                      <div className="text-[10px] text-cyan-400/80 font-mono">CURRENT DAY</div>
-                      <div className="font-bold text-xs">{progress.currentDay}</div>
+                    <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                      <div className="text-[10px] text-[var(--text-muted)]">CURRENT DAY</div>
+                      <div className="font-bold text-xs text-[var(--text-primary)]">{progress.currentDay}</div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-300">
-                      <div className="text-[10px] text-amber-400/80 font-mono">NEEDS REVIEW</div>
-                      <div className="font-bold text-xs">{readiness.needsReviewList.length} Items</div>
+                    <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                      <div className="text-[10px] text-[var(--text-muted)]">NEEDS REVIEW</div>
+                      <div className="font-bold text-xs text-amber-400">{readiness.needsReviewList.length} Items</div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-300">
-                      <div className="text-[10px] text-slate-400 font-mono">REPORT STATUS</div>
-                      <div className="font-bold text-[10px] truncate">
+                    <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                      <div className="text-[10px] text-[var(--text-muted)]">REPORT STATUS</div>
+                      <div className="font-bold text-xs truncate">
                         {readiness.isReadyForReport ? (
                           <span className="text-emerald-400">✓ READY</span>
                         ) : (
-                          <span className="text-amber-400">PENDING CORE</span>
+                          <span className="text-amber-400">PENDING</span>
                         )}
                       </div>
                     </div>
@@ -1889,31 +1912,31 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   />
                 ) : (progress.currentActivityCode === '10' || progress.currentActivityCode === '10_buyoff') ? (
                   /* ACTIVITY 10: BUYOFF / COMPLETE FINALIZATION VIEW */
-                  <div className={`p-5 rounded-2xl border space-y-5 ${
+                  <div className={`p-4 rounded-lg border space-y-4 ${
                     effectiveSession?.completionStatus === 'COMPLETED'
-                      ? isDark ? 'bg-emerald-950/20 border-emerald-500/40' : 'bg-emerald-50/70 border-emerald-300'
-                      : isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
+                      ? isDark ? 'bg-[var(--surface-raised)] border-emerald-500/30' : 'bg-emerald-50/70 border-emerald-300'
+                      : isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                   }`}>
                     {/* Header */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
                           effectiveSession?.completionStatus === 'COMPLETED'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                            : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                         }`}>
                           DAY 4 • 10
                         </span>
-                        <h3 className="font-bold text-base text-slate-100">
+                        <h3 className="font-bold text-sm text-[var(--text-primary)]">
                           Buyoff &amp; Final MHC Session Acceptance
                         </h3>
                       </div>
 
                       {/* Status Pill */}
-                      <span className={`text-[10px] font-mono px-2.5 py-1 rounded-full font-bold border ${
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold border ${
                         effectiveSession?.completionStatus === 'COMPLETED'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                          : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                       }`}>
                         {effectiveSession?.completionStatus === 'COMPLETED' ? '✓ SESSION COMPLETED' : '◉ IN PROGRESS'}
                       </span>
@@ -1921,51 +1944,51 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
                     {/* Summary / Confirmation Box */}
                     {effectiveSession?.completionStatus === 'COMPLETED' ? (
-                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
-                        <div className="flex items-center gap-2.5 text-emerald-400 font-bold text-sm">
-                          <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 space-y-2.5">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>MHC Inspection Successfully Finalized &amp; Signed Off</span>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                          All 4 days of engineering inspection activities, optical measurements, calibration data, and Section 18 customer buyoff acceptance have been authoritatively completed.
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                          All 4 days of engineering inspection activities, optical measurements, calibration data, and customer buyoff acceptance have been completed.
                         </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-mono">STATUS</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono pt-1">
+                          <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)]">STATUS</div>
                             <div className="font-bold text-emerald-400">COMPLETED</div>
                           </div>
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-mono">READINESS SCORE</div>
+                          <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)]">READINESS</div>
                             <div className="font-bold text-cyan-400">100% Passed</div>
                           </div>
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-mono">ENGINEER</div>
-                            <div className="font-bold text-slate-200 truncate">{effectiveSession.engineerName || 'Field Engineer'}</div>
+                          <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)]">ENGINEER</div>
+                            <div className="font-bold text-[var(--text-primary)] truncate">{effectiveSession.engineerName || 'Field Engineer'}</div>
                           </div>
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-mono">COMPLETED AT</div>
-                            <div className="font-bold text-slate-200 text-[11px] truncate">
+                          <div className="p-2 rounded border bg-[var(--surface-surface)] border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)]">COMPLETED</div>
+                            <div className="font-bold text-[var(--text-primary)] text-[11px] truncate">
                               {effectiveSession.lastUpdated ? new Date(effectiveSession.lastUpdated).toLocaleDateString() : 'Today'}
                             </div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                          <div className="text-xs font-bold text-slate-200">Final Verification Checklist:</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                            <div className="flex items-center gap-2 text-emerald-400">
-                              <CheckCircle2 className="w-4 h-4 shrink-0" />
-                              <span>08 Readiness Review (Passed)</span>
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-lg bg-[var(--surface-surface)] border border-[var(--border-subtle)] space-y-2">
+                          <div className="text-xs font-mono font-bold text-[var(--text-primary)]">Final Verification Checklist:</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
+                            <div className="flex items-center gap-1.5 text-emerald-400">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>08 Readiness Review</span>
                             </div>
-                            <div className="flex items-center gap-2 text-emerald-400">
-                              <CheckCircle2 className="w-4 h-4 shrink-0" />
-                              <span>09 PDF Report Generated</span>
+                            <div className="flex items-center gap-1.5 text-emerald-400">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>09 PDF Generated</span>
                             </div>
-                            <div className="flex items-center gap-2 text-cyan-400">
-                              <Award className="w-4 h-4 shrink-0" />
-                              <span>10 Buyoff Ready for Sign-Off</span>
+                            <div className="flex items-center gap-1.5 text-cyan-400">
+                              <Award className="w-3.5 h-3.5 shrink-0" />
+                              <span>10 Ready for Sign-Off</span>
                             </div>
                           </div>
                         </div>
@@ -1973,10 +1996,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     )}
 
                     {/* Observation / Buyoff Note Input */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-slate-400 font-bold flex items-center justify-between">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-[var(--text-muted)] font-semibold flex items-center justify-between">
                         <span>FINAL BUYOFF &amp; HANDOVER REMARKS</span>
-                        <span className="text-[10px] text-slate-500">Persisted in Session Brain</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-normal">Session Brain Persisted</span>
                       </label>
                       <input
                         type="text"
@@ -1998,38 +2021,38 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           }
                         }}
                         placeholder={isReadOnlyMode ? "Read-only mode active..." : "Enter final customer acceptance remarks or handover notes..."}
-                        className={`w-full px-3 py-2 rounded-xl border text-xs outline-none transition-all ${
+                        className={`w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all ${
                           isDark
-                            ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                            : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                            ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
+                            : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
                         }`}
                       />
                     </div>
 
                     {/* ACTION CONTROLS */}
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                    <div className="pt-2 flex flex-wrap items-center gap-2.5">
                       {effectiveSession?.completionStatus !== 'COMPLETED' ? (
                         !isReadOnlyMode ? (
                           <>
                             <button
                               id="btn-mhc-finalize-session"
                               onClick={() => handleCompleteCurrentActivity()}
-                              className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ring-2 ring-emerald-400/50"
+                              className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>Complete MHC Session &amp; Finalize Buyoff ✓</span>
                             </button>
 
                             <button
                               onClick={() => handleJumpToActivityCode('09')}
-                              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
+                              className="px-3.5 py-2.5 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] border border-[var(--border-default)] text-xs font-mono cursor-pointer"
                             >
                               <span>← Review Report (09)</span>
                             </button>
                           </>
                         ) : (
                           <div className="text-xs text-amber-300 font-mono flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-amber-400" />
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
                             <span>Action controls locked in Read-Only mode. Toggle "Enable Editing" above to modify.</span>
                           </div>
                         )
@@ -2037,15 +2060,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                         <>
                           <button
                             onClick={() => handleJumpToActivityCode('09')}
-                            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                            className="px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                           >
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-3.5 h-3.5" />
                             <span>View Full MHC Report (09)</span>
                           </button>
 
                           <button
                             onClick={() => setCurrentStep('welcome')}
-                            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
+                            className="px-3.5 py-2 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] border border-[var(--border-default)] text-xs font-mono cursor-pointer"
                           >
                             <span>Return to Autopilot Setup</span>
                           </button>
@@ -2053,7 +2076,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           {!isReadOnlyMode && (
                             <button
                               onClick={() => handleReopenActivity('10')}
-                              className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-mono font-semibold border border-slate-800 ml-auto"
+                              className="px-3 py-1.5 rounded-lg bg-[var(--surface-workspace)] hover:bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs font-mono border border-[var(--border-subtle)] ml-auto cursor-pointer"
                             >
                               Re-open Buyoff Activity
                             </button>
@@ -2063,15 +2086,15 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-5 rounded-2xl border space-y-4 ${
-                    isDark ? 'bg-cyan-950/20 border-cyan-500/40' : 'bg-cyan-50/60 border-cyan-200'
+                  <div className={`p-4 rounded-lg border space-y-4 ${
+                    isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
                   }`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                           {currentActionableItem.day} • {getActivityDisplayCode(currentActionableItem.code)}
                         </span>
-                        <h3 className="font-bold text-sm sm:text-base text-slate-100">
+                        <h3 className="font-bold text-sm text-[var(--text-primary)]">
                           {currentActionableItem.title}
                         </h3>
                       </div>
@@ -2080,12 +2103,12 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       {(() => {
                         const st = progress.activityStatuses[currentActionableItem.code] || 'IN_PROGRESS';
                         return (
-                          <span className={`text-[10px] font-mono px-2.5 py-1 rounded-full font-bold border ${
+                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold border ${
                             st === 'COMPLETED'
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                               : st === 'NEEDS_REVIEW'
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                           }`}>
                             {st === 'COMPLETED' && '✓ COMPLETED'}
                             {st === 'IN_PROGRESS' && '◉ IN PROGRESS'}
@@ -2097,10 +2120,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     </div>
 
                     {/* Observation Note Input */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-slate-400 font-bold flex items-center justify-between">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-[var(--text-muted)] font-semibold flex items-center justify-between">
                         <span>ENGINEER OBSERVATION NOTES</span>
-                        <span className="text-[10px] text-slate-500">Persisted in Session Brain</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-normal">Session Brain Persisted</span>
                       </label>
                       <input
                         type="text"
@@ -2122,37 +2145,37 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                           }
                         }}
                         placeholder={isReadOnlyMode ? "Read-only mode active..." : "Add quick measurement notes or findings..."}
-                        className={`w-full px-3 py-2 rounded-xl border text-xs outline-none transition-all ${
+                        className={`w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all ${
                           isDark
-                            ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                            : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
+                            ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
+                            : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
                         }`}
                       />
                     </div>
 
                     {/* ACTION CONTROLS */}
                     {!isReadOnlyMode ? (
-                      <div className="pt-2 flex flex-wrap items-center gap-3">
+                      <div className="pt-2 flex flex-wrap items-center gap-2.5">
                         <button
                           onClick={() => handleCompleteCurrentActivity()}
-                          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                          className="px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:opacity-90 text-white font-mono font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                         >
-                          <Check className="w-4 h-4 stroke-[3]" />
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
                           <span>Mark Complete & Advance</span>
                         </button>
 
                         <button
                           onClick={() => handleFlagCurrentNeedsReview()}
-                          className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-2 transition-all"
+                          className="px-3.5 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-mono font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <AlertTriangle className="w-4 h-4 text-amber-400" />
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                           <span>Flag for Review</span>
                         </button>
 
                         {progress.activityStatuses[currentActionableItem.code] === 'COMPLETED' && (
                           <button
                             onClick={() => handleReopenActivity(currentActionableItem.code)}
-                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-semibold border border-slate-700"
+                            className="px-3 py-2 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs font-mono border border-[var(--border-subtle)] cursor-pointer"
                           >
                             Re-open Activity
                           </button>
@@ -2160,7 +2183,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       </div>
                     ) : (
                       <div className="pt-2 text-xs text-amber-300 font-mono flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-amber-400" />
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
                         <span>Action controls locked in Read-Only mode. Toggle "Enable Editing" above to modify.</span>
                       </div>
                     )}
@@ -2168,10 +2191,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 )}
 
                 {/* BOTTOM FOOTER ACTIONS */}
-                <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/60">
+                <div className="pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-default)]">
                   <button
                     onClick={() => setCurrentStep('customer')}
-                    className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    className="text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
                     ← Change Machine or Customer
                   </button>
@@ -2179,10 +2202,10 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   {onSwitchToCanvas && (
                     <button
                       onClick={onSwitchToCanvas}
-                      className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                      className="px-4 py-2 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-primary)] font-mono font-semibold text-xs border border-[var(--border-default)] flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                     >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Open Full Canvas / Workspace</span>
+                      <Sparkles className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                      <span>Open Full Workspace</span>
                     </button>
                   )}
                 </div>
@@ -2198,246 +2221,246 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       {showReviewCompletionModal && (
         <div
           id="modal-mhc-review-completion-backdrop"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowReviewCompletionModal(false);
+              setIsConfirmingCompletion(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
+        >
+          <motion.div
+            id="modal-mhc-review-completion-dialog"
+            initial={{ opacity: 0, scale: 0.98, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 6 }}
+            transition={{ duration: 0.15 }}
+            className={`relative w-full max-w-lg rounded-xl border shadow-xl p-5 space-y-4 ${
+              isDark
+                ? 'bg-[var(--surface-surface)] border-[var(--border-strong)] text-[var(--text-primary)]'
+                : 'bg-white border-slate-300 text-slate-900 shadow-slate-900/10'
+            }`}
+          >
+            {/* Close Button */}
+            <button
+              id="btn-modal-review-completion-close"
+              onClick={() => {
                 setShowReviewCompletionModal(false);
                 setIsConfirmingCompletion(false);
-              }
-            }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto"
-          >
-            <motion.div
-              id="modal-mhc-review-completion-dialog"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className={`relative w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
-                isDark
-                  ? 'bg-slate-900/95 border-slate-700 text-slate-100 shadow-cyan-950/40'
-                  : 'bg-white/95 border-slate-300 text-slate-900 shadow-slate-900/20'
-              }`}
+              }}
+              className="absolute top-3.5 right-3.5 p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-workspace)] transition-colors cursor-pointer"
+              title="Dismiss modal and return to workspace"
             >
-              {/* Close Button */}
-              <button
-                id="btn-modal-review-completion-close"
-                onClick={() => {
-                  setShowReviewCompletionModal(false);
-                  setIsConfirmingCompletion(false);
-                }}
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer"
-                title="Dismiss modal and return to workspace"
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-start gap-3 pr-6">
+              <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                  PDF EXPORT GENERATED
+                </span>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  MHC Report Ready for Review
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  The official MHC Report PDF has been compiled. Please review the generated document before finalizing this MHC session.
+                </p>
+              </div>
+            </div>
+
+            {/* Information / Status Box */}
+            <div className={`p-3 rounded border text-xs space-y-1.5 font-mono ${
+              isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">CURRENT STATUS:</span>
+                <span className="font-bold text-amber-400">IN_PROGRESS (Pending Sign-Off)</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">EQUIPMENT:</span>
+                <span className="text-[var(--text-primary)] font-semibold">{effectiveSession?.machineModel} • {effectiveSession?.machineSerialNumber}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">FACILITY:</span>
+                <span className="text-[var(--text-primary)] font-semibold">{effectiveSession?.customerName} ({effectiveSession?.plantName})</span>
+              </div>
+            </div>
+
+            {/* Explicit Confirmation Step if User clicks Complete MHC */}
+            {isConfirmingCompletion ? (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-2.5"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>Confirm Authoritative Session Completion</span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  Completing this MHC will finalize Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive the active session.
+                </p>
+                <div className="flex items-center gap-2 pt-1 font-mono">
+                  <button
+                    id="btn-modal-confirm-complete-yes"
+                    onClick={handleModalConfirmCompleteMhc}
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Yes, Finalize &amp; Complete MHC</span>
+                  </button>
+                  <button
+                    onClick={() => setIsConfirmingCompletion(false)}
+                    className="px-3 py-1.5 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] text-xs border border-[var(--border-default)] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            ) : null}
 
-              {/* Modal Header */}
-              <div className="flex items-start gap-3 pr-6">
-                <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shrink-0">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                    PDF EXPORT GENERATED
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-100">
-                    MHC Report Ready for Review
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    The official MHC Report PDF has been compiled and downloaded. Please review the generated document before finalizing and closing out this MHC session.
-                  </p>
-                </div>
-              </div>
-
-              {/* Information / Status Box */}
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">CURRENT SESSION STATUS:</span>
-                  <span className="font-bold text-amber-400">IN_PROGRESS (Pending User Sign-Off)</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">EQUIPMENT / SERIAL:</span>
-                  <span className="text-slate-200 font-semibold">{effectiveSession?.machineModel} • {effectiveSession?.machineSerialNumber}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">CUSTOMER FACILITY:</span>
-                  <span className="text-slate-200 font-semibold">{effectiveSession?.customerName} ({effectiveSession?.plantName})</span>
-                </div>
-              </div>
-
-              {/* Explicit Confirmation Step if User clicks Complete MHC */}
-              {isConfirmingCompletion ? (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-3"
+            {/* Primary Modal Action Buttons */}
+            {!isConfirmingCompletion && (
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 font-mono">
+                <button
+                  id="btn-modal-review-report"
+                  onClick={handleModalReviewReport}
+                  className="px-4 py-2 rounded-lg bg-[var(--surface-workspace)] hover:bg-[var(--surface-raised)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                    <ShieldCheck className="w-4 h-4 shrink-0" />
-                    <span>Confirm Authoritative Session Completion</span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Completing this MHC will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive the active session. All inspection records, logs, and historical passport data will remain permanently safely stored.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      id="btn-modal-confirm-complete-yes"
-                      onClick={handleModalConfirmCompleteMhc}
-                      className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-950/50 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Yes, Finalize &amp; Complete MHC</span>
-                    </button>
-                    <button
-                      onClick={() => setIsConfirmingCompletion(false)}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </motion.div>
-              ) : null}
+                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>REVIEW REPORT</span>
+                </button>
 
-              {/* Primary Modal Action Buttons */}
-              {!isConfirmingCompletion && (
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
-                  <button
-                    id="btn-modal-review-report"
-                    onClick={handleModalReviewReport}
-                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <Eye className="w-4 h-4 text-cyan-400" />
-                    <span>REVIEW REPORT</span>
-                  </button>
-
-                  <button
-                    id="btn-modal-complete-mhc"
-                    onClick={() => setIsConfirmingCompletion(true)}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ring-2 ring-emerald-400/50"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>COMPLETE MHC</span>
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
+                <button
+                  id="btn-modal-complete-mhc"
+                  onClick={() => setIsConfirmingCompletion(true)}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>COMPLETE MHC</span>
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* DISCARD DRAFT SESSION CONFIRMATION MODAL */}
       {sessionToDiscard && (
         <div
           id="modal-mhc-discard-session-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
-            onClick={(e) => {
-              if (e.target === e.currentTarget && !isDiscarding) {
-                setSessionToDiscard(null);
-              }
-            }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDiscarding) {
+              setSessionToDiscard(null);
+            }
+          }}
+        >
+          <motion.div
+            id="modal-mhc-discard-session-dialog"
+            initial={{ opacity: 0, scale: 0.98, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 6 }}
+            transition={{ duration: 0.15 }}
+            className={`w-full max-w-lg rounded-xl border shadow-xl p-5 space-y-4 ${
+              isDark
+                ? 'bg-[var(--surface-surface)] border-rose-900/50 text-[var(--text-primary)]'
+                : 'bg-white border-rose-200 text-slate-900 shadow-slate-900/10'
+            }`}
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              id="modal-mhc-discard-session-dialog"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className={`w-full max-w-lg rounded-2xl border shadow-2xl p-6 space-y-5 ${
-                isDark
-                  ? 'bg-[#0f1319] border-rose-900/60 text-slate-100 shadow-rose-950/40'
-                  : 'bg-white border-rose-200 text-slate-900 shadow-slate-900/20'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shrink-0">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                    DRAFT SESSION REMOVAL
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-100 dark:text-slate-100">
-                    Discard this MHC draft session?
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    The session progress will be removed and cannot be resumed.
-                  </p>
-                </div>
+            {/* Modal Header */}
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                  DRAFT SESSION REMOVAL
+                </span>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  Discard this MHC draft session?
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  The session progress will be removed and cannot be resumed.
+                </p>
+              </div>
+            </div>
+
+            {/* Information / Progress Box */}
+            <div className={`p-3 rounded border text-xs space-y-1.5 font-mono ${
+              isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">SESSION ID:</span>
+                <span className="font-bold text-[var(--text-primary)]">{sessionToDiscard.id}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">EQUIPMENT:</span>
+                <span className="text-[var(--text-primary)] font-semibold">{sessionToDiscard.machineModel} ({sessionToDiscard.machineSerialNumber})</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">CUSTOMER:</span>
+                <span className="text-[var(--text-primary)] font-semibold">{sessionToDiscard.customerName} • {sessionToDiscard.plantName}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)]">STARTED:</span>
+                <span className="text-[var(--text-secondary)]">{sessionToDiscard.startDate} {sessionToDiscard.startTime}</span>
               </div>
 
-              {/* Information / Progress Box */}
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">SESSION ID:</span>
-                  <span className="font-bold text-slate-200">{sessionToDiscard.id}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">MACHINE / MODEL:</span>
-                  <span className="text-slate-200 font-semibold">{sessionToDiscard.machineModel} ({sessionToDiscard.machineSerialNumber})</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">CUSTOMER / PLANT:</span>
-                  <span className="text-slate-200 font-semibold">{sessionToDiscard.customerName} • {sessionToDiscard.plantName}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">STARTED AT:</span>
-                  <span className="text-slate-300">{sessionToDiscard.startDate} {sessionToDiscard.startTime}</span>
-                </div>
+              {(() => {
+                const audit = auditMhcSession(sessionToDiscard);
+                const readinessScore = computeAutopilotReadiness(sessionToDiscard.autopilotProgress).readinessScore;
+                const hasData = readinessScore > 0 || (sessionToDiscard.stage01_laserHours && sessionToDiscard.stage01_laserHours.length > 0) || (sessionToDiscard.stage03_laserPower && sessionToDiscard.stage03_laserPower.length > 0);
+                return hasData ? (
+                  <div className="pt-2 border-t border-rose-500/20 text-rose-300 flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400 mt-0.5" />
+                    <span className="text-[11px] leading-relaxed">
+                      <strong>Warning:</strong> This session contains recorded inspection data ({readinessScore}% readiness, {audit.completedRequiredCount} of {audit.totalRequiredCount} required activities completed). Discarding will permanently remove this draft.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)]">
+                    Empty session with no recorded inspection data.
+                  </div>
+                );
+              })()}
+            </div>
 
-                {(() => {
-                  const audit = auditMhcSession(sessionToDiscard);
-                  const readinessScore = computeAutopilotReadiness(sessionToDiscard.autopilotProgress).readinessScore;
-                  const hasData = readinessScore > 0 || (sessionToDiscard.stage01_laserHours && sessionToDiscard.stage01_laserHours.length > 0) || (sessionToDiscard.stage03_laserPower && sessionToDiscard.stage03_laserPower.length > 0);
-                  return hasData ? (
-                    <div className="pt-2 border-t border-rose-500/20 text-rose-300 flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-                      <span className="text-[11px] leading-relaxed">
-                        <strong>Warning:</strong> This session contains recorded inspection data ({readinessScore}% readiness, {audit.completedRequiredCount} of {audit.totalRequiredCount} required activities completed). Discarding will permanently remove this draft and its attachments.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400">
-                      Empty session with no recorded inspection data. Machine Passport and historical records remain untouched.
-                    </div>
-                  );
-                })()}
-              </div>
+            {/* Action Buttons */}
+            <div className="pt-2 flex items-center justify-end gap-2.5 font-mono">
+              <button
+                id="btn-cancel-discard-session"
+                type="button"
+                disabled={isDiscarding}
+                onClick={() => setSessionToDiscard(null)}
+                className={`px-3.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  isDark
+                    ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                    : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                }`}
+              >
+                Cancel
+              </button>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  id="btn-cancel-discard-session"
-                  type="button"
-                  disabled={isDiscarding}
-                  onClick={() => setSessionToDiscard(null)}
-                  className={`px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                    isDark
-                      ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
-                      : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
-                  }`}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  id="btn-confirm-discard-session"
-                  type="button"
-                  disabled={isDiscarding}
-                  onClick={handleConfirmDiscardSession}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-rose-950/50 flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{isDiscarding ? 'Discarding...' : 'Discard Session'}</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+              <button
+                id="btn-confirm-discard-session"
+                type="button"
+                disabled={isDiscarding}
+                onClick={handleConfirmDiscardSession}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDiscarding ? 'Discarding...' : 'Discard Session'}</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
