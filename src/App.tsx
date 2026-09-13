@@ -453,34 +453,23 @@ function AppLayout() {
             : 'p-4 md:p-6 max-w-7xl w-full mx-auto overflow-y-auto'
         }`}>
           {activeTab === 'start_page' && (
-            workspaceMode === 'MHC_MODE' ? (
-              <MHCModeHome
-                machines={machines}
-                mhcRecords={mhcRecords}
-                selectedMachineId={selectedMachineId}
-                onSelectMachine={(id) => setSelectedMachineId(id)}
-                onOpenMhcInspection={(id) => {
-                  setSelectedMachineId(id);
-                  setActiveTab('mhc_autopilot');
-                }}
-                onAddMachine={() => {
-                  setActiveTab('machines');
-                }}
-              />
-            ) : (
-              <StartPageModule
-                onNavigate={setActiveTab}
-                schedule={schedule}
-                machines={machines}
-                tasks={tasks}
-                profile={profile}
-                unreadNotificationsCount={notifications.filter(n => !n.read).length}
-                onSelectMachine={(id) => {
-                  setSelectedMachineId(id);
-                  setActiveTab('machines');
-                }}
-              />
-            )
+            <StartPageModule
+              onNavigate={setActiveTab}
+              schedule={schedule}
+              machines={machines}
+              tasks={tasks}
+              alerts={alerts}
+              profile={profile}
+              unreadNotificationsCount={notifications.filter(n => !n.read).length}
+              onSelectMachine={(id) => {
+                setSelectedMachineId(id);
+                setActiveTab('machines');
+              }}
+              onContinueMhcSession={(id) => {
+                setSelectedMachineId(id);
+                setActiveTab('mhc_autopilot');
+              }}
+            />
           )}
 
           {activeTab === 'contracts' && (
