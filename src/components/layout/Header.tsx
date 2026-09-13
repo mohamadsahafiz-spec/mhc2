@@ -1,9 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, AlertTriangle, Plus, Sparkles, Moon, Sun, Monitor, User, ChevronDown, UserCheck, Settings as SettingsIcon, LogOut, Palette, BellRing } from 'lucide-react';
+import { 
+  Search, 
+  Bell, 
+  Plus, 
+  Moon, 
+  Sun, 
+  Monitor, 
+  User, 
+  ChevronDown, 
+  Settings as SettingsIcon, 
+  LogOut, 
+  Palette, 
+  BellRing,
+  Activity,
+  Layers
+} from 'lucide-react';
 import { NavigationTab, AlertItem, NotificationItem, SystemUser, WorkspaceMode } from '../../types';
 import { Button } from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
-import { getThemeClasses } from '../../theme/tokens';
 import { NotificationPanel } from '../notifications/NotificationPanel';
 import { UserAvatar } from '../common/UserAvatar';
 import { WorkspaceModeSelector } from './WorkspaceModeSelector';
@@ -49,17 +63,17 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabTitle = (tab: NavigationTab) => {
     switch (tab) {
-      case 'start_page': return 'Daily Work — Operational Home';
-      case 'mhc_autopilot': return '★ MHC Autopilot Workspace';
+      case 'start_page': return 'Daily Work';
+      case 'mhc_autopilot': return 'MHC Autopilot Workspace';
       case 'mhc': return 'Machine Health Check (MHC)';
       case 'mhc_history': return 'MHC Inspection History & Reports';
       case 'contracts': return 'Contract Management';
       case 'customers': return 'Customers & Plants';
       case 'machines': return 'Machine Passport';
       case 'analytics': return 'Operational Analytics';
-      case 'users': return 'User Management & Multi-Engineer Directory';
-      case 'settings': return 'System Settings & Operational Backup';
-      case 'profile': return 'My Engineer Profile';
+      case 'users': return 'Engineers Directory';
+      case 'settings': return 'System Settings & Backup';
+      case 'profile': return 'My Profile';
       default: return 'Field Operations System';
     }
   };
@@ -95,68 +109,89 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Close overlays when navigating to another module
+  // Close overlays when navigating
   useEffect(() => {
-    setShowUserMenu(prev => (prev ? false : prev));
-    setShowNotificationPanel(prev => (prev ? false : prev));
+    setShowUserMenu(false);
+    setShowNotificationPanel(false);
   }, [activeTab]);
 
-  const getInitials = (name: string) => {
-    if (!name) return 'US';
-    const parts = name.trim().split(' ');
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
-
   return (
-    <header className={`px-6 py-3 border-b sticky top-0 z-20 backdrop-blur-md transition-colors duration-250 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+    <header className={`h-14 px-6 border-b sticky top-0 z-20 backdrop-blur-md transition-colors duration-150 flex items-center justify-between gap-4 ${
       isDark 
-        ? 'bg-[#111315]/90 border-[#2B323A]/80 text-[#F3F4F6]' 
-        : 'bg-white/95 border-slate-300/80 text-slate-900 shadow-xs'
+        ? 'bg-[#111315]/90 border-[#2B323A]/70 text-slate-100' 
+        : 'bg-white/95 border-slate-200 text-slate-900 shadow-2xs'
     }`}>
-      {/* Title & Next Action Directive */}
-      <div>
-        <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
+      {/* 1. Context Orientation (Where user is & current directive) */}
+      <div className="flex items-center gap-3 min-w-0">
+        <h1 className="text-sm font-semibold tracking-tight shrink-0">
           {getTabTitle(activeTab)}
         </h1>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border uppercase tracking-wider flex items-center gap-1 ${
+
+        <div className="h-3.5 w-px bg-slate-700/40 hidden md:block" />
+
+        <div className="hidden md:flex items-center gap-1.5 min-w-0">
+          <span className={`text-[9px] font-mono font-medium px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${
             isDark 
-              ? 'bg-[#8B9DFF]/15 text-[#8B9DFF] border-[#8B9DFF]/30' 
-              : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+              ? 'bg-[#1C2026] text-slate-400 border-[#2B323A]' 
+              : 'bg-slate-100 text-slate-600 border-slate-200'
           }`}>
-            <Sparkles className={`w-2.5 h-2.5 ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-600'}`} />
             DIRECTIVE
           </span>
-          <p className={`text-xs font-medium truncate max-w-xl ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
+          <p className={`text-xs truncate max-w-md ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             {nextPriorityAction || "Execute scheduled machine health inspection."}
           </p>
         </div>
       </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-2.5">
-        {/* Automatic Cloud Synchronization Indicator */}
+      {/* 2. Operational Workspace Controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Sync Status Indicator */}
         <SyncStatusIndicator isDark={isDark} />
 
-        {/* Workspace Mode Selector Control */}
+        {/* Workspace Mode Selector */}
         <WorkspaceModeSelector
           currentMode={workspaceMode}
           onModeChange={onModeChange}
           userRole={activeUser?.role || 'Field Service Engineer'}
         />
 
-        {/* Theme Selector Controls */}
-        <div className={`p-1 rounded-lg border flex items-center gap-0.5 ${
-          isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-100 border-slate-300/80'
+        {/* Global Search Bar */}
+        <div className="relative hidden xl:block w-48">
+          <Search className={`w-3.5 h-3.5 absolute left-2.5 top-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+          <input
+            type="text"
+            placeholder="Search Serial..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={`w-full text-xs rounded-md pl-7 pr-2.5 py-1 border transition-colors ${
+              isDark 
+                ? 'bg-[#16191D] text-slate-200 border-[#2B323A] placeholder-slate-600 focus:border-slate-400 focus:outline-none' 
+                : 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400 focus:border-slate-400 focus:outline-none'
+            }`}
+          />
+        </div>
+
+        {/* Quick Action: New Health Check */}
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Plus className="w-3.5 h-3.5" />}
+          onClick={onOpenQuickMhc}
+        >
+          New MHC
+        </Button>
+
+        {/* Theme Selector (Segmented) */}
+        <div className={`p-0.5 rounded-md border flex items-center gap-0.5 ${
+          isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-100 border-slate-200'
         }`}>
           <button
             onClick={() => setTheme('dark')}
             title="Dark Theme"
-            className={`p-1 rounded transition-all ${
+            className={`p-1 rounded transition-colors ${
               theme === 'dark' 
-                ? 'bg-[#20252B] text-[#8B9DFF] shadow-xs' 
-                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                ? isDark ? 'bg-[#22272E] text-slate-100 shadow-2xs' : 'bg-white text-slate-900 shadow-2xs'
+                : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Moon className="w-3.5 h-3.5" />
@@ -164,10 +199,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setTheme('light')}
             title="Light Theme"
-            className={`p-1 rounded transition-all ${
+            className={`p-1 rounded transition-colors ${
               theme === 'light' 
-                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200' 
-                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                ? isDark ? 'bg-[#22272E] text-slate-100 shadow-2xs' : 'bg-white text-slate-900 shadow-2xs'
+                : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Sun className="w-3.5 h-3.5" />
@@ -175,60 +210,34 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setTheme('system')}
             title="System Theme"
-            className={`p-1 rounded transition-all ${
+            className={`p-1 rounded transition-colors ${
               theme === 'system' 
-                ? isDark ? 'bg-[#20252B] text-[#8B9DFF]' : 'bg-white text-indigo-700 border border-slate-200 shadow-xs' 
-                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                ? isDark ? 'bg-[#22272E] text-slate-100 shadow-2xs' : 'bg-white text-slate-900 shadow-2xs'
+                : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Monitor className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="relative hidden lg:block w-56">
-          <Search className={`w-3.5 h-3.5 absolute left-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-          <input
-            type="text"
-            placeholder="Search Serial, Contract..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full text-xs rounded-lg pl-8 pr-3 py-1.5 border transition-all ${
-              isDark 
-                ? 'bg-[#1A1D21] text-slate-200 border-[#2B323A] placeholder-slate-500 focus:border-[#8B9DFF]' 
-                : 'bg-slate-50 text-slate-900 border-slate-300 placeholder-slate-500 focus:border-indigo-600'
-            }`}
-          />
-        </div>
-
-        {/* Quick Action Button */}
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Plus className="w-3.5 h-3.5" />}
-          onClick={onOpenQuickMhc}
-        >
-          New Health Check
-        </Button>
-
-        {/* Notification Bell Icon & Center Button */}
+        {/* Notification Center Trigger */}
         <div className="relative" ref={notifContainerRef}>
           <button
             onClick={() => setShowNotificationPanel(!showNotificationPanel)}
-            title="Notification Center"
-            className={`p-1.5 rounded-lg border transition-all relative ${
+            title="Notifications"
+            className={`p-1.5 rounded-md border transition-colors relative ${
               showNotificationPanel
                 ? isDark 
-                  ? 'bg-[#20252B] border-[#8B9DFF] text-[#8B9DFF]' 
-                  : 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                  ? 'bg-[#22272E] border-slate-500 text-slate-100' 
+                  : 'bg-slate-100 border-slate-300 text-slate-900'
                 : isDark 
-                  ? 'bg-[#1A1D21] border-[#2B323A] text-slate-300 hover:text-slate-100 hover:bg-[#20252B]' 
-                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-400 hover:text-slate-200 hover:bg-[#20252B]' 
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
             }`}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold font-mono flex items-center justify-center bg-indigo-600 text-white ring-2 ring-[#111315] animate-pulse">
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[8px] font-bold font-mono flex items-center justify-center bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 ring-1 ring-[#111315]">
                 {unreadCount}
               </span>
             )}
@@ -247,28 +256,28 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </div>
 
-        {/* User Account Menu Dropdown (Compact Header: Avatar ▼) */}
+        {/* Account Menu */}
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             title="Account Menu"
-            className={`flex items-center gap-1.5 p-1 pl-1.5 pr-2 rounded-xl border transition-all ${
+            className={`flex items-center gap-1.5 p-1 pl-1.5 pr-2 rounded-md border transition-colors ${
               showUserMenu
                 ? isDark 
-                  ? 'bg-[#20252B] border-[#8B9DFF] text-white' 
-                  : 'bg-indigo-50 border-indigo-300 text-indigo-900'
+                  ? 'bg-[#22272E] border-slate-500 text-white' 
+                  : 'bg-slate-100 border-slate-300 text-slate-900'
                 : isDark 
-                  ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200 hover:bg-[#20252B]' 
-                  : 'bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200'
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-300 hover:bg-[#20252B]' 
+                  : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 shadow-2xs'
             }`}
           >
             <UserAvatar user={activeUser} size="sm" showStatus={true} />
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showUserMenu ? 'rotate-180 text-[#8B9DFF]' : 'text-slate-400'}`} />
+            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180 text-slate-200' : ''}`} />
           </button>
 
-          {/* Dropdown Menu (PART 7 Menu Items) */}
+          {/* User Account Popover */}
           {showUserMenu && (
-            <div className={`absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 ${
+            <div className={`absolute right-0 mt-1.5 w-52 rounded-lg border shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 ${
               isDark ? 'bg-[#181B1E] border-[#2B323A] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
             }`}>
               <div className="space-y-0.5 text-xs">
@@ -277,11 +286,11 @@ export const Header: React.FC<HeaderProps> = ({
                     setActiveTab('profile');
                     setShowUserMenu(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#20252B] text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <User className="w-4 h-4 text-[#8B9DFF]" />
+                  <User className="w-3.5 h-3.5 text-slate-400" />
                   <span>My Profile</span>
                 </button>
 
@@ -290,16 +299,16 @@ export const Header: React.FC<HeaderProps> = ({
                     setShowNotificationPanel(true);
                     setShowUserMenu(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#20252B] text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between font-medium transition-colors ${
+                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <BellRing className="w-4 h-4 text-amber-400" />
+                  <div className="flex items-center gap-2">
+                    <BellRing className="w-3.5 h-3.5 text-slate-400" />
                     <span>Notifications</span>
                   </div>
                   {unreadCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-indigo-600 text-white">
+                    <span className="px-1.5 py-0.2 rounded font-mono text-[10px] font-bold bg-slate-800 text-slate-200">
                       {unreadCount}
                     </span>
                   )}
@@ -307,58 +316,27 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <button
                   onClick={() => {
-                    setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark');
-                    setShowUserMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#20252B] text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Palette className="w-4 h-4 text-sky-400" />
-                    <span>Appearance</span>
-                  </div>
-                  <span className="text-[10px] font-mono capitalize px-1.5 py-0.5 rounded bg-[#2B323A]/50 text-slate-400">
-                    {theme}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => {
                     setActiveTab('settings');
                     setShowUserMenu(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#20252B] text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <SettingsIcon className="w-4 h-4 text-slate-400" />
-                  <span>Changelog</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('settings');
-                    setShowUserMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#20252B] text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span>About System</span>
+                  <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Settings & Backup</span>
                 </button>
               </div>
 
-              <div className="pt-1 mt-1 border-t border-[#2B323A]/60">
+              <div className="pt-1 mt-1 border-t border-slate-700/30">
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     onLogout();
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2.5 font-semibold transition-colors text-rose-400 hover:bg-rose-500/10`}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                   <span>Logout</span>
                 </button>
               </div>
@@ -369,4 +347,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-

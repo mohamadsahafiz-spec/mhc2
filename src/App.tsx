@@ -419,9 +419,7 @@ function AppLayout() {
   }
 
   return (
-    <div className={`min-h-screen flex transition-colors duration-250 ${
-      isDark ? 'bg-[#111315] text-[#F3F4F6]' : 'bg-slate-100/80 text-slate-900'
-    }`}>
+    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150`}>
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}

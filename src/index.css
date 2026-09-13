@@ -23,6 +23,38 @@
     --radius-lg: 1rem;
 
     --transition-speed: 250ms;
+
+    /* R1-A & R1-C Semantic Surfaces (Dark Mode) */
+    --surface-canvas: #111315;
+    --surface-workspace: #16191D;
+    --surface-surface: #1C2026;
+    --surface-raised: #242A32;
+    --surface-overlay: #2C333D;
+
+    /* R1-A Semantic Text (Dark Mode) */
+    --text-primary: #F3F4F6;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --text-subtle: #475569;
+
+    /* R1-A & R1-C Semantic Borders (Dark Mode) */
+    --border-subtle: rgba(43, 50, 58, 0.45);
+    --border-default: #2B323A;
+    --border-strong: #3D4754;
+
+    /* R1-C Geometry Radii */
+    --radius-compact: 0.25rem;
+    --radius-standard: 0.5rem;
+    --radius-relaxed: 0.75rem;
+    --radius-pill: 9999px;
+
+    /* R1-B Spacing Scale */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
   }
 
   html.light {
@@ -38,16 +70,34 @@
     --color-text-primary: #0F172A;
     --color-text-secondary: #334155;
     --color-text-muted: #64748B;
+
+    /* R1-A & R1-C Semantic Surfaces (Light Mode) */
+    --surface-canvas: #F8FAFC;
+    --surface-workspace: #F1F5F9;
+    --surface-surface: #FFFFFF;
+    --surface-raised: #FFFFFF;
+    --surface-overlay: #FFFFFF;
+
+    /* R1-A Semantic Text (Light Mode) */
+    --text-primary: #0F172A;
+    --text-secondary: #334155;
+    --text-muted: #64748B;
+    --text-subtle: #94A3B8;
+
+    /* R1-A & R1-C Semantic Borders (Light Mode) */
+    --border-subtle: #F1F5F9;
+    --border-default: #E2E8F0;
+    --border-strong: #CBD5E1;
   }
 
   html.dark body {
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
   }
 
   html.light body {
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
   }
 
   body {
@@ -58,7 +108,7 @@
   }
 }
 
-/* Theme utility classes */
+/* Theme utility classes (Legacy compatibility) */
 .dark .bg-theme-bg { background-color: #111315; }
 .dark .bg-theme-surface { background-color: #1A1D21; }
 .dark .bg-theme-card { background-color: #20252B; }
@@ -68,6 +118,32 @@
 .light .bg-theme-surface { background-color: #FFFFFF; }
 .light .bg-theme-card { background-color: #FFFFFF; }
 .light .border-theme-border { border-color: #E2E8F0; }
+
+/* R1 Semantic Surface Utility Classes */
+.bg-canvas { background-color: var(--surface-canvas); }
+.bg-workspace { background-color: var(--surface-workspace); }
+.bg-surface { background-color: var(--surface-surface); }
+.bg-raised { background-color: var(--surface-raised); }
+.bg-overlay { background-color: var(--surface-overlay); }
+
+/* R1 Semantic Text Utility Classes */
+.text-theme-primary { color: var(--text-primary); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted { color: var(--text-muted); }
+.text-theme-subtle { color: var(--text-subtle); }
+
+/* R1 Semantic Border Utility Classes */
+.border-theme-subtle { border-color: var(--border-subtle); }
+.border-theme-default { border-color: var(--border-default); }
+.border-theme-strong { border-color: var(--border-strong); }
+
+/* R1 Typography Hierarchy Classes */
+.font-display { font-size: 1.75rem; line-height: 2.125rem; font-weight: 600; letter-spacing: -0.02em; }
+.font-title { font-size: 1.25rem; line-height: 1.625rem; font-weight: 600; letter-spacing: -0.015em; }
+.font-section { font-size: 0.9375rem; line-height: 1.375rem; font-weight: 500; letter-spacing: -0.01em; }
+.font-body { font-size: 0.875rem; line-height: 1.375rem; font-weight: 400; letter-spacing: 0; }
+.font-label { font-size: 0.75rem; line-height: 1rem; font-weight: 500; letter-spacing: 0.02em; }
+.font-caption { font-size: 0.6875rem; line-height: 0.875rem; font-weight: 400; letter-spacing: 0.01em; }
 
 /* Custom sleek scrollbars */
 ::-webkit-scrollbar {
@@ -116,3 +192,4 @@
     color: #111827 !important;
   }
 }
+

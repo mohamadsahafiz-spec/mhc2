@@ -11,18 +11,21 @@ import {
   History,
   Database,
   Bot,
-  Sparkles,
-  Zap,
   ShieldCheck,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Activity,
+  SlidersHorizontal,
+  CircleDot
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { NavigationTab, EngineerProfile, WorkspaceMode } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { APP_VERSION } from '../../constants/version';
+import { motionPresets } from '../../theme/tokens';
 
 interface SidebarProps {
   activeTab: NavigationTab;
@@ -35,9 +38,8 @@ interface SidebarProps {
 interface NavItem {
   id: NavigationTab;
   label: string;
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
   badge?: number;
-  isSubItem?: boolean;
 }
 
 interface NavGroup {
@@ -55,59 +57,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
-
   const isMhcMode = workspaceMode === 'MHC_MODE';
 
   // Sidebar Rail Collapse State
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('fsos_sidebar_collapsed') === 'true';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem('fsos_sidebar_collapsed') === 'true';
+    }
+    return false;
   });
 
   const toggleSidebarCollapse = () => {
     const nextState = !isCollapsed;
     setIsCollapsed(nextState);
-    localStorage.setItem('fsos_sidebar_collapsed', String(nextState));
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('fsos_sidebar_collapsed', String(nextState));
+    }
   };
 
+  // Nav Groups Definition with Monochrome Functional Icons
   const rawNavGroups: NavGroup[] = [
     {
-      key: 'daily_work',
+      key: 'work',
       title: 'DAILY WORK',
       items: [
-        { id: 'start_page', label: 'Daily Work', icon: <Compass className="w-4 h-4" /> },
+        { id: 'start_page', label: 'Daily Work', icon: Compass },
       ]
     },
     {
       key: 'mhc_category',
-      title: 'MACHINE HEALTH CHECK',
-      items: [
-        { id: 'mhc_autopilot', label: '★ MHC Autopilot', icon: <Bot className="w-4 h-4 text-cyan-400" /> },
-        { id: 'mhc_history', label: 'MHC History', icon: <History className="w-4 h-4 text-emerald-400" /> },
-      ]
-    },
-    {
-      key: 'service_execution',
-      title: 'SERVICE EXECUTION',
-      items: [
-        { id: 'machines', label: 'Machine Passport', icon: <Cpu className="w-4 h-4" /> },
-      ]
-    },
-    {
-      key: 'operations',
       title: 'OPERATIONS',
       items: [
-        { id: 'customers', label: 'Customers & Plants', icon: <Building2 className="w-4 h-4" /> },
-        { id: 'contracts', label: 'Contracts', icon: <FileText className="w-4 h-4" /> },
-        { id: 'analytics', label: 'Analytics', icon: <LineChart className="w-4 h-4" /> },
+        { id: 'mhc_autopilot', label: 'MHC Autopilot', icon: Bot },
+        { id: 'mhc_history', label: 'MHC History', icon: History },
+      ]
+    },
+    {
+      key: 'assets',
+      title: 'ASSETS',
+      items: [
+        { id: 'machines', label: 'Machine Passport', icon: Cpu },
+      ]
+    },
+    {
+      key: 'fleet',
+      title: 'FLEET & CONTRACTS',
+      items: [
+        { id: 'customers', label: 'Customers & Plants', icon: Building2 },
+        { id: 'contracts', label: 'Contracts', icon: FileText },
+        { id: 'analytics', label: 'Analytics', icon: LineChart },
       ]
     },
     {
       key: 'system',
       title: 'SYSTEM',
       items: [
-        { id: 'profile', label: 'My Profile', icon: <User className="w-4 h-4" /> },
-        { id: 'users', label: 'Users', icon: <Users className="w-4 h-4" /> },
-        { id: 'settings', label: 'Backup & Settings', icon: <Database className="w-4 h-4" /> },
+        { id: 'profile', label: 'My Profile', icon: User },
+        { id: 'users', label: 'Engineers Directory', icon: Users },
+        { id: 'settings', label: 'Backup & Settings', icon: Database },
       ]
     }
   ];
@@ -116,15 +123,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navGroups: NavGroup[] = rawNavGroups.map(group => {
     if (!isMhcMode) return group;
 
-    // In MHC Mode, keep only operationally relevant tabs
+    // In MHC Mode, show operationally focused tabs
     let allowedIds: NavigationTab[] = [];
-    if (group.key === 'daily_work') {
+    if (group.key === 'work') {
       allowedIds = ['start_page'];
     } else if (group.key === 'mhc_category') {
       allowedIds = ['mhc_autopilot', 'mhc_history'];
-    } else if (group.key === 'service_execution') {
+    } else if (group.key === 'assets') {
       allowedIds = ['machines'];
-    } else if (group.key === 'operations') {
+    } else if (group.key === 'fleet') {
       allowedIds = ['customers', 'contracts', 'analytics'];
     } else if (group.key === 'system') {
       allowedIds = ['profile', 'settings'];
@@ -136,22 +143,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }).filter(group => group.items.length > 0);
 
-  // Collapsible Groups State
+  // Group Open/Close State
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const activeGroup = navGroups.find(g => g.items.some(i => i.id === activeTab));
     const initialState: Record<string, boolean> = {
-      daily_work: false,
+      work: true,
       mhc_category: true,
-      service_execution: false,
-      operations: false,
-      smart_tools: false,
-      system: false
+      assets: true,
+      fleet: true,
+      system: true
     };
-    if (activeGroup) {
-      initialState[activeGroup.key] = true;
-    } else {
-      initialState.mhc_category = true;
-    }
     return initialState;
   });
 
@@ -173,152 +173,196 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className={`${isCollapsed ? 'w-16' : 'w-60'} border-r flex flex-col h-screen sticky top-0 shrink-0 select-none z-30 transition-all duration-200 ${
-      isDark 
-        ? 'bg-[#111315] border-[#2B323A]/80 text-slate-300' 
-        : 'bg-white border-slate-300/80 text-slate-900 shadow-xs'
-    }`}>
-      {/* Brand Header */}
-      <div className={`p-3 border-b flex items-center justify-between ${isDark ? 'bg-[#111315] border-[#2B323A]/60' : 'bg-slate-50 border-slate-200'}`}>
+    <aside
+      className={`${
+        isCollapsed ? 'w-16' : 'w-64'
+      } border-r flex flex-col h-screen sticky top-0 shrink-0 select-none z-30 transition-[width] duration-200 ease-out ${
+        isDark 
+          ? 'bg-[#111315] border-[#2B323A]/70 text-slate-300' 
+          : 'bg-[#F8FAFC] border-slate-200 text-slate-800 shadow-2xs'
+      }`}
+    >
+      {/* 1. Identity & System Header */}
+      <div className={`h-14 px-3.5 border-b flex items-center justify-between shrink-0 ${
+        isDark ? 'border-[#2B323A]/60' : 'border-slate-200 bg-white/50'
+      }`}>
         {!isCollapsed ? (
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-              isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/30' : 'bg-indigo-600 text-white shadow-xs'
+            {/* Technical Mark: Calm geometric aperture */}
+            <div className={`w-7 h-7 rounded-md flex items-center justify-center font-mono font-bold text-xs shrink-0 ${
+              isDark 
+                ? 'bg-[#1C2026] text-slate-200 border border-[#2B323A]' 
+                : 'bg-slate-900 text-white shadow-2xs'
             }`}>
-              <Zap className="w-3.5 h-3.5 fill-current" />
+              <Activity className="w-3.5 h-3.5" />
             </div>
             <div className="truncate">
               <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-bold tracking-tight ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>FIELD OPS</span>
-                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
-                  isDark ? 'bg-[#8B9DFF]/10 text-[#8B9DFF] border-[#8B9DFF]/30' : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                <span className={`text-xs font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  FSOS
+                </span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${
+                  isDark ? 'bg-[#1C2026] text-slate-400 border border-[#2B323A]' : 'bg-slate-100 text-slate-600 border border-slate-200'
                 }`}>
                   {APP_VERSION}
                 </span>
               </div>
-              <p className={`text-[10px] font-mono truncate ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>Precision Laser Eng</p>
+              <p className={`text-[10px] truncate ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                Field Operations Workspace
+              </p>
             </div>
           </div>
         ) : (
-          <div className={`w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-bold text-xs ${
-            isDark ? 'bg-[#8B9DFF]/20 text-[#8B9DFF] border border-[#8B9DFF]/30' : 'bg-indigo-600 text-white shadow-xs'
+          <div className={`w-7 h-7 mx-auto rounded-md flex items-center justify-center font-mono font-bold text-xs ${
+            isDark 
+              ? 'bg-[#1C2026] text-slate-200 border border-[#2B323A]' 
+              : 'bg-slate-900 text-white shadow-2xs'
           }`}>
-            <Zap className="w-3.5 h-3.5 fill-current" />
+            <Activity className="w-3.5 h-3.5" />
           </div>
         )}
 
         <button
           onClick={toggleSidebarCollapse}
-          className={`p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 transition-colors ${isCollapsed ? 'mx-auto' : ''}`}
+          className={`p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-colors ${
+            isCollapsed ? 'mx-auto mt-1' : ''
+          }`}
           title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
-          {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
         </button>
       </div>
 
-      {/* Engineer Status Card */}
+      {/* 2. Personal Engineer Workspace Badge */}
       {!isCollapsed ? (
-        <div className={`px-3 py-2 border-b ${isDark ? 'border-[#2B323A]/40' : 'border-slate-100'}`}>
+        <div className={`px-3 py-2.5 border-b ${isDark ? 'border-[#2B323A]/40' : 'border-slate-200/60'}`}>
           <div 
             onClick={() => setActiveTab('profile')}
-            title="Open My Profile"
-            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-all ${
+            title="View Engineer Profile"
+            className={`flex items-center justify-between px-2.5 py-2 rounded-lg border text-xs cursor-pointer transition-all duration-150 ${
               activeTab === 'profile'
-                ? isDark ? 'bg-[#8B9DFF]/15 border-[#8B9DFF]/40 text-white' : 'bg-indigo-100 border-indigo-300 text-indigo-900'
-                : isDark ? 'bg-[#1A1D21]/60 border-[#2B323A]/60 text-slate-300 hover:bg-[#20252B] hover:border-[#8B9DFF]/30' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100'
+                ? isDark 
+                  ? 'bg-[#1C2026] border-[#3D4754] text-slate-100' 
+                  : 'bg-white border-slate-300 text-slate-900 shadow-xs'
+                : isDark 
+                  ? 'bg-[#16191D] border-[#2B323A]/50 text-slate-300 hover:bg-[#1C2026] hover:border-[#3D4754]' 
+                  : 'bg-white/60 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300'
             }`}
           >
-            <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex items-center gap-2.5 overflow-hidden">
               <UserAvatar user={profile} size="sm" showStatus={true} status="Online" />
               <div className="truncate">
-                <p className="text-[11px] font-semibold truncate">{profile?.name || 'Sahafiz'}</p>
-                <p className={`text-[9px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500 font-medium'}`}>{profile?.role || 'Field Service Engineer'}</p>
+                <p className={`text-[11px] font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                  {profile?.name || 'Sahafiz'}
+                </p>
+                <p className={`text-[10px] truncate ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                  {profile?.role || 'Field Service Engineer'}
+                </p>
               </div>
             </div>
-            <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-600'}`} />
+            <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
           </div>
         </div>
       ) : (
-        <div className="p-2 border-b flex justify-center">
+        <div className={`p-2 border-b flex justify-center ${isDark ? 'border-[#2B323A]/40' : 'border-slate-200/60'}`}>
           <div onClick={() => setActiveTab('profile')} className="cursor-pointer" title={profile?.name || 'My Profile'}>
             <UserAvatar user={profile} size="sm" showStatus={true} status="Online" />
           </div>
         </div>
       )}
 
-      {/* Grouped Workflow Nav List */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-3">
+      {/* 3. Navigation Hierarchy */}
+      <nav className="flex-1 overflow-y-auto p-2 space-y-3.5 scrollbar-thin">
         {navGroups.map((group) => {
           const isOpen = !!openGroups[group.key];
           const hasActiveChild = group.items.some(i => i.id === activeTab);
           const groupBadgeCount = group.items.reduce((sum, item) => sum + (item.badge || 0), 0);
 
-          const mainItems = group.items;
-
           return (
             <div key={group.key} className="space-y-1">
-              {/* Group Header Button */}
+              {/* Group Title / Toggle Button */}
               {!isCollapsed ? (
                 <button
                   onClick={() => toggleGroup(group.key)}
-                  className={`w-full flex items-center justify-between px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase transition-colors ${
+                  className={`w-full flex items-center justify-between px-2 py-1 rounded text-[10px] font-mono font-medium tracking-wider uppercase transition-colors ${
                     hasActiveChild
-                      ? isDark ? 'text-[#8B9DFF]' : 'text-indigo-700 font-bold'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900 font-bold'
+                      ? isDark ? 'text-slate-300 font-semibold' : 'text-slate-800 font-semibold'
+                      : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
-                    {isOpen ? <ChevronDown className="w-3 h-3 opacity-70" /> : <ChevronRight className="w-3 h-3 opacity-70" />}
+                    {isOpen ? <ChevronDown className="w-3 h-3 opacity-60" /> : <ChevronRight className="w-3 h-3 opacity-60" />}
                     <span>{group.title}</span>
                   </div>
 
                   {!isOpen && groupBadgeCount > 0 && (
-                    <span className="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded-full bg-[#E98A8A]/20 text-[#E98A8A] border border-[#E98A8A]/40">
+                    <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700">
                       {groupBadgeCount}
                     </span>
                   )}
                 </button>
               ) : (
                 <div className="w-full text-center py-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" title={group.title} />
+                  <span className="w-1 h-1 rounded-full bg-slate-600 inline-block" title={group.title} />
                 </div>
               )}
 
-              {/* Group Items Container */}
+              {/* Group Items */}
               {(isOpen || isCollapsed) && (
-                <div className={`space-y-0.5 ${!isCollapsed ? 'pl-1 ml-1 border-l border-slate-200 dark:border-[#2B323A]/50' : ''}`}>
-                  {/* Primary Group Items */}
-                  {mainItems.map((item) => {
+                <div className={`space-y-0.5 ${!isCollapsed ? 'pl-1' : ''}`}>
+                  {group.items.map((item) => {
                     const isActive = activeTab === item.id;
+                    const IconComponent = item.icon;
+
                     return (
                       <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
                         title={isCollapsed ? item.label : undefined}
-                        className={`w-full flex items-center justify-between p-1.5 rounded-lg text-xs transition-all duration-150 group ${
+                        className={`w-full flex items-center justify-between p-1.5 rounded-md text-xs transition-all duration-150 relative group ${
                           isActive
                             ? isDark
-                              ? 'bg-[#8B9DFF]/15 text-[#8B9DFF] font-medium border border-[#8B9DFF]/30'
-                              : 'bg-indigo-50 text-indigo-800 font-semibold border border-indigo-200/90 shadow-2xs'
+                              ? 'bg-[#1C2026] text-slate-100 font-medium border border-[#3D4754]/80'
+                              : 'bg-white text-slate-950 font-semibold border border-slate-300/80 shadow-2xs'
                             : isDark
-                            ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1D21]/60'
-                            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium'
+                              ? 'text-slate-400 hover:text-slate-200 hover:bg-[#16191D] border border-transparent'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 border border-transparent'
                         }`}
                       >
-                        <div className={`flex items-center gap-2 min-w-0 ${isCollapsed ? 'mx-auto justify-center' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? (isDark ? 'text-[#8B9DFF]' : 'text-indigo-700') : 'text-slate-400 opacity-80 group-hover:opacity-100'}`}>
-                            {item.icon}
+                        {/* Active Anchor Indicator */}
+                        {isActive && (
+                          <span 
+                            className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full ${
+                              isDark ? 'bg-slate-300' : 'bg-slate-900'
+                            }`} 
+                          />
+                        )}
+
+                        <div className={`flex items-center gap-2.5 min-w-0 ${isCollapsed ? 'mx-auto justify-center' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${
+                            isActive 
+                              ? isDark ? 'text-slate-100' : 'text-slate-900' 
+                              : 'text-slate-400 group-hover:text-slate-200'
+                          }`}>
+                            <IconComponent className="w-4 h-4" />
                           </span>
-                          {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
+                          {!isCollapsed && (
+                            <span className="truncate text-left text-xs">
+                              {item.label}
+                            </span>
+                          )}
                         </div>
+
                         {!isCollapsed && (
                           <div className="flex items-center gap-1 shrink-0 ml-1">
                             {item.badge && item.badge > 0 ? (
-                              <span className="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                              <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700">
                                 {item.badge}
                               </span>
                             ) : null}
-                            {isActive && <ChevronRight className={`w-3 h-3 ${isDark ? 'text-[#8B9DFF]' : 'text-indigo-700'}`} />}
+                            {isActive && (
+                              <CircleDot className={`w-2.5 h-2.5 opacity-60 ${isDark ? 'text-slate-300' : 'text-slate-900'}`} />
+                            )}
                           </div>
                         )}
                       </button>
@@ -331,17 +375,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Footer System Indicator */}
-      <div className={`p-2.5 border-t text-[10px] font-mono flex items-center justify-between ${
-        isDark ? 'bg-[#111315] border-[#2B323A]/60 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+      {/* 4. Structural Workspace Footer Indicator */}
+      <div className={`p-2.5 border-t text-[10px] font-mono flex items-center justify-between shrink-0 ${
+        isDark ? 'bg-[#111315] border-[#2B323A]/60 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-500'
       }`}>
         {!isCollapsed ? (
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>FSO Engine Online</span>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="truncate">Core Ready • Local & D1</span>
           </div>
         ) : (
-          <span className="w-2 h-2 rounded-full bg-emerald-500 mx-auto" title="FSO Engine Online" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 mx-auto" title="Core Ready • Local & D1" />
         )}
       </div>
     </aside>
