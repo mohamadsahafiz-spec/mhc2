@@ -89,6 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'OPERATIONS',
       items: [
         { id: 'mhc_autopilot', label: 'MHC Autopilot', icon: Bot },
+        { id: 'mhc_report', label: 'Report Studio', icon: FileText },
         { id: 'mhc_history', label: 'MHC History', icon: History },
       ]
     },
@@ -128,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (group.key === 'work') {
       allowedIds = ['start_page'];
     } else if (group.key === 'mhc_category') {
-      allowedIds = ['mhc_autopilot', 'mhc_history'];
+      allowedIds = ['mhc_autopilot', 'mhc_report', 'mhc_history'];
     } else if (group.key === 'assets') {
       allowedIds = ['machines'];
     } else if (group.key === 'fleet') {

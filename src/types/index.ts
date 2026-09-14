@@ -5,6 +5,7 @@ export type NavigationTab =
   | 'machines'
   | 'mhc_autopilot'
   | 'mhc'
+  | 'mhc_report'
   | 'mhc_templates'
   | 'mhc_history'
   | 'mhc_01'

@@ -196,7 +196,7 @@ function AppLayout() {
 
     // Auto-redirect to start page if current active tab is not visible in MHC Mode
     if (newMode === 'MHC_MODE') {
-      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
+      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'machines', 'mhc_autopilot', 'mhc', 'mhc_report', 'mhc_templates', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
       if (!mhcAllowedTabs.includes(activeTab)) {
         setActiveTab('start_page');
       }
