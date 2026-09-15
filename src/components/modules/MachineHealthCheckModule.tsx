@@ -8,7 +8,6 @@ import { Cpu, Activity } from 'lucide-react';
 // Active Subcomponents
 import { MhcHistoryView } from '../mhc/MhcHistoryView';
 import { MhcAutopilot } from '../mhc/MhcAutopilot';
-import { ReportStudioModule } from '../mhc/report/ReportStudioModule';
 
 interface MachineHealthCheckProps {
   machines: Machine[];
@@ -90,8 +89,8 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
     return unsub;
   }, []);
 
-  // 3. View Mode: 'mhc_autopilot' | 'mhc_report' | 'mhc_history'
-  const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'mhc_report' | 'mhc_history'>('mhc_autopilot');
+  // 3. View Mode: 'mhc_autopilot' | 'mhc_history'
+  const [viewMode, setViewMode] = useState<'mhc_autopilot' | 'mhc_history'>('mhc_autopilot');
 
   // Handle activeSubTab mapping from sidebar navigation
   useEffect(() => {
@@ -99,8 +98,6 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
 
     if (activeSubTab === 'mhc_history') {
       setViewMode('mhc_history');
-    } else if (activeSubTab === 'mhc_report' || activeSubTab === 'mhc_templates') {
-      setViewMode('mhc_report');
     } else {
       setViewMode('mhc_autopilot');
     }
@@ -176,25 +173,14 @@ export const MachineHealthCheckModule: React.FC<MachineHealthCheckProps> = ({
         />
       )}
 
-      {/* 2. REPORT STUDIO WORKSPACE */}
-      {viewMode === 'mhc_report' && (
-        <ReportStudioModule
-          machines={machines}
-          initialMachineId={selectedMachineId}
-          initialSessionId={activeSession?.id}
-          onNavigate={onNavigate}
-          onOpenAutopilotForSession={(sessionId, machineId, activityCode) => {
-            setSelectedMachineId(machineId);
-            setViewMode('mhc_autopilot');
-          }}
-        />
-      )}
-
-      {/* 3. MHC HISTORY VIEW */}
+      {/* 2. MHC HISTORY VIEW */}
       {viewMode === 'mhc_history' && (
         <MhcHistoryView
           sessions={mhcSessions}
           machines={machines}
+          selectedMachineId={selectedMachineId}
+          onSelectMachineId={setSelectedMachineId}
+          onNavigate={onNavigate}
           onOpenSession={(sessionId) => {
             const target = mhcSessions.find(s => s.id === sessionId);
             if (target) {

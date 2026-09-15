@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v2.3.2 — R7-D MHC History Redesign (Calm Industrial Record) (2026-09-14)
+
+### MHC History Workspace (R7-D)
+- **Calm Industrial Record Redesign**: Re-architected `MhcHistoryView` from a generic card list into the approved engineering service log workspace with restrained surfaces, deliberate whitespace, and strict data truth.
+- **Prominent Machine Identity Header**: Integrated an authoritative machine header (`MhcHistoryHeader`) displaying equipment model, serial number, unit identifier, customer facility/line/zone, equipment operational status chip, and direct linkage to Machine Passport.
+- **Quiet Search & Filter Toolbar**: Built a responsive search and filter toolbar (`MhcHistoryToolbar`) supporting free-text search across session ID/machine/customer/engineer, status filters (All, Completed, In Progress), and chronological sort toggles (Newest/Oldest first).
+- **Inspection Chronology & Record Hierarchy**: Implemented chronological service session presentation (`MhcHistorySessionList`) with clear hierarchy, monospace canonical IDs, timestamps, and real metrics (findings count, spare parts count, readiness score).
+- **Selected Inspection Detail Area**: Implemented a responsive 6-tab inspection detail workspace (`MhcHistoryDetailView`):
+  - **Overview**: Machine specifications snapshot, lifecycle timing, and complete 10-activity protocol execution audit matrix.
+  - **Findings**: Optical path defect observations and laser head inspection findings, X/Y stage calibration deviations, and AGC alignment results with honest empty states.
+  - **Evidence**: Harvested photo attachments and engineering test sheets with interactive high-resolution inspection modal.
+  - **Recommendations**: Spare parts inventory recommendations with wear condition tags, and lead engineer technical remarks & maintenance intervals.
+  - **Report**: Embedded authoritative multi-page ISO report preview powered by `MhcFullPdfRenderer` with official PDF generation workflow.
+  - **Buyoff**: Field engineer and customer acceptance audit trail, sign-off status, and handover remarks.
+- **Preserved Core Engine & Architecture**: Full backward compatibility maintained for all existing MHC sessions, Machine Passport linkage, and persistence pipelines with zero artificial or manufactured values.
+
 ## v2.3.1 — FSOS Major Audit Release Closure (2026-09-10)
 
 ### Audit & Architecture
