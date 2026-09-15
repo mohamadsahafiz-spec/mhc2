@@ -597,6 +597,8 @@ function AppLayout() {
               activeUser={activeUser}
               currentUserRole={activeUser.role}
               workspaceMode={workspaceMode}
+              plants={plants}
+              customers={customers}
               onUpdateUser={handleUpdateUser}
               onNavigate={setActiveTab}
             />

@@ -85,6 +85,7 @@ export interface SystemUser {
   accountStatus: 'Active' | 'Suspended' | 'Pending Activation';
   avatarUrl?: string;
   bio?: string;
+  assignedServiceLocations?: string[]; // Array of canonical Plant/Site IDs (e.g. ['PLANT-01'])
 }
 
 export type ProductionReleaseStatus = 'APPROVED' | 'CONDITIONAL' | 'HALTED' | 'UNDER_INSPECTION';

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -20,18 +20,26 @@ import {
   Unlock,
   MapPin,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Search,
+  Check,
+  X,
+  Layers
 } from 'lucide-react';
-import { SystemUser, UserRole, UserStatus, NavigationTab, WorkspaceMode } from '../../types';
+import { SystemUser, UserRole, UserStatus, NavigationTab, WorkspaceMode, Plant, Customer } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { Button } from '../common/Button';
 import { CANONICAL_TIMEZONES } from '../../constants/timezones';
+import { ServiceCoverageMap } from '../profile/ServiceCoverageMap';
 
 interface ProfileModuleProps {
   activeUser: SystemUser;
   currentUserRole?: UserRole;
   workspaceMode?: WorkspaceMode;
+  plants?: Plant[];
+  customers?: Customer[];
   onUpdateUser: (updatedUser: SystemUser) => void;
   onNavigate: (tab: NavigationTab) => void;
 }
@@ -40,6 +48,8 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
   activeUser,
   currentUserRole,
   workspaceMode,
+  plants = [],
+  customers = [],
   onUpdateUser,
   onNavigate
 }) => {
@@ -56,6 +66,11 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+
+  // Service Coverage Assignment State
+  const [isAssigningLocation, setIsAssigningLocation] = useState(false);
+  const [selectedPlantIdToAssign, setSelectedPlantIdToAssign] = useState('');
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoMenuRef = useRef<HTMLDivElement>(null);
@@ -127,17 +142,63 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
+  // Service Location Assignment Handlers
+  const currentAssignedIds = useMemo(() => {
+    return formData.assignedServiceLocations || [];
+  }, [formData.assignedServiceLocations]);
+
+  // Resolved list of assigned plant entities
+  const assignedPlants = useMemo(() => {
+    return currentAssignedIds
+      .map(id => plants.find(p => p.id === id))
+      .filter((p): p is Plant => Boolean(p));
+  }, [currentAssignedIds, plants]);
+
+  // Available unassigned plants for selection
+  const availablePlantsToAssign = useMemo(() => {
+    return plants.filter(p => !currentAssignedIds.includes(p.id));
+  }, [plants, currentAssignedIds]);
+
+  // Filtered available plants by search query
+  const filteredAvailablePlants = useMemo(() => {
+    if (!locationSearchQuery.trim()) return availablePlantsToAssign;
+    const q = locationSearchQuery.toLowerCase();
+    return availablePlantsToAssign.filter(p => 
+      p.name.toLowerCase().includes(q) ||
+      p.customerName.toLowerCase().includes(q) ||
+      (p.location && p.location.toLowerCase().includes(q))
+    );
+  }, [availablePlantsToAssign, locationSearchQuery]);
+
+  const handleAddLocation = (plantId: string) => {
+    if (!isAuthorizedAdmin || !plantId) return;
+    if (currentAssignedIds.includes(plantId)) return;
+
+    const nextLocations = [...currentAssignedIds, plantId];
+    setFormData(prev => ({ ...prev, assignedServiceLocations: nextLocations }));
+    setIsAssigningLocation(false);
+    setSelectedPlantIdToAssign('');
+    setLocationSearchQuery('');
+  };
+
+  const handleRemoveLocation = (plantId: string) => {
+    if (!isAuthorizedAdmin) return;
+    const nextLocations = currentAssignedIds.filter(id => id !== plantId);
+    setFormData(prev => ({ ...prev, assignedServiceLocations: nextLocations }));
+  };
+
   // Submit Profile Form
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Identity Field Editability enforcement:
-    // If authorized admin/founder: allow employeeId and role changes.
-    // If standard engineer: strictly lock to original activeUser.employeeId and activeUser.role to prevent self-elevation.
+    // Identity Field Editability & Assignment enforcement:
+    // If authorized admin/founder: allow employeeId, role, and assignedServiceLocations changes.
+    // If standard engineer: strictly lock to original activeUser.employeeId, activeUser.role, and activeUser.assignedServiceLocations to prevent self-elevation.
     const safeData: SystemUser = {
       ...formData,
       employeeId: isAuthorizedAdmin ? formData.employeeId : activeUser.employeeId,
-      role: isAuthorizedAdmin ? formData.role : activeUser.role
+      role: isAuthorizedAdmin ? formData.role : activeUser.role,
+      assignedServiceLocations: isAuthorizedAdmin ? formData.assignedServiceLocations : activeUser.assignedServiceLocations
     };
 
     onUpdateUser(safeData);
@@ -656,45 +717,249 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
             </div>
           </div>
 
-          {/* Section 5: Service Coverage (Calm Industrial Standard) */}
+          {/* Section 5: Service Coverage & Interactive Geographic Map */}
           <div className="space-y-4 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <h2 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 ${
-                isDark ? 'text-slate-300' : 'text-slate-700'
-              }`}>
+              <div className="flex items-center gap-2">
                 <Compass className="w-3.5 h-3.5 text-slate-400" />
-                Service Coverage
-              </h2>
-              <span className="text-[10px] text-slate-500 font-mono">Geographic Operational Scope</span>
+                <h2 className={`text-xs font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}>
+                  Service Coverage & Territory Map
+                </h2>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {assignedPlants.length} Assigned Site{assignedPlants.length === 1 ? '' : 's'}
+              </span>
             </div>
 
-            <div className={`p-4 rounded border ${
-              isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded shrink-0 border ${
-                  isDark ? 'bg-[#1C2026] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-500'
-                }`}>
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="space-y-1">
-                  <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    Service coverage not configured.
-                  </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    No authoritative geographic boundaries, customer site dispatch zones, or GPS telemetry coordinates are currently mapped to this engineer account.
-                  </p>
-                  <div className="pt-1 flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                    <span>Cleanroom Timezone Anchor:</span>
-                    <span className={`px-1.5 py-0.5 rounded border ${
-                      isDark ? 'bg-[#181B1E] border-[#2B323A] text-slate-300' : 'bg-white border-slate-200 text-slate-700'
-                    }`}>
-                      {formData.timezone || 'Unassigned'}
-                    </span>
+            {/* REAL VISIBLE OPENSTREETMAP COMPONENT */}
+            <ServiceCoverageMap
+              assignedPlants={assignedPlants}
+              allPlants={plants}
+              userTimezone={formData.timezone}
+              isAuthorizedAdmin={isAuthorizedAdmin}
+            />
+
+            {/* List of Assigned Locations */}
+            {assignedPlants.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                {assignedPlants.map((plant) => (
+                  <div 
+                    key={plant.id}
+                    className={`p-3.5 rounded-lg border flex items-start justify-between gap-3 transition-colors ${
+                      isDark 
+                        ? 'bg-[#111315] border-[#2B323A] hover:border-slate-600' 
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`p-2 rounded shrink-0 border mt-0.5 ${
+                        isDark ? 'bg-[#1C2026] border-[#2B323A] text-sky-400' : 'bg-white border-slate-200 text-indigo-600'
+                      }`}>
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className={`text-xs font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                            {plant.customerName}
+                          </p>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
+                            isDark ? 'bg-[#181B1E] text-slate-400 border-[#2B323A]' : 'bg-white text-slate-600 border-slate-200'
+                          }`}>
+                            {plant.name}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1.5 truncate">
+                          <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
+                          <span>{plant.location || 'Location not specified'}</span>
+                        </p>
+                        {plant.timezone && (
+                          <p className="text-[10px] text-slate-400 font-mono pt-0.5">
+                            TZ: {plant.timezone}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Remove Action (Only for authorized admin) */}
+                    {isAuthorizedAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLocation(plant.id)}
+                        title="Remove service location assignment"
+                        aria-label={`Remove assignment for ${plant.customerName} ${plant.name}`}
+                        className={`p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 ${
+                          isDark ? 'hover:bg-rose-950/40' : 'hover:bg-rose-50'
+                        }`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Honest Informative Location Summary */
+              <div className={`p-3.5 rounded-lg border ${
+                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded shrink-0 border ${
+                    isDark ? 'bg-[#1C2026] border-[#2B323A] text-slate-400' : 'bg-white border-slate-200 text-slate-500'
+                  }`}>
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                      No engineer-specific service sites assigned.
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      {isAuthorizedAdmin 
+                        ? 'Select an active customer site below to configure direct service coverage and dispatch anchor for this engineer profile.'
+                        : 'The map above reflects regional semiconductor manufacturing facilities. Direct facility dispatch assignments can be configured by an administrator.'}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Assignment Action Bar & Inline Selector */}
+            {isAuthorizedAdmin && (
+              <div className="pt-2">
+                {!isAssigningLocation ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsAssigningLocation(true);
+                      setLocationSearchQuery('');
+                      setSelectedPlantIdToAssign('');
+                    }}
+                    icon={<Plus className="w-3.5 h-3.5 text-slate-400" />}
+                  >
+                    Assign Service Location
+                  </Button>
+                ) : (
+                  <div className={`p-4 rounded-lg border space-y-3 ${
+                    isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-100/70 border-slate-300'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                          Select Customer Site / Plant Record
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAssigningLocation(false);
+                          setLocationSearchQuery('');
+                          setSelectedPlantIdToAssign('');
+                        }}
+                        className="text-slate-400 hover:text-slate-200 p-1"
+                        aria-label="Cancel assignment"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {availablePlantsToAssign.length > 0 ? (
+                      <div className="space-y-2">
+                        {/* Search Filter when plant list is present */}
+                        {availablePlantsToAssign.length > 3 && (
+                          <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                            <input
+                              type="text"
+                              placeholder="Search customer, plant, or location..."
+                              value={locationSearchQuery}
+                              onChange={(e) => setLocationSearchQuery(e.target.value)}
+                              className={`w-full pl-8 pr-3 py-1.5 text-xs rounded border focus:outline-none focus:ring-1 focus:ring-slate-400 ${
+                                isDark 
+                                  ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 placeholder-slate-500' 
+                                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
+                              }`}
+                            />
+                          </div>
+                        )}
+
+                        {/* List of select options */}
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                          {filteredAvailablePlants.length > 0 ? (
+                            filteredAvailablePlants.map((plant) => (
+                              <div
+                                key={plant.id}
+                                onClick={() => setSelectedPlantIdToAssign(plant.id)}
+                                className={`p-2 rounded border cursor-pointer flex items-center justify-between text-xs transition-colors ${
+                                  selectedPlantIdToAssign === plant.id
+                                    ? isDark 
+                                      ? 'bg-[#1C2026] border-sky-500/80 text-sky-200' 
+                                      : 'bg-indigo-50 border-indigo-400 text-indigo-900 font-medium'
+                                    : isDark
+                                      ? 'bg-[#16191D] border-[#2B323A] hover:border-slate-500 text-slate-300'
+                                      : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                                }`}
+                              >
+                                <div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    <span>{plant.customerName}</span>
+                                    <span className="text-slate-400 font-mono text-[10px]">({plant.name})</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                    <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                                    <span>{plant.location || 'Location unassigned'}</span>
+                                  </div>
+                                </div>
+                                {selectedPlantIdToAssign === plant.id && (
+                                  <Check className="w-4 h-4 text-sky-400 shrink-0" />
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-slate-500 p-2 text-center">
+                              No matching customer sites found.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsAssigningLocation(false);
+                              setSelectedPlantIdToAssign('');
+                              setLocationSearchQuery('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={!selectedPlantIdToAssign}
+                            onClick={() => handleAddLocation(selectedPlantIdToAssign)}
+                            icon={<Check className="w-3.5 h-3.5" />}
+                          >
+                            Confirm Assignment
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center text-xs text-slate-500">
+                        All available customer sites in the system are currently assigned to this engineer.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Section 6: Save State & Action Footer */}

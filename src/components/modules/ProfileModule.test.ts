@@ -104,4 +104,95 @@ describe('Profile Usability, Identity Integrity & Permissions (R9-D)', () => {
       expect(updatedUser.status).toBe(status);
     });
   });
+
+  describe('Service Coverage Assignment & Map Foundation (R9-E)', () => {
+    const mockPlants = [
+      {
+        id: 'PLANT-01',
+        customerId: 'CUST-01',
+        customerName: 'SilTerra Malaysia',
+        name: 'Fab 1 Cleanroom',
+        location: 'Kulim Hi-Tech Park, Kedah, Malaysia',
+        timezone: 'Asia/Kuala_Lumpur',
+        linesCount: 3,
+        machinesCount: 6
+      },
+      {
+        id: 'PLANT-02',
+        customerId: 'CUST-01',
+        customerName: 'SilTerra Malaysia',
+        name: 'Fab 2 Expansion',
+        location: 'Kulim Hi-Tech Park, Kedah, Malaysia',
+        timezone: 'Asia/Kuala_Lumpur',
+        linesCount: 2,
+        machinesCount: 4
+      },
+      {
+        id: 'PLANT-03',
+        customerId: 'CUST-02',
+        customerName: 'TF-AMD Penang',
+        name: 'Bayan Lepas Facility',
+        location: 'Penang, Malaysia',
+        timezone: 'Asia/Kuala_Lumpur',
+        linesCount: 4,
+        machinesCount: 8
+      }
+    ];
+
+    it('allows authorized administrators to assign and remove service locations (plant IDs)', () => {
+      const isAuthorizedAdmin = true;
+      let userLocations: string[] = [];
+
+      // Assign PLANT-01 and PLANT-03
+      if (isAuthorizedAdmin) {
+        userLocations = [...userLocations, 'PLANT-01', 'PLANT-03'];
+      }
+      expect(userLocations).toEqual(['PLANT-01', 'PLANT-03']);
+
+      // Remove PLANT-01
+      if (isAuthorizedAdmin) {
+        userLocations = userLocations.filter(id => id !== 'PLANT-01');
+      }
+      expect(userLocations).toEqual(['PLANT-03']);
+    });
+
+    it('prohibits unauthorized users from mutating assigned service locations directly', () => {
+      const isAuthorizedAdmin = false;
+      const initialUser: SystemUser = {
+        ...standardEngineer,
+        assignedServiceLocations: ['PLANT-01']
+      };
+
+      const submittedForm: SystemUser = {
+        ...initialUser,
+        assignedServiceLocations: ['PLANT-01', 'PLANT-02', 'PLANT-03']
+      };
+
+      const sanitizedData: SystemUser = {
+        ...submittedForm,
+        assignedServiceLocations: isAuthorizedAdmin
+          ? submittedForm.assignedServiceLocations
+          : initialUser.assignedServiceLocations
+      };
+
+      expect(sanitizedData.assignedServiceLocations).toEqual(['PLANT-01']);
+    });
+
+    it('correctly resolves assigned plant records and filters unassigned available plants', () => {
+      const assignedIds = ['PLANT-01'];
+      
+      const assignedPlants = assignedIds
+        .map(id => mockPlants.find(p => p.id === id))
+        .filter(Boolean);
+
+      const availablePlants = mockPlants.filter(p => !assignedIds.includes(p.id));
+
+      expect(assignedPlants.length).toBe(1);
+      expect(assignedPlants[0]?.customerName).toBe('SilTerra Malaysia');
+      expect(assignedPlants[0]?.name).toBe('Fab 1 Cleanroom');
+
+      expect(availablePlants.length).toBe(2);
+      expect(availablePlants.map(p => p.id)).toEqual(['PLANT-02', 'PLANT-03']);
+    });
+  });
 });

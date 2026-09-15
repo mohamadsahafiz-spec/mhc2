@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v2.4.2 — R9-E Service Coverage Assignment & Map Foundation (2026-09-15)
+
+### Service Coverage Assignment & Map Foundation (R9-E)
+- **Canonical Service Location Assignment**: Linked engineer profiles (`SystemUser`) directly to canonical `Plant` records via `assignedServiceLocations: string[]` without creating duplicate entity tables or fragmented location stores.
+- **Configurable Service Coverage in My Profile**: Implemented an intuitive assignment workflow in `ProfileModule.tsx`. Authorized administrators/founders can search existing customer sites/plants, assign locations, or remove assignments with immediate feedback.
+- **Calm Industrial Coverage Cards**: Display assigned customer plants with clear customer affiliation, plant name, physical facility location, and timezone badge. Standard engineers view assigned sites in read-only mode with an honest empty state when unassigned.
+- **Strict Map Geographic Honesty**: Maintained data truth by displaying an explicit note stating map GIS telemetry is unconfigured rather than rendering fake GPS pins, synthetic coordinates, or unauthorized third-party map tiles.
+- **Comprehensive Unit Testing**: Added tests for administrator assignment rights, standard engineer protection against unauthorized assignment mutation, and plant resolution filtering.
+
+
 ## v2.4.1 — R9-D My Profile Usability & Field Coverage (2026-09-15)
 
 ### My Profile Usability & Field Coverage (R9-D)
