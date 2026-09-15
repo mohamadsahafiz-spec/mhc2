@@ -493,17 +493,17 @@ export const StorageService = {
       }
 
       // Customer does not exist in authoritative list -> create ONE authoritative Customer record
-      const targetName = rawCustName || 'Cleanroom Customer';
+      const targetName = rawCustName || 'Customer Account';
       const newCustId = custId || `cust-${Date.now()}-${idx}`;
       const newCustomer: Customer = {
         id: newCustId,
         name: targetName,
-        industry: m.plantName || 'Precision Laser Facility',
-        contactPerson: 'Lead Operations Engineer',
-        email: 'ops@cleanroom.com',
-        phone: '+1 (555) 019-2831',
-        plantsCount: 1,
-        activeContractsCount: 1
+        industry: m.plantName || '',
+        contactPerson: '',
+        email: '',
+        phone: '',
+        plantsCount: 0,
+        activeContractsCount: 0
       };
 
       customersMap.set(newCustId, newCustomer);

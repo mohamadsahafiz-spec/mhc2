@@ -351,10 +351,45 @@ function AppLayout() {
   };
 
   // Sync to persistence helpers
-  const handleUpdateContract = (updatedContract: Contract) => {
-    const updated = contracts.map((c) => (c.id === updatedContract.id ? updatedContract : c));
+  const handleSaveContract = (contractData: Contract) => {
+    const exists = contracts.some((c) => c.id === contractData.id);
+    const updated = exists
+      ? contracts.map((c) => (c.id === contractData.id ? contractData : c))
+      : [contractData, ...contracts];
     setContracts(updated);
     StorageService.saveContracts(updated);
+  };
+
+  const handleUpdateContract = (updatedContract: Contract) => {
+    handleSaveContract(updatedContract);
+  };
+
+  const handleTransferMachine = (
+    machineId: string,
+    transferData: {
+      plantName: string;
+      plantId: string;
+      productionLineName: string;
+      productionLineId: string;
+      zone: string;
+    }
+  ) => {
+    const updatedMachines = machines.map((m) => {
+      if (m.id === machineId) {
+        return {
+          ...m,
+          plantName: transferData.plantName,
+          plantId: transferData.plantId,
+          productionLineName: transferData.productionLineName,
+          productionLineId: transferData.productionLineId,
+          zone: transferData.zone
+        };
+      }
+      return m;
+    });
+
+    setMachines(updatedMachines);
+    StorageService.saveMachines(updatedMachines);
   };
 
   const handleAddScheduleItem = (newItem: ExecutionScheduleItem) => {
@@ -486,10 +521,21 @@ function AppLayout() {
               plants={plants}
               lines={lines}
               machines={machines}
+              contracts={contracts}
+              mhcSessions={StorageService.getMhcSessions()}
               onSelectMachine={(id) => {
                 setSelectedMachineId(id);
                 setActiveTab('machines');
               }}
+              onOpenMhcHistory={(machId) => {
+                setSelectedMachineId(machId);
+                setActiveTab('mhc_history');
+              }}
+              onAddCustomer={handleAddCustomer}
+              onEditCustomer={handleEditCustomer}
+              onDeleteCustomer={handleDeleteCustomer}
+              onTransferMachine={handleTransferMachine}
+              onSaveContract={handleSaveContract}
             />
           )}
 

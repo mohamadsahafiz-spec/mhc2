@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v2.3.3 — R8-E Customers & Plants + Contract Operations Implementation (2026-09-15)
+
+### Customers & Plants Workspace (R8-E)
+- **4-Level Cleanroom Hierarchy**: Transformed Customers & Plants into an operations workspace structured as Customer → Sites/Buildings → Production Lines → Machines with real machine allocations and clear grouping headers.
+- **In-Module Customer CRUD**: Enabled full customer account registration and updating with deletion guards preventing removal of accounts with active assigned machines.
+- **Machine Transfer with History Invariant**: Implemented machine transfer between existing or new cleanroom facilities and lines, preserving machine canonical identity and ensuring historical MHC records remain untouched with their original inspection facility context.
+- **Removed Ghost & Synthetic Data**: Purged hardcoded ghost defaults (`Lead Operations Engineer`, `ops@cleanroom.com`, `+1 (555) 019-2831`, `plant-1`, `Primary Cleanroom Plant`) from customer reconciliation and machine creation workflows. Missing contact fields now display honest "No contact recorded" states.
+
+### Service Contracts & SLA Timeline (R8-E)
+- **Authoritative Contract Engine**: Built `contractEngine.ts` providing date-based working-day calculation (`startDate` to `completedDate` inclusive), machine coverage validation, and SLA utilization metrics.
+- **2-Year Service Execution Timeline**: Implemented visual calendar and chronological timeline mapping real MHC session events by actual dates with working-day consumption indicators and direct session navigation.
+- **Machine Coverage & Day Consumption Gauge**: Integrated visual utilization meters (allocated, consumed, remaining days) and multi-machine coverage tagging with instant event filtering.
+
 ## v2.3.2 — R7-D MHC History Redesign (Calm Industrial Record) (2026-09-14)
 
 ### MHC History Workspace (R7-D)

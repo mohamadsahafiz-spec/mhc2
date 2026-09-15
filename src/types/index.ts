@@ -265,23 +265,25 @@ export interface MHCRecord {
 export interface Contract {
   id: string;
   contractNumber: string;
+  customerId?: string;
   customerName: string;
   plantName: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
-  durationMonths: number;
+  durationMonths?: number;
   totalWorkingDays: number;
-  remainingWorkingDays: number;
+  remainingWorkingDays?: number;
+  consumedWorkingDays?: number;
   machinesCoveredIds: string[];
-  engineerAssigned: string;
-  deliverables: string[];
-  quarterlyScheduleCount: number;
-  terms: string;
-  customNotes: string;
-  status: 'ACTIVE' | 'PENDING' | 'RENEWAL_DUE' | 'COMPLETED';
-  progressPercent: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  milestones: {
+  engineerAssigned?: string;
+  deliverables?: string[];
+  quarterlyScheduleCount?: number;
+  terms?: string;
+  customNotes?: string;
+  status: 'ACTIVE' | 'PENDING' | 'RENEWAL_DUE' | 'COMPLETED' | 'EXPIRED' | 'DRAFT';
+  progressPercent?: number;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+  milestones?: {
     id: string;
     title: string;
     dueDate: string;

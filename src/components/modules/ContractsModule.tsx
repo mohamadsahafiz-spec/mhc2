@@ -189,7 +189,11 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card title="Contract Deliverables & Scope">
               <ul className="space-y-2">
-                {selectedContract.deliverables.map((del, i) => (
+                {(selectedContract.deliverables || [
+                  'Quarterly Machine Health Check (MHC) on-site audits',
+                  'Optical power and beam profile baseline verifications',
+                  'Comprehensive 23-page inspection and service report generation'
+                ]).map((del, i) => (
                   <li key={i} className={`flex items-start gap-2.5 text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${isDark ? 'text-[#8ECDF7]' : 'text-sky-700'}`} />
                     <span>{del}</span>
@@ -204,14 +208,14 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                   <span className={`font-semibold block mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Service Level Agreement:</span>
                   <p className={`p-2.5 rounded-lg border ${
                     isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}>{selectedContract.terms}</p>
+                  }`}>{selectedContract.terms || 'Quarterly scheduled MHC preventive maintenance and SLA support.'}</p>
                 </div>
                 <div>
                   <span className={`font-semibold block mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Site Protocol Notes:</span>
                   <p className={`p-2.5 rounded-lg border ${
                     isDark ? 'bg-[#111315] border-[#2B323A] text-[#EFCB7A]' : 'bg-amber-50 border-amber-200 text-amber-900'
                   }`}>
-                    {selectedContract.customNotes}
+                    {selectedContract.customNotes || 'Standard cleanroom gowning and optical safety protocols apply.'}
                   </p>
                 </div>
               </div>
@@ -219,45 +223,47 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
           </div>
 
           {/* Milestones & Execution Timeline */}
-          <Card title="2-Year Contract Milestones & Progress Tracking">
-            <div className="space-y-3">
-              {selectedContract.milestones.map((ms) => (
-                <div
-                  key={ms.id}
-                  onClick={() => toggleMilestone(ms.id)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                    ms.completed
-                      ? isDark
-                        ? 'bg-[#7FD4A6]/10 border-[#7FD4A6]/30 text-slate-200'
-                        : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : isDark
-                        ? 'bg-[#111315] border-[#2B323A] hover:bg-[#1A1D21] text-slate-100'
-                        : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
-                        ms.completed
-                          ? isDark ? 'bg-[#7FD4A6] border-[#7FD4A6] text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white'
-                          : isDark ? 'border-slate-600 bg-[#1A1D21]' : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {ms.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
+          {(selectedContract.milestones && selectedContract.milestones.length > 0) && (
+            <Card title="2-Year Contract Milestones & Progress Tracking">
+              <div className="space-y-3">
+                {selectedContract.milestones.map((ms) => (
+                  <div
+                    key={ms.id}
+                    onClick={() => toggleMilestone(ms.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      ms.completed
+                        ? isDark
+                          ? 'bg-[#7FD4A6]/10 border-[#7FD4A6]/30 text-slate-200'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                        : isDark
+                          ? 'bg-[#111315] border-[#2B323A] hover:bg-[#1A1D21] text-slate-100'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                          ms.completed
+                            ? isDark ? 'bg-[#7FD4A6] border-[#7FD4A6] text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white'
+                            : isDark ? 'border-slate-600 bg-[#1A1D21]' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {ms.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">{ms.title}</p>
+                        <p className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Due Target: {ms.dueDate}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold">{ms.title}</p>
-                      <p className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Due Target: {ms.dueDate}</p>
-                    </div>
-                  </div>
 
-                  <Badge variant={ms.completed ? 'emerald' : 'amber'} size="sm">
-                    {ms.completed ? 'COMPLETED' : 'PENDING'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </Card>
+                    <Badge variant={ms.completed ? 'emerald' : 'amber'} size="sm">
+                      {ms.completed ? 'COMPLETED' : 'PENDING'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </Card>
 
