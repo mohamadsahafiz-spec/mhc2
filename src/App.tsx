@@ -536,6 +536,7 @@ function AppLayout() {
               onDeleteCustomer={handleDeleteCustomer}
               onTransferMachine={handleTransferMachine}
               onSaveContract={handleSaveContract}
+              onOpenPlanner={() => setActiveTab('contracts')}
             />
           )}
 

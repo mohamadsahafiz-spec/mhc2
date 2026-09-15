@@ -48,6 +48,7 @@ interface CustomersPlantsProps {
     }
   ) => void;
   onSaveContract?: (contract: Contract) => void;
+  onOpenPlanner?: (contractId?: string) => void;
 }
 
 export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
@@ -63,7 +64,8 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
   onEditCustomer,
   onDeleteCustomer,
   onTransferMachine,
-  onSaveContract
+  onSaveContract,
+  onOpenPlanner
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -357,6 +359,7 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
                   mhcSessions={mhcSessions}
                   onSaveContract={handleSaveContractItem}
                   onOpenMhcSession={onOpenMhcHistory}
+                  onOpenPlanner={onOpenPlanner}
                 />
               )}
             </div>

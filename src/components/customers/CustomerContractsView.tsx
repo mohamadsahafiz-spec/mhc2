@@ -12,12 +12,16 @@ import {
   ExternalLink,
   ChevronRight,
   TrendingUp,
-  Cpu
+  Cpu,
+  Layers,
+  Wrench,
+  X
 } from 'lucide-react';
 import { Customer, Contract, Machine, MHCSession } from '../../types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   getContractMetrics, 
@@ -33,6 +37,7 @@ interface CustomerContractsViewProps {
   mhcSessions: MHCSession[];
   onSaveContract: (contract: Contract) => void;
   onOpenMhcSession?: (machineId: string, sessionId?: string) => void;
+  onOpenPlanner?: (contractId: string) => void;
 }
 
 export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
@@ -41,7 +46,8 @@ export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
   customerMachines,
   mhcSessions,
   onSaveContract,
-  onOpenMhcSession
+  onOpenMhcSession,
+  onOpenPlanner
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -57,6 +63,7 @@ export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
   const [selectedMachineFilter, setSelectedMachineFilter] = useState<string>('ALL');
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [isPlannerModalOpen, setIsPlannerModalOpen] = useState(false);
 
   // Sync selected contract if list changes
   const activeContract = customerContracts.find((c) => c.id === selectedContractId) || customerContracts[0];
@@ -145,7 +152,21 @@ export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
           })}
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-center">
+        <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Calendar className="w-3.5 h-3.5" />}
+            onClick={() => {
+              if (onOpenPlanner) {
+                onOpenPlanner(activeContract.id);
+              } else {
+                setIsPlannerModalOpen(true);
+              }
+            }}
+          >
+            Open 2-Year Planner
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -372,6 +393,152 @@ export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
           customer={customer}
           customerMachines={customerMachines}
         />
+      )}
+
+      {/* 2-Year Service Planner & Calendar Modal */}
+      {isPlannerModalOpen && (
+        <Modal
+          isOpen={isPlannerModalOpen}
+          onClose={() => setIsPlannerModalOpen(false)}
+          title={`2-Year Service Planner — ${activeContract.contractNumber}`}
+          subtitle={`${customer.name} • ${formatContractDuration(activeContract.startDate, activeContract.endDate)}`}
+          maxWidth="4xl"
+        >
+          <div className="space-y-6">
+            {/* SLA Overview Bar */}
+            <div className={`grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl border ${
+              isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div>
+                <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>Total Working Days</span>
+                <p className={`text-base font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{metrics.totalWorkingDays} Days</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>SLA Allocation Window</p>
+              </div>
+              <div>
+                <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>MHC Consumed</span>
+                <p className={`text-base font-bold mt-0.5 ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>{metrics.consumedWorkingDays} Days</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{metrics.utilizationPercent}% of SLA Days</p>
+              </div>
+              <div>
+                <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>Remaining</span>
+                <p className={`text-base font-bold mt-0.5 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>{metrics.remainingWorkingDays} Days</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Available Service Capacity</p>
+              </div>
+              <div>
+                <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>Machines Covered</span>
+                <p className={`text-base font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{metrics.coveredMachines.length} Systems</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{metrics.uncoveredMachines.length} Uncovered</p>
+              </div>
+            </div>
+
+            {/* Service Execution Schedule & MHC Sessions */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-sky-400" />
+                  Scheduled & Recorded Service Execution ({activeContract.startDate} → {activeContract.endDate})
+                </h4>
+                <span className="text-xs font-mono text-slate-400">
+                  {displayedEvents.length} Event{displayedEvents.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              {displayedEvents.length === 0 ? (
+                <div className={`p-8 text-center rounded-xl border ${
+                  isDark ? 'bg-[#181C20] border-[#2B323A] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
+                  <Calendar className="w-8 h-8 text-sky-400/50 mx-auto mb-2" />
+                  <p className="text-xs font-medium">No MHC service sessions recorded in this contract range yet.</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Inspections completed under covered systems within {activeContract.startDate} to {activeContract.endDate} automatically sync here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                  {displayedEvents.map((ev, idx) => {
+                    const isCompleted = ev.completionStatus === 'COMPLETED';
+                    return (
+                      <div
+                        key={ev.sessionId || idx}
+                        className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isDark ? 'bg-[#181C20] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-bold text-sky-400">
+                              {ev.startDate}
+                              {ev.completedDate && ev.completedDate !== ev.startDate && ` → ${ev.completedDate}`}
+                            </span>
+                            <Badge variant={isCompleted ? 'success' : 'warning'} size="sm">
+                              {ev.completionStatus}
+                            </Badge>
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                              {ev.daysConsumed} Day{ev.daysConsumed > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-200 flex items-center gap-2">
+                            <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="font-semibold">{ev.machineName}</span>
+                            <span className="text-slate-400 font-mono">({ev.machineSerialNumber})</span>
+                            <span className="text-slate-500">•</span>
+                            <span className="text-slate-400">Engineer: {ev.engineerName}</span>
+                          </div>
+                        </div>
+
+                        {onOpenMhcSession && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<ExternalLink className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                              setIsPlannerModalOpen(false);
+                              onOpenMhcSession(ev.machineId, ev.sessionId);
+                            }}
+                          >
+                            View Session
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Covered Systems Summary */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-sky-400" />
+                Covered Systems Under Agreement
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {metrics.coveredMachines.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-2 ${
+                      isDark ? 'bg-[#181C20] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <span className="font-semibold text-sky-400">{m.machineNumber || m.model}</span>
+                    <span className="text-slate-400">({m.serialNumber})</span>
+                    {m.plantName && <span className="text-slate-500 text-[10px]">[{m.plantName}]</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-700/20">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsPlannerModalOpen(false)}
+              >
+                Close Planner
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
