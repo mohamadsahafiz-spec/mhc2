@@ -1,6 +1,29 @@
 # FSOS CHANGELOG
 
-## v2.3.4 — R8-E Service Planner Dynamic Contract Period Integrity (2026-09-15)
+## v2.4.1 — R9-D My Profile Usability & Field Coverage (2026-09-15)
+
+### My Profile Usability & Field Coverage (R9-D)
+- **Role-Gated Identity Field Editability**: Integrated the existing permission model (`currentUserRole === 'Administrator'` or `workspaceMode === 'FOUNDER_MODE'`) into `ProfileModule.tsx`. Authorized administrators and founders can edit Employee ID and assign System Security Roles, while standard field service engineers remain strictly read-only to prevent self-elevation.
+- **Canonical Timezone Selection Control**: Replaced the free-text Regional Timezone field with a keyboard-accessible `<select>` control backed by canonical timezone options (`CANONICAL_TIMEZONES`), ensuring semiconductor hub alignment (Malaysia/Singapore, Taiwan Foundry, Korea EO HQ, Japan Optics, Europe, US) while cleanly preserving any existing stored custom timezone strings.
+- **Authoritative Service Coverage Section**: Investigated application models (`Customer`, `Plant`, `Machine`, `Contract`, `SystemUser`) for geographic coverage data. Because no authoritative coordinates, dispatch polygons, or GPS boundary models exist, an honest Calm Industrial empty state ("Service coverage not configured") is rendered without synthetic/mock coordinates or fabricated map widgets.
+- **Verification & Identity Synchronization**: Added unit tests covering administrative privilege boundaries, non-admin role protection, and timezone option integrity.
+
+
+## v2.4.0 — R9-C My Profile Redesign & Identity Integrity (2026-09-15)
+
+### My Profile Redesign (R9-C)
+- **Calm Industrial Interface Overhaul**: Replaced the legacy indigo/purple gradients and glowing visual treatment in `ProfileModule.tsx` with the approved Calm Industrial aesthetic, utilizing semantic surface tokens, restrained borders, and clear hierarchy.
+- **5-Section Structured Workspace**:
+  - **1. Engineer Identity**: High-contrast identity header presenting avatar, verified role chip, real-time availability badge, organization unit, employee ID, and contact details.
+  - **2. Personal Information**: Form controls for Full Name, Corporate Email, Phone, Company, and Department with explicit `<label htmlFor>` / `id` accessibility pairings.
+  - **3. Operational Profile**: Service assignment details featuring a read-only managed System Security Role field, operational availability selector, and regional cleanroom timezone.
+  - **4. Technical Qualifications & Field Bio**: Specialized qualifications and technical domain field notes.
+  - **5. Save State & Action Footer**: Synchronized update dispatch with persistent feedback indicator.
+- **Role Security & Immutability**: Enforced role authorization rules preventing users from self-elevating their system security role in My Profile. The `role` and `employeeId` fields are strictly managed and protected from client-side tamper during the profile update lifecycle.
+- **Avatar Menu & Lifecycle Harmonization**: Enhanced profile photo upload/remove workflow with keyboard accessible popover menu, file validation (JPG/PNG/WEBP, ≤5MB limit), and seamless integration into the application profile lifecycle.
+- **Unified Identity Compatibility**: Maintained dual-type compatibility ensuring updates through `onUpdateUser` seamlessly preserve synchronization between `SystemUser` and legacy `EngineerProfile` consumers without data loss across headers, sidebars, and MHC reports.
+
+## v2.3.9 — R8-E5 Service Planner Dynamic Contract Period Integrity (2026-09-15)
 
 ### Service Planner & Contract Period Integrity (R8-E5)
 - **Dynamic Contract Horizon Generation**: Derived the Service Planner's month slot generator, quarter group aggregations, and continuous fleet timeline purely from the selected contract's actual `startDate` and `endDate`. Contracts spanning 36 months (e.g. 2026-01-01 → 2028-12-31) now accurately generate all 36 month columns and 12 quarterly intervals without hardcoded 24-month horizon caps.
@@ -8,22 +31,22 @@
 - **Contract Horizon Consistency Across Views**: Unified the Fleet Matrix, Quarterly Calendar, and Chronological Flow views to strictly operate over the identical contract boundary and actual MHC event timestamps.
 - **Multi-Year Duration Formatting**: Extended `formatContractDuration` unit testing to verify precise formatting for 2-year, 3-year, and custom fractional durations.
 
-## v2.3.3 — R8-E Customers & Plants + Contract Operations Implementation (2026-09-15)
+## v2.3.8 — R8 Customers & Plants + Contract Operations (2026-09-15)
 
-### Customers & Plants Workspace (R8-E)
+### Customers & Plants Workspace (R8)
 - **4-Level Cleanroom Hierarchy**: Transformed Customers & Plants into an operations workspace structured as Customer → Sites/Buildings → Production Lines → Machines with real machine allocations and clear grouping headers.
 - **In-Module Customer CRUD**: Enabled full customer account registration and updating with deletion guards preventing removal of accounts with active assigned machines.
 - **Machine Transfer with History Invariant**: Implemented machine transfer between existing or new cleanroom facilities and lines, preserving machine canonical identity and ensuring historical MHC records remain untouched with their original inspection facility context.
 - **Removed Ghost & Synthetic Data**: Purged hardcoded ghost defaults (`Lead Operations Engineer`, `ops@cleanroom.com`, `+1 (555) 019-2831`, `plant-1`, `Primary Cleanroom Plant`) from customer reconciliation and machine creation workflows. Missing contact fields now display honest "No contact recorded" states.
 
-### Service Contracts & SLA Timeline (R8-E)
+### Service Contracts & SLA Timeline (R8)
 - **Authoritative Contract Engine**: Built `contractEngine.ts` providing date-based working-day calculation (`startDate` to `completedDate` inclusive), machine coverage validation, and SLA utilization metrics.
 - **2-Year Service Execution Timeline**: Implemented visual calendar and chronological timeline mapping real MHC session events by actual dates with working-day consumption indicators and direct session navigation.
 - **Machine Coverage & Day Consumption Gauge**: Integrated visual utilization meters (allocated, consumed, remaining days) and multi-machine coverage tagging with instant event filtering.
 
-## v2.3.2 — R7-D MHC History Redesign (Calm Industrial Record) (2026-09-14)
+## v2.3.7 — R7 MHC History Redesign (2026-09-14)
 
-### MHC History Workspace (R7-D)
+### MHC History Workspace (R7)
 - **Calm Industrial Record Redesign**: Re-architected `MhcHistoryView` from a generic card list into the approved engineering service log workspace with restrained surfaces, deliberate whitespace, and strict data truth.
 - **Prominent Machine Identity Header**: Integrated an authoritative machine header (`MhcHistoryHeader`) displaying equipment model, serial number, unit identifier, customer facility/line/zone, equipment operational status chip, and direct linkage to Machine Passport.
 - **Quiet Search & Filter Toolbar**: Built a responsive search and filter toolbar (`MhcHistoryToolbar`) supporting free-text search across session ID/machine/customer/engineer, status filters (All, Completed, In Progress), and chronological sort toggles (Newest/Oldest first).
@@ -36,6 +59,51 @@
   - **Report**: Embedded authoritative multi-page ISO report preview powered by `MhcFullPdfRenderer` with official PDF generation workflow.
   - **Buyoff**: Field engineer and customer acceptance audit trail, sign-off status, and handover remarks.
 - **Preserved Core Engine & Architecture**: Full backward compatibility maintained for all existing MHC sessions, Machine Passport linkage, and persistence pipelines with zero artificial or manufactured values.
+
+## v2.3.6 — R5 MHC Autopilot (2026-09-13)
+
+### MHC Autopilot Workstation (R5)
+- **Full-Width Preparation Workstation**: Re-engineered MHC pre-flight configuration into a dedicated preparation desk with clear sequential readiness validation.
+- **4-Step Preparation Tracker**:
+  - **Initializer**: Step 1 protocol initialization and baseline validation.
+  - **Customer Binding**: Step 2 cleanroom customer account selection and verification.
+  - **Equipment Asset**: Step 3 covered machine identification and optical specification binding.
+  - **State Verification**: Step 4 pre-flight operational state check and session startup authorization.
+- **Truthful Data Only**: Connected preparation solely to real saved customer accounts and registered machine fleet with zero synthetic defaults.
+- **Resumable Session Safeguards**: Implemented session boundary protection and non-destructive draft discard workflows.
+
+## v2.3.5 — R4 Machine Passport (2026-09-12)
+
+### Machine Passport Engineering Workspace (R4)
+- **Calm Engineering Workspace**: Transformed Machine Passport from static modals into an engineering workspace with high-density technical layouts.
+- **Fleet Navigator**: Implemented cleanroom machine navigation with status filtering and customer line grouping.
+- **Machine Identity**: Authoritative machine specification panel presenting model, serial number, cleanroom location, optics package, and operational state.
+- **Current State Telemetry**: Real-time operational readiness, maintenance intervals, and recent service records.
+- **Technical Subsystem Navigator**: Dedicated engineering workspaces for Laser Power Progression, Beam Profile Analysis, Focus Optimization, Product Process Parameters, and Temperature Telemetry.
+
+## v2.3.4 — R3 Daily Work (2026-09-11)
+
+### Daily Work Personal Workspace (R3)
+- **Calm Personal Desk**: Redesigned Daily Work home module into a focused engineering workspace prioritizing immediate field execution.
+- **Current Focus & Active Jobs**: Implemented real-time detection of in-progress MHC inspections with meaningful progress criteria (`hasMeaningfulMhcProgress`) to isolate active missions from empty drafts.
+- **Needs Attention Feed**: Integrated actionable alerts for critical inspection findings, calibration anomalies, and contract expiry horizons.
+- **Real Scheduled Agenda**: Built schedule timeline derived strictly from confirmed customer contracts and scheduled cleanroom maintenance dates.
+- **Purged Synthetic Elements**: Removed fake mission toggles, artificial badges, placeholder metrics, and fallback facilities in favor of real database records.
+
+## v2.3.3 — R2 Application Shell (2026-09-11)
+
+### Application Shell & Navigation (R2)
+- **Application Shell Structure**: Unified global navigation shell with high-contrast header, module breadcrumbs, and real-time connectivity status.
+- **Sidebar & Destinations**: Streamlined navigation contracts across all primary FSOS modules with persistent active indicators and keyboard accessibility.
+- **WorkspaceModeSelector**: Work-adaptive mode switching for Field Service Execution, Equipment Diagnostics, and Operations Administration.
+
+## v2.3.2 — R1 Visual Foundation (2026-09-10)
+
+### Visual Foundation & Design Tokens (R1)
+- **Semantic Design Tokens**: Built authoritative Calm Industrial design token architecture in `/src/theme/tokens.ts`.
+- **Surfaces & Text Hierarchy**: Defined light and dark theme surfaces (`canvas`, `workspace`, `surface`, `raised`, `overlay`) and high-contrast typography roles.
+- **Borders, Radii & Spacing**: Standardized mathematical corner radii (`compact`, `standard`, `relaxed`, `pill`), subtle borders, and rhythmic container padding.
+- **Typography & Motion**: Paired high-contrast monospace technical labels with refined UI typography and balanced micro-transition curves.
 
 ## v2.3.1 — FSOS Major Audit Release Closure (2026-09-10)
 

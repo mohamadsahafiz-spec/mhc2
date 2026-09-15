@@ -595,6 +595,8 @@ function AppLayout() {
           {activeTab === 'profile' && (
             <ProfileModule
               activeUser={activeUser}
+              currentUserRole={activeUser.role}
+              workspaceMode={workspaceMode}
               onUpdateUser={handleUpdateUser}
               onNavigate={setActiveTab}
             />
