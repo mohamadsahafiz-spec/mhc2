@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v2.3.4 — R8-E Service Planner Dynamic Contract Period Integrity (2026-09-15)
+
+### Service Planner & Contract Period Integrity (R8-E5)
+- **Dynamic Contract Horizon Generation**: Derived the Service Planner's month slot generator, quarter group aggregations, and continuous fleet timeline purely from the selected contract's actual `startDate` and `endDate`. Contracts spanning 36 months (e.g. 2026-01-01 → 2028-12-31) now accurately generate all 36 month columns and 12 quarterly intervals without hardcoded 24-month horizon caps.
+- **Dynamic Workspace Labels**: Replaced static "2-Year Service Planner" and "24-Month Continuous Fleet Timeline" header text with dynamic contract-period labels displaying exact month/quarter counts and duration ranges across all views.
+- **Contract Horizon Consistency Across Views**: Unified the Fleet Matrix, Quarterly Calendar, and Chronological Flow views to strictly operate over the identical contract boundary and actual MHC event timestamps.
+- **Multi-Year Duration Formatting**: Extended `formatContractDuration` unit testing to verify precise formatting for 2-year, 3-year, and custom fractional durations.
+
 ## v2.3.3 — R8-E Customers & Plants + Contract Operations Implementation (2026-09-15)
 
 ### Customers & Plants Workspace (R8-E)

@@ -179,8 +179,14 @@ describe('ContractEngine Unit & Calculation Tests', () => {
     expect(metrics.timelineEvents[1].sessionId).toBe('s-2');
   });
 
-  it('formats contract duration cleanly for 2-year periods', () => {
-    const label = formatContractDuration('2026-01-01', '2027-12-31');
-    expect(label).toContain('2 Years');
+  it('formats contract duration cleanly for multi-year and custom periods', () => {
+    const label2Y = formatContractDuration('2026-01-01', '2027-12-31');
+    expect(label2Y).toContain('2 Years');
+
+    const label3Y = formatContractDuration('2026-01-01', '2028-12-31');
+    expect(label3Y).toContain('3 Years');
+
+    const label1Y6M = formatContractDuration('2026-01-01', '2027-06-30');
+    expect(label1Y6M).toContain('1 Year 6 Months');
   });
 });

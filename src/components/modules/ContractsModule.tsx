@@ -12,25 +12,36 @@ import {
   Layers, 
   ShieldCheck, 
   ChevronRight, 
-  Save 
+  Save,
+  Cpu,
+  ExternalLink
 } from 'lucide-react';
-import { Contract } from '../../types';
+import { Contract, MHCSession } from '../../types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { useTheme } from '../../context/ThemeContext';
+import { 
+  getContractMetrics, 
+  formatContractDuration, 
+  ContractTimelineEvent 
+} from '../../utils/contractEngine';
+import { StorageService } from '../../utils/persistence';
+import { TwoYearServicePlanner } from '../customers/TwoYearServicePlanner';
 
 interface ContractsModuleProps {
   contracts: Contract[];
   onUpdateContract: (updatedContract: Contract) => void;
-  onOpenPlannerForContract: (contractId: string) => void;
+  onOpenPlannerForContract?: (contractId: string) => void;
+  onOpenMhcSession?: (machineId: string, sessionId?: string) => void;
 }
 
 export const ContractsModule: React.FC<ContractsModuleProps> = ({
   contracts,
   onUpdateContract,
-  onOpenPlannerForContract
+  onOpenPlannerForContract,
+  onOpenMhcSession
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -38,6 +49,7 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
   const [selectedContractId, setSelectedContractId] = useState<string>(contracts[0]?.id || '');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
+  const [isPlannerModalOpen, setIsPlannerModalOpen] = useState(false);
 
   const selectedContract = contracts.find((c) => c.id === selectedContractId) || contracts[0];
 
@@ -150,9 +162,14 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                 variant="primary"
                 size="sm"
                 icon={<Calendar className="w-3.5 h-3.5" />}
-                onClick={() => onOpenPlannerForContract(selectedContract.id)}
+                onClick={() => {
+                  setIsPlannerModalOpen(true);
+                  if (onOpenPlannerForContract) {
+                    onOpenPlannerForContract(selectedContract.id);
+                  }
+                }}
               >
-                Open 2-Year Planner
+                Open Service Planner
               </Button>
             </div>
           </div>
@@ -389,6 +406,28 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
           </div>
         )}
       </Modal>
+
+      {/* Service Planner & Calendar Modal */}
+      {isPlannerModalOpen && selectedContract && (
+        <Modal
+          isOpen={isPlannerModalOpen}
+          onClose={() => setIsPlannerModalOpen(false)}
+          title={`Service Planner — ${selectedContract.contractNumber}`}
+          subtitle={`${selectedContract.customerName} • ${formatContractDuration(selectedContract.startDate, selectedContract.endDate)}`}
+          maxWidth="6xl"
+        >
+          <TwoYearServicePlanner
+            contract={selectedContract}
+            customerName={selectedContract.customerName}
+            customerMachines={StorageService.getMachines().filter(
+              (m) => m.customerId === selectedContract.customerId || m.customerName === selectedContract.customerName
+            )}
+            mhcSessions={StorageService.getMhcSessions()}
+            onClose={() => setIsPlannerModalOpen(false)}
+            onOpenMhcSession={onOpenMhcSession}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

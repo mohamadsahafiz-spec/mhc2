@@ -512,6 +512,10 @@ function AppLayout() {
               contracts={contracts}
               onUpdateContract={handleUpdateContract}
               onOpenPlannerForContract={() => setActiveTab('contracts')}
+              onOpenMhcSession={(machId) => {
+                setSelectedMachineId(machId);
+                setActiveTab('mhc_history');
+              }}
             />
           )}
 
