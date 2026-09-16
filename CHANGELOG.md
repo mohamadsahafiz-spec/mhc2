@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v2.4.9 — R11-C Truthful Operational Analytics (2026-09-16)
+
+### Truthful Operational Analytics (R11-C)
+- **Elimination of Fabricated Metrics**: Completely removed hardcoded `mtbfData` ("Mean Time Between Failures Growth" / "Fleet Reliability Index") and arbitrary consumable fallback calculations (`currentLifePercent * 1.8`).
+- **Fleet Operational Status Distribution**: Integrated authoritative `Machine.status` aggregation displaying precise counts, percentage of fleet, segment bar visualization, and interactive status-filtered equipment micro-lists.
+- **Factual MHC Inspection Coverage**: Implemented inspection age classification based on real completed `MHCSession` and `MHCRecord` timestamps (`<30d Recent`, `30–90d Quarterly`, `>90d Prior Quarter`, `No Recorded MHC`) without speculative overdue assumptions.
+- **Latest Laser Power Verification**: Surfaced verified laser output wattage readings and status disposition per laser head sourced from authoritative stage03 records.
+- **Targeted Consumables Attention Filter**: Replaced speculative forecasting with a high-precision attention filter surfacing only consumables in genuine need of attention (`life <= 20%` or `estimated days remaining <= 15`).
+- **Contract Fleet Coverage Analysis**: Cross-mapped active service contracts against registered machinery to report covered equipment, uncovered equipment, and percentage coverage.
+- **Calm Industrial Workstation Aesthetics**: Designed quiet telemetry headers, typography-first metrics, and restrained status accents adhering to FSOS design tokens.
+- **Automated Verification**: Added comprehensive unit test coverage in `AnalyticsModule.test.ts` verifying complete removal of synthetic calculations and validation of real aggregation logic.
+
+
 ## v2.4.8 — R10-E Engineers Directory UX Redesign (2026-09-16)
 
 ### Engineers Directory UX Redesign (R10-E)

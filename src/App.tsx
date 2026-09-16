@@ -592,7 +592,17 @@ function AppLayout() {
           )}
 
           {activeTab === 'analytics' && (
-            <AnalyticsModule machines={machines} />
+            <AnalyticsModule 
+              machines={machines}
+              mhcSessions={StorageService.getMhcSessions(true)}
+              contracts={contracts}
+              customers={customers}
+              onNavigate={setActiveTab}
+              onSelectMachine={(id) => {
+                setSelectedMachineId(id);
+                setActiveTab('machines');
+              }}
+            />
           )}
 
           {activeTab === 'users' && (
