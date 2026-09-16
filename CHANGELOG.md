@@ -1,5 +1,16 @@
 # FSOS CHANGELOG
 
+## v2.5.0 — R11-D Simplified Operational Analytics UI (2026-09-16)
+
+### Operational Analytics UI Simplification (R11-D)
+- **Calm Glanceable Engineering Overview**: Redesigned Analytics into a flat, single-screen overview with instant operational status rather than a dense, scrolling multi-panel report.
+- **Top Glance Telemetry Row**: Unified fleet health, MHC currency, laser power verification, and contract coverage into high-signal summary blocks with clear numbers and visual progress segments.
+- **Prominent Operational Attention Section**: Consolidated flagged equipment (out-of-service/maintenance/calibration), low consumables (life ≤ 20% or ≤ 15d), and uninspected/uncovered machinery into a unified high-priority action block with one-click navigation to Machine Passport.
+- **Elimination of Redundant Fleet Dumps**: Removed duplicate equipment lists and filter selectors across panels, prioritizing summary metrics and displaying machine specifics only where attention is required.
+- **Concise Inspection & Coverage Breakdown**: Streamlined inspection currency age brackets and service contract mapping into compact structured blocks with concise status lists.
+- **Calm Industrial Aesthetics**: Preserved typography-first precision styling with restrained semantic coloring, zero gradients, zero glow, and no invented metrics.
+
+
 ## v2.4.9 — R11-C Truthful Operational Analytics (2026-09-16)
 
 ### Truthful Operational Analytics (R11-C)

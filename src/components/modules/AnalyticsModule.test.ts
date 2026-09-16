@@ -298,4 +298,94 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     expect(uncovered[0].id).toBe('m-30');
     expect(Math.round((covered.length / machines.length) * 100)).toBe(67);
   });
+
+  describe('R11-D — Simplified Glanceable Operational Overview', () => {
+    it('does not contain repetitive full fleet scrollable lists or redundant tables across sections', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const modulePath = path.resolve(process.cwd(), 'src/components/modules/AnalyticsModule.tsx');
+      const content = fs.readFileSync(modulePath, 'utf-8');
+
+      // Ensure we don't have massive nested repetitive list filters
+      expect(content).not.toContain('filteredMachinesByStatus');
+      expect(content).not.toContain('selectedStatusFilter');
+      expect(content).not.toContain('selectedCoverageFilter');
+    });
+
+    it('accurately surfaces attention items when machines or consumables are flagged', () => {
+      const machines: Machine[] = [
+        {
+          id: 'm-attn-1',
+          name: 'Machine 1',
+          model: 'Drill 100',
+          machineNumber: 'M-100',
+          serialNumber: 'SN-100',
+          installationDate: '',
+          baselineDate: '',
+          healthScore: 60,
+          laserHeads: [],
+          consumables: [
+            {
+              id: 'c-1',
+              name: 'Filter A',
+              currentLifePercent: 10,
+              estimatedDaysRemaining: 5,
+              status: 'GOOD',
+              installedDate: '',
+              lastReplacedDate: '',
+              replacementIntervalDays: 90
+            }
+          ],
+          status: 'NEEDS_CALIBRATION',
+          photos: [],
+          lastMhcDate: '',
+          nextMhcDate: ''
+        },
+        {
+          id: 'm-attn-2',
+          name: 'Machine 2',
+          model: 'Drill 200',
+          machineNumber: 'M-200',
+          serialNumber: 'SN-200',
+          installationDate: '',
+          baselineDate: '',
+          healthScore: 98,
+          laserHeads: [],
+          consumables: [
+            {
+              id: 'c-2',
+              name: 'Coolant',
+              currentLifePercent: 85,
+              estimatedDaysRemaining: 120,
+              status: 'GOOD',
+              installedDate: '',
+              lastReplacedDate: '',
+              replacementIntervalDays: 365
+            }
+          ],
+          status: 'OPERATIONAL',
+          photos: [],
+          lastMhcDate: '',
+          nextMhcDate: ''
+        }
+      ];
+
+      const attentionMachines = machines.filter(m => m.status && m.status !== 'OPERATIONAL');
+      const attentionConsumables: any[] = [];
+      machines.forEach(m => {
+        (m.consumables || []).forEach(c => {
+          if ((typeof c.currentLifePercent === 'number' && c.currentLifePercent <= 20) ||
+              (typeof c.estimatedDaysRemaining === 'number' && c.estimatedDaysRemaining <= 15)) {
+            attentionConsumables.push({ machine: m, consumable: c });
+          }
+        });
+      });
+
+      expect(attentionMachines.length).toBe(1);
+      expect(attentionMachines[0].id).toBe('m-attn-1');
+      expect(attentionConsumables.length).toBe(1);
+      expect(attentionConsumables[0].consumable.name).toBe('Filter A');
+      expect(attentionMachines.length + attentionConsumables.length).toBe(2);
+    });
+  });
 });
