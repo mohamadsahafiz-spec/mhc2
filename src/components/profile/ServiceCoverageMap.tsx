@@ -22,7 +22,7 @@ interface ServiceCoverageMapProps {
   userTimezone?: string;
   onSelectPlant?: (plantId: string) => void;
   isAuthorizedAdmin?: boolean;
-  onAssignLocationClick?: () => void;
+  onManageCoverageClick?: () => void;
 }
 
 interface ResolvedLocationPoint {
@@ -128,7 +128,7 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
   userTimezone,
   onSelectPlant,
   isAuthorizedAdmin,
-  onAssignLocationClick
+  onManageCoverageClick
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -192,6 +192,11 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
     return locationPoints.find(p => p.id === selectedPointId) || locationPoints.find(p => p.isAssigned) || locationPoints[0] || null;
   }, [locationPoints, selectedPointId]);
 
+  // Separate points into assigned coverage locations and other known hub locations
+  const assignedLocationPoints = useMemo(() => {
+    return locationPoints.filter(p => p.isAssigned);
+  }, [locationPoints]);
+
   // Zoom controls
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 1, 14));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 1, 3));
@@ -251,8 +256,8 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
                   : isDark ? 'bg-[#1C2026] text-slate-400 border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-slate-200'
               }`}>
                 {hasAssignedLocations 
-                  ? `${assignedPlants.length} Assigned Dispatch Site${assignedPlants.length === 1 ? '' : 's'}`
-                  : 'Regional Overview'}
+                  ? `${assignedPlants.length} Covered Location${assignedPlants.length === 1 ? '' : 's'}`
+                  : 'No Locations Selected'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 font-mono">
@@ -263,6 +268,21 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
 
         {/* Action / Zoom Controls */}
         <div className="flex items-center gap-1.5">
+          {onManageCoverageClick && (
+            <button
+              type="button"
+              onClick={onManageCoverageClick}
+              className={`px-2.5 py-1.5 rounded border text-xs font-medium mr-1 transition-colors flex items-center gap-1.5 ${
+                isDark 
+                  ? 'bg-sky-950/40 border-sky-800/80 text-sky-300 hover:bg-sky-900/60' 
+                  : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Manage Coverage</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleZoomIn}
@@ -323,15 +343,17 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200 dark:border-slate-800">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Operating Locations
+                {hasAssignedLocations ? 'Covered Service Locations' : 'Semiconductor Hub Sites'}
               </span>
               <span className="text-[10px] font-mono text-slate-500">
-                {locationPoints.length} Site{locationPoints.length === 1 ? '' : 's'}
+                {hasAssignedLocations 
+                  ? `${assignedLocationPoints.length} Covered` 
+                  : `${locationPoints.length} Known`}
               </span>
             </div>
 
             <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-              {locationPoints.map((point) => (
+              {(hasAssignedLocations ? assignedLocationPoints : locationPoints).map((point) => (
                 <button
                   key={point.id}
                   type="button"
@@ -351,11 +373,17 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
                     <p className="truncate font-medium text-[11px]">{point.customerName} - {point.plantName}</p>
                     <p className="text-[9px] text-slate-400 truncate">{point.cityName}</p>
                   </div>
-                  {point.isAssigned && (
+                  {point.isAssigned ? (
                     <span className={`px-1 py-0.2 rounded text-[9px] font-mono shrink-0 ${
                       isDark ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     }`}>
-                      Assigned
+                      Covered
+                    </span>
+                  ) : (
+                    <span className={`px-1 py-0.2 rounded text-[9px] font-mono shrink-0 ${
+                      isDark ? 'bg-slate-800 text-slate-400 border border-slate-700' : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}>
+                      Known
                     </span>
                   )}
                 </button>
@@ -365,7 +393,7 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
         </div>
 
         {/* Selected Location Card HUD (Bottom Right) */}
-        {selectedPoint && (
+        {selectedPoint ? (
           <div className="absolute bottom-3 right-3 max-w-[290px] sm:max-w-sm z-10 pointer-events-auto">
             <div className={`p-3 rounded-lg border backdrop-blur-md shadow-xl ${
               isDark ? 'bg-[#16191D]/95 border-[#2B323A] text-slate-200' : 'bg-white/95 border-slate-200 text-slate-900'
@@ -380,7 +408,7 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
                     ? isDark ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : isDark ? 'bg-[#1F242C] text-slate-400 border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}>
-                  {selectedPoint.isAssigned ? 'Active Coverage' : 'Regional Hub'}
+                  {selectedPoint.isAssigned ? 'Active Coverage' : 'Known Facility'}
                 </span>
               </div>
 
@@ -392,6 +420,25 @@ export const ServiceCoverageMap: React.FC<ServiceCoverageMapProps> = ({
                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
                   <span>Approx: {selectedPoint.lat.toFixed(4)}°, {selectedPoint.lng.toFixed(4)}°</span>
                   <span>{selectedPoint.timezone || userTimezone || 'UTC+08:00'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Clean Banner If No Coverage Assigned */}
+        {!hasAssignedLocations && (
+          <div className="absolute bottom-3 right-3 max-w-[280px] z-10 pointer-events-auto">
+            <div className={`p-3 rounded-lg border backdrop-blur-md shadow-xl ${
+              isDark ? 'bg-[#16191D]/95 border-[#2B323A] text-slate-300' : 'bg-white/95 border-slate-200 text-slate-700'
+            }`}>
+              <div className="flex items-start gap-2">
+                <Compass className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium">No service locations assigned</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Select customer sites using "Manage Coverage" to configure active dispatch locations.
+                  </p>
                 </div>
               </div>
             </div>

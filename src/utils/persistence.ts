@@ -23,6 +23,7 @@ import {
   EngineerProfile,
   NotificationItem,
   SystemUser,
+  UserRole,
   WorkspaceMode,
   UserSession,
   MHCSession,
@@ -39,10 +40,21 @@ import {
 import { 
   INITIAL_FOUNDER_BRANDING,
   INITIAL_ENGINEER_PROFILE,
+  INITIAL_ACTIVE_OPERATOR,
   INITIAL_USERS
 } from '../data/mockData';
 
 const ZERO_STATE_PURGE_KEY = 'fsos_v1_0_31_4_zero_state_purged';
+const GHOST_USERS_PURGE_KEY = 'fsos_v2_4_5_ghost_users_purged';
+const FABRICATED_GHOST_USER_IDS = new Set([
+  'usr-101',
+  'usr-102',
+  'usr-103',
+  'usr-104',
+  'usr-105',
+  'usr-106',
+  'usr-107'
+]);
 
 export const STORAGE_KEYS = {
   CUSTOMERS: 'fso_v04_customers',
@@ -188,8 +200,59 @@ function checkAndApplyZeroStatePurge() {
   }
 }
 
+function getInitialActiveOperator(): SystemUser {
+  const currentProfile = getStorage<EngineerProfile>(KEYS.PROFILE, INITIAL_ENGINEER_PROFILE);
+  return {
+    id: INITIAL_ACTIVE_OPERATOR.id,
+    employeeId: INITIAL_ACTIVE_OPERATOR.employeeId,
+    fullName: currentProfile?.name || INITIAL_ACTIVE_OPERATOR.fullName,
+    email: currentProfile?.email || INITIAL_ACTIVE_OPERATOR.email,
+    phone: currentProfile?.phone || INITIAL_ACTIVE_OPERATOR.phone,
+    company: currentProfile?.company || INITIAL_ACTIVE_OPERATOR.company,
+    department: currentProfile?.department || INITIAL_ACTIVE_OPERATOR.department,
+    role: (currentProfile?.role as UserRole) || INITIAL_ACTIVE_OPERATOR.role,
+    avatarUrl: currentProfile?.avatarUrl,
+    status: 'Online',
+    lastLogin: 'Active now',
+    timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
+    language: 'English (US)',
+    accountStatus: 'Active',
+    bio: INITIAL_ACTIVE_OPERATOR.bio
+  };
+}
+
+// Purge verified fabricated INITIAL_USERS seed records (usr-101 .. usr-107) while preserving genuine user records
+function purgePersistedGhostUsers() {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const rawUsers = localStorage.getItem(KEYS.USERS);
+      if (rawUsers) {
+        const parsed = JSON.parse(rawUsers);
+        if (Array.isArray(parsed)) {
+          const genuineUsers = parsed.filter(
+            (u: any) => u && typeof u === 'object' && typeof u.id === 'string' && !FABRICATED_GHOST_USER_IDS.has(u.id)
+          );
+          if (genuineUsers.length !== parsed.length) {
+            if (genuineUsers.length === 0) {
+              const defaultOperator = getInitialActiveOperator();
+              localStorage.setItem(KEYS.USERS, safeJsonStringify([defaultOperator]));
+            } else {
+              localStorage.setItem(KEYS.USERS, safeJsonStringify(genuineUsers));
+            }
+            console.log(`[StorageService] Purged ${parsed.length - genuineUsers.length} persisted fabricated ghost user(s).`);
+          }
+        }
+      }
+      localStorage.setItem(GHOST_USERS_PURGE_KEY, 'true');
+    }
+  } catch (err) {
+    console.warn('[StorageService] Ghost user purge check warning:', err);
+  }
+}
+
 if (typeof window !== 'undefined') {
   checkAndApplyZeroStatePurge();
+  purgePersistedGhostUsers();
 }
 
 function syncEnqueueList<T extends { id?: string }>(tableName: string, storageKey: string, items: T[]) {
@@ -522,13 +585,153 @@ export const StorageService = {
     };
   },
 
-  getPlants: (): Plant[] => getStorage(KEYS.PLANTS, []),
+  reconcilePlantsAndLines: (
+    machinesList: Machine[],
+    customersList: Customer[],
+    existingPlants: Plant[] = [],
+    existingLines: ProductionLine[] = []
+  ): { plants: Plant[]; lines: ProductionLine[] } => {
+    const customerMap = new Map<string, Customer>();
+    const customerNameMap = new Map<string, string>();
+    customersList.forEach(c => {
+      if (c && c.id) {
+        customerMap.set(c.id, c);
+        if (c.name) {
+          customerNameMap.set(c.name.trim().toLowerCase(), c.id);
+        }
+      }
+    });
+
+    const plantsMap = new Map<string, Plant>();
+    const plantNameToIdMap = new Map<string, string>();
+
+    // 1. Index existing plants
+    existingPlants.forEach(p => {
+      if (p && p.id) {
+        plantsMap.set(p.id, p);
+        if (p.name) {
+          plantNameToIdMap.set(`${(p.customerId || '').trim()}::${p.name.trim().toLowerCase()}`, p.id);
+        }
+      }
+    });
+
+    const linesMap = new Map<string, ProductionLine>();
+    existingLines.forEach(l => {
+      if (l && l.id) {
+        linesMap.set(l.id, l);
+      }
+    });
+
+    // 2. Discover and reconcile canonical semiconductor sites & production lines from machines
+    machinesList.forEach((m, idx) => {
+      if (!m) return;
+      const rawPlantName = (m.plantName || '').trim() || 'Main Cleanroom Facility';
+      let custId = m.customerId;
+      if (!custId && m.customerName) {
+        custId = customerNameMap.get(m.customerName.trim().toLowerCase()) || '';
+      }
+      const custObj = custId ? customerMap.get(custId) : undefined;
+      const custName = custObj ? custObj.name : (m.customerName || 'EO Customer');
+
+      const plantKey = `${custId}::${rawPlantName.toLowerCase()}`;
+      let plantId = m.plantId || plantNameToIdMap.get(plantKey);
+
+      if (!plantId || !plantsMap.has(plantId)) {
+        plantId = plantId || `plant-${custId ? custId.replace(/[^a-zA-Z0-9]/g, '') : 'gen'}-${plantsMap.size + 1}`;
+        const newPlant: Plant = {
+          id: plantId,
+          customerId: custId || '',
+          customerName: custName,
+          name: rawPlantName,
+          location: rawPlantName,
+          timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
+          linesCount: 1,
+          machinesCount: 1
+        };
+        plantsMap.set(plantId, newPlant);
+        plantNameToIdMap.set(plantKey, plantId);
+      } else {
+        const existingPlant = plantsMap.get(plantId)!;
+        existingPlant.machinesCount = (existingPlant.machinesCount || 0) + 1;
+        if (!existingPlant.customerName && custName) {
+          existingPlant.customerName = custName;
+        }
+      }
+
+      // Reconcile production lines
+      const rawLineName = (m.productionLineName || '').trim();
+      if (rawLineName) {
+        const lineKey = `${plantId}::${rawLineName.toLowerCase()}`;
+        const existingLine = Array.from(linesMap.values()).find(
+          l => l.plantId === plantId && l.name.trim().toLowerCase() === rawLineName.toLowerCase()
+        );
+        if (!existingLine) {
+          const lineId = m.productionLineId || `line-${plantId}-${linesMap.size + 1}`;
+          linesMap.set(lineId, {
+            id: lineId,
+            plantId: plantId,
+            plantName: rawPlantName,
+            name: rawLineName,
+            code: rawLineName.replace(/\s+/g, '-').toUpperCase(),
+            description: `Authoritative production line in ${rawPlantName}`,
+            criticality: 'HIGH'
+          });
+        }
+      }
+    });
+
+    return {
+      plants: Array.from(plantsMap.values()),
+      lines: Array.from(linesMap.values())
+    };
+  },
+
+  getPlants: (): Plant[] => {
+    const stored = getStorage<Plant[]>(KEYS.PLANTS, []);
+    if (Array.isArray(stored) && stored.length > 0) {
+      return stored;
+    }
+    // Auto-reconcile from existing authoritative machines and customers
+    try {
+      const machines = StorageService.getMachines();
+      const customers = StorageService.getCustomers();
+      if (machines.length > 0) {
+        const reconciled = StorageService.reconcilePlantsAndLines(machines, customers, [], []);
+        if (reconciled.plants.length > 0) {
+          setStorage(KEYS.PLANTS, reconciled.plants);
+          if (reconciled.lines.length > 0) {
+            setStorage(KEYS.LINES, reconciled.lines);
+          }
+          return reconciled.plants;
+        }
+      }
+    } catch (err) {
+      console.warn('[StorageService] Error auto-reconciling plants:', err);
+    }
+    return [];
+  },
   savePlants: (data: Plant[]) => {
     syncEnqueueList('plants', KEYS.PLANTS, data);
     setStorage(KEYS.PLANTS, data);
   },
 
-  getLines: (): ProductionLine[] => getStorage(KEYS.LINES, []),
+  getLines: (): ProductionLine[] => {
+    const stored = getStorage<ProductionLine[]>(KEYS.LINES, []);
+    if (Array.isArray(stored) && stored.length > 0) {
+      return stored;
+    }
+    try {
+      const machines = StorageService.getMachines();
+      const customers = StorageService.getCustomers();
+      if (machines.length > 0) {
+        const reconciled = StorageService.reconcilePlantsAndLines(machines, customers, [], []);
+        return reconciled.lines;
+      }
+    } catch (err) {
+      console.warn('[StorageService] Error auto-reconciling lines:', err);
+    }
+    return [];
+  },
   saveLines: (data: ProductionLine[]) => {
     syncEnqueueList('lines', KEYS.LINES, data);
     setStorage(KEYS.LINES, data);
@@ -654,8 +857,34 @@ export const StorageService = {
   getNotifications: (): NotificationItem[] => getStorage(KEYS.NOTIFICATIONS, []),
   saveNotifications: (data: NotificationItem[]) => setStorage(KEYS.NOTIFICATIONS, data),
 
-  getUsers: (): SystemUser[] => getStorage(KEYS.USERS, INITIAL_USERS),
-  saveUsers: (data: SystemUser[]) => setStorage(KEYS.USERS, data),
+  getInitialActiveOperator,
+
+  getUsers: (): SystemUser[] => {
+    const raw = getStorage<SystemUser[]>(KEYS.USERS, null as any);
+    let valid: SystemUser[] = [];
+    if (Array.isArray(raw)) {
+      valid = raw.filter(
+        (u: any) => u && typeof u === 'object' && typeof u.id === 'string' && !FABRICATED_GHOST_USER_IDS.has(u.id)
+      );
+    }
+
+    // When the directory has no genuine users, initialize and persist the real active operator
+    if (valid.length === 0) {
+      const defaultOperator = getInitialActiveOperator();
+      valid = [defaultOperator];
+      setStorage(KEYS.USERS, valid);
+    }
+    return valid;
+  },
+  saveUsers: (data: SystemUser[]) => {
+    const valid = Array.isArray(data)
+      ? data.filter(
+          (u: any) => u && typeof u === 'object' && typeof u.id === 'string' && !FABRICATED_GHOST_USER_IDS.has(u.id)
+        )
+      : [];
+    setStorage(KEYS.USERS, valid);
+  },
+  purgePersistedGhostUsers,
 
   getAuth: (): UserSession | null => getStorage(KEYS.AUTH, null),
   saveAuth: (session: UserSession | null) => setStorage(KEYS.AUTH, session),

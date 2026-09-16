@@ -1,5 +1,69 @@
 # FSOS CHANGELOG
 
+## v2.4.8 — R10-E Engineers Directory UX Redesign (2026-09-16)
+
+### Engineers Directory UX Redesign (R10-E)
+- **Calm Industrial Master/Detail Architecture**: Restructured the Engineers Directory workspace into a responsive 60/40 master-detail layout adhering to FSOS R1 design tokens without redundant visual cards or saturated SaaS elements.
+- **Compact Inline Directory Summary**: Replaced the 4 oversized KPI boxes with a refined inline metadata strip displaying total count, online count, on-field count, and the active session operator.
+- **Directory List & Row Clarity**: Refined directory table rows around clear engineer identity (avatar, full name, monospace employee ID, email), role & department tags, status pill, and direct contextual actions.
+- **Selected Engineer Inspector**: Flattened the right inspector pane to provide instant access to operational information, contact metadata, account status, timezone, specialty notes, and profile editing.
+- **Session Operator vs Directory Distinction**: Clearly distinguishes the current active session operator from directory records with distinct badges, enabling quick operator switching or direct navigation to My Profile.
+- **Protected Administrative Operations**: Enforced safe deletion guards with double-confirmation dialogs while ensuring the active session operator is protected from accidental deletion.
+- **State Behavior & Multi-Query Support**: Implemented intentional states for 0-user, single-user (current real state with Sahafiz), and multi-user directories with real-time search, role filtering, and status filtering.
+- **Automated Verification**: Added comprehensive unit test coverage in `UsersModule.test.ts` for directory queries, role/status filtering, active user protection, and multi-user persistence.
+
+
+## v2.4.7 — R10-C Restore Real Active User as First Directory User (2026-09-16)
+
+### Restore Real Active User as First Directory User (R10-C)
+- **Real Active Operator Persistence**: Initialized and persisted the existing real active operator identity (`Sahafiz`, `EMP-EO-8801`, `EO Technics`, `Service Operations`, `Field Service Engineer`) into `SystemUser` directory storage (`fso_v073_users`) when the directory contains no genuine users.
+- **Single-Source Directory Representation**: Ensured fresh applications immediately display 1 Registered User in the Engineers Directory as a standard directory row matching the active signed-in session.
+- **Active Session & Profile Synchronization**: Synchronized `activeUser`, `profile` (`EngineerProfile`), and persisted `SystemUser` directory records through `handleSaveProfile` and `handleUpdateUser` in `App.tsx`.
+- **Non-Duplication & Genuine User Preservation**: Maintained duplicate prevention logic so existing genuine user records are never overwritten or duplicated with fallback identities.
+- **Legacy Ghost Migration Alignment**: Updated `purgePersistedGhostUsers` to restore the real active operator identity if all remaining entries were legacy fabricated ghost users (`usr-101`..`usr-107`).
+- **Automated Verification**: Updated `UsersModule.test.ts` to verify empty directory initialization, reload persistence, non-duplication of existing genuine users, and profile synchronization.
+
+
+## v2.4.6 — R10-C Align Active User With Engineers Directory (2026-09-16)
+
+### Align Active User With Engineers Directory (R10-C)
+- **Truthful Directory & Session Presentation**: Aligned `UsersModule.tsx` to clearly distinguish between persistent registered directory records (`fso_v073_users`) and the current in-session operator identity (`activeUser`), resolving the apparent visual contradiction.
+- **Accurate Quick Stats Metrics**: Replaced generic "TOTAL USERS" with "REGISTERED USERS" (`users.length`), "DIRECTORY ONLINE", and "DIRECTORY ON FIELD", alongside a dedicated "SIGNED-IN OPERATOR" status indicator.
+- **Context-Aware Directory Empty State**: When directory registration is 0, renders a clear notice explaining the empty directory state and showing the current in-session operator with a direct action to register the first directory user.
+- **Profile Detail Registration Badging**: Explicitly indicates whether a viewed profile is a persisted "Directory Record" or a "Current In-Session Operator" (local session identity).
+- **Separation & Non-Duplication Integrity**: Preserves complete architectural separation between in-session active operator state and persistent multi-user directory storage without injecting synthetic records.
+- **Automated Verification**: Added R10-C test suite in `UsersModule.test.ts` verifying honest 0-directory user presentation, non-duplication, and seamless user registration.
+
+
+## v2.4.5 — R10-B2 Purge Persisted Ghost Users (2026-09-16)
+
+### Purge Persisted Ghost Users (R10-B2)
+- **Purge of Persisted Fabricated Seed Records**: Implemented `purgePersistedGhostUsers` migration in `StorageService` (`persistence.ts`) targeting the verified fabricated seed record IDs (`usr-101` through `usr-107`) originating from legacy `INITIAL_USERS`.
+- **Targeted Deletion with Genuine Record Preservation**: Selectively removes only verified ghost identities from `fso_v073_users` storage, preserving all genuine user-created operational accounts.
+- **Defensive Retrieval Sanitization**: Updated `StorageService.getUsers()` and `StorageService.saveUsers()` with active filtering to prevent ghost records from contaminating memory or disk.
+- **Automated Verification**: Added test coverage in `UsersModule.test.ts` verifying one-time migration execution, full cleanup of ghost user arrays, and selective preservation of genuine users.
+
+
+## v2.4.4 — R10-B Remove Ghost User Initialization (2026-09-16)
+
+### Remove Ghost User Initialization (R10-B)
+- **Elimination of Fabricated Initial Users**: Purged the 7 hardcoded mock/ghost `SystemUser` records (`usr-101` through `usr-107`) from `INITIAL_USERS` in `mockData.ts`, setting default user storage initialization to an empty array (`[]`).
+- **Safe Zero-State Handling**: Confirmed `StorageService.getUsers()`, `LoginPage.tsx`, `App.tsx`, and `UsersModule.tsx` safely accommodate empty user states without runtime crashes or unexpected state mutations.
+- **Genuine Persistence Integrity**: Preserved genuinely persisted and added user records in `STORAGE_KEYS.USERS ('fso_v073_users')`, ensuring real operational accounts created by engineers or administrators remain intact.
+- **Automated Verification**: Added unit test suite `UsersModule.test.ts` verifying empty storage initialization and non-contamination with ghost users.
+
+
+## v2.4.3 — R9-F My Profile Coverage Setting & Map Synchronization (2026-09-16)
+
+### Service Coverage Selection & Map Synchronization (R9-F)
+- **Manage Coverage Modal Workflow**: Added a dedicated "Manage Coverage" action and modal in `ProfileModule.tsx` allowing engineers and authorized administrators to select from canonical customer/plant records with multi-site search, select all / clear all options, and live selection counters.
+- **Canonical Site & Line Auto-Reconciliation**: Implemented `StorageService.reconcilePlantsAndLines` in `persistence.ts` and startup reconciliation in `App.tsx` ensuring existing semiconductor sites (`Plant` and `ProductionLine` records) are dynamically resolved from authoritative machines, preventing 0-location states.
+- **Immediate Interactive Map Synchronization**: Directly connected `assignedServiceLocations` IDs to `ServiceCoverageMap.tsx`, instantly updating the focused dispatch cluster, active coverage badges, and operational service radius upon save.
+- **Distinguished Coverage States**: Markers and overlay lists explicitly differentiate active covered customer facilities from general semiconductor hub sites, while preserving map visibility even when no locations are assigned.
+- **Reference Integrity & Authority Enforcement**: Strictly stores string plant ID references (`assignedServiceLocations: string[]`) without duplicating records, respecting role-based authority rules.
+- **Verification**: Added test coverage in `ProfileModule.test.ts` for batch selection updates, reference integrity, plant reconciliation, and map synchronization.
+
+
 ## v2.4.2 — R9-E Service Coverage Assignment & Map Foundation (2026-09-15)
 
 ### Service Coverage Assignment & Map Foundation (R9-E)

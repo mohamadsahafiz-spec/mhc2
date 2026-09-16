@@ -88,22 +88,7 @@ function AppLayout() {
   const [activeUser, setActiveUser] = useState<SystemUser>(() => {
     const loadedUsers = StorageService.getUsers();
     if (loadedUsers.length > 0) return loadedUsers[0];
-    return {
-      id: 'usr-8801',
-      employeeId: 'EMP-EO-8801',
-      fullName: 'Sahafiz',
-      email: 'sahafiz@eotechnics.com',
-      phone: '+60 12-882 1042',
-      company: 'EO Technics',
-      department: 'Service Operations',
-      role: 'Field Service Engineer',
-      status: 'Online',
-      lastLogin: 'Active now',
-      timezone: 'Asia/Kuala_Lumpur (UTC+08:00)',
-      language: 'English (US)',
-      accountStatus: 'Active',
-      bio: 'Field Service Engineer certified for precision laser systems and cleanroom diagnostics.'
-    };
+    return StorageService.getInitialActiveOperator();
   });
 
   // Load state from StorageService & IDB on mount
@@ -113,6 +98,11 @@ function AppLayout() {
       const loadedMachines = StorageService.getMachines();
       const currentCusts = StorageService.getCustomers();
       const rec = StorageService.reconcileCustomerIdentities(loadedMachines, currentCusts);
+      const recPlants = StorageService.reconcilePlantsAndLines(rec.machines, rec.customers, StorageService.getPlants(), StorageService.getLines());
+      StorageService.savePlants(recPlants.plants);
+      StorageService.saveLines(recPlants.lines);
+      setPlants(recPlants.plants);
+      setLines(recPlants.lines);
       StorageService.reconcileMhcSessions(undefined, rec.machines);
       StorageService.sanitizeLocalStorageGhostMedia();
       await ImageStore.purgeUnseenMedia();
@@ -211,7 +201,8 @@ function AppLayout() {
       role: user.role,
       department: user.department,
       email: user.email,
-      phone: user.phone
+      phone: user.phone,
+      avatarUrl: user.avatarUrl
     };
     setProfile(newProfile);
     StorageService.saveProfile(newProfile);
@@ -224,7 +215,10 @@ function AppLayout() {
   };
 
   const handleUpdateUser = (updatedUser: SystemUser) => {
-    const updated = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    const exists = users.some(u => u.id === updatedUser.id);
+    const updated = exists 
+      ? users.map(u => u.id === updatedUser.id ? updatedUser : u)
+      : [updatedUser, ...users];
     setUsers(updated);
     StorageService.saveUsers(updated);
     if (activeUser.id === updatedUser.id) {
@@ -241,6 +235,22 @@ function AppLayout() {
   const handleSaveProfile = (newProfile: EngineerProfile) => {
     setProfile(newProfile);
     StorageService.saveProfile(newProfile);
+    if (activeUser) {
+      const updatedActive: SystemUser = {
+        ...activeUser,
+        fullName: newProfile.name,
+        company: newProfile.company,
+        role: newProfile.role,
+        department: newProfile.department,
+        email: newProfile.email || activeUser.email,
+        phone: newProfile.phone || activeUser.phone,
+        avatarUrl: newProfile.avatarUrl || activeUser.avatarUrl
+      };
+      setActiveUser(updatedActive);
+      const updatedUsers = users.map(u => u.id === activeUser.id ? updatedActive : u);
+      setUsers(updatedUsers);
+      StorageService.saveUsers(updatedUsers);
+    }
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
@@ -304,6 +314,11 @@ function AppLayout() {
 
     setMachines(reconciled.machines);
     StorageService.saveMachines(reconciled.machines);
+    const recPlants = StorageService.reconcilePlantsAndLines(reconciled.machines, reconciled.customers, StorageService.getPlants(), StorageService.getLines());
+    StorageService.savePlants(recPlants.plants);
+    StorageService.saveLines(recPlants.lines);
+    setPlants(recPlants.plants);
+    setLines(recPlants.lines);
     StorageService.reconcileMhcSessions(undefined, reconciled.machines);
     if (reconciled.machines.length > 0) {
       setSelectedMachineId(reconciled.machines[0].id);

@@ -33,6 +33,7 @@ import { UserAvatar } from '../common/UserAvatar';
 import { Button } from '../common/Button';
 import { CANONICAL_TIMEZONES } from '../../constants/timezones';
 import { ServiceCoverageMap } from '../profile/ServiceCoverageMap';
+import { ManageCoverageModal } from '../profile/ManageCoverageModal';
 
 interface ProfileModuleProps {
   activeUser: SystemUser;
@@ -68,9 +69,7 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   // Service Coverage Assignment State
-  const [isAssigningLocation, setIsAssigningLocation] = useState(false);
-  const [selectedPlantIdToAssign, setSelectedPlantIdToAssign] = useState('');
-  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [isManageCoverageOpen, setIsManageCoverageOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoMenuRef = useRef<HTMLDivElement>(null);
@@ -154,37 +153,10 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
       .filter((p): p is Plant => Boolean(p));
   }, [currentAssignedIds, plants]);
 
-  // Available unassigned plants for selection
-  const availablePlantsToAssign = useMemo(() => {
-    return plants.filter(p => !currentAssignedIds.includes(p.id));
-  }, [plants, currentAssignedIds]);
-
-  // Filtered available plants by search query
-  const filteredAvailablePlants = useMemo(() => {
-    if (!locationSearchQuery.trim()) return availablePlantsToAssign;
-    const q = locationSearchQuery.toLowerCase();
-    return availablePlantsToAssign.filter(p => 
-      p.name.toLowerCase().includes(q) ||
-      p.customerName.toLowerCase().includes(q) ||
-      (p.location && p.location.toLowerCase().includes(q))
-    );
-  }, [availablePlantsToAssign, locationSearchQuery]);
-
-  const handleAddLocation = (plantId: string) => {
-    if (!isAuthorizedAdmin || !plantId) return;
-    if (currentAssignedIds.includes(plantId)) return;
-
-    const nextLocations = [...currentAssignedIds, plantId];
-    setFormData(prev => ({ ...prev, assignedServiceLocations: nextLocations }));
-    setIsAssigningLocation(false);
-    setSelectedPlantIdToAssign('');
-    setLocationSearchQuery('');
-  };
-
-  const handleRemoveLocation = (plantId: string) => {
+  // Save Coverage from ManageCoverageModal
+  const handleSaveCoverage = (selectedPlantIds: string[]) => {
     if (!isAuthorizedAdmin) return;
-    const nextLocations = currentAssignedIds.filter(id => id !== plantId);
-    setFormData(prev => ({ ...prev, assignedServiceLocations: nextLocations }));
+    setFormData(prev => ({ ...prev, assignedServiceLocations: selectedPlantIds }));
   };
 
   // Submit Profile Form
@@ -728,9 +700,23 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
                   Service Coverage & Territory Map
                 </h2>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono">
-                {assignedPlants.length} Assigned Site{assignedPlants.length === 1 ? '' : 's'}
-              </span>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 font-mono">
+                  {assignedPlants.length} of {plants.length} Sites Covered
+                </span>
+                {isAuthorizedAdmin && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsManageCoverageOpen(true)}
+                    icon={<Compass className="w-3.5 h-3.5 text-slate-400" />}
+                  >
+                    Manage Coverage
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* REAL VISIBLE OPENSTREETMAP COMPONENT */}
@@ -739,6 +725,7 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
               allPlants={plants}
               userTimezone={formData.timezone}
               isAuthorizedAdmin={isAuthorizedAdmin}
+              onManageCoverageClick={isAuthorizedAdmin ? () => setIsManageCoverageOpen(true) : undefined}
             />
 
             {/* List of Assigned Locations */}
@@ -782,13 +769,16 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* Remove Action (Only for authorized admin) */}
+                    {/* Quick Remove Action (Only for authorized admin) */}
                     {isAuthorizedAdmin && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveLocation(plant.id)}
-                        title="Remove service location assignment"
-                        aria-label={`Remove assignment for ${plant.customerName} ${plant.name}`}
+                        onClick={() => {
+                          const updated = currentAssignedIds.filter(id => id !== plant.id);
+                          setFormData(prev => ({ ...prev, assignedServiceLocations: updated }));
+                        }}
+                        title="Remove service location coverage"
+                        aria-label={`Remove coverage for ${plant.customerName} ${plant.name}`}
                         className={`p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 ${
                           isDark ? 'hover:bg-rose-950/40' : 'hover:bg-rose-50'
                         }`}
@@ -812,152 +802,15 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
                   </div>
                   <div className="space-y-1">
                     <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      No engineer-specific service sites assigned.
+                      No service locations assigned.
                     </p>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
                       {isAuthorizedAdmin 
-                        ? 'Select an active customer site below to configure direct service coverage and dispatch anchor for this engineer profile.'
+                        ? 'Click "Manage Coverage" to select customer sites and configure active service coverage for this engineer profile.'
                         : 'The map above reflects regional semiconductor manufacturing facilities. Direct facility dispatch assignments can be configured by an administrator.'}
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Assignment Action Bar & Inline Selector */}
-            {isAuthorizedAdmin && (
-              <div className="pt-2">
-                {!isAssigningLocation ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsAssigningLocation(true);
-                      setLocationSearchQuery('');
-                      setSelectedPlantIdToAssign('');
-                    }}
-                    icon={<Plus className="w-3.5 h-3.5 text-slate-400" />}
-                  >
-                    Assign Service Location
-                  </Button>
-                ) : (
-                  <div className={`p-4 rounded-lg border space-y-3 ${
-                    isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-100/70 border-slate-300'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                        <span className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                          Select Customer Site / Plant Record
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAssigningLocation(false);
-                          setLocationSearchQuery('');
-                          setSelectedPlantIdToAssign('');
-                        }}
-                        className="text-slate-400 hover:text-slate-200 p-1"
-                        aria-label="Cancel assignment"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {availablePlantsToAssign.length > 0 ? (
-                      <div className="space-y-2">
-                        {/* Search Filter when plant list is present */}
-                        {availablePlantsToAssign.length > 3 && (
-                          <div className="relative">
-                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                            <input
-                              type="text"
-                              placeholder="Search customer, plant, or location..."
-                              value={locationSearchQuery}
-                              onChange={(e) => setLocationSearchQuery(e.target.value)}
-                              className={`w-full pl-8 pr-3 py-1.5 text-xs rounded border focus:outline-none focus:ring-1 focus:ring-slate-400 ${
-                                isDark 
-                                  ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 placeholder-slate-500' 
-                                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
-                              }`}
-                            />
-                          </div>
-                        )}
-
-                        {/* List of select options */}
-                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                          {filteredAvailablePlants.length > 0 ? (
-                            filteredAvailablePlants.map((plant) => (
-                              <div
-                                key={plant.id}
-                                onClick={() => setSelectedPlantIdToAssign(plant.id)}
-                                className={`p-2 rounded border cursor-pointer flex items-center justify-between text-xs transition-colors ${
-                                  selectedPlantIdToAssign === plant.id
-                                    ? isDark 
-                                      ? 'bg-[#1C2026] border-sky-500/80 text-sky-200' 
-                                      : 'bg-indigo-50 border-indigo-400 text-indigo-900 font-medium'
-                                    : isDark
-                                      ? 'bg-[#16191D] border-[#2B323A] hover:border-slate-500 text-slate-300'
-                                      : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
-                                }`}
-                              >
-                                <div>
-                                  <div className="font-medium flex items-center gap-2">
-                                    <span>{plant.customerName}</span>
-                                    <span className="text-slate-400 font-mono text-[10px]">({plant.name})</span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                                    <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                                    <span>{plant.location || 'Location unassigned'}</span>
-                                  </div>
-                                </div>
-                                {selectedPlantIdToAssign === plant.id && (
-                                  <Check className="w-4 h-4 text-sky-400 shrink-0" />
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs text-slate-500 p-2 text-center">
-                              No matching customer sites found.
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setIsAssigningLocation(false);
-                              setSelectedPlantIdToAssign('');
-                              setLocationSearchQuery('');
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            disabled={!selectedPlantIdToAssign}
-                            onClick={() => handleAddLocation(selectedPlantIdToAssign)}
-                            icon={<Check className="w-3.5 h-3.5" />}
-                          >
-                            Confirm Assignment
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 text-center text-xs text-slate-500">
-                        All available customer sites in the system are currently assigned to this engineer.
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -988,6 +841,16 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Manage Service Coverage Modal */}
+      <ManageCoverageModal
+        isOpen={isManageCoverageOpen}
+        onClose={() => setIsManageCoverageOpen(false)}
+        allPlants={plants}
+        customers={customers}
+        assignedPlantIds={currentAssignedIds}
+        onSaveCoverage={handleSaveCoverage}
+      />
     </div>
   );
 };
