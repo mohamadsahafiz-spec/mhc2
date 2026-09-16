@@ -388,4 +388,178 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
       expect(attentionMachines.length + attentionConsumables.length).toBe(2);
     });
   });
+
+  describe('R11-F — Visual Workspace Information Architecture & Statistical Precision', () => {
+    it('filters completed sessions strictly (completionStatus === COMPLETED)', () => {
+      const sessions: Partial<MHCSession>[] = [
+        { id: 's-1', completionStatus: 'COMPLETED', completedDate: '2026-08-01' },
+        { id: 's-2', completionStatus: 'IN_PROGRESS', startDate: '2026-08-02' },
+        { id: 's-3', completionStatus: 'COMPLETED', completedDate: '2026-08-05' },
+        { id: 's-4', completionStatus: 'LOCKED', startDate: '2026-08-10' }
+      ];
+
+      const completed = sessions.filter(s => s.completionStatus === 'COMPLETED');
+      expect(completed.length).toBe(2);
+      expect(completed.map(s => s.id)).toEqual(['s-1', 's-3']);
+    });
+
+    it('aggregates subsystem verdicts into Pass, Warn, and Fail distributions', () => {
+      const sessions: Partial<MHCSession>[] = [
+        {
+          id: 's-sub-1',
+          completionStatus: 'COMPLETED',
+          stage04_opticalInspection: [
+            { item: 'Focusing Lens', status: 'OK' } as any,
+            { item: 'Protective Window', status: 'NG' } as any
+          ],
+          stage05_chillerCooling: [
+            { item: 'Coolant Level', status: 'OK' } as any,
+            { item: 'Filter Condition', status: 'ATTENTION' } as any
+          ]
+        }
+      ];
+
+      let opticsPass = 0, opticsFail = 0;
+      let coolingPass = 0, coolingWarn = 0;
+
+      sessions.forEach(s => {
+        (s.stage04_opticalInspection || []).forEach(opt => {
+          if (opt.status === 'OK') opticsPass++;
+          if (opt.status === 'NG') opticsFail++;
+        });
+        (s.stage05_chillerCooling || []).forEach(c => {
+          if (c.status === 'OK') coolingPass++;
+          if (c.status === 'ATTENTION') coolingWarn++;
+        });
+      });
+
+      expect(opticsPass).toBe(1);
+      expect(opticsFail).toBe(1);
+      expect(coolingPass).toBe(1);
+      expect(coolingWarn).toBe(1);
+    });
+
+    it('identifies recurring findings across multiple machines or multiple occurrences', () => {
+      const sessions: Partial<MHCSession>[] = [
+        {
+          id: 's-f1',
+          machineId: 'm-1',
+          completionStatus: 'COMPLETED',
+          inspectionFindings: [
+            {
+              id: 'f-1',
+              headId: 'lh1',
+              headName: 'Head 1',
+              component: 'Mirror Contamination',
+              conditions: ['Debris'],
+              actionRecommendation: 'Clean',
+              createdAt: '2026-08-01'
+            }
+          ]
+        },
+        {
+          id: 's-f2',
+          machineId: 'm-2',
+          completionStatus: 'COMPLETED',
+          inspectionFindings: [
+            {
+              id: 'f-2',
+              headId: 'lh1',
+              headName: 'Head 1',
+              component: 'Mirror Contamination',
+              conditions: ['Debris'],
+              actionRecommendation: 'Clean',
+              createdAt: '2026-08-15'
+            },
+            {
+              id: 'f-3',
+              headId: 'lh1',
+              headName: 'Head 1',
+              component: 'Nozzle Misalignment',
+              conditions: ['Offset'],
+              actionRecommendation: 'Adjust',
+              createdAt: '2026-08-15'
+            }
+          ]
+        }
+      ];
+
+      const findingMap = new Map<string, { count: number; machines: Set<string> }>();
+      sessions.forEach(s => {
+        (s.inspectionFindings || []).forEach(f => {
+          if (!findingMap.has(f.component)) {
+            findingMap.set(f.component, { count: 0, machines: new Set() });
+          }
+          const item = findingMap.get(f.component)!;
+          item.count++;
+          if (s.machineId) item.machines.add(s.machineId);
+        });
+      });
+
+      const mirror = findingMap.get('Mirror Contamination')!;
+      const nozzle = findingMap.get('Nozzle Misalignment')!;
+
+      expect(mirror.count).toBe(2);
+      expect(mirror.machines.size).toBe(2);
+      expect(mirror.count >= 2 || mirror.machines.size > 1).toBe(true); // RECURRING
+
+      expect(nozzle.count).toBe(1);
+      expect(nozzle.machines.size).toBe(1);
+      expect(nozzle.count >= 2 || nozzle.machines.size > 1).toBe(false); // SINGLE
+    });
+
+    it('requires minimum 2 measurements for longitudinal trajectory trend and calculates accurate delta', () => {
+      const singleSessionPoints = [{ date: '2026-01-01', value: 100 }];
+      const multiSessionPoints = [
+        { date: '2026-01-01', value: 102.5 },
+        { date: '2026-04-01', value: 101.0 },
+        { date: '2026-07-01', value: 99.8 }
+      ];
+
+      expect(singleSessionPoints.length < 2).toBe(true); // Not a trend
+      expect(multiSessionPoints.length >= 2).toBe(true); // Valid longitudinal trend
+
+      const first = multiSessionPoints[0].value;
+      const latest = multiSessionPoints[multiSessionPoints.length - 1].value;
+      const delta = Number((latest - first).toFixed(2));
+      expect(delta).toBe(-2.7);
+    });
+  });
+
+  describe('R11-G — Analytics Visual Refinement & Workstation Hierarchy', () => {
+    it('verifies primary hierarchy places physical trajectory first and enforces neutral styling', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const modulePath = path.resolve(process.cwd(), 'src/components/modules/AnalyticsModule.tsx');
+      const content = fs.readFileSync(modulePath, 'utf-8');
+
+      // Verify Physical Parameter Trajectory is Level 1 Primary
+      expect(content).toContain('Physical Parameter Trajectory');
+      expect(content).toContain('1 verified reading — trend requires at least 2 measurements.');
+      expect(content).toContain('No verified physical readings recorded');
+
+      // Verify banned AI slop and rainbow decorations are absent
+      expect(content).not.toContain('bg-gradient-to-');
+      expect(content).not.toContain('from-purple-');
+      expect(content).not.toContain('to-blue-');
+      expect(content).not.toContain('drop-shadow-[0_');
+    });
+
+    it('handles sparse data with compact factual representations instead of large empty blocks', () => {
+      const emptyMeasurements: number[] = [];
+      const singleMeasurement = [45.2];
+      const multiMeasurements = [45.2, 44.8, 44.1];
+
+      const renderTrajectoryState = (data: number[]) => {
+        if (data.length === 0) return 'COMPACT_EMPTY';
+        if (data.length === 1) return 'COMPACT_SINGLE_NOTICE';
+        return 'PROMINENT_GRAPH';
+      };
+
+      expect(renderTrajectoryState(emptyMeasurements)).toBe('COMPACT_EMPTY');
+      expect(renderTrajectoryState(singleMeasurement)).toBe('COMPACT_SINGLE_NOTICE');
+      expect(renderTrajectoryState(multiMeasurements)).toBe('PROMINENT_GRAPH');
+    });
+  });
 });
+

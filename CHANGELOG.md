@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v2.5.1 — R11-F Analytics Visual Workspace (2026-09-16)
+
+### Analytics Visual Workspace (R11-F)
+- **MHC Activity & Volume Trend**: Implemented time-series monthly activity chart mapping completed MHC sessions, distinct machines inspected, and documented findings over time with date-range filtering (`All`, `30D`, `90D`, `365D`).
+- **Subsystem Verdict Distribution**: Implemented fleet-wide Pass / Warn / Fail distribution bars for Laser Output, Optics & Alignment, Chiller & Cooling, Product Quality, Motion Stage, and AGC with click-to-filter drilldown.
+- **Recurring Findings & Defect Frequency**: Ranked component finding frequency across completed inspections, distinguishing repeated vs single occurrences with expandable inspection drill-down drawers.
+- **Machine / Parameter Trajectory**: Interactive scatter-connected engineering graph plotting multi-session physical parameters (Laser Power in Watts, Stage Deviation in µm, AGC Error in µm) with strict longitudinal rules (minimum 2 points for trendline, single-point baseline notices, zero-point truthful empty states, delta $\Delta$, and rated spec references).
+- **Secondary Analytics**: Added Customer/Site service activity distribution and Contract fleet protection gap analysis with direct navigation.
+- **Global Filter Bar**: Unified Date Range, Customer scope, and Subsystem selectors.
+- **Calm Industrial Workstation Aesthetics**: Restrained slate/gray palette, thin 1px structural borders, responsive SVG graphics, and zero artificial AI slop.
+
+
 ## v2.5.0 — R11-D Simplified Operational Analytics UI (2026-09-16)
 
 ### Operational Analytics UI Simplification (R11-D)
