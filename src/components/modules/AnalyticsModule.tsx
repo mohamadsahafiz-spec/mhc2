@@ -142,6 +142,14 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
     if (trajectoryParam === 'LASER_POWER') {
       unit = 'W';
+      // Retrieve genuine rated power if defined on the target machine
+      const genuineMachineRating = (typeof targetMachine.laserHeads?.[0]?.ratedPowerWatts === 'number' && targetMachine.laserHeads[0].ratedPowerWatts > 0)
+        ? targetMachine.laserHeads[0].ratedPowerWatts
+        : null;
+      if (genuineMachineRating) {
+        nominalBaseline = genuineMachineRating;
+      }
+
       machineSessions.forEach(s => {
         const dStr = (s.completedDate || s.startDate || s.lastUpdated || '').split('T')[0];
         if (!dStr) return;
@@ -150,20 +158,25 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           // Take Laser Head 1 or primary head
           const head1 = s.stage03_laserPower.find(h => h.laserIdentifier === 'lh1') || s.stage03_laserPower[0];
           if (head1) {
-            const val = head1.afterValueWatts > 0 ? head1.afterValueWatts : head1.beforeValueWatts;
+            const val = (typeof head1.afterValueWatts === 'number' && head1.afterValueWatts > 0)
+              ? head1.afterValueWatts
+              : ((typeof head1.beforeValueWatts === 'number' && head1.beforeValueWatts > 0) ? head1.beforeValueWatts : 0);
             if (val > 0) {
-              if (head1.ratedPowerWatts > 0 && nominalBaseline === null) {
-                nominalBaseline = head1.ratedPowerWatts;
+              const headRated = (typeof head1.ratedPowerWatts === 'number' && head1.ratedPowerWatts > 0)
+                ? head1.ratedPowerWatts
+                : null;
+              if (headRated && nominalBaseline === null) {
+                nominalBaseline = headRated;
               }
               points.push({
                 date: dStr,
                 displayDate: dStr,
                 value: val,
-                baseline: head1.ratedPowerWatts || nominalBaseline || undefined,
+                baseline: headRated || nominalBaseline || undefined,
                 unit: 'W',
                 sessionId: s.id,
                 machineId: targetMachine.id,
-                label: head1.laserName || 'Laser Head 1'
+                label: head1.laserName || head1.laserIdentifier || 'Laser Head 1'
               });
             }
           }
@@ -249,26 +262,70 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   // -------------------------------------------------------------
   // 3. SUBSYSTEM VERDICT DISTRIBUTION — SECONDARY
   // -------------------------------------------------------------
+  interface SubsystemNonPassItem {
+    sessionId: string;
+    machineLabel: string;
+    date: string;
+    verdict: 'WARN' | 'FAIL';
+    detail: string;
+  }
+
+  interface SubsystemData {
+    name: string;
+    pass: number;
+    warn: number;
+    fail: number;
+    total: number;
+    nonPassItems: SubsystemNonPassItem[];
+  }
+
   const subsystemVerdicts = useMemo(() => {
-    const data: Record<Exclude<SubsystemType, 'ALL'>, { name: string; pass: number; warn: number; fail: number; total: number }> = {
-      LASER: { name: 'Laser Output', pass: 0, warn: 0, fail: 0, total: 0 },
-      OPTICS: { name: 'Optics & Delivery', pass: 0, warn: 0, fail: 0, total: 0 },
-      COOLING: { name: 'Chiller & Cooling', pass: 0, warn: 0, fail: 0, total: 0 },
-      PRODUCT_QA: { name: 'Product Quality', pass: 0, warn: 0, fail: 0, total: 0 },
-      STAGE: { name: 'Motion Stage', pass: 0, warn: 0, fail: 0, total: 0 },
-      AGC: { name: 'AGC Positioning', pass: 0, warn: 0, fail: 0, total: 0 }
+    const data: Record<Exclude<SubsystemType, 'ALL'>, SubsystemData> = {
+      LASER: { name: 'Laser Output', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      OPTICS: { name: 'Optics & Delivery', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      COOLING: { name: 'Chiller & Cooling', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      PRODUCT_QA: { name: 'Product Quality', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      STAGE: { name: 'Motion Stage', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      AGC: { name: 'AGC Positioning', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] }
     };
 
+    const machineMap = new Map<string, string>();
+    machines.forEach(m => {
+      machineMap.set(m.id, m.machineNumber || m.serialNumber || m.name);
+    });
+
     filteredCompletedSessions.forEach(s => {
+      const machineLabel = (s.machineId ? machineMap.get(s.machineId) : null) || s.machineNumber || 'Equipment';
+      const date = s.completedDate || s.createdDate?.substring(0, 10) || 'Unknown';
+
       // 1. Laser Output (Stage 03)
       if (s.stage03_laserPower && Array.isArray(s.stage03_laserPower)) {
         s.stage03_laserPower.forEach(lp => {
           if (lp.afterValueWatts > 0 || lp.beforeValueWatts > 0 || lp.ratedPowerWatts > 0) {
             data.LASER.total++;
-            if (lp.result === 'PASS' || (!lp.result && lp.afterValueWatts > 0)) data.LASER.pass++;
-            else if (lp.result === 'WARN' || lp.result === 'ATTENTION') data.LASER.warn++;
-            else if (lp.result === 'FAIL' || lp.result === 'OUT_OF_SPEC') data.LASER.fail++;
-            else data.LASER.pass++;
+            if (lp.result === 'PASS' || (!lp.result && lp.afterValueWatts > 0)) {
+              data.LASER.pass++;
+            } else if (lp.result === 'WARN' || lp.result === 'ATTENTION') {
+              data.LASER.warn++;
+              data.LASER.nonPassItems.push({
+                sessionId: s.id,
+                machineLabel,
+                date,
+                verdict: 'WARN',
+                detail: `Power attention (${lp.afterValueWatts || lp.beforeValueWatts}W vs ${lp.ratedPowerWatts || 'Spec'}W)`
+              });
+            } else if (lp.result === 'FAIL' || lp.result === 'OUT_OF_SPEC') {
+              data.LASER.fail++;
+              data.LASER.nonPassItems.push({
+                sessionId: s.id,
+                machineLabel,
+                date,
+                verdict: 'FAIL',
+                detail: `Power out of spec (${lp.afterValueWatts || lp.beforeValueWatts}W vs ${lp.ratedPowerWatts || 'Spec'}W)`
+              });
+            } else {
+              data.LASER.pass++;
+            }
           }
         });
       }
@@ -277,10 +334,29 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       if (s.stage04_opticalInspection && Array.isArray(s.stage04_opticalInspection)) {
         s.stage04_opticalInspection.forEach(opt => {
           data.OPTICS.total++;
-          if (opt.status === 'OK' || opt.status === 'PASS' || opt.status === 'GOOD') data.OPTICS.pass++;
-          else if (opt.status === 'ATTENTION' || opt.status === 'WARN') data.OPTICS.warn++;
-          else if (opt.status === 'NG' || opt.status === 'FAIL') data.OPTICS.fail++;
-          else data.OPTICS.pass++;
+          if (opt.status === 'OK' || opt.status === 'PASS' || opt.status === 'GOOD') {
+            data.OPTICS.pass++;
+          } else if (opt.status === 'ATTENTION' || opt.status === 'WARN') {
+            data.OPTICS.warn++;
+            data.OPTICS.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'WARN',
+              detail: `${opt.component || 'Optics'}: ${opt.note || 'Attention required'}`
+            });
+          } else if (opt.status === 'NG' || opt.status === 'FAIL') {
+            data.OPTICS.fail++;
+            data.OPTICS.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'FAIL',
+              detail: `${opt.component || 'Optics'}: ${opt.note || 'Defect/NG detected'}`
+            });
+          } else {
+            data.OPTICS.pass++;
+          }
         });
       }
 
@@ -288,10 +364,29 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       if (s.stage05_chillerCooling && Array.isArray(s.stage05_chillerCooling)) {
         s.stage05_chillerCooling.forEach(c => {
           data.COOLING.total++;
-          if (c.status === 'OK' || c.status === 'PASS' || c.status === 'GOOD') data.COOLING.pass++;
-          else if (c.status === 'ATTENTION' || c.status === 'WARN') data.COOLING.warn++;
-          else if (c.status === 'NG' || c.status === 'FAIL') data.COOLING.fail++;
-          else data.COOLING.pass++;
+          if (c.status === 'OK' || c.status === 'PASS' || c.status === 'GOOD') {
+            data.COOLING.pass++;
+          } else if (c.status === 'ATTENTION' || c.status === 'WARN') {
+            data.COOLING.warn++;
+            data.COOLING.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'WARN',
+              detail: `${c.item || 'Chiller'}: ${c.notes || 'Parameter attention'}`
+            });
+          } else if (c.status === 'NG' || c.status === 'FAIL') {
+            data.COOLING.fail++;
+            data.COOLING.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'FAIL',
+              detail: `${c.item || 'Chiller'}: ${c.notes || 'Cooling failure/NG'}`
+            });
+          } else {
+            data.COOLING.pass++;
+          }
         });
       }
 
@@ -299,10 +394,29 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       if (s.stage06_productQuality && Array.isArray(s.stage06_productQuality)) {
         s.stage06_productQuality.forEach(pq => {
           data.PRODUCT_QA.total++;
-          if (pq.status === 'OK' || pq.status === 'PASS') data.PRODUCT_QA.pass++;
-          else if (pq.status === 'ATTENTION' || pq.status === 'WARN') data.PRODUCT_QA.warn++;
-          else if (pq.status === 'NG' || pq.status === 'FAIL') data.PRODUCT_QA.fail++;
-          else data.PRODUCT_QA.pass++;
+          if (pq.status === 'OK' || pq.status === 'PASS') {
+            data.PRODUCT_QA.pass++;
+          } else if (pq.status === 'ATTENTION' || pq.status === 'WARN') {
+            data.PRODUCT_QA.warn++;
+            data.PRODUCT_QA.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'WARN',
+              detail: `${pq.process || 'Process'}: QA warning`
+            });
+          } else if (pq.status === 'NG' || pq.status === 'FAIL') {
+            data.PRODUCT_QA.fail++;
+            data.PRODUCT_QA.nonPassItems.push({
+              sessionId: s.id,
+              machineLabel,
+              date,
+              verdict: 'FAIL',
+              detail: `${pq.process || 'Process'}: QA rejection`
+            });
+          } else {
+            data.PRODUCT_QA.pass++;
+          }
         });
       }
 
@@ -312,23 +426,51 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         const sc = s.stageCalibrationData;
         const isFail = sc.verdict === 'OUT_OF_SPEC' || sc.systemVerdict === 'OUT_OF_SPEC';
         const isWarn = sc.engineerDisposition === 'ACCEPTED_DEVIATION' || sc.engineerDisposition === 'CONDITIONAL_PASS';
-        if (isFail) data.STAGE.fail++;
-        else if (isWarn) data.STAGE.warn++;
-        else data.STAGE.pass++;
+        if (isFail) {
+          data.STAGE.fail++;
+          data.STAGE.nonPassItems.push({
+            sessionId: s.id,
+            machineLabel,
+            date,
+            verdict: 'FAIL',
+            detail: `Stage calibration out of spec (${sc.systemVerdict || 'NG'})`
+          });
+        } else if (isWarn) {
+          data.STAGE.warn++;
+          data.STAGE.nonPassItems.push({
+            sessionId: s.id,
+            machineLabel,
+            date,
+            verdict: 'WARN',
+            detail: `Stage conditional deviation (${sc.engineerDisposition})`
+          });
+        } else {
+          data.STAGE.pass++;
+        }
       }
 
       // 6. AGC Positioning
       if (s.agcData) {
         data.AGC.total++;
         const agc = s.agcData;
-        const hasFail = (agc.indices || []).some(idx => idx.verdict === 'OUT_OF_SPEC');
-        if (hasFail) data.AGC.fail++;
-        else data.AGC.pass++;
+        const outOfSpecIndices = (agc.indices || []).filter(idx => idx.verdict === 'OUT_OF_SPEC');
+        if (outOfSpecIndices.length > 0) {
+          data.AGC.fail++;
+          data.AGC.nonPassItems.push({
+            sessionId: s.id,
+            machineLabel,
+            date,
+            verdict: 'FAIL',
+            detail: `AGC out of spec on index (${outOfSpecIndices.map(i => i.indexName).join(', ')})`
+          });
+        } else {
+          data.AGC.pass++;
+        }
       }
     });
 
     return data;
-  }, [filteredCompletedSessions]);
+  }, [filteredCompletedSessions, machines]);
 
   // -------------------------------------------------------------
   // 4. RECURRING FINDINGS & DEFECT FREQUENCY — SECONDARY
@@ -736,7 +878,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
               /* Compact 0-Measurement State */
               <div className="p-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
                 <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  No verified physical readings recorded
+                  No verified physical readings recorded.
                 </span>
                 <p className="text-[11px] text-slate-500">
                   No completed MHC sessions with recorded {trajectoryParam.replace('_', ' ').toLowerCase()} found for {parameterTrajectoryData.machine?.machineNumber || 'this unit'}.
@@ -749,15 +891,17 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   <Info className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
                   <div>
                     <div className="font-semibold text-slate-800 dark:text-slate-200">
-                      1 verified reading — trend requires at least 2 measurements.
+                      1 verified reading — minimum 2 measurements required for a trajectory.
                     </div>
                     <div className="text-slate-500 mt-0.5">
                       Baseline captured on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span>: {' '}
                       <strong className="font-mono text-slate-900 dark:text-slate-100">
                         {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
                       </strong>
-                      {parameterTrajectoryData.baseline && (
+                      {parameterTrajectoryData.baseline ? (
                         <span className="text-slate-500"> (Rated baseline: {parameterTrajectoryData.baseline} {parameterTrajectoryData.unit})</span>
+                      ) : (
+                        <span className="text-slate-500"> (Rated baseline: N/A)</span>
                       )}
                     </div>
                   </div>
@@ -813,26 +957,30 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Rated Baseline</span>
                     <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
-                      {parameterTrajectoryData.baseline ? `${parameterTrajectoryData.baseline} ${parameterTrajectoryData.unit}` : 'Standard Spec'}
+                      {parameterTrajectoryData.baseline ? `${parameterTrajectoryData.baseline} ${parameterTrajectoryData.unit}` : 'N/A'}
                     </div>
-                    <span className="text-[10px] text-slate-500">Nominal Target</span>
+                    <span className="text-[10px] text-slate-500">{parameterTrajectoryData.baseline ? 'Nominal Target' : 'No Data'}</span>
                   </div>
                 </div>
 
-                {/* SVG Polyline & Scatter Visualization */}
-                <div className="h-52 w-full relative pt-2">
+                {/* SVG Polyline & Scatter Visualization with Attached Crisp Tooltip */}
+                <div className="h-56 w-full relative pt-2">
                   {(() => {
                     const pts = parameterTrajectoryData.points;
                     const values = pts.map(p => p.value);
-                    if (parameterTrajectoryData.baseline) values.push(parameterTrajectoryData.baseline);
-                    const minVal = Math.min(...values) * 0.92;
-                    const maxVal = Math.max(...values) * 1.08;
+                    const rawMin = Math.min(...values);
+                    const rawMax = Math.max(...values);
+                    
+                    // Intelligent Y-scale: don't compress actual variations by arbitrary large baselines
+                    const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
+                    const minVal = Math.max(0, rawMin - span * 0.25);
+                    const maxVal = rawMax + span * 0.25;
                     const range = (maxVal - minVal) || 1;
 
                     const width = 640;
-                    const height = 180;
-                    const padX = 40;
-                    const padY = 24;
+                    const height = 190;
+                    const padX = 44;
+                    const padY = 32;
 
                     const plotPoints = pts.map((p, idx) => {
                       const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
@@ -845,7 +993,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                     );
 
                     let baselineY: number | null = null;
-                    if (parameterTrajectoryData.baseline) {
+                    if (parameterTrajectoryData.baseline && parameterTrajectoryData.baseline >= minVal && parameterTrajectoryData.baseline <= maxVal) {
                       baselineY = height - padY - ((parameterTrajectoryData.baseline - minVal) / range) * (height - 2 * padY);
                     }
 
@@ -855,7 +1003,15 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                         <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="currentColor" strokeDasharray="2 2" className="text-slate-200 dark:text-[#262B33]" />
                         <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" className="text-slate-300 dark:text-[#333A44]" />
 
-                        {/* Baseline Nominal Reference Line */}
+                        {/* Y-Axis Min/Max Labels */}
+                        <text x={padX - 8} y={padY + 4} textAnchor="end" fontSize="8.5" fontFamily="monospace" className="fill-slate-400">
+                          {maxVal.toFixed(1)}
+                        </text>
+                        <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="8.5" fontFamily="monospace" className="fill-slate-400">
+                          {minVal.toFixed(1)}
+                        </text>
+
+                        {/* Baseline Nominal Reference Line if in range */}
                         {baselineY !== null && (
                           <g>
                             <line
@@ -867,7 +1023,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                               strokeDasharray="4 4"
                               strokeWidth="1.2"
                             />
-                            <text x={width - padX + 6} y={baselineY + 3} fill="#64748B" fontSize="9" fontFamily="monospace">
+                            <text x={width - padX + 6} y={baselineY + 3} fill="#64748B" fontSize="8.5" fontFamily="monospace">
                               Spec ({parameterTrajectoryData.baseline}{parameterTrajectoryData.unit})
                             </text>
                           </g>
@@ -883,78 +1039,122 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                         />
 
                         {/* Interactive Data Point Nodes */}
-                        {plotPoints.map((p, idx) => (
-                          <g
-                            key={`node-${idx}`}
-                            className="cursor-pointer group"
-                            onClick={() => {
-                              if (onNavigate) onNavigate('mhc');
-                            }}
-                            onMouseEnter={() => setActiveHoverPoint(p)}
-                            onMouseLeave={() => setActiveHoverPoint(null)}
-                          >
-                            <circle
-                              cx={p.x}
-                              cy={p.y}
-                              r="5"
-                              fill="#0F172A"
-                              className="dark:fill-slate-100 transition-transform group-hover:scale-125"
-                            />
-                            <circle
-                              cx={p.x}
-                              cy={p.y}
-                              r="2"
-                              fill="#FFFFFF"
-                              className="dark:fill-slate-900"
-                            />
-                            {/* Value tooltip label */}
-                            <text
-                              x={p.x}
-                              y={p.y - 9}
-                              textAnchor="middle"
-                              fontSize="9"
-                              fontFamily="monospace"
-                              className="fill-slate-800 dark:fill-slate-200 font-semibold"
+                        {plotPoints.map((p, idx) => {
+                          const isHovered = activeHoverPoint?.date === p.date && activeHoverPoint?.sessionId === p.sessionId;
+                          return (
+                            <g
+                              key={`node-${idx}`}
+                              className="cursor-pointer group"
+                              onClick={() => {
+                                if (onNavigate) onNavigate('mhc');
+                              }}
+                              onMouseEnter={() => setActiveHoverPoint(p)}
+                              onMouseLeave={() => setActiveHoverPoint(null)}
                             >
-                              {p.value} {p.unit}
-                            </text>
-                            {/* Date label */}
-                            <text
-                              x={p.x}
-                              y={height - 6}
-                              textAnchor="middle"
-                              fontSize="8.5"
-                              fontFamily="monospace"
-                              className="fill-slate-400"
-                            >
-                              {p.date}
-                            </text>
-                          </g>
-                        ))}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r={isHovered ? 6 : 4.5}
+                                fill="#0F172A"
+                                className="dark:fill-slate-100 transition-transform"
+                              />
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r="2"
+                                fill="#FFFFFF"
+                                className="dark:fill-slate-900"
+                              />
+                              {/* Static Value label above point if not hovered */}
+                              {!isHovered && (
+                                <text
+                                  x={p.x}
+                                  y={p.y - 9}
+                                  textAnchor="middle"
+                                  fontSize="9"
+                                  fontFamily="monospace"
+                                  className="fill-slate-800 dark:fill-slate-200 font-semibold"
+                                >
+                                  {p.value} {p.unit}
+                                </text>
+                              )}
+                              {/* Date label along X-axis */}
+                              <text
+                                x={p.x}
+                                y={height - 10}
+                                textAnchor="middle"
+                                fontSize="8.5"
+                                fontFamily="monospace"
+                                className="fill-slate-400"
+                              >
+                                {p.date}
+                              </text>
+
+                              {/* Clean, Visually Attached Precision Tooltip */}
+                              {isHovered && (
+                                <g transform={`translate(${p.x}, ${Math.max(28, p.y - 38)})`}>
+                                  {/* Tooltip Background Card */}
+                                  <rect
+                                    x="-65"
+                                    y="-18"
+                                    width="130"
+                                    height="28"
+                                    rx="4"
+                                    fill="#0F172A"
+                                    stroke="#334155"
+                                    strokeWidth="1"
+                                    className="dark:fill-[#16191D] dark:stroke-slate-700 shadow-md"
+                                  />
+                                  {/* Pointer tick line */}
+                                  <line x1="0" y1="10" x2="0" y2="18" stroke="#0F172A" strokeWidth="1.5" className="dark:stroke-[#16191D]" />
+                                  <text
+                                    x="0"
+                                    y="-5"
+                                    textAnchor="middle"
+                                    fontSize="9.5"
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                    fill="#FFFFFF"
+                                    className="dark:fill-slate-100"
+                                  >
+                                    {p.value} {p.unit}
+                                  </text>
+                                  <text
+                                    x="0"
+                                    y="5"
+                                    textAnchor="middle"
+                                    fontSize="7.5"
+                                    fontFamily="monospace"
+                                    fill="#94A3B8"
+                                  >
+                                    {p.date} · {p.label || 'Reading'}
+                                  </text>
+                                </g>
+                              )}
+                            </g>
+                          );
+                        })}
                       </svg>
                     );
                   })()}
                 </div>
 
-                {/* Hover Drilldown Banner */}
-                {activeHoverPoint && (
-                  <div className="p-2 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-xs flex items-center justify-between font-mono">
-                    <span>
-                      {activeHoverPoint.date}: {activeHoverPoint.value} {activeHoverPoint.unit} ({activeHoverPoint.label || 'Reading'})
-                    </span>
-                    {onNavigate && (
-                      <button
-                        onClick={() => onNavigate('mhc')}
-                        className="underline text-[11px] hover:opacity-80"
-                      >
-                        Inspect Source MHC Session →
-                      </button>
-                    )}
-                  </div>
-                )}
+                {/* Persistent Click Action Notice */}
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-1 border-t border-slate-100 dark:border-[#20252B]">
+                  <span>Click any measurement point to inspect source MHC session.</span>
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate('mhc')}
+                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 underline"
+                    >
+                      Open MHC Module →
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </section>
+
 
           {/* ============================================================= */}
           {/* LEVEL 2: SECONDARY ANALYSIS (Subsystems & Defect Frequency)   */}
@@ -995,34 +1195,90 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   return (
                     <div
                       key={subKey}
-                      onClick={() => setSubsystemFilter(subsystemFilter === subKey ? 'ALL' : subKey)}
-                      className={`p-2 rounded border cursor-pointer transition-colors ${
+                      className={`p-2.5 rounded border transition-colors ${
                         isSelected
                           ? 'border-slate-400 bg-slate-50 dark:border-slate-600 dark:bg-[#1C2026]'
                           : 'border-slate-100 dark:border-[#20252B] hover:border-slate-200 dark:hover:border-[#262B33]'
                       }`}
                     >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {item.name}
-                        </span>
-                        <span className="font-mono text-[11px] text-slate-500">
-                          {hasData ? `${item.total} tests (${passPct}% pass)` : '0 records'}
-                        </span>
+                      <div
+                        onClick={() => setSubsystemFilter(subsystemFilter === subKey ? 'ALL' : subKey)}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {item.name}
+                          </span>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {hasData ? (
+                              <span>
+                                {item.total} evaluated · <strong className="text-slate-700 dark:text-slate-300">{item.pass} Pass</strong>
+                                {item.warn > 0 && <span className="text-amber-600 dark:text-amber-400"> · {item.warn} Warn</span>}
+                                {item.fail > 0 && <span className="text-rose-600 dark:text-rose-400"> · {item.fail} Fail</span>}
+                              </span>
+                            ) : (
+                              '0 evaluated'
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Stacked Segment Bar */}
+                        <div className="w-full h-1.5 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#20252B]">
+                          {hasData ? (
+                            <>
+                              {passPct > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${passPct}%` }} />}
+                              {warnPct > 0 && <div className="bg-amber-500 h-full" style={{ width: `${warnPct}%` }} />}
+                              {failPct > 0 && <div className="bg-rose-500 h-full" style={{ width: `${failPct}%` }} />}
+                            </>
+                          ) : (
+                            <div className="bg-slate-200 dark:bg-[#262B33] w-full h-full" />
+                          )}
+                        </div>
                       </div>
 
-                      {/* Stacked Segment Bar */}
-                      <div className="w-full h-1.5 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#20252B]">
-                        {hasData ? (
-                          <>
-                            {passPct > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${passPct}%` }} />}
-                            {warnPct > 0 && <div className="bg-amber-500 h-full" style={{ width: `${warnPct}%` }} />}
-                            {failPct > 0 && <div className="bg-rose-500 h-full" style={{ width: `${failPct}%` }} />}
-                          </>
-                        ) : (
-                          <div className="bg-slate-200 dark:bg-[#262B33] w-full h-full" />
-                        )}
-                      </div>
+                      {/* Expandable Non-Pass Inspection Occurrences */}
+                      {isSelected && item.nonPassItems.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-[#262B33] space-y-1.5">
+                          <div className="text-[10px] uppercase font-mono tracking-wider text-slate-400">
+                            Recorded Non-Pass Verdicts ({item.nonPassItems.length}):
+                          </div>
+                          <div className="space-y-1 max-h-36 overflow-y-auto pr-0.5">
+                            {item.nonPassItems.map((np, idx) => (
+                              <div
+                                key={`np-${idx}`}
+                                className="p-1.5 rounded bg-white dark:bg-[#121418] border border-slate-100 dark:border-[#20252B] flex items-center justify-between text-[11px]"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-1.5 font-mono">
+                                    <span
+                                      className={`text-[9px] px-1 py-0.2 rounded font-semibold ${
+                                        np.verdict === 'FAIL'
+                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                      }`}
+                                    >
+                                      {np.verdict}
+                                    </span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{np.machineLabel}</span>
+                                    <span className="text-slate-400">· {np.date}</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 mt-0.5">{np.detail}</div>
+                                </div>
+
+                                {onNavigate && (
+                                  <button
+                                    onClick={() => onNavigate('mhc')}
+                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 shrink-0"
+                                    title="Open MHC Record"
+                                  >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

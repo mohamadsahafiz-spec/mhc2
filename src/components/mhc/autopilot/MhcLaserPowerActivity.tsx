@@ -426,14 +426,24 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       const vals = isHeadA ? headAValues : headBValues;
       const summary = isHeadA ? evalSummaryA : evalSummaryB;
 
+      // Real entered values without synthetic defaults
+      const valSource = typeof vals[0] === 'number' ? vals[0] : undefined;
+      const valOptics = typeof vals[1] === 'number' ? vals[1] : undefined;
+      const genuineRated = (typeof (lh as any).ratedPowerWatts === 'number' && (lh as any).ratedPowerWatts > 0)
+        ? (lh as any).ratedPowerWatts
+        : undefined;
+      const genuineRef = typeof (lh as any).referenceValueWatts === 'number'
+        ? (lh as any).referenceValueWatts
+        : genuineRated;
+
       return {
         laserId: lh.id || `lh-${idx + 1}`,
         laserIdentifier: lh.name || `Laser Head ${idx + 1}`,
-        ratedPowerWatts: (lh as any).ratedPowerWatts || 250,
-        referenceValueWatts: 15.0,
-        beforeValueWatts: vals[0] ?? 15.0,
-        afterValueWatts: vals[1] ?? 14.8,
-        stabilityPercent: 99.2,
+        laserName: lh.name || `Laser Head ${idx + 1}`,
+        ...(genuineRated !== undefined ? { ratedPowerWatts: genuineRated } : {}),
+        ...(genuineRef !== undefined ? { referenceValueWatts: genuineRef } : {}),
+        ...(valSource !== undefined ? { beforeValueWatts: valSource } : {}),
+        ...(valOptics !== undefined ? { afterValueWatts: valOptics } : (valSource !== undefined ? { afterValueWatts: valSource } : {})),
         result: summary.isAllPass ? 'PASS' : 'FAIL',
         notes: engineerRemarks || `${lh.name || `Laser Head ${idx + 1}`} Power Check ${summary.isAllPass ? 'PASS' : 'OUT OF SPEC'} (${summary.passCount}/8 points passed)`,
         evidenceImages: [],

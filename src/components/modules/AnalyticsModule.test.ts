@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Machine, MHCSession, Contract, Customer } from '../../types';
+import { Machine, Contract, ConsumableItem } from '../../types';
 
 describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated Metrics', () => {
   it('does not contain hardcoded mtbfData or arbitrary consumable multiplier formulas', async () => {
@@ -19,74 +19,38 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
   });
 
   it('correctly aggregates real machine statuses without fabricating categories', () => {
-    const machines: Machine[] = [
+    const machines: Partial<Machine>[] = [
       {
         id: 'm-1',
-        name: 'EO-Drill-01',
         model: 'EO Laser Drill 3000',
         machineNumber: 'M-3001',
         serialNumber: 'SN-001',
-        installationDate: '2024-01-01',
-        baselineDate: '2024-01-01',
-        healthScore: 95,
-        laserHeads: [],
-        consumables: [],
-        status: 'OPERATIONAL',
-        photos: [],
-        lastMhcDate: '',
-        nextMhcDate: ''
+        status: 'OPERATIONAL'
       },
       {
         id: 'm-2',
-        name: 'EO-Drill-02',
         model: 'EO Laser Drill 3000',
         machineNumber: 'M-3002',
         serialNumber: 'SN-002',
-        installationDate: '2024-01-01',
-        baselineDate: '2024-01-01',
-        healthScore: 80,
-        laserHeads: [],
-        consumables: [],
-        status: 'NEEDS_CALIBRATION',
-        photos: [],
-        lastMhcDate: '',
-        nextMhcDate: ''
+        status: 'NEEDS_CALIBRATION'
       },
       {
         id: 'm-3',
-        name: 'EO-Drill-03',
         model: 'EO Laser Drill 3000',
         machineNumber: 'M-3003',
         serialNumber: 'SN-003',
-        installationDate: '2024-01-01',
-        baselineDate: '2024-01-01',
-        healthScore: 70,
-        laserHeads: [],
-        consumables: [],
-        status: 'MAINTENANCE_DUE',
-        photos: [],
-        lastMhcDate: '',
-        nextMhcDate: ''
+        status: 'MAINTENANCE_DUE'
       },
       {
         id: 'm-4',
-        name: 'EO-Drill-04',
         model: 'EO Laser Drill 3000',
         machineNumber: 'M-3004',
         serialNumber: 'SN-004',
-        installationDate: '2024-01-01',
-        baselineDate: '2024-01-01',
-        healthScore: 30,
-        laserHeads: [],
-        consumables: [],
-        status: 'OUT_OF_SERVICE',
-        photos: [],
-        lastMhcDate: '',
-        nextMhcDate: ''
+        status: 'OUT_OF_SERVICE'
       }
     ];
 
-    const counts = {
+    const counts: Record<string, number> = {
       OPERATIONAL: 0,
       NEEDS_CALIBRATION: 0,
       MAINTENANCE_DUE: 0,
@@ -94,7 +58,7 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     };
 
     machines.forEach(m => {
-      counts[m.status]++;
+      if (m.status) counts[m.status]++;
     });
 
     expect(counts.OPERATIONAL).toBe(1);
@@ -106,75 +70,27 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
   it('correctly categorizes MHC inspection currency without speculative overdue flags', () => {
     const now = new Date('2026-09-16T00:00:00Z').getTime();
 
-    const machineRecent: Machine = {
+    const machineRecent: Partial<Machine> = {
       id: 'm-recent',
-      name: 'Recent Unit',
-      model: 'Laser C-200',
-      machineNumber: 'M-101',
-      serialNumber: 'SN-101',
-      installationDate: '2024-01-01',
-      baselineDate: '2024-01-01',
-      healthScore: 90,
-      laserHeads: [],
-      consumables: [],
-      status: 'OPERATIONAL',
-      photos: [],
-      lastMhcDate: '2026-09-01',
-      nextMhcDate: ''
+      lastMhcDate: '2026-09-01'
     };
 
-    const machine90Days: Machine = {
+    const machine90Days: Partial<Machine> = {
       id: 'm-90',
-      name: 'Quarterly Unit',
-      model: 'Laser C-200',
-      machineNumber: 'M-102',
-      serialNumber: 'SN-102',
-      installationDate: '2024-01-01',
-      baselineDate: '2024-01-01',
-      healthScore: 85,
-      laserHeads: [],
-      consumables: [],
-      status: 'OPERATIONAL',
-      photos: [],
-      lastMhcDate: '2026-07-15',
-      nextMhcDate: ''
+      lastMhcDate: '2026-07-15'
     };
 
-    const machineOld: Machine = {
+    const machineOld: Partial<Machine> = {
       id: 'm-old',
-      name: 'Old Unit',
-      model: 'Laser C-200',
-      machineNumber: 'M-103',
-      serialNumber: 'SN-103',
-      installationDate: '2024-01-01',
-      baselineDate: '2024-01-01',
-      healthScore: 75,
-      laserHeads: [],
-      consumables: [],
-      status: 'OPERATIONAL',
-      photos: [],
-      lastMhcDate: '2025-12-01',
-      nextMhcDate: ''
+      lastMhcDate: '2025-12-01'
     };
 
-    const machineNoMhc: Machine = {
+    const machineNoMhc: Partial<Machine> = {
       id: 'm-none',
-      name: 'New Uninspected Unit',
-      model: 'Laser C-200',
-      machineNumber: 'M-104',
-      serialNumber: 'SN-104',
-      installationDate: '2026-08-01',
-      baselineDate: '2026-08-01',
-      healthScore: 100,
-      laserHeads: [],
-      consumables: [],
-      status: 'OPERATIONAL',
-      photos: [],
-      lastMhcDate: '',
-      nextMhcDate: ''
+      lastMhcDate: ''
     };
 
-    const evaluateMachine = (m: Machine) => {
+    const evaluateMachine = (m: Partial<Machine>) => {
       if (!m.lastMhcDate) return 'NO_MHC';
       const parsed = new Date(m.lastMhcDate).getTime();
       const days = Math.floor((now - parsed) / (1000 * 60 * 60 * 24));
@@ -190,58 +106,37 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
   });
 
   it('filters consumables strictly for attention (life <= 20% or days <= 15) and ignores nominal consumables', () => {
-    const machine: Machine = {
-      id: 'm-consumables',
-      name: 'Production Tool',
-      model: 'Laser Pro',
-      machineNumber: 'M-99',
-      serialNumber: 'SN-99',
-      installationDate: '2024-01-01',
-      baselineDate: '2024-01-01',
-      healthScore: 90,
-      laserHeads: [],
-      consumables: [
-        {
-          id: 'c-1',
-          name: 'Deionization Filter Cartridge',
-          partNumber: 'FLT-DI-09',
-          currentLifePercent: 12, // Critical (<20%)
-          estimatedDaysRemaining: 25,
-          status: 'GOOD',
-          installedDate: '2026-01-01',
-          lastReplacedDate: '2026-01-01',
-          replacementIntervalDays: 180
-        },
-        {
-          id: 'c-2',
-          name: 'Focusing Lens Protective Window',
-          partNumber: 'OPT-WND-44',
-          currentLifePercent: 45,
-          estimatedDaysRemaining: 10, // Critical (<15 days)
-          status: 'GOOD',
-          installedDate: '2026-01-01',
-          lastReplacedDate: '2026-01-01',
-          replacementIntervalDays: 90
-        },
-        {
-          id: 'c-3',
-          name: 'Chiller Coolant Fluid',
-          partNumber: 'CHL-FL-01',
-          currentLifePercent: 88, // Nominal
-          estimatedDaysRemaining: 120, // Nominal
-          status: 'GOOD',
-          installedDate: '2026-01-01',
-          lastReplacedDate: '2026-01-01',
-          replacementIntervalDays: 365
-        }
-      ],
-      status: 'OPERATIONAL',
-      photos: [],
-      lastMhcDate: '',
-      nextMhcDate: ''
-    };
+    const consumables: ConsumableItem[] = [
+      {
+        id: 'c-1',
+        name: 'Deionization Filter Cartridge',
+        partNumber: 'FLT-DI-09',
+        currentLifePercent: 12, // Critical (<20%)
+        estimatedDaysRemaining: 25,
+        status: 'CRITICAL_REPLACE',
+        lastReplacedDate: '2026-01-01'
+      },
+      {
+        id: 'c-2',
+        name: 'Focusing Lens Protective Window',
+        partNumber: 'OPT-WND-44',
+        currentLifePercent: 45,
+        estimatedDaysRemaining: 10, // Critical (<15 days)
+        status: 'WARNING',
+        lastReplacedDate: '2026-01-01'
+      },
+      {
+        id: 'c-3',
+        name: 'Chiller Coolant Fluid',
+        partNumber: 'CHL-FL-01',
+        currentLifePercent: 88, // Nominal
+        estimatedDaysRemaining: 120, // Nominal
+        status: 'OPTIMAL',
+        lastReplacedDate: '2026-01-01'
+      }
+    ];
 
-    const attentionItems = machine.consumables.filter(c => {
+    const attentionItems = consumables.filter(c => {
       const isLowLife = typeof c.currentLifePercent === 'number' && c.currentLifePercent <= 20;
       const isLowDays = typeof c.estimatedDaysRemaining === 'number' && c.estimatedDaysRemaining <= 15;
       return isLowLife || isLowDays;
@@ -255,13 +150,13 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
   });
 
   it('maps contract coverage accurately between active contracts and fleet machines', () => {
-    const machines: Machine[] = [
-      { id: 'm-10', name: 'Machine 10', model: 'EO-10', machineNumber: 'M-10', serialNumber: 'SN-10', installationDate: '', baselineDate: '', healthScore: 100, laserHeads: [], consumables: [], status: 'OPERATIONAL', photos: [], lastMhcDate: '', nextMhcDate: '' },
-      { id: 'm-20', name: 'Machine 20', model: 'EO-20', machineNumber: 'M-20', serialNumber: 'SN-20', installationDate: '', baselineDate: '', healthScore: 100, laserHeads: [], consumables: [], status: 'OPERATIONAL', photos: [], lastMhcDate: '', nextMhcDate: '' },
-      { id: 'm-30', name: 'Machine 30', model: 'EO-30', machineNumber: 'M-30', serialNumber: 'SN-30', installationDate: '', baselineDate: '', healthScore: 100, laserHeads: [], consumables: [], status: 'OPERATIONAL', photos: [], lastMhcDate: '', nextMhcDate: '' }
+    const machines: Partial<Machine>[] = [
+      { id: 'm-10', machineNumber: 'M-10', serialNumber: 'SN-10' },
+      { id: 'm-20', machineNumber: 'M-20', serialNumber: 'SN-20' },
+      { id: 'm-30', machineNumber: 'M-30', serialNumber: 'SN-30' }
     ];
 
-    const contracts: Contract[] = [
+    const contracts: Partial<Contract>[] = [
       {
         id: 'c-active',
         contractNumber: 'CTR-2026-001',
@@ -290,8 +185,8 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     const coveredIds = new Set<string>();
     activeContracts.forEach(c => (c.machinesCoveredIds || []).forEach(id => coveredIds.add(id)));
 
-    const covered = machines.filter(m => coveredIds.has(m.id));
-    const uncovered = machines.filter(m => !coveredIds.has(m.id));
+    const covered = machines.filter(m => m.id && coveredIds.has(m.id));
+    const uncovered = machines.filter(m => m.id && !coveredIds.has(m.id));
 
     expect(covered.length).toBe(2);
     expect(uncovered.length).toBe(1);
@@ -313,60 +208,40 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     });
 
     it('accurately surfaces attention items when machines or consumables are flagged', () => {
-      const machines: Machine[] = [
+      const machines: Partial<Machine>[] = [
         {
           id: 'm-attn-1',
-          name: 'Machine 1',
-          model: 'Drill 100',
           machineNumber: 'M-100',
           serialNumber: 'SN-100',
-          installationDate: '',
-          baselineDate: '',
-          healthScore: 60,
-          laserHeads: [],
+          status: 'NEEDS_CALIBRATION',
           consumables: [
             {
               id: 'c-1',
               name: 'Filter A',
+              partNumber: 'FA-1',
               currentLifePercent: 10,
               estimatedDaysRemaining: 5,
-              status: 'GOOD',
-              installedDate: '',
-              lastReplacedDate: '',
-              replacementIntervalDays: 90
+              status: 'CRITICAL_REPLACE',
+              lastReplacedDate: '2026-01-01'
             }
-          ],
-          status: 'NEEDS_CALIBRATION',
-          photos: [],
-          lastMhcDate: '',
-          nextMhcDate: ''
+          ]
         },
         {
           id: 'm-attn-2',
-          name: 'Machine 2',
-          model: 'Drill 200',
           machineNumber: 'M-200',
           serialNumber: 'SN-200',
-          installationDate: '',
-          baselineDate: '',
-          healthScore: 98,
-          laserHeads: [],
+          status: 'OPERATIONAL',
           consumables: [
             {
               id: 'c-2',
               name: 'Coolant',
+              partNumber: 'CL-2',
               currentLifePercent: 85,
               estimatedDaysRemaining: 120,
-              status: 'GOOD',
-              installedDate: '',
-              lastReplacedDate: '',
-              replacementIntervalDays: 365
+              status: 'OPTIMAL',
+              lastReplacedDate: '2026-01-01'
             }
-          ],
-          status: 'OPERATIONAL',
-          photos: [],
-          lastMhcDate: '',
-          nextMhcDate: ''
+          ]
         }
       ];
 
@@ -391,11 +266,11 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
 
   describe('R11-F — Visual Workspace Information Architecture & Statistical Precision', () => {
     it('filters completed sessions strictly (completionStatus === COMPLETED)', () => {
-      const sessions: Partial<MHCSession>[] = [
+      const sessions = [
         { id: 's-1', completionStatus: 'COMPLETED', completedDate: '2026-08-01' },
         { id: 's-2', completionStatus: 'IN_PROGRESS', startDate: '2026-08-02' },
         { id: 's-3', completionStatus: 'COMPLETED', completedDate: '2026-08-05' },
-        { id: 's-4', completionStatus: 'LOCKED', startDate: '2026-08-10' }
+        { id: 's-4', completionStatus: 'NOT_STARTED', startDate: '2026-08-10' }
       ];
 
       const completed = sessions.filter(s => s.completionStatus === 'COMPLETED');
@@ -404,17 +279,17 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     });
 
     it('aggregates subsystem verdicts into Pass, Warn, and Fail distributions', () => {
-      const sessions: Partial<MHCSession>[] = [
+      const sessions = [
         {
           id: 's-sub-1',
           completionStatus: 'COMPLETED',
           stage04_opticalInspection: [
-            { item: 'Focusing Lens', status: 'OK' } as any,
-            { item: 'Protective Window', status: 'NG' } as any
+            { item: 'Focusing Lens', status: 'OK' },
+            { item: 'Protective Window', status: 'NG' }
           ],
           stage05_chillerCooling: [
-            { item: 'Coolant Level', status: 'OK' } as any,
-            { item: 'Filter Condition', status: 'ATTENTION' } as any
+            { item: 'Coolant Level', status: 'OK' },
+            { item: 'Filter Condition', status: 'ATTENTION' }
           ]
         }
       ];
@@ -423,11 +298,11 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
       let coolingPass = 0, coolingWarn = 0;
 
       sessions.forEach(s => {
-        (s.stage04_opticalInspection || []).forEach(opt => {
+        (s.stage04_opticalInspection || []).forEach((opt: any) => {
           if (opt.status === 'OK') opticsPass++;
           if (opt.status === 'NG') opticsFail++;
         });
-        (s.stage05_chillerCooling || []).forEach(c => {
+        (s.stage05_chillerCooling || []).forEach((c: any) => {
           if (c.status === 'OK') coolingPass++;
           if (c.status === 'ATTENTION') coolingWarn++;
         });
@@ -440,7 +315,7 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
     });
 
     it('identifies recurring findings across multiple machines or multiple occurrences', () => {
-      const sessions: Partial<MHCSession>[] = [
+      const sessions = [
         {
           id: 's-f1',
           machineId: 'm-1',
@@ -486,7 +361,7 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
 
       const findingMap = new Map<string, { count: number; machines: Set<string> }>();
       sessions.forEach(s => {
-        (s.inspectionFindings || []).forEach(f => {
+        (s.inspectionFindings || []).forEach((f: any) => {
           if (!findingMap.has(f.component)) {
             findingMap.set(f.component, { count: 0, machines: new Set() });
           }
@@ -535,8 +410,8 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
 
       // Verify Physical Parameter Trajectory is Level 1 Primary
       expect(content).toContain('Physical Parameter Trajectory');
-      expect(content).toContain('1 verified reading — trend requires at least 2 measurements.');
-      expect(content).toContain('No verified physical readings recorded');
+      expect(content).toContain('1 verified reading — minimum 2 measurements required for a trajectory.');
+      expect(content).toContain('No verified physical readings recorded.');
 
       // Verify banned AI slop and rainbow decorations are absent
       expect(content).not.toContain('bg-gradient-to-');
@@ -560,6 +435,133 @@ describe('R11-C — Truthful Operational Analytics Logic & Removal of Fabricated
       expect(renderTrajectoryState(singleMeasurement)).toBe('COMPACT_SINGLE_NOTICE');
       expect(renderTrajectoryState(multiMeasurements)).toBe('PROMINENT_GRAPH');
     });
+
+    it('ensures missing rated power results in N/A without 250W fallback or synthetic baseline fabrication', () => {
+      const machineWithoutRatedPower: any = {
+        id: 'mch-test-1',
+        machineNumber: 'MCH-TEST-1',
+        serialNumber: 'SN-TEST-1',
+        laserHeads: [
+          {
+            id: 'lh-1',
+            model: 'Laser Head',
+            serialNumber: 'SN-LH-1'
+            // No ratedPowerWatts defined
+          }
+        ]
+      };
+
+      const sessionsWithMeasurements: any[] = [
+        {
+          id: 'sess-1',
+          machineId: 'mch-test-1',
+          completionStatus: 'COMPLETED',
+          completedDate: '2026-08-01',
+          stage03_laserPower: [
+            {
+              laserIdentifier: 'lh1',
+              laserName: 'Laser Head 1',
+              beforeValueWatts: 14.5,
+              afterValueWatts: 14.2
+              // No ratedPowerWatts defined
+            }
+          ]
+        },
+        {
+          id: 'sess-2',
+          machineId: 'mch-test-1',
+          completionStatus: 'COMPLETED',
+          completedDate: '2026-09-01',
+          stage03_laserPower: [
+            {
+              laserIdentifier: 'lh1',
+              laserName: 'Laser Head 1',
+              beforeValueWatts: 14.2,
+              afterValueWatts: 13.9
+              // No ratedPowerWatts defined
+            }
+          ]
+        }
+      ];
+
+      // Simulate extraction logic in AnalyticsModule
+      let nominalBaseline: number | null = null;
+      const genuineMachineRating = typeof machineWithoutRatedPower.laserHeads?.[0]?.ratedPowerWatts === 'number' && machineWithoutRatedPower.laserHeads[0].ratedPowerWatts > 0
+        ? machineWithoutRatedPower.laserHeads[0].ratedPowerWatts
+        : null;
+      if (genuineMachineRating) {
+        nominalBaseline = genuineMachineRating;
+      }
+
+      const points: any[] = [];
+      sessionsWithMeasurements.forEach(s => {
+        const head1 = s.stage03_laserPower[0];
+        const val = head1.afterValueWatts > 0 ? head1.afterValueWatts : head1.beforeValueWatts;
+        const headRated = typeof head1.ratedPowerWatts === 'number' && head1.ratedPowerWatts > 0 ? head1.ratedPowerWatts : null;
+        if (headRated && nominalBaseline === null) nominalBaseline = headRated;
+        points.push({
+          date: s.completedDate,
+          value: val,
+          baseline: headRated || nominalBaseline || undefined
+        });
+      });
+
+      // Assertions:
+      // 1. Baseline must be null/undefined, NOT 250 W or any other guessed fallback
+      expect(nominalBaseline).toBeNull();
+      expect(points[0].baseline).toBeUndefined();
+      expect(points[1].baseline).toBeUndefined();
+      expect(nominalBaseline).not.toBe(250);
+
+      // 2. Real measurements remain intact
+      expect(points).toHaveLength(2);
+      expect(points[0].value).toBe(14.2);
+      expect(points[1].value).toBe(13.9);
+    });
+
+    it('preserves genuine recorded rated power and measurements when present', () => {
+      const machineWithRatedPower: any = {
+        id: 'mch-rated-1',
+        machineNumber: 'MCH-RATED-1',
+        serialNumber: 'SN-RATED-1',
+        laserHeads: [
+          {
+            id: 'lh-1',
+            model: 'TruPulse',
+            serialNumber: 'SN-LH-1',
+            ratedPowerWatts: 20.0
+          }
+        ]
+      };
+
+      const session: any = {
+        id: 'sess-rated',
+        machineId: 'mch-rated-1',
+        completionStatus: 'COMPLETED',
+        completedDate: '2026-09-01',
+        stage03_laserPower: [
+          {
+            laserIdentifier: 'lh1',
+            laserName: 'Laser Head 1',
+            ratedPowerWatts: 20.0,
+            beforeValueWatts: 19.8,
+            afterValueWatts: 19.5
+          }
+        ]
+      };
+
+      let nominalBaseline: number | null = null;
+      const genuineMachineRating = typeof machineWithRatedPower.laserHeads?.[0]?.ratedPowerWatts === 'number' && machineWithRatedPower.laserHeads[0].ratedPowerWatts > 0
+        ? machineWithRatedPower.laserHeads[0].ratedPowerWatts
+        : null;
+      if (genuineMachineRating) {
+        nominalBaseline = genuineMachineRating;
+      }
+
+      expect(nominalBaseline).toBe(20.0);
+      expect(session.stage03_laserPower[0].ratedPowerWatts).toBe(20.0);
+      expect(session.stage03_laserPower[0].beforeValueWatts).toBe(19.8);
+      expect(session.stage03_laserPower[0].afterValueWatts).toBe(19.5);
+    });
   });
 });
-

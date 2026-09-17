@@ -130,10 +130,10 @@ export interface LaserHead {
   maxRecommendedHours: number;
   remainingHours: number;
   estimatedReplacementDate: string;
-  powerOutputWatts: number;
-  ratedPowerWatts: number;
-  wavelengthNm: number;
-  beamQualityM2: number;
+  powerOutputWatts?: number;
+  ratedPowerWatts?: number;
+  wavelengthNm?: number;
+  beamQualityM2?: number;
   healthScore: number; // 0 - 100
   // Multi-laser lifecycle engine extensions (v0.9.0 Phase 2.1)
   name?: string;
@@ -585,11 +585,12 @@ export interface MHCLaserProfileData {
 export interface MHCLaserPowerItem {
   laserId: string;
   laserIdentifier: string;
-  ratedPowerWatts: number;
-  referenceValueWatts: number;
-  beforeValueWatts: number;
-  afterValueWatts: number;
-  stabilityPercent: number;
+  laserName?: string;
+  ratedPowerWatts?: number;
+  referenceValueWatts?: number;
+  beforeValueWatts?: number;
+  afterValueWatts?: number;
+  stabilityPercent?: number;
   result: 'PASS' | 'WARNING' | 'FAIL';
   notes: string;
   evidenceImages: string[];

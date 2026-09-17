@@ -1,5 +1,25 @@
 # FSOS CHANGELOG
 
+## v2.5.3 — Laser Power Telemetry & Data Integrity Fix (2026-09-17)
+
+### Laser Power Telemetry & Data Integrity
+- **Removed Fabricated Defaults**: Removed hardcoded `250 W` fallback and synthetic measurement defaults (`15.0`, `14.8`, `99.2`) from MHC Autopilot Laser Power Activity (`MhcLaserPowerActivity.tsx`).
+- **Machine Creation Purity**: Stripped arbitrary `250 W` rated power default from new machine passport initialization; machines created without recorded rated power retain undefined/empty values.
+- **Analytics Factual State Handling**: In Analytics Module trajectory charts, if rated power is missing, displays factual `N/A` / `No Data` instead of guessing or injecting baseline values. Real recorded measurements and genuine rated baselines are strictly preserved.
+
+## v2.5.2 — R11-G Analytics Visual Refinement (2026-09-16)
+
+### Analytics Workstation Visual Refinement (R11-G)
+- **Hierarchy & Visual Weight**: Reorganized Analytics into a dedicated 3-tier engineering workstation hierarchy: Primary (Physical Parameter Longitudinal Trajectory), Secondary (Subsystem Verdict Distributions & Recurring Findings), Supporting (Service Activity, Customer Distributions, & Contract Coverage).
+- **Data-Density Aware Trajectory**: Implemented adaptive state rendering for physical parameters:
+  - *0 measurements*: Compact factual notice without oversized empty visual containers.
+  - *1 measurement*: Inline verified baseline notice clarifying that longitudinal trends require 2+ measurements.
+  - *2+ measurements*: Prominent high-precision SVG scatter-connected chart with first reading, latest reading, overall delta ($\Delta$), rated spec line, and interactive inspection drill-down.
+- **Strict Neutral Industrial Styling**: Stripped non-essential semantic accents; enforced pure slate/graphite neutral layout with color strictly reserved for true evaluated states (Pass/Emerald, Warn/Amber, Fail/Rose).
+- **Subsystem & Findings Streamlining**: Flattened layout density, enhanced defect frequency bars, and made zero-record states clean and low-profile.
+- **Supporting Telemetry Row**: Positioned Service Activity sparklines, Client account distributions, and Contract protection ratios into a quiet, high-signal supporting row.
+
+
 ## v2.5.1 — R11-F Analytics Visual Workspace (2026-09-16)
 
 ### Analytics Visual Workspace (R11-F)

@@ -1010,14 +1010,12 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       laserHeads: [
         {
           id: `lh-${Date.now()}-1`,
-          model: addForm.laserHeadModel || 'TruPulse 2000 Main Oscillator',
+          model: addForm.laserHeadModel || 'Main Laser Head',
           serialNumber: `LH-SN-${Math.floor(1000 + Math.random() * 9000)}`,
-          runningHours: 120,
+          runningHours: 0,
           maxRecommendedHours: 10000,
-          remainingHours: 9880,
-          healthScore: 98,
-          ratedPowerWatts: 250,
-          powerOutputWatts: 249.2,
+          remainingHours: 10000,
+          healthScore: 100,
           wavelengthNm: 1064,
           beamQualityM2: 1.08,
           estimatedReplacementDate: '2029-01-15'
