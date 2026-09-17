@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v2.5.4 — Analytics Screen UI/UX Redesign & Baseline Removal (2026-09-17)
+
+### Analytics UI/UX Redesign
+- **Eliminated Rated Baseline**: Completely removed the "Rated Baseline" concept, cards, spec lines, and baseline metrics from the Analytics UI (no N/A placeholders, no nominal target lines).
+- **Hero Laser Power Trend**: Restructured the visual hierarchy to make Laser Power Trend the dominant hero engineering visual with lightweight inline metrics (`First`, `Latest`, `Δ`) instead of nested cards.
+- **Card-Heavy Layout Overhaul**: Replaced dense card-inside-card designs with flat, clean, precision operations layout using generous whitespace, calm graphite foundation, and high typographic contrast.
+- **Intentional Sparse Data Handling**: Single measurements render as a clean `1 verified measurement` banner, zero measurements as compact `No Data`, and multi-measurements as crisp trendlines with attached dark precision tooltips.
+- **Secondary & Tertiary Information Flow**: Rebalanced Subsystem Results, Recurring Findings, MHC Activity, and added real-data Machine Comparison across fleet units.
+
 ## v2.5.3 — Laser Power Telemetry & Data Integrity Fix (2026-09-17)
 
 ### Laser Power Telemetry & Data Integrity

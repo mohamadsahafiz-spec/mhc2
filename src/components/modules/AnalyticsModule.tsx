@@ -11,7 +11,8 @@ import {
   ChevronRight, 
   ExternalLink,
   ChevronDown,
-  Info
+  Info,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Machine, MHCSession, Contract, Customer, NavigationTab } from '../../types';
 import { Button } from '../common/Button';
@@ -37,7 +38,7 @@ interface FindingGroup {
   affectedMachineLabels: string[];
   isRecurring: boolean;
   instances: Array<{
-    machineId: string;
+    machineId?: string;
     machineLabel: string;
     date: string;
     conditions: string[];
@@ -51,11 +52,23 @@ interface ParameterDataPoint {
   date: string;
   displayDate: string;
   value: number;
-  baseline?: number;
   unit: string;
   sessionId?: string;
   machineId: string;
   label?: string;
+}
+
+interface MachineComparisonItem {
+  machineId: string;
+  label: string;
+  model: string;
+  sessionCount: number;
+  latestLaserPower?: number;
+  laserUnit?: string;
+  evaluatedSubsystems: number;
+  passCount: number;
+  failCount: number;
+  passRatePercent?: number;
 }
 
 export const AnalyticsModule: React.FC<AnalyticsProps> = ({
@@ -115,13 +128,13 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [mhcSessions, dateRange, selectedCustomerId, customers]);
 
   // -------------------------------------------------------------
-  // 2. PARAMETER TRAJECTORY (Strict Longitudinal Math) — PRIMARY
+  // 2. PARAMETER TRAJECTORY (Strict Longitudinal Math — NO BASELINE)
   // -------------------------------------------------------------
   const parameterTrajectoryData = useMemo(() => {
-    if (!trajectoryMachineId) return { points: [], baseline: null, unit: '', machine: null };
+    if (!trajectoryMachineId) return { points: [], unit: '', machine: null };
 
     const targetMachine = machines.find(m => m.id === trajectoryMachineId);
-    if (!targetMachine) return { points: [], baseline: null, unit: '', machine: null };
+    if (!targetMachine) return { points: [], unit: '', machine: null };
 
     // Find all completed sessions for this machine
     const machineSessions = mhcSessions.filter(
@@ -138,17 +151,9 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
     const points: ParameterDataPoint[] = [];
     let unit = '';
-    let nominalBaseline: number | null = null;
 
     if (trajectoryParam === 'LASER_POWER') {
       unit = 'W';
-      // Retrieve genuine rated power if defined on the target machine
-      const genuineMachineRating = (typeof targetMachine.laserHeads?.[0]?.ratedPowerWatts === 'number' && targetMachine.laserHeads[0].ratedPowerWatts > 0)
-        ? targetMachine.laserHeads[0].ratedPowerWatts
-        : null;
-      if (genuineMachineRating) {
-        nominalBaseline = genuineMachineRating;
-      }
 
       machineSessions.forEach(s => {
         const dStr = (s.completedDate || s.startDate || s.lastUpdated || '').split('T')[0];
@@ -162,17 +167,10 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
               ? head1.afterValueWatts
               : ((typeof head1.beforeValueWatts === 'number' && head1.beforeValueWatts > 0) ? head1.beforeValueWatts : 0);
             if (val > 0) {
-              const headRated = (typeof head1.ratedPowerWatts === 'number' && head1.ratedPowerWatts > 0)
-                ? head1.ratedPowerWatts
-                : null;
-              if (headRated && nominalBaseline === null) {
-                nominalBaseline = headRated;
-              }
               points.push({
                 date: dStr,
                 displayDate: dStr,
                 value: val,
-                baseline: headRated || nominalBaseline || undefined,
                 unit: 'W',
                 sessionId: s.id,
                 machineId: targetMachine.id,
@@ -192,12 +190,10 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           const dStr = (r.timestamp || '').split('T')[0];
           const rd = (r.readings || [])[0];
           if (rd && rd.actualPowerWatts > 0) {
-            if (rd.targetPowerWatts > 0 && nominalBaseline === null) nominalBaseline = rd.targetPowerWatts;
             points.push({
               date: dStr,
               displayDate: dStr,
               value: rd.actualPowerWatts,
-              baseline: rd.targetPowerWatts,
               unit: 'W',
               machineId: targetMachine.id,
               label: rd.headName || 'Laser Head'
@@ -207,7 +203,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       }
     } else if (trajectoryParam === 'STAGE_CALIBRATION') {
       unit = 'µm';
-      nominalBaseline = 2.0; // 2.0 µm spec tolerance
       machineSessions.forEach(s => {
         const dStr = (s.completedDate || s.startDate || s.lastUpdated || '').split('T')[0];
         if (!dStr) return;
@@ -220,7 +215,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
               date: dStr,
               displayDate: dStr,
               value: Number(dev.toFixed(2)),
-              baseline: sc.specToleranceUm || 2.0,
               unit: 'µm',
               sessionId: s.id,
               machineId: targetMachine.id,
@@ -231,7 +225,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       });
     } else if (trajectoryParam === 'AGC_ERROR') {
       unit = 'µm';
-      nominalBaseline = 3.0; // 3.0 µm spec tolerance
       machineSessions.forEach(s => {
         const dStr = (s.completedDate || s.startDate || s.lastUpdated || '').split('T')[0];
         if (!dStr) return;
@@ -241,7 +234,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
             date: dStr,
             displayDate: dStr,
             value: Number(s.agcData.overallMaxDevUm.toFixed(2)),
-            baseline: 3.0,
             unit: 'µm',
             sessionId: s.id,
             machineId: targetMachine.id,
@@ -253,14 +245,13 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
     return {
       points,
-      baseline: nominalBaseline,
       unit,
       machine: targetMachine
     };
   }, [trajectoryMachineId, trajectoryParam, machines, mhcSessions]);
 
   // -------------------------------------------------------------
-  // 3. SUBSYSTEM VERDICT DISTRIBUTION — SECONDARY
+  // 3. SUBSYSTEM RESULTS (Pass/Fail/Warn Distribution)
   // -------------------------------------------------------------
   interface SubsystemNonPassItem {
     sessionId: string;
@@ -281,11 +272,11 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
   const subsystemVerdicts = useMemo(() => {
     const data: Record<Exclude<SubsystemType, 'ALL'>, SubsystemData> = {
-      LASER: { name: 'Laser Output', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      OPTICS: { name: 'Optics & Delivery', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      COOLING: { name: 'Chiller & Cooling', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      PRODUCT_QA: { name: 'Product Quality', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      STAGE: { name: 'Motion Stage', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      LASER: { name: 'Laser Output (Stage 03)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      OPTICS: { name: 'Optics & Delivery (Stage 04)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      COOLING: { name: 'Chiller & Cooling (Stage 05)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      PRODUCT_QA: { name: 'Product Quality (Stage 06)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      STAGE: { name: 'Motion Stage (Calibration)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
       AGC: { name: 'AGC Positioning', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] }
     };
 
@@ -312,7 +303,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                 machineLabel,
                 date,
                 verdict: 'WARN',
-                detail: `Power attention (${lp.afterValueWatts || lp.beforeValueWatts}W vs ${lp.ratedPowerWatts || 'Spec'}W)`
+                detail: `Power attention (${lp.afterValueWatts || lp.beforeValueWatts}W)`
               });
             } else if (lp.result === 'FAIL' || lp.result === 'OUT_OF_SPEC') {
               data.LASER.fail++;
@@ -321,7 +312,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                 machineLabel,
                 date,
                 verdict: 'FAIL',
-                detail: `Power out of spec (${lp.afterValueWatts || lp.beforeValueWatts}W vs ${lp.ratedPowerWatts || 'Spec'}W)`
+                detail: `Power out of spec (${lp.afterValueWatts || lp.beforeValueWatts}W)`
               });
             } else {
               data.LASER.pass++;
@@ -473,7 +464,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions, machines]);
 
   // -------------------------------------------------------------
-  // 4. RECURRING FINDINGS & DEFECT FREQUENCY — SECONDARY
+  // 4. RECURRING FINDINGS (Defect Frequency Ranking)
   // -------------------------------------------------------------
   const recurringFindingsData = useMemo(() => {
     const findingMap = new Map<string, FindingGroup>();
@@ -520,7 +511,9 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
           const group = findingMap.get(key)!;
           group.occurrenceCount++;
-          group.affectedMachines.add(s.machineId || s.machineSerialNumber);
+          if (s.machineId) group.affectedMachines.add(s.machineId);
+          else if (s.machineSerialNumber) group.affectedMachines.add(s.machineSerialNumber);
+
           if (!group.affectedMachineLabels.includes(machineLabel)) {
             group.affectedMachineLabels.push(machineLabel);
           }
@@ -557,7 +550,9 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
             const group = findingMap.get(key)!;
             group.occurrenceCount++;
-            group.affectedMachines.add(s.machineId || s.machineSerialNumber);
+            if (s.machineId) group.affectedMachines.add(s.machineId);
+            else if (s.machineSerialNumber) group.affectedMachines.add(s.machineSerialNumber);
+
             if (!group.affectedMachineLabels.includes(machineLabel)) {
               group.affectedMachineLabels.push(machineLabel);
             }
@@ -584,7 +579,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions, machines, subsystemFilter]);
 
   // -------------------------------------------------------------
-  // 5. MHC ACTIVITY & VOLUME TIME-SERIES — COMPACT / SUPPORTING
+  // 5. MHC ACTIVITY & VOLUME TIME-SERIES
   // -------------------------------------------------------------
   const activityTimeSeries = useMemo(() => {
     const monthMap = new Map<string, { month: string; sessionCount: number; machineIds: Set<string>; findingsCount: number }>();
@@ -628,7 +623,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       filteredCompletedSessions.map(s => s.machineId || s.machineSerialNumber).filter(Boolean)
     ).size;
     const totalFindingsCount = sorted.reduce((acc, curr) => acc + curr.findingsCount, 0);
-
     const maxMonthlySessions = sorted.reduce((max, curr) => Math.max(max, curr.sessionCount), 0) || 1;
 
     return {
@@ -641,7 +635,98 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions]);
 
   // -------------------------------------------------------------
-  // 6. CUSTOMER & SITE SERVICE ACTIVITY — SUPPORTING
+  // 6. MACHINE COMPARISON (Genuine Real Data Comparison)
+  // -------------------------------------------------------------
+  const machineComparisonList = useMemo((): MachineComparisonItem[] => {
+    const list: MachineComparisonItem[] = [];
+
+    machines.forEach(m => {
+      const mSessions = mhcSessions.filter(
+        s => (s.machineId === m.id || s.machineSerialNumber === m.serialNumber) && s.completionStatus === 'COMPLETED'
+      );
+
+      // Latest laser power reading
+      let latestPower: number | undefined;
+      const sortedSessions = [...mSessions].sort((a, b) => {
+        const tA = new Date(a.completedDate || a.startDate || a.lastUpdated || 0).getTime();
+        const tB = new Date(b.completedDate || b.startDate || b.lastUpdated || 0).getTime();
+        return tB - tA; // descending to get latest
+      });
+
+      for (const s of sortedSessions) {
+        if (s.stage03_laserPower && Array.isArray(s.stage03_laserPower)) {
+          const h1 = s.stage03_laserPower[0];
+          if (h1 && (h1.afterValueWatts > 0 || h1.beforeValueWatts > 0)) {
+            latestPower = h1.afterValueWatts > 0 ? h1.afterValueWatts : h1.beforeValueWatts;
+            break;
+          }
+        }
+      }
+
+      // Check fallback machine.laserPowerRecords if needed
+      if (latestPower === undefined && m.laserPowerRecords && m.laserPowerRecords.length > 0) {
+        const lastRec = m.laserPowerRecords[m.laserPowerRecords.length - 1];
+        if (lastRec && lastRec.readings?.[0]?.actualPowerWatts) {
+          latestPower = lastRec.readings[0].actualPowerWatts;
+        }
+      }
+
+      // Subsystem pass/fail counts
+      let evaluatedSubsystems = 0;
+      let passCount = 0;
+      let failCount = 0;
+
+      mSessions.forEach(s => {
+        if (s.stage03_laserPower?.length) {
+          evaluatedSubsystems++;
+          const h1 = s.stage03_laserPower[0];
+          if (h1.result === 'FAIL' || h1.result === 'OUT_OF_SPEC') failCount++;
+          else passCount++;
+        }
+        if (s.stage04_opticalInspection?.length) {
+          evaluatedSubsystems++;
+          const ng = s.stage04_opticalInspection.some(i => i.status === 'NG' || i.status === 'FAIL');
+          if (ng) failCount++;
+          else passCount++;
+        }
+        if (s.stage05_chillerCooling?.length) {
+          evaluatedSubsystems++;
+          const ng = s.stage05_chillerCooling.some(i => i.status === 'NG' || i.status === 'FAIL');
+          if (ng) failCount++;
+          else passCount++;
+        }
+        if (s.stageCalibrationData) {
+          evaluatedSubsystems++;
+          const ng = s.stageCalibrationData.verdict === 'OUT_OF_SPEC' || s.stageCalibrationData.systemVerdict === 'OUT_OF_SPEC';
+          if (ng) failCount++;
+          else passCount++;
+        }
+      });
+
+      const passRatePercent = evaluatedSubsystems > 0 ? Math.round((passCount / evaluatedSubsystems) * 100) : undefined;
+
+      if (mSessions.length > 0 || latestPower !== undefined) {
+        list.push({
+          machineId: m.id,
+          label: m.machineNumber || m.serialNumber || m.name,
+          model: m.model,
+          sessionCount: mSessions.length,
+          latestLaserPower: latestPower,
+          laserUnit: 'W',
+          evaluatedSubsystems,
+          passCount,
+          failCount,
+          passRatePercent
+        });
+      }
+    });
+
+    list.sort((a, b) => b.sessionCount - a.sessionCount);
+    return list;
+  }, [machines, mhcSessions]);
+
+  // -------------------------------------------------------------
+  // 7. CUSTOMER & SITE SERVICE ACTIVITY (Supporting)
   // -------------------------------------------------------------
   const siteActivityData = useMemo(() => {
     const custMap = new Map<string, { name: string; sessionCount: number; machineIds: Set<string>; plants: Set<string> }>();
@@ -675,7 +760,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions, customers]);
 
   // -------------------------------------------------------------
-  // 7. CONTRACT PROTECTION GAP — SUPPORTING
+  // 8. CONTRACT FLEET PROTECTION COVERAGE (Supporting)
   // -------------------------------------------------------------
   const contractCoverage = useMemo(() => {
     const coveredIds = new Set<string>();
@@ -706,22 +791,22 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
       {/* ------------------------------------------------------------- */}
-      {/* HEADER & COMPACT GLOBAL FILTER BAR                            */}
+      {/* TOP: COMPACT TITLE & FILTER / CONTEXT BAR                     */}
       {/* ------------------------------------------------------------- */}
       <div className="space-y-3 pb-3 border-b border-slate-200 dark:border-[#262B33]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              Engineering Analytics Workstation
+              <Activity className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              Engineering Analytics
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Longitudinal physical parameter trends, subsystem failure distributions, and recurring defect telemetry.
+              Longitudinal physical measurements, subsystem pass/fail telemetry, and recurring inspection findings.
             </p>
           </div>
 
           {onNavigate && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -734,8 +819,8 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           )}
         </div>
 
-        {/* Global Filter Bar */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+        {/* Compact Filter Strip */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Date Range Selector */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1A1D23] p-0.5 rounded border border-slate-200 dark:border-[#262B33]">
             <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
@@ -789,7 +874,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
             </select>
           </div>
 
-          {/* Filter Status Reset */}
+          {/* Reset Action */}
           {(dateRange !== 'ALL' || selectedCustomerId !== 'ALL' || subsystemFilter !== 'ALL') && (
             <button
               onClick={() => {
@@ -806,7 +891,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       </div>
 
       {totalRegisteredMachines === 0 ? (
-        /* Zero State */
+        /* Zero Fleet State */
         <div className="p-10 text-center rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] space-y-2">
           <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#20252B] flex items-center justify-center mx-auto text-slate-400">
             <Activity className="w-4 h-4" />
@@ -822,24 +907,25 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         <div className="space-y-6">
 
           {/* ============================================================= */}
-          {/* LEVEL 1: PRIMARY ENGINEERING ANALYSIS                         */}
-          {/* Physical Parameter Longitudinal Trajectory                    */}
+          {/* PRIMARY HERO: LASER POWER TREND (Main Engineering Visual)    */}
           {/* ============================================================= */}
           <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 sm:p-5 space-y-4">
+            
+            {/* Header: Title + Machine/Metric Selectors */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#20252B] pb-3">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <div>
                   <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Physical Parameter Trajectory
+                    {trajectoryParam === 'LASER_POWER' ? 'Laser Power Trend' : trajectoryParam === 'STAGE_CALIBRATION' ? 'Stage Accuracy Trend' : 'AGC Positioning Trend'}
                   </h2>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Longitudinal measurement progression across consecutive MHC service sessions
+                    Actual verified measurements recorded across completed MHC service sessions
                   </span>
                 </div>
               </div>
 
-              {/* Machine & Parameter Selectors */}
+              {/* Selectors */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
                   <span className="text-[11px] text-slate-400 font-medium">Machine:</span>
@@ -858,7 +944,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-                  <span className="text-[11px] text-slate-400 font-medium">Metric:</span>
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                   <select
                     value={trajectoryParam}
                     onChange={e => setTrajectoryParam(e.target.value as ParameterMetric)}
@@ -875,70 +961,61 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
             {/* Trajectory Body — Data-Density Aware */}
             {parameterTrajectoryData.points.length === 0 ? (
-              /* Compact 0-Measurement State */
-              <div className="p-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                  No verified physical readings recorded.
+              /* Compact Zero-Measurement State */
+              <div className="py-6 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  No Data
                 </span>
                 <p className="text-[11px] text-slate-500">
-                  No completed MHC sessions with recorded {trajectoryParam.replace('_', ' ').toLowerCase()} found for {parameterTrajectoryData.machine?.machineNumber || 'this unit'}.
+                  No completed MHC sessions with recorded {trajectoryParam === 'LASER_POWER' ? 'laser power' : trajectoryParam === 'STAGE_CALIBRATION' ? 'stage calibration' : 'AGC error'} found for {parameterTrajectoryData.machine?.machineNumber || 'this unit'}.
                 </p>
               </div>
             ) : parameterTrajectoryData.points.length === 1 ? (
-              /* Compact 1-Measurement State */
-              <div className="p-3.5 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-slate-800 dark:text-slate-200">
-                      1 verified reading — minimum 2 measurements required for a trajectory.
-                    </div>
-                    <div className="text-slate-500 mt-0.5">
-                      Baseline captured on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span>: {' '}
-                      <strong className="font-mono text-slate-900 dark:text-slate-100">
-                        {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
-                      </strong>
-                      {parameterTrajectoryData.baseline ? (
-                        <span className="text-slate-500"> (Rated baseline: {parameterTrajectoryData.baseline} {parameterTrajectoryData.unit})</span>
-                      ) : (
-                        <span className="text-slate-500"> (Rated baseline: N/A)</span>
-                      )}
-                    </div>
+              /* Compact Single-Measurement State */
+              <div className="p-4 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                      {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
+                    </span>
+                    <span className="text-xs font-medium text-slate-500 font-mono">
+                      1 verified measurement
+                    </span>
                   </div>
+                  <p className="text-[11px] text-slate-500">
+                    Recorded on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span> ({parameterTrajectoryData.points[0].label || 'Reading'}). Minimum 2 measurements required to plot a trend line.
+                  </p>
                 </div>
 
                 {onNavigate && parameterTrajectoryData.points[0].sessionId && (
                   <button
                     onClick={() => onNavigate('mhc')}
-                    className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 underline font-mono shrink-0"
+                    className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 font-mono underline shrink-0"
                   >
                     View Source MHC Record →
                   </button>
                 )}
               </div>
             ) : (
-              /* 2+ Measurements: Prominent High-Precision Engineering Chart */
-              <div className="space-y-4">
-                {/* Precision Statistics Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                  <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">First Reading</span>
-                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                      {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
-                    </div>
-                    <span className="text-[10px] text-slate-500">{parameterTrajectoryData.points[0].date}</span>
+              /* 2+ Measurements: Engineering Trend Visual */
+              <div className="space-y-3">
+                {/* Lightweight Dominant Measurement Header Strip */}
+                <div className="flex flex-wrap items-baseline justify-between gap-3 pb-2 border-b border-slate-100 dark:border-[#20252B]">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
+                      {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit} → {parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value} {parameterTrajectoryData.unit}
+                    </span>
+                    <span className="text-xs font-mono text-slate-500">
+                      {parameterTrajectoryData.points.length} verified measurements
+                    </span>
                   </div>
 
-                  <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Latest Reading</span>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                      {parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value} {parameterTrajectoryData.unit}
-                    </div>
-                    <span className="text-[10px] text-slate-500">{parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].date}</span>
-                  </div>
-
-                  <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Overall Delta (Δ)</span>
+                  {/* Inline Supporting Delta & Dates */}
+                  <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+                    <span>First: <strong className="text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[0].date})</span>
+                    <span>·</span>
+                    <span>Latest: <strong className="text-slate-900 dark:text-slate-100">{parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].date})</span>
+                    <span>·</span>
                     {(() => {
                       const first = parameterTrajectoryData.points[0].value;
                       const latest = parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value;
@@ -946,41 +1023,31 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                       const sign = delta > 0 ? `+${delta}` : `${delta}`;
                       const isDrift = delta < 0 && trajectoryParam === 'LASER_POWER';
                       return (
-                        <div className={`text-sm font-semibold mt-0.5 ${isDrift ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                          {sign} {parameterTrajectoryData.unit}
-                        </div>
+                        <span className={isDrift ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300'}>
+                          Δ: {sign} {parameterTrajectoryData.unit}
+                        </span>
                       );
                     })()}
-                    <span className="text-[10px] text-slate-500">{parameterTrajectoryData.points.length} measurements</span>
-                  </div>
-
-                  <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Rated Baseline</span>
-                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
-                      {parameterTrajectoryData.baseline ? `${parameterTrajectoryData.baseline} ${parameterTrajectoryData.unit}` : 'N/A'}
-                    </div>
-                    <span className="text-[10px] text-slate-500">{parameterTrajectoryData.baseline ? 'Nominal Target' : 'No Data'}</span>
                   </div>
                 </div>
 
-                {/* SVG Polyline & Scatter Visualization with Attached Crisp Tooltip */}
-                <div className="h-56 w-full relative pt-2">
+                {/* SVG Precision Trajectory Line (NO BASELINE) */}
+                <div className="h-52 w-full relative pt-2">
                   {(() => {
                     const pts = parameterTrajectoryData.points;
                     const values = pts.map(p => p.value);
                     const rawMin = Math.min(...values);
                     const rawMax = Math.max(...values);
                     
-                    // Intelligent Y-scale: don't compress actual variations by arbitrary large baselines
                     const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
                     const minVal = Math.max(0, rawMin - span * 0.25);
                     const maxVal = rawMax + span * 0.25;
                     const range = (maxVal - minVal) || 1;
 
                     const width = 640;
-                    const height = 190;
-                    const padX = 44;
-                    const padY = 32;
+                    const height = 180;
+                    const padX = 40;
+                    const padY = 28;
 
                     const plotPoints = pts.map((p, idx) => {
                       const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
@@ -991,11 +1058,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                     const pathD = plotPoints.reduce((acc, p, idx) => 
                       idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
                     );
-
-                    let baselineY: number | null = null;
-                    if (parameterTrajectoryData.baseline && parameterTrajectoryData.baseline >= minVal && parameterTrajectoryData.baseline <= maxVal) {
-                      baselineY = height - padY - ((parameterTrajectoryData.baseline - minVal) / range) * (height - 2 * padY);
-                    }
 
                     return (
                       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
@@ -1010,24 +1072,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                         <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="8.5" fontFamily="monospace" className="fill-slate-400">
                           {minVal.toFixed(1)}
                         </text>
-
-                        {/* Baseline Nominal Reference Line if in range */}
-                        {baselineY !== null && (
-                          <g>
-                            <line
-                              x1={padX}
-                              y1={baselineY}
-                              x2={width - padX}
-                              y2={baselineY}
-                              stroke="#64748B"
-                              strokeDasharray="4 4"
-                              strokeWidth="1.2"
-                            />
-                            <text x={width - padX + 6} y={baselineY + 3} fill="#64748B" fontSize="8.5" fontFamily="monospace">
-                              Spec ({parameterTrajectoryData.baseline}{parameterTrajectoryData.unit})
-                            </text>
-                          </g>
-                        )}
 
                         {/* Trajectory Polyline */}
                         <path
@@ -1069,7 +1113,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                               {!isHovered && (
                                 <text
                                   x={p.x}
-                                  y={p.y - 9}
+                                  y={p.y - 8}
                                   textAnchor="middle"
                                   fontSize="9"
                                   fontFamily="monospace"
@@ -1090,10 +1134,9 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                                 {p.date}
                               </text>
 
-                              {/* Clean, Visually Attached Precision Tooltip */}
+                              {/* Clean Precision Tooltip on Hover */}
                               {isHovered && (
-                                <g transform={`translate(${p.x}, ${Math.max(28, p.y - 38)})`}>
-                                  {/* Tooltip Background Card */}
+                                <g transform={`translate(${p.x}, ${Math.max(26, p.y - 36)})`}>
                                   <rect
                                     x="-65"
                                     y="-18"
@@ -1105,8 +1148,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                                     strokeWidth="1"
                                     className="dark:fill-[#16191D] dark:stroke-slate-700 shadow-md"
                                   />
-                                  {/* Pointer tick line */}
-                                  <line x1="0" y1="10" x2="0" y2="18" stroke="#0F172A" strokeWidth="1.5" className="dark:stroke-[#16191D]" />
+                                  <line x1="0" y1="10" x2="0" y2="16" stroke="#0F172A" strokeWidth="1.5" className="dark:stroke-[#16191D]" />
                                   <text
                                     x="0"
                                     y="-5"
@@ -1139,8 +1181,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   })()}
                 </div>
 
-                {/* Persistent Click Action Notice */}
-                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-1 border-t border-slate-100 dark:border-[#20252B]">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-1">
                   <span>Click any measurement point to inspect source MHC session.</span>
                   {onNavigate && (
                     <button
@@ -1157,18 +1198,17 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
 
           {/* ============================================================= */}
-          {/* LEVEL 2: SECONDARY ANALYSIS (Subsystems & Defect Frequency)   */}
-          {/* 2-Column Responsive Layout                                    */}
+          {/* SECONDARY AREA: SUBSYSTEM RESULTS & RECURRING FINDINGS        */}
           {/* ============================================================= */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             
-            {/* 1. SUBSYSTEM VERDICT DISTRIBUTION */}
+            {/* 1. SUBSYSTEM RESULTS */}
             <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Subsystem Verdict Distribution
+                    Subsystem Results
                   </h3>
                 </div>
                 <div className="flex items-center gap-2.5 text-[10px] font-mono text-slate-500">
@@ -1178,12 +1218,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Aggregated pass, attention, and out-of-spec rates across completed physical inspection stages.
-              </p>
-
-              {/* Subsystem Bars */}
-              <div className="space-y-2.5 pt-1">
+              <div className="space-y-2 pt-1">
                 {(Object.keys(subsystemVerdicts) as Array<Exclude<SubsystemType, 'ALL'>>).map(subKey => {
                   const item = subsystemVerdicts[subKey];
                   const hasData = item.total > 0;
@@ -1285,27 +1320,23 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
               </div>
             </section>
 
-            {/* 2. RECURRING FINDINGS & DEFECT FREQUENCY */}
+            {/* 2. RECURRING FINDINGS */}
             <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <AlertCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Recurring Findings & Defect Frequency
+                    Recurring Findings
                   </h3>
                 </div>
                 <span className="text-[11px] font-mono text-slate-500">
-                  {recurringFindingsData.length} finding categor{recurringFindingsData.length === 1 ? 'y' : 'ies'}
+                  {recurringFindingsData.length} finding{recurringFindingsData.length === 1 ? '' : 's'}
                 </span>
               </div>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Frequency ranking across real inspection findings. Click finding to inspect occurrences.
-              </p>
-
               {recurringFindingsData.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
-                  0 recorded findings matching current filter parameters.
+                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
+                  No recurring findings recorded.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -1317,7 +1348,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                     return (
                       <div
                         key={`find-${idx}`}
-                        className="p-2 rounded border border-slate-200 dark:border-[#262B33] bg-slate-50/40 dark:bg-[#1A1D23] space-y-1.5 transition-all"
+                        className="p-2.5 rounded border border-slate-200 dark:border-[#262B33] bg-slate-50/40 dark:bg-[#1A1D23] space-y-1.5 transition-all"
                       >
                         <div
                           onClick={() => setExpandedFindingComponent(isExpanded ? null : f.component)}
@@ -1405,71 +1436,145 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           </div>
 
           {/* ============================================================= */}
-          {/* LEVEL 3: SUPPORTING ANALYSIS (Volume, Sites, Contracts)       */}
-          {/* Visually quieter, lower hierarchy                             */}
+          {/* TERTIARY AREA: MHC ACTIVITY & MACHINE COMPARISON             */}
           {/* ============================================================= */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             
-            {/* 1. MHC Activity & Volume Time-Series */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3.5 space-y-2">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Service Activity
-                  </h4>
+            {/* 1. MHC ACTIVITY */}
+            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                    MHC Activity
+                  </h3>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {activityTimeSeries.totalCompleted} sessions
+                <span className="text-[11px] font-mono text-slate-500">
+                  {activityTimeSeries.totalCompleted} completed session{activityTimeSeries.totalCompleted === 1 ? '' : 's'}
                 </span>
               </div>
 
               {activityTimeSeries.months.length === 0 ? (
-                <div className="py-4 text-center text-[11px] text-slate-400">
-                  No completed sessions in filter range.
-                </div>
-              ) : activityTimeSeries.months.length < 3 ? (
-                /* Compact Summary when 1 or 2 periods exist */
-                <div className="space-y-1.5 pt-1 text-xs">
-                  {activityTimeSeries.months.map(m => (
-                    <div key={m.month} className="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-[#1A1D23]">
-                      <span className="font-mono text-slate-600 dark:text-slate-400">{m.month}</span>
-                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {m.sessionCount} session{m.sessionCount === 1 ? '' : 's'} ({m.machineIds.size} unit{m.machineIds.size === 1 ? '' : 's'})
-                      </span>
-                    </div>
-                  ))}
+                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
+                  No completed MHC records in selected filter range.
                 </div>
               ) : (
-                /* Mini Bar Sparkline when 3+ periods exist */
-                <div className="space-y-1.5 pt-1">
-                  <div className="h-16 flex items-end gap-1 border-b border-slate-200 dark:border-[#262B33] pb-1">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono pb-1">
+                    <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Inspected Units</span>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {activityTimeSeries.uniqueMachinesInspected} / {totalRegisteredMachines}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Findings</span>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {activityTimeSeries.totalFindingsCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Monthly Activity List */}
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
                     {activityTimeSeries.months.map(m => {
-                      const heightPct = Math.max(15, Math.round((m.sessionCount / activityTimeSeries.maxMonthlySessions) * 100));
+                      const widthPct = Math.max(10, Math.round((m.sessionCount / activityTimeSeries.maxMonthlySessions) * 100));
                       return (
-                        <div
-                          key={m.month}
-                          className="flex-1 flex flex-col items-center gap-0.5 group relative"
-                          title={`${m.month}: ${m.sessionCount} sessions`}
-                        >
-                          <div
-                            className="w-full bg-slate-600 dark:bg-slate-400 rounded-t"
-                            style={{ height: `${heightPct}%` }}
-                          />
+                        <div key={m.month} className="p-2 rounded bg-slate-50/60 dark:bg-[#1A1D23] space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">{m.month}</span>
+                            <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                              {m.sessionCount} session{m.sessionCount === 1 ? '' : 's'} · {m.machineIds.size} unit{m.machineIds.size === 1 ? '' : 's'}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 rounded-full overflow-hidden bg-slate-200 dark:bg-[#262B33]">
+                            <div className="h-full bg-slate-700 dark:bg-slate-300 rounded-full" style={{ width: `${widthPct}%` }} />
+                          </div>
                         </div>
                       );
                     })}
-                  </div>
-                  <div className="flex justify-between text-[9px] font-mono text-slate-400">
-                    <span>{activityTimeSeries.months[0]?.month}</span>
-                    <span>{activityTimeSeries.months[activityTimeSeries.months.length - 1]?.month}</span>
                   </div>
                 </div>
               )}
             </section>
 
-            {/* 2. Customer & Site Service Distribution */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3.5 space-y-2">
+            {/* 2. MACHINE COMPARISON (Where real data supports it) */}
+            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                    Machine Comparison
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-slate-500">
+                  {machineComparisonList.length} unit{machineComparisonList.length === 1 ? '' : 's'} with data
+                </span>
+              </div>
+
+              {machineComparisonList.length < 2 ? (
+                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
+                  Machine comparison requires verified MHC data across at least 2 units.
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-0.5">
+                  {machineComparisonList.map(item => (
+                    <div
+                      key={item.machineId}
+                      className="p-2 rounded bg-slate-50/60 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#20252B] flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+                          {item.label}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {item.model} · {item.sessionCount} MHC session{item.sessionCount === 1 ? '' : 's'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-right font-mono">
+                        {item.latestLaserPower !== undefined ? (
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase block">Latest Power</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {item.latestLaserPower} {item.laserUnit}
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase block">Latest Power</span>
+                            <span className="text-slate-400">N/A</span>
+                          </div>
+                        )}
+
+                        {item.passRatePercent !== undefined ? (
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase block">Pass Rate</span>
+                            <span className={`font-semibold ${item.passRatePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                              {item.passRatePercent}%
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase block">Pass Rate</span>
+                            <span className="text-slate-400">N/A</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* ============================================================= */}
+          {/* SUPPORTING FOOTER: CUSTOMER DISTRIBUTION & CONTRACTS          */}
+          {/* ============================================================= */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            
+            {/* Customer Distribution */}
+            <div className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3 space-y-2">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-1.5">
                 <div className="flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-slate-400" />
@@ -1478,16 +1583,16 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   </h4>
                 </div>
                 <span className="text-[10px] font-mono text-slate-400">
-                  {siteActivityData.length} accounts
+                  {siteActivityData.length} account{siteActivityData.length === 1 ? '' : 's'}
                 </span>
               </div>
 
               {siteActivityData.length === 0 ? (
-                <div className="py-4 text-center text-[11px] text-slate-400">
-                  No client activity recorded.
+                <div className="py-2 text-center text-[11px] text-slate-400">
+                  No customer service records.
                 </div>
               ) : (
-                <div className="space-y-1.5 max-h-24 overflow-y-auto text-xs">
+                <div className="space-y-1 max-h-24 overflow-y-auto text-xs">
                   {siteActivityData.map((c, idx) => (
                     <div
                       key={`site-${idx}`}
@@ -1495,16 +1600,16 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                     >
                       <span className="font-medium text-slate-800 dark:text-slate-200 truncate mr-2">{c.name}</span>
                       <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 shrink-0">
-                        {c.sessionCount}x
+                        {c.sessionCount}x ({c.machineCount} unit{c.machineCount === 1 ? '' : 's'})
                       </span>
                     </div>
                   ))}
                 </div>
               )}
-            </section>
+            </div>
 
-            {/* 3. Contract Fleet Protection Coverage */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3.5 space-y-2">
+            {/* Contract Protection Coverage */}
+            <div className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3 space-y-2">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-1.5">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
@@ -1548,7 +1653,8 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                   </div>
                 )}
               </div>
-            </section>
+            </div>
+
           </div>
 
         </div>
