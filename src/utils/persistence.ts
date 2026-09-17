@@ -46,6 +46,7 @@ import {
 
 const ZERO_STATE_PURGE_KEY = 'fsos_v1_0_31_4_zero_state_purged';
 const GHOST_USERS_PURGE_KEY = 'fsos_v2_4_5_ghost_users_purged';
+const FABRICATED_LASER_POWER_PURGE_KEY = 'fsos_v2_4_6_laser_power_purged';
 const FABRICATED_GHOST_USER_IDS = new Set([
   'usr-101',
   'usr-102',
@@ -250,9 +251,42 @@ function purgePersistedGhostUsers() {
   }
 }
 
+// Purge verified fabricated laser power values (ratedPowerWatts === 250 and 15.0/14.8/99.2 tuples) from persisted sessions and machines
+function purgePersistedFabricatedLaserPower() {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      // 1. MHC Sessions
+      const rawSessions = localStorage.getItem(KEYS.MHC_SESSIONS);
+      if (rawSessions) {
+        const parsed = JSON.parse(rawSessions);
+        if (Array.isArray(parsed)) {
+          const cleanedSessions = parsed.map(s => cleanFabricatedLaserPowerSession(s));
+          localStorage.setItem(KEYS.MHC_SESSIONS, safeJsonStringify(cleanedSessions));
+        }
+      }
+
+      // 2. Machines
+      const rawMachines = localStorage.getItem(KEYS.MACHINES);
+      if (rawMachines) {
+        const parsed = JSON.parse(rawMachines);
+        if (Array.isArray(parsed)) {
+          const cleanedMachines = parsed.map(m => sanitizeMachine(m));
+          localStorage.setItem(KEYS.MACHINES, safeJsonStringify(cleanedMachines));
+        }
+      }
+
+      localStorage.setItem(FABRICATED_LASER_POWER_PURGE_KEY, 'true');
+      console.log('[StorageService] Purged persisted fabricated laser power data.');
+    }
+  } catch (err) {
+    console.warn('[StorageService] Fabricated laser power purge warning:', err);
+  }
+}
+
 if (typeof window !== 'undefined') {
   checkAndApplyZeroStatePurge();
   purgePersistedGhostUsers();
+  purgePersistedFabricatedLaserPower();
 }
 
 function syncEnqueueList<T extends { id?: string }>(tableName: string, storageKey: string, items: T[]) {
@@ -367,9 +401,69 @@ export function stripGhostMediaFromObject<T>(obj: T): T {
   return copy as T;
 }
 
+export function cleanFabricatedLaserPowerSession(s: MHCSession): MHCSession {
+  if (!s || typeof s !== 'object') return s;
+  const copy: any = { ...s };
+
+  if (Array.isArray(copy.stage03_laserPower)) {
+    copy.stage03_laserPower = copy.stage03_laserPower.map((lp: any) => {
+      if (!lp || typeof lp !== 'object') return lp;
+      const cleanLp = { ...lp };
+
+      // 1. Purge fabricated ratedPowerWatts (250)
+      if (cleanLp.ratedPowerWatts === 250) {
+        delete cleanLp.ratedPowerWatts;
+      }
+
+      // 2. If before/after/stability matches fabricated pattern (15.0 / 14.8 / 99.2) without real powerRecord
+      const isFabricatedTuple =
+        (cleanLp.beforeValueWatts === 15.0 || cleanLp.beforeValueWatts === 15) &&
+        (cleanLp.afterValueWatts === 14.8) &&
+        (cleanLp.stabilityPercent === 99.2);
+
+      const hasGenuinePowerRecord =
+        cleanLp.powerRecord &&
+        Array.isArray(cleanLp.powerRecord.measurements) &&
+        cleanLp.powerRecord.measurements.length > 0;
+
+      if (isFabricatedTuple && !hasGenuinePowerRecord) {
+        delete cleanLp.beforeValueWatts;
+        delete cleanLp.afterValueWatts;
+        delete cleanLp.stabilityPercent;
+        delete cleanLp.referenceValueWatts;
+      }
+
+      return cleanLp;
+    });
+  }
+
+  return copy as MHCSession;
+}
+
 export function sanitizeMachine(m: Machine): Machine {
   if (!m) return m;
   let updated: any = { ...m };
+
+  if (Array.isArray(updated.laserHeads)) {
+    updated.laserHeads = updated.laserHeads.map((lh: any) => {
+      if (!lh || typeof lh !== 'object') return lh;
+      const cleanLh = { ...lh };
+      if (cleanLh.ratedPowerWatts === 250) {
+        delete cleanLh.ratedPowerWatts;
+      }
+      return cleanLh;
+    });
+  }
+  if (Array.isArray(updated.lasers)) {
+    updated.lasers = updated.lasers.map((lh: any) => {
+      if (!lh || typeof lh !== 'object') return lh;
+      const cleanLh = { ...lh };
+      if (cleanLh.ratedPowerWatts === 250) {
+        delete cleanLh.ratedPowerWatts;
+      }
+      return cleanLh;
+    });
+  }
 
   if (updated.temperatureRecords && Array.isArray(updated.temperatureRecords)) {
     const sanitizedTempRecords = updated.temperatureRecords.map((rec: any) => {
@@ -464,6 +558,9 @@ export function sanitizeMhcSession(s: MHCSession): MHCSession {
 
   // Strip unseen ghost media
   copy = stripGhostMediaFromObject(copy);
+
+  // Clean fabricated laser power defaults
+  copy = cleanFabricatedLaserPowerSession(copy);
 
   return copy as MHCSession;
 }

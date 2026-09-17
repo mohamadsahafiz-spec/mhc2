@@ -92,7 +92,6 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
         {
           laserId: 'lh1',
           laserIdentifier: 'Laser Head 1',
-          ratedPowerWatts: 250,
           referenceValueWatts: 15.0,
           beforeValueWatts: 0.45,
           afterValueWatts: 13.5, // degraded reading
@@ -104,7 +103,6 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
         {
           laserId: 'lh2',
           laserIdentifier: 'Laser Head 2',
-          ratedPowerWatts: 250,
           referenceValueWatts: 15.0,
           beforeValueWatts: 0.46,
           afterValueWatts: 14.6,
@@ -147,7 +145,6 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
     const laserPowerRecordA = {
       laserId: 'lh1',
       laserIdentifier: 'Laser Head 1',
-      ratedPowerWatts: 250,
       referenceValueWatts: 15.0,
       beforeValueWatts: 15.0,
       afterValueWatts: 14.8,
@@ -161,7 +158,6 @@ describe('Laser Power Autopilot Progression & Out-of-Spec Validation', () => {
     const laserPowerRecordB = {
       laserId: 'lh2',
       laserIdentifier: 'Laser Head 2',
-      ratedPowerWatts: 250,
       referenceValueWatts: 15.0,
       beforeValueWatts: 15.2,
       afterValueWatts: 14.9,
