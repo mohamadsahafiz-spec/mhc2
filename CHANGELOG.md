@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v2.5.5 — Engineering Analysis Workspace Redesign (2026-09-17)
+
+### Engineering Analysis Workspace Redesign
+- **Interactive Workspace Architecture**: Replaced the static multi-card dashboard with a dedicated Engineering Analysis Workspace (`SELECT ANALYSIS → SELECT SCOPE → INVESTIGATE DATA → DRILL INTO SOURCE RECORD`).
+- **Single Active Analysis Isolation**: Only one analysis occupies the main workspace at a time (Laser Power, Subsystem Results, Findings, MHC Activity, or Machine Comparison).
+- **Dynamic Context & Scope Isolation**: The scope filter bar dynamically renders only controls relevant to the active analysis (e.g. Machine/Metric selector for Laser Power, Subsystem/Customer selector for Subsystems).
+- **Dominant Laser Power Investigation**: Precision trajectory visualization with inline verified measurement count, first/latest readings, delta calculations, interactive node tooltips, and source MHC drilldown.
+- **Dedicated Subsystem & Findings Deep-Dives**: Subsystem verdict distribution with clickable deviation logs; recurring findings ranking with instance details and MHC session links.
+- **Data Integrity & Gating**: Clean compact states for missing data, zero fabricated values, and strict gating for Machine Comparison when fewer than 2 units have verified records.
+
 ## v2.5.4 — Analytics Screen UI/UX Redesign & Baseline Removal (2026-09-17)
 
 ### Analytics UI/UX Redesign

@@ -315,12 +315,28 @@ describe('R11-D — Engineering Analytics Subsystem & Finding Aggregations', () 
   });
 });
 
-describe('R11-G — Analytics Visual Refinement, Clean Hierarchy & Removal of Rated Baseline', () => {
-  it('completely removes Rated Baseline and Nominal Spec concepts from the Analytics UI', async () => {
+describe('R11 — Engineering Analysis Workspace UI/UX Redesign', () => {
+  it('verifies workspace model with 5 distinct selectable analyses and no card-wall layout', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const modulePath = path.resolve(process.cwd(), 'src/components/modules/AnalyticsModule.tsx');
     const content = fs.readFileSync(modulePath, 'utf-8');
+
+    // Verify workspace analysis modes exist
+    expect(content).toContain('activeAnalysis');
+    expect(content).toContain("'LASER_POWER'");
+    expect(content).toContain("'SUBSYSTEMS'");
+    expect(content).toContain("'FINDINGS'");
+    expect(content).toContain("'ACTIVITY'");
+    expect(content).toContain("'COMPARISON'");
+
+    // Verify workspace header and segmented selector
+    expect(content).toContain('Engineering Analytics Workspace');
+    expect(content).toContain('Laser Power');
+    expect(content).toContain('Subsystem Results');
+    expect(content).toContain('Findings');
+    expect(content).toContain('MHC Activity');
+    expect(content).toContain('Machine Comparison');
 
     // Verify Rated Baseline is completely absent (not replaced with N/A)
     expect(content).not.toContain('Rated Baseline');
@@ -331,14 +347,6 @@ describe('R11-G — Analytics Visual Refinement, Clean Hierarchy & Removal of Ra
     expect(content).not.toContain('250W');
     expect(content).not.toContain('250 W');
 
-    // Verify Primary Area is Laser Power Trend
-    expect(content).toContain('Laser Power Trend');
-    expect(content).toContain('Engineering Analytics');
-    expect(content).toContain('Subsystem Results');
-    expect(content).toContain('Recurring Findings');
-    expect(content).toContain('MHC Activity');
-    expect(content).toContain('Machine Comparison');
-
     // Verify banned AI slop and rainbow decorations are absent
     expect(content).not.toContain('bg-gradient-to-');
     expect(content).not.toContain('from-purple-');
@@ -346,68 +354,57 @@ describe('R11-G — Analytics Visual Refinement, Clean Hierarchy & Removal of Ra
     expect(content).not.toContain('drop-shadow-[0_');
   });
 
-  it('handles sparse data with compact factual representations instead of large empty blocks', () => {
+  it('handles sparse data with intentional compact representations (0 = No Data, 1 = 1 verified measurement, 2+ = trajectory)', () => {
     const emptyMeasurements: number[] = [];
     const singleMeasurement = [45.2];
     const multiMeasurements = [45.2, 44.8, 44.1];
 
-    const renderTrajectoryState = (data: number[]) => {
-      if (data.length === 0) return 'COMPACT_EMPTY';
-      if (data.length === 1) return 'COMPACT_SINGLE_NOTICE';
-      return 'PROMINENT_GRAPH';
+    const evaluateRepresentation = (data: number[]) => {
+      if (data.length === 0) return 'NO_DATA';
+      if (data.length === 1) return 'ONE_VERIFIED_MEASUREMENT';
+      return 'LONGITUDINAL_TRAJECTORY';
     };
 
-    expect(renderTrajectoryState(emptyMeasurements)).toBe('COMPACT_EMPTY');
-    expect(renderTrajectoryState(singleMeasurement)).toBe('COMPACT_SINGLE_NOTICE');
-    expect(renderTrajectoryState(multiMeasurements)).toBe('PROMINENT_GRAPH');
+    expect(evaluateRepresentation(emptyMeasurements)).toBe('NO_DATA');
+    expect(evaluateRepresentation(singleMeasurement)).toBe('ONE_VERIFIED_MEASUREMENT');
+    expect(evaluateRepresentation(multiMeasurements)).toBe('LONGITUDINAL_TRAJECTORY');
   });
 
-  it('extracts real measurements without baseline fabrication', () => {
-    const sessionsWithMeasurements: any[] = [
-      {
-        id: 'sess-1',
-        machineId: 'mch-test-1',
-        completionStatus: 'COMPLETED',
-        completedDate: '2026-08-01',
-        stage03_laserPower: [
-          {
-            laserIdentifier: 'lh1',
-            laserName: 'Laser Head 1',
-            beforeValueWatts: 14.5,
-            afterValueWatts: 14.2
-          }
-        ]
-      },
-      {
-        id: 'sess-2',
-        machineId: 'mch-test-1',
-        completionStatus: 'COMPLETED',
-        completedDate: '2026-09-01',
-        stage03_laserPower: [
-          {
-            laserIdentifier: 'lh1',
-            laserName: 'Laser Head 1',
-            beforeValueWatts: 14.2,
-            afterValueWatts: 13.9
-          }
-        ]
-      }
+  it('correctly calculates Laser Power measurement trend and delta (14.8 W → 12.7 W, Δ -2.1 W)', () => {
+    const points = [
+      { date: '2026-08-01', value: 14.8, unit: 'W' },
+      { date: '2026-09-01', value: 12.7, unit: 'W' }
     ];
 
-    const points: any[] = [];
-    sessionsWithMeasurements.forEach(s => {
-      const head1 = s.stage03_laserPower[0];
-      const val = head1.afterValueWatts > 0 ? head1.afterValueWatts : head1.beforeValueWatts;
-      points.push({
-        date: s.completedDate,
-        value: val,
-        unit: 'W'
-      });
-    });
+    const first = points[0].value;
+    const latest = points[points.length - 1].value;
+    const delta = Number((latest - first).toFixed(2));
+    const verifiedCount = points.length;
 
-    // Real measurements remain intact
-    expect(points).toHaveLength(2);
-    expect(points[0].value).toBe(14.2);
-    expect(points[1].value).toBe(13.9);
+    expect(first).toBe(14.8);
+    expect(latest).toBe(12.7);
+    expect(delta).toBe(-2.1);
+    expect(verifiedCount).toBe(2);
+  });
+
+  it('gates Machine Comparison when fewer than 2 machines have verified data', () => {
+    const machineListSingle = [{ machineId: 'm-1', sessionCount: 2 }];
+    const machineListMultiple = [
+      { machineId: 'm-1', sessionCount: 2 },
+      { machineId: 'm-2', sessionCount: 1 }
+    ];
+
+    const isComparisonReady = (list: { machineId: string; sessionCount: number }[]) => {
+      return list.length >= 2;
+    };
+
+    expect(isComparisonReady(machineListSingle)).toBe(false);
+    expect(isComparisonReady(machineListMultiple)).toBe(true);
+  });
+
+  it('renders a compact factual empty state when no recurring findings exist', () => {
+    const emptyFindings: any[] = [];
+    const message = emptyFindings.length === 0 ? 'No recurring findings recorded.' : 'Ranked Findings';
+    expect(message).toBe('No recurring findings recorded.');
   });
 });

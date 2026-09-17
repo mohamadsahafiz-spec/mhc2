@@ -3,16 +3,19 @@ import {
   Activity, 
   CheckCircle2, 
   AlertCircle, 
-  ShieldCheck, 
   Zap, 
   Calendar, 
   Building2, 
   Layers, 
   ChevronRight, 
   ExternalLink,
-  ChevronDown,
-  Info,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Search,
+  Check,
+  AlertTriangle,
+  FileText,
+  BarChart2,
+  Cpu
 } from 'lucide-react';
 import { Machine, MHCSession, Contract, Customer, NavigationTab } from '../../types';
 import { Button } from '../common/Button';
@@ -26,6 +29,7 @@ export interface AnalyticsProps {
   onSelectMachine?: (machineId: string) => void;
 }
 
+export type AnalysisMode = 'LASER_POWER' | 'SUBSYSTEMS' | 'FINDINGS' | 'ACTIVITY' | 'COMPARISON';
 export type DateRangeFilter = 'ALL' | '30D' | '90D' | '365D';
 export type SubsystemType = 'ALL' | 'LASER' | 'OPTICS' | 'COOLING' | 'PRODUCT_QA' | 'STAGE' | 'AGC';
 export type ParameterMetric = 'LASER_POWER' | 'STAGE_CALIBRATION' | 'AGC_ERROR';
@@ -79,23 +83,29 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   onNavigate,
   onSelectMachine
 }) => {
-  // Global Filters
+  // -------------------------------------------------------------
+  // WORKSPACE STATE
+  // -------------------------------------------------------------
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisMode>('LASER_POWER');
+
+  // Context & Scope Filters
   const [dateRange, setDateRange] = useState<DateRangeFilter>('ALL');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('ALL');
   const [subsystemFilter, setSubsystemFilter] = useState<SubsystemType>('ALL');
 
-  // Trajectory Local State (Machine & Parameter)
+  // Laser Power / Parameter Trajectory Scope
   const [trajectoryMachineId, setTrajectoryMachineId] = useState<string>(
     machines.length > 0 ? machines[0].id : ''
   );
   const [trajectoryParam, setTrajectoryParam] = useState<ParameterMetric>('LASER_POWER');
 
-  // Drill-down State
+  // Drill-down & Hover States
   const [expandedFindingComponent, setExpandedFindingComponent] = useState<string | null>(null);
   const [activeHoverPoint, setActiveHoverPoint] = useState<ParameterDataPoint | null>(null);
+  const [selectedSubsystemDrill, setSelectedSubsystemDrill] = useState<SubsystemType | null>(null);
 
   // -------------------------------------------------------------
-  // 1. FILTERED COMPLETED SESSIONS (Truthful FSOS Data)
+  // 1. FILTERED SESSIONS (Strict Truthful FSOS Data)
   // -------------------------------------------------------------
   const filteredCompletedSessions = useMemo(() => {
     const now = Date.now();
@@ -128,7 +138,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [mhcSessions, dateRange, selectedCustomerId, customers]);
 
   // -------------------------------------------------------------
-  // 2. PARAMETER TRAJECTORY (Strict Longitudinal Math — NO BASELINE)
+  // 2. LASER POWER / PARAMETER MEASUREMENTS (NO BASELINE)
   // -------------------------------------------------------------
   const parameterTrajectoryData = useMemo(() => {
     if (!trajectoryMachineId) return { points: [], unit: '', machine: null };
@@ -136,7 +146,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
     const targetMachine = machines.find(m => m.id === trajectoryMachineId);
     if (!targetMachine) return { points: [], unit: '', machine: null };
 
-    // Find all completed sessions for this machine
+    // Find completed sessions for this machine
     const machineSessions = mhcSessions.filter(
       s => (s.machineId === targetMachine.id || s.machineSerialNumber === targetMachine.serialNumber) &&
            s.completionStatus === 'COMPLETED'
@@ -181,7 +191,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         }
       });
 
-      // Fallback to machine.laserPowerRecords if session stage03 is empty
+      // Fallback to machine.laserPowerRecords if stage03 is empty
       if (points.length === 0 && targetMachine.laserPowerRecords && targetMachine.laserPowerRecords.length > 0) {
         const records = [...targetMachine.laserPowerRecords].sort((a, b) => 
           new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
@@ -251,7 +261,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [trajectoryMachineId, trajectoryParam, machines, mhcSessions]);
 
   // -------------------------------------------------------------
-  // 3. SUBSYSTEM RESULTS (Pass/Fail/Warn Distribution)
+  // 3. SUBSYSTEM RESULTS AGGREGATION
   // -------------------------------------------------------------
   interface SubsystemNonPassItem {
     sessionId: string;
@@ -262,6 +272,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }
 
   interface SubsystemData {
+    id: SubsystemType;
     name: string;
     pass: number;
     warn: number;
@@ -272,12 +283,12 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
 
   const subsystemVerdicts = useMemo(() => {
     const data: Record<Exclude<SubsystemType, 'ALL'>, SubsystemData> = {
-      LASER: { name: 'Laser Output (Stage 03)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      OPTICS: { name: 'Optics & Delivery (Stage 04)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      COOLING: { name: 'Chiller & Cooling (Stage 05)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      PRODUCT_QA: { name: 'Product Quality (Stage 06)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      STAGE: { name: 'Motion Stage (Calibration)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
-      AGC: { name: 'AGC Positioning', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] }
+      LASER: { id: 'LASER', name: 'Laser Output (Stage 03)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      OPTICS: { id: 'OPTICS', name: 'Optics & Delivery (Stage 04)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      COOLING: { id: 'COOLING', name: 'Chiller & Cooling (Stage 05)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      PRODUCT_QA: { id: 'PRODUCT_QA', name: 'Product Quality (Stage 06)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      STAGE: { id: 'STAGE', name: 'Motion Stage (Calibration)', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] },
+      AGC: { id: 'AGC', name: 'AGC Positioning', pass: 0, warn: 0, fail: 0, total: 0, nonPassItems: [] }
     };
 
     const machineMap = new Map<string, string>();
@@ -464,7 +475,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions, machines]);
 
   // -------------------------------------------------------------
-  // 4. RECURRING FINDINGS (Defect Frequency Ranking)
+  // 4. FINDINGS ANALYSIS (Defect Frequency Ranking)
   // -------------------------------------------------------------
   const recurringFindingsData = useMemo(() => {
     const findingMap = new Map<string, FindingGroup>();
@@ -484,7 +495,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         s.inspectionFindings.forEach(f => {
           if (!f.component) return;
 
-          // Map component to subsystem
           let compSubsystem = 'OPTICS';
           const lower = f.component.toLowerCase();
           if (lower.includes('laser') || lower.includes('beam') || lower.includes('diode')) compSubsystem = 'LASER';
@@ -493,7 +503,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           else if (lower.includes('agc') || lower.includes('sensor') || lower.includes('focus')) compSubsystem = 'AGC';
           else if (lower.includes('cut') || lower.includes('quality') || lower.includes('taper') || lower.includes('burr')) compSubsystem = 'PRODUCT_QA';
 
-          // Apply subsystem filter if active
           if (subsystemFilter !== 'ALL' && compSubsystem !== subsystemFilter) return;
 
           const key = f.component.trim();
@@ -529,7 +538,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         });
       }
 
-      // 2. Stage 04 Optical Inspection non-pass items
+      // 2. Stage 04 Optical non-pass
       if (s.stage04_opticalInspection && Array.isArray(s.stage04_opticalInspection)) {
         s.stage04_opticalInspection.forEach(opt => {
           if (opt.status === 'NG' || opt.status === 'ATTENTION') {
@@ -579,10 +588,10 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions, machines, subsystemFilter]);
 
   // -------------------------------------------------------------
-  // 5. MHC ACTIVITY & VOLUME TIME-SERIES
+  // 5. MHC ACTIVITY OVER TIME
   // -------------------------------------------------------------
   const activityTimeSeries = useMemo(() => {
-    const monthMap = new Map<string, { month: string; sessionCount: number; machineIds: Set<string>; findingsCount: number }>();
+    const monthMap = new Map<string, { month: string; sessionCount: number; machineIds: Set<string>; findingsCount: number; sessionIds: string[] }>();
 
     filteredCompletedSessions.forEach(s => {
       const dateStr = s.completedDate || s.startDate || s.lastUpdated;
@@ -596,16 +605,17 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           month: yearMonth,
           sessionCount: 0,
           machineIds: new Set<string>(),
-          findingsCount: 0
+          findingsCount: 0,
+          sessionIds: []
         });
       }
 
       const item = monthMap.get(yearMonth)!;
       item.sessionCount++;
+      item.sessionIds.push(s.id);
       if (s.machineId) item.machineIds.add(s.machineId);
       else if (s.machineSerialNumber) item.machineIds.add(s.machineSerialNumber);
 
-      // Count findings in this session
       let sessionFindings = 0;
       if (s.inspectionFindings && Array.isArray(s.inspectionFindings)) {
         sessionFindings += s.inspectionFindings.length;
@@ -617,7 +627,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
     });
 
     const sorted = Array.from(monthMap.values()).sort((a, b) => a.month.localeCompare(b.month));
-
     const totalCompleted = filteredCompletedSessions.length;
     const uniqueMachinesInspected = new Set(
       filteredCompletedSessions.map(s => s.machineId || s.machineSerialNumber).filter(Boolean)
@@ -635,7 +644,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [filteredCompletedSessions]);
 
   // -------------------------------------------------------------
-  // 6. MACHINE COMPARISON (Genuine Real Data Comparison)
+  // 6. MACHINE COMPARISON DATA (Strict Real Data Gating)
   // -------------------------------------------------------------
   const machineComparisonList = useMemo((): MachineComparisonItem[] => {
     const list: MachineComparisonItem[] = [];
@@ -645,12 +654,11 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         s => (s.machineId === m.id || s.machineSerialNumber === m.serialNumber) && s.completionStatus === 'COMPLETED'
       );
 
-      // Latest laser power reading
       let latestPower: number | undefined;
       const sortedSessions = [...mSessions].sort((a, b) => {
         const tA = new Date(a.completedDate || a.startDate || a.lastUpdated || 0).getTime();
         const tB = new Date(b.completedDate || b.startDate || b.lastUpdated || 0).getTime();
-        return tB - tA; // descending to get latest
+        return tB - tA;
       });
 
       for (const s of sortedSessions) {
@@ -663,7 +671,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         }
       }
 
-      // Check fallback machine.laserPowerRecords if needed
       if (latestPower === undefined && m.laserPowerRecords && m.laserPowerRecords.length > 0) {
         const lastRec = m.laserPowerRecords[m.laserPowerRecords.length - 1];
         if (lastRec && lastRec.readings?.[0]?.actualPowerWatts) {
@@ -671,7 +678,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         }
       }
 
-      // Subsystem pass/fail counts
       let evaluatedSubsystems = 0;
       let passCount = 0;
       let failCount = 0;
@@ -725,83 +731,22 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
     return list;
   }, [machines, mhcSessions]);
 
-  // -------------------------------------------------------------
-  // 7. CUSTOMER & SITE SERVICE ACTIVITY (Supporting)
-  // -------------------------------------------------------------
-  const siteActivityData = useMemo(() => {
-    const custMap = new Map<string, { name: string; sessionCount: number; machineIds: Set<string>; plants: Set<string> }>();
-
-    filteredCompletedSessions.forEach(s => {
-      const name = s.customerName || (s.customerId ? customers.find(c => c.id === s.customerId)?.name : null) || 'General Customer';
-      if (!custMap.has(name)) {
-        custMap.set(name, {
-          name,
-          sessionCount: 0,
-          machineIds: new Set<string>(),
-          plants: new Set<string>()
-        });
-      }
-
-      const item = custMap.get(name)!;
-      item.sessionCount++;
-      if (s.machineId) item.machineIds.add(s.machineId);
-      if (s.customerPlant) item.plants.add(s.customerPlant);
-    });
-
-    const list = Array.from(custMap.values()).map(c => ({
-      name: c.name,
-      sessionCount: c.sessionCount,
-      machineCount: c.machineIds.size,
-      plantCount: c.plants.size
-    }));
-
-    list.sort((a, b) => b.sessionCount - a.sessionCount);
-    return list;
-  }, [filteredCompletedSessions, customers]);
-
-  // -------------------------------------------------------------
-  // 8. CONTRACT FLEET PROTECTION COVERAGE (Supporting)
-  // -------------------------------------------------------------
-  const contractCoverage = useMemo(() => {
-    const coveredIds = new Set<string>();
-    const activeContracts = contracts.filter(c => c.status === 'ACTIVE');
-
-    activeContracts.forEach(c => {
-      (c.machinesCoveredIds || []).forEach(id => coveredIds.add(id));
-    });
-
-    const covered: Machine[] = [];
-    const uncovered: Machine[] = [];
-
-    machines.forEach(m => {
-      if (coveredIds.has(m.id)) covered.push(m);
-      else uncovered.push(m);
-    });
-
-    return {
-      activeContractsCount: activeContracts.length,
-      covered,
-      uncovered,
-      coveragePercent: machines.length > 0 ? Math.round((covered.length / machines.length) * 100) : 0
-    };
-  }, [machines, contracts]);
-
   const totalRegisteredMachines = machines.length;
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+    <div className="space-y-4 pb-12 max-w-7xl mx-auto">
       {/* ------------------------------------------------------------- */}
-      {/* TOP: COMPACT TITLE & FILTER / CONTEXT BAR                     */}
+      {/* 1. ANALYSIS SELECTOR & WORKSPACE HEADER                        */}
       {/* ------------------------------------------------------------- */}
       <div className="space-y-3 pb-3 border-b border-slate-200 dark:border-[#262B33]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Activity className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              Engineering Analytics
+              Engineering Analytics Workspace
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Longitudinal physical measurements, subsystem pass/fail telemetry, and recurring inspection findings.
+              Select an engineering analysis to investigate longitudinal measurements, subsystem health, and verified service findings.
             </p>
           </div>
 
@@ -819,9 +764,115 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           )}
         </div>
 
-        {/* Compact Filter Strip */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* Date Range Selector */}
+        {/* Primary Analysis Segmented Selector (ONE ANALYSIS ACTIVE AT A TIME) */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1A1D23] p-1 rounded-md border border-slate-200 dark:border-[#262B33] overflow-x-auto">
+          {[
+            { id: 'LASER_POWER', label: 'Laser Power', icon: Zap },
+            { id: 'SUBSYSTEMS', label: 'Subsystem Results', icon: Layers },
+            { id: 'FINDINGS', label: 'Findings', icon: Search },
+            { id: 'ACTIVITY', label: 'MHC Activity', icon: BarChart2 },
+            { id: 'COMPARISON', label: 'Machine Comparison', icon: Cpu }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeAnalysis === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveAnalysis(tab.id as AnalysisMode);
+                  setSelectedSubsystemDrill(null);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'bg-white dark:bg-[#121418] text-slate-900 dark:text-slate-100 shadow-xs border border-slate-200/60 dark:border-[#2C323B]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dynamic Context & Scope Bar: ONLY filters relevant to the active analysis! */}
+        <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+          {/* Machine selector (Relevant for Laser Power) */}
+          {activeAnalysis === 'LASER_POWER' && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <span className="text-[11px] text-slate-400 font-medium">Machine:</span>
+              <select
+                value={trajectoryMachineId}
+                onChange={e => setTrajectoryMachineId(e.target.value)}
+                aria-label="Target Machine"
+                className="bg-transparent text-slate-800 dark:text-slate-200 font-mono font-medium focus:outline-none cursor-pointer"
+              >
+                {machines.map(m => (
+                  <option key={m.id} value={m.id} className="bg-white dark:bg-[#1A1D23]">
+                    {m.machineNumber || m.serialNumber || m.name} ({m.model})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Metric selector (Relevant for Laser Power) */}
+          {activeAnalysis === 'LASER_POWER' && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={trajectoryParam}
+                onChange={e => setTrajectoryParam(e.target.value as ParameterMetric)}
+                aria-label="Measurement Metric"
+                className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="LASER_POWER" className="bg-white dark:bg-[#1A1D23]">Laser Power (Watts)</option>
+                <option value="STAGE_CALIBRATION" className="bg-white dark:bg-[#1A1D23]">Stage Accuracy (µm)</option>
+                <option value="AGC_ERROR" className="bg-white dark:bg-[#1A1D23]">AGC Positioning (µm)</option>
+              </select>
+            </div>
+          )}
+
+          {/* Subsystem filter (Relevant for Subsystems & Findings) */}
+          {(activeAnalysis === 'SUBSYSTEMS' || activeAnalysis === 'FINDINGS') && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <Layers className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={subsystemFilter}
+                onChange={e => setSubsystemFilter(e.target.value as SubsystemType)}
+                aria-label="Subsystem Filter"
+                className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="bg-white dark:bg-[#1A1D23]">All Subsystems</option>
+                <option value="LASER" className="bg-white dark:bg-[#1A1D23]">Laser Output (Stage 03)</option>
+                <option value="OPTICS" className="bg-white dark:bg-[#1A1D23]">Optics & Alignment (Stage 04)</option>
+                <option value="COOLING" className="bg-white dark:bg-[#1A1D23]">Chiller & Cooling (Stage 05)</option>
+                <option value="PRODUCT_QA" className="bg-white dark:bg-[#1A1D23]">Product Quality (Stage 06)</option>
+                <option value="STAGE" className="bg-white dark:bg-[#1A1D23]">Motion Stage (Calibration)</option>
+                <option value="AGC" className="bg-white dark:bg-[#1A1D23]">AGC Telemetry</option>
+              </select>
+            </div>
+          )}
+
+          {/* Customer filter (Relevant for Subsystems, Findings, Activity) */}
+          {(activeAnalysis === 'SUBSYSTEMS' || activeAnalysis === 'FINDINGS' || activeAnalysis === 'ACTIVITY') && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedCustomerId}
+                onChange={e => setSelectedCustomerId(e.target.value)}
+                aria-label="Customer Scope"
+                className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="bg-white dark:bg-[#1A1D23]">All Customers</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-[#1A1D23]">{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Date range filter (Relevant for all analyses) */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1A1D23] p-0.5 rounded border border-slate-200 dark:border-[#262B33]">
             <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
             {(['ALL', '30D', '90D', '365D'] as DateRangeFilter[]).map(range => (
@@ -838,55 +889,6 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
               </button>
             ))}
           </div>
-
-          {/* Customer Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={selectedCustomerId}
-              onChange={e => setSelectedCustomerId(e.target.value)}
-              aria-label="Customer Scope"
-              className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="ALL" className="bg-white dark:bg-[#1A1D23]">All Customers</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id} className="bg-white dark:bg-[#1A1D23]">{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Subsystem Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={subsystemFilter}
-              onChange={e => setSubsystemFilter(e.target.value as SubsystemType)}
-              aria-label="Subsystem Scope"
-              className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="ALL" className="bg-white dark:bg-[#1A1D23]">All Subsystems</option>
-              <option value="LASER" className="bg-white dark:bg-[#1A1D23]">Laser Output (Stage 03)</option>
-              <option value="OPTICS" className="bg-white dark:bg-[#1A1D23]">Optics & Alignment (Stage 04)</option>
-              <option value="COOLING" className="bg-white dark:bg-[#1A1D23]">Chiller & Cooling (Stage 05)</option>
-              <option value="PRODUCT_QA" className="bg-white dark:bg-[#1A1D23]">Product Quality (Stage 06)</option>
-              <option value="STAGE" className="bg-white dark:bg-[#1A1D23]">Motion Stage (Calibration)</option>
-              <option value="AGC" className="bg-white dark:bg-[#1A1D23]">AGC Telemetry</option>
-            </select>
-          </div>
-
-          {/* Reset Action */}
-          {(dateRange !== 'ALL' || selectedCustomerId !== 'ALL' || subsystemFilter !== 'ALL') && (
-            <button
-              onClick={() => {
-                setDateRange('ALL');
-                setSelectedCustomerId('ALL');
-                setSubsystemFilter('ALL');
-              }}
-              className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 underline ml-1"
-            >
-              Reset Filters
-            </button>
-          )}
         </div>
       </div>
 
@@ -904,760 +906,654 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        /* MAIN WORKSPACE CONTENT: ONE ANALYSIS ACTIVE AT A TIME */
+        <main className="space-y-4">
 
-          {/* ============================================================= */}
-          {/* PRIMARY HERO: LASER POWER TREND (Main Engineering Visual)    */}
-          {/* ============================================================= */}
-          <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 sm:p-5 space-y-4">
-            
-            {/* Header: Title + Machine/Metric Selectors */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#20252B] pb-3">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    {trajectoryParam === 'LASER_POWER' ? 'Laser Power Trend' : trajectoryParam === 'STAGE_CALIBRATION' ? 'Stage Accuracy Trend' : 'AGC Positioning Trend'}
-                  </h2>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Actual verified measurements recorded across completed MHC service sessions
-                  </span>
-                </div>
-              </div>
-
-              {/* Selectors */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-                  <span className="text-[11px] text-slate-400 font-medium">Machine:</span>
-                  <select
-                    value={trajectoryMachineId}
-                    onChange={e => setTrajectoryMachineId(e.target.value)}
-                    aria-label="Trajectory Machine"
-                    className="bg-transparent text-xs text-slate-900 dark:text-slate-100 font-mono font-medium focus:outline-none cursor-pointer"
-                  >
-                    {machines.map(m => (
-                      <option key={m.id} value={m.id} className="bg-white dark:bg-[#1A1D23]">
-                        {m.machineNumber || m.serialNumber || m.name} ({m.model})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                  <select
-                    value={trajectoryParam}
-                    onChange={e => setTrajectoryParam(e.target.value as ParameterMetric)}
-                    aria-label="Trajectory Metric"
-                    className="bg-transparent text-xs text-slate-900 dark:text-slate-100 font-medium focus:outline-none cursor-pointer"
-                  >
-                    <option value="LASER_POWER" className="bg-white dark:bg-[#1A1D23]">Laser Power (Watts)</option>
-                    <option value="STAGE_CALIBRATION" className="bg-white dark:bg-[#1A1D23]">Stage Accuracy (µm)</option>
-                    <option value="AGC_ERROR" className="bg-white dark:bg-[#1A1D23]">AGC Positioning (µm)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Trajectory Body — Data-Density Aware */}
-            {parameterTrajectoryData.points.length === 0 ? (
-              /* Compact Zero-Measurement State */
-              <div className="py-6 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  No Data
-                </span>
-                <p className="text-[11px] text-slate-500">
-                  No completed MHC sessions with recorded {trajectoryParam === 'LASER_POWER' ? 'laser power' : trajectoryParam === 'STAGE_CALIBRATION' ? 'stage calibration' : 'AGC error'} found for {parameterTrajectoryData.machine?.machineNumber || 'this unit'}.
-                </p>
-              </div>
-            ) : parameterTrajectoryData.points.length === 1 ? (
-              /* Compact Single-Measurement State */
-              <div className="p-4 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                      {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
-                    </span>
-                    <span className="text-xs font-medium text-slate-500 font-mono">
-                      1 verified measurement
+          {/* ========================================================================= */}
+          {/* VIEW 1: LASER POWER ANALYSIS                                              */}
+          {/* ========================================================================= */}
+          {activeAnalysis === 'LASER_POWER' && (
+            <div className="space-y-4">
+              <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      {trajectoryParam === 'LASER_POWER' ? 'Laser Power Longitudinal Trend' : trajectoryParam === 'STAGE_CALIBRATION' ? 'Stage Accuracy Deviation Trend' : 'AGC Positioning Error Trend'}
+                    </h2>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Physical verified telemetry for {parameterTrajectoryData.machine?.machineNumber || 'Selected Unit'} ({parameterTrajectoryData.machine?.model || 'Equipment'})
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Recorded on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span> ({parameterTrajectoryData.points[0].label || 'Reading'}). Minimum 2 measurements required to plot a trend line.
-                  </p>
                 </div>
 
-                {onNavigate && parameterTrajectoryData.points[0].sessionId && (
-                  <button
-                    onClick={() => onNavigate('mhc')}
-                    className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 font-mono underline shrink-0"
-                  >
-                    View Source MHC Record →
-                  </button>
+                {/* State: 0 measurements */}
+                {parameterTrajectoryData.points.length === 0 && (
+                  <div className="py-10 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      No Data
+                    </span>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                      No completed MHC sessions with recorded {trajectoryParam === 'LASER_POWER' ? 'laser power' : trajectoryParam === 'STAGE_CALIBRATION' ? 'stage calibration' : 'AGC error'} found for {parameterTrajectoryData.machine?.machineNumber || 'this unit'}.
+                    </p>
+                  </div>
                 )}
-              </div>
-            ) : (
-              /* 2+ Measurements: Engineering Trend Visual */
-              <div className="space-y-3">
-                {/* Lightweight Dominant Measurement Header Strip */}
-                <div className="flex flex-wrap items-baseline justify-between gap-3 pb-2 border-b border-slate-100 dark:border-[#20252B]">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
-                      {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit} → {parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value} {parameterTrajectoryData.unit}
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {parameterTrajectoryData.points.length} verified measurements
-                    </span>
-                  </div>
 
-                  {/* Inline Supporting Delta & Dates */}
-                  <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
-                    <span>First: <strong className="text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[0].date})</span>
-                    <span>·</span>
-                    <span>Latest: <strong className="text-slate-900 dark:text-slate-100">{parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].date})</span>
-                    <span>·</span>
-                    {(() => {
-                      const first = parameterTrajectoryData.points[0].value;
-                      const latest = parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value;
-                      const delta = Number((latest - first).toFixed(2));
-                      const sign = delta > 0 ? `+${delta}` : `${delta}`;
-                      const isDrift = delta < 0 && trajectoryParam === 'LASER_POWER';
-                      return (
-                        <span className={isDrift ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300'}>
-                          Δ: {sign} {parameterTrajectoryData.unit}
+                {/* State: 1 measurement */}
+                {parameterTrajectoryData.points.length === 1 && (
+                  <div className="p-4 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                          {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
                         </span>
-                      );
-                    })()}
-                  </div>
-                </div>
+                        <span className="text-xs font-medium text-slate-500 font-mono">
+                          1 verified measurement
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Recorded on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span> ({parameterTrajectoryData.points[0].label || 'Reading'}). Minimum 2 measurements required to plot a trend line.
+                      </p>
+                    </div>
 
-                {/* SVG Precision Trajectory Line (NO BASELINE) */}
-                <div className="h-52 w-full relative pt-2">
-                  {(() => {
-                    const pts = parameterTrajectoryData.points;
-                    const values = pts.map(p => p.value);
-                    const rawMin = Math.min(...values);
-                    const rawMax = Math.max(...values);
-                    
-                    const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
-                    const minVal = Math.max(0, rawMin - span * 0.25);
-                    const maxVal = rawMax + span * 0.25;
-                    const range = (maxVal - minVal) || 1;
-
-                    const width = 640;
-                    const height = 180;
-                    const padX = 40;
-                    const padY = 28;
-
-                    const plotPoints = pts.map((p, idx) => {
-                      const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
-                      const y = height - padY - ((p.value - minVal) / range) * (height - 2 * padY);
-                      return { ...p, x, y };
-                    });
-
-                    const pathD = plotPoints.reduce((acc, p, idx) => 
-                      idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
-                    );
-
-                    return (
-                      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-                        {/* Reference Grid lines */}
-                        <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="currentColor" strokeDasharray="2 2" className="text-slate-200 dark:text-[#262B33]" />
-                        <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" className="text-slate-300 dark:text-[#333A44]" />
-
-                        {/* Y-Axis Min/Max Labels */}
-                        <text x={padX - 8} y={padY + 4} textAnchor="end" fontSize="8.5" fontFamily="monospace" className="fill-slate-400">
-                          {maxVal.toFixed(1)}
-                        </text>
-                        <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="8.5" fontFamily="monospace" className="fill-slate-400">
-                          {minVal.toFixed(1)}
-                        </text>
-
-                        {/* Trajectory Polyline */}
-                        <path
-                          d={pathD}
-                          fill="none"
-                          stroke="#334155"
-                          strokeWidth="2.5"
-                          className="dark:stroke-slate-300"
-                        />
-
-                        {/* Interactive Data Point Nodes */}
-                        {plotPoints.map((p, idx) => {
-                          const isHovered = activeHoverPoint?.date === p.date && activeHoverPoint?.sessionId === p.sessionId;
-                          return (
-                            <g
-                              key={`node-${idx}`}
-                              className="cursor-pointer group"
-                              onClick={() => {
-                                if (onNavigate) onNavigate('mhc');
-                              }}
-                              onMouseEnter={() => setActiveHoverPoint(p)}
-                              onMouseLeave={() => setActiveHoverPoint(null)}
-                            >
-                              <circle
-                                cx={p.x}
-                                cy={p.y}
-                                r={isHovered ? 6 : 4.5}
-                                fill="#0F172A"
-                                className="dark:fill-slate-100 transition-transform"
-                              />
-                              <circle
-                                cx={p.x}
-                                cy={p.y}
-                                r="2"
-                                fill="#FFFFFF"
-                                className="dark:fill-slate-900"
-                              />
-                              {/* Static Value label above point if not hovered */}
-                              {!isHovered && (
-                                <text
-                                  x={p.x}
-                                  y={p.y - 8}
-                                  textAnchor="middle"
-                                  fontSize="9"
-                                  fontFamily="monospace"
-                                  className="fill-slate-800 dark:fill-slate-200 font-semibold"
-                                >
-                                  {p.value} {p.unit}
-                                </text>
-                              )}
-                              {/* Date label along X-axis */}
-                              <text
-                                x={p.x}
-                                y={height - 10}
-                                textAnchor="middle"
-                                fontSize="8.5"
-                                fontFamily="monospace"
-                                className="fill-slate-400"
-                              >
-                                {p.date}
-                              </text>
-
-                              {/* Clean Precision Tooltip on Hover */}
-                              {isHovered && (
-                                <g transform={`translate(${p.x}, ${Math.max(26, p.y - 36)})`}>
-                                  <rect
-                                    x="-65"
-                                    y="-18"
-                                    width="130"
-                                    height="28"
-                                    rx="4"
-                                    fill="#0F172A"
-                                    stroke="#334155"
-                                    strokeWidth="1"
-                                    className="dark:fill-[#16191D] dark:stroke-slate-700 shadow-md"
-                                  />
-                                  <line x1="0" y1="10" x2="0" y2="16" stroke="#0F172A" strokeWidth="1.5" className="dark:stroke-[#16191D]" />
-                                  <text
-                                    x="0"
-                                    y="-5"
-                                    textAnchor="middle"
-                                    fontSize="9.5"
-                                    fontFamily="monospace"
-                                    fontWeight="bold"
-                                    fill="#FFFFFF"
-                                    className="dark:fill-slate-100"
-                                  >
-                                    {p.value} {p.unit}
-                                  </text>
-                                  <text
-                                    x="0"
-                                    y="5"
-                                    textAnchor="middle"
-                                    fontSize="7.5"
-                                    fontFamily="monospace"
-                                    fill="#94A3B8"
-                                  >
-                                    {p.date} · {p.label || 'Reading'}
-                                  </text>
-                                </g>
-                              )}
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    );
-                  })()}
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-1">
-                  <span>Click any measurement point to inspect source MHC session.</span>
-                  {onNavigate && (
-                    <button
-                      onClick={() => onNavigate('mhc')}
-                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 underline"
-                    >
-                      Open MHC Module →
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
-
-
-          {/* ============================================================= */}
-          {/* SECONDARY AREA: SUBSYSTEM RESULTS & RECURRING FINDINGS        */}
-          {/* ============================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            
-            {/* 1. SUBSYSTEM RESULTS */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Subsystem Results
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2.5 text-[10px] font-mono text-slate-500">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Pass</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Warn</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Fail</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                {(Object.keys(subsystemVerdicts) as Array<Exclude<SubsystemType, 'ALL'>>).map(subKey => {
-                  const item = subsystemVerdicts[subKey];
-                  const hasData = item.total > 0;
-                  const passPct = hasData ? Math.round((item.pass / item.total) * 100) : 0;
-                  const warnPct = hasData ? Math.round((item.warn / item.total) * 100) : 0;
-                  const failPct = hasData ? Math.max(0, 100 - passPct - warnPct) : 0;
-                  const isSelected = subsystemFilter === subKey;
-
-                  return (
-                    <div
-                      key={subKey}
-                      className={`p-2.5 rounded border transition-colors ${
-                        isSelected
-                          ? 'border-slate-400 bg-slate-50 dark:border-slate-600 dark:bg-[#1C2026]'
-                          : 'border-slate-100 dark:border-[#20252B] hover:border-slate-200 dark:hover:border-[#262B33]'
-                      }`}
-                    >
-                      <div
-                        onClick={() => setSubsystemFilter(subsystemFilter === subKey ? 'ALL' : subKey)}
-                        className="cursor-pointer"
+                    {onNavigate && parameterTrajectoryData.points[0].sessionId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onNavigate('mhc')}
+                        icon={<ExternalLink className="w-3.5 h-3.5" />}
                       >
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {item.name}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-500">
-                            {hasData ? (
-                              <span>
-                                {item.total} evaluated · <strong className="text-slate-700 dark:text-slate-300">{item.pass} Pass</strong>
-                                {item.warn > 0 && <span className="text-amber-600 dark:text-amber-400"> · {item.warn} Warn</span>}
-                                {item.fail > 0 && <span className="text-rose-600 dark:text-rose-400"> · {item.fail} Fail</span>}
-                              </span>
-                            ) : (
-                              '0 evaluated'
-                            )}
-                          </span>
-                        </div>
+                        View Source MHC Record
+                      </Button>
+                    )}
+                  </div>
+                )}
 
-                        {/* Stacked Segment Bar */}
-                        <div className="w-full h-1.5 rounded-full overflow-hidden flex bg-slate-100 dark:bg-[#20252B]">
-                          {hasData ? (
-                            <>
-                              {passPct > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${passPct}%` }} />}
-                              {warnPct > 0 && <div className="bg-amber-500 h-full" style={{ width: `${warnPct}%` }} />}
-                              {failPct > 0 && <div className="bg-rose-500 h-full" style={{ width: `${failPct}%` }} />}
-                            </>
-                          ) : (
-                            <div className="bg-slate-200 dark:bg-[#262B33] w-full h-full" />
-                          )}
-                        </div>
+                {/* State: 2+ measurements (Precision SVG Visual) */}
+                {parameterTrajectoryData.points.length >= 2 && (
+                  <div className="space-y-4">
+                    {/* Measurement Summary Strip */}
+                    <div className="flex flex-wrap items-baseline justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                          {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit} → {parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value} {parameterTrajectoryData.unit}
+                        </span>
+                        <span className="text-xs font-mono text-slate-500">
+                          {parameterTrajectoryData.points.length} verified measurements
+                        </span>
                       </div>
 
-                      {/* Expandable Non-Pass Inspection Occurrences */}
-                      {isSelected && item.nonPassItems.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-[#262B33] space-y-1.5">
-                          <div className="text-[10px] uppercase font-mono tracking-wider text-slate-400">
-                            Recorded Non-Pass Verdicts ({item.nonPassItems.length}):
-                          </div>
-                          <div className="space-y-1 max-h-36 overflow-y-auto pr-0.5">
-                            {item.nonPassItems.map((np, idx) => (
-                              <div
-                                key={`np-${idx}`}
-                                className="p-1.5 rounded bg-white dark:bg-[#121418] border border-slate-100 dark:border-[#20252B] flex items-center justify-between text-[11px]"
-                              >
-                                <div>
-                                  <div className="flex items-center gap-1.5 font-mono">
-                                    <span
-                                      className={`text-[9px] px-1 py-0.2 rounded font-semibold ${
-                                        np.verdict === 'FAIL'
-                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                      }`}
-                                    >
-                                      {np.verdict}
-                                    </span>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{np.machineLabel}</span>
-                                    <span className="text-slate-400">· {np.date}</span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-500 mt-0.5">{np.detail}</div>
-                                </div>
+                      <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+                        <span>First: <strong className="text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[0].date})</span>
+                        <span>·</span>
+                        <span>Latest: <strong className="text-slate-900 dark:text-slate-100">{parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].date})</span>
+                        <span>·</span>
+                        {(() => {
+                          const first = parameterTrajectoryData.points[0].value;
+                          const latest = parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value;
+                          const delta = Number((latest - first).toFixed(2));
+                          const sign = delta > 0 ? `+${delta}` : `${delta}`;
+                          const isDrift = delta < 0 && trajectoryParam === 'LASER_POWER';
+                          return (
+                            <span className={isDrift ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300'}>
+                              Δ {sign} {parameterTrajectoryData.unit}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
 
-                                {onNavigate && (
-                                  <button
-                                    onClick={() => onNavigate('mhc')}
-                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 shrink-0"
-                                    title="Open MHC Record"
+                    {/* Precision SVG Chart */}
+                    <div className="h-60 w-full relative pt-2">
+                      {(() => {
+                        const pts = parameterTrajectoryData.points;
+                        const values = pts.map(p => p.value);
+                        const rawMin = Math.min(...values);
+                        const rawMax = Math.max(...values);
+                        
+                        const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
+                        const minVal = Math.max(0, rawMin - span * 0.25);
+                        const maxVal = rawMax + span * 0.25;
+                        const range = (maxVal - minVal) || 1;
+
+                        const width = 720;
+                        const height = 200;
+                        const padX = 45;
+                        const padY = 28;
+
+                        const plotPoints = pts.map((p, idx) => {
+                          const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
+                          const y = height - padY - ((p.value - minVal) / range) * (height - 2 * padY);
+                          return { ...p, x, y };
+                        });
+
+                        const pathD = plotPoints.reduce((acc, p, idx) => 
+                          idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
+                        );
+
+                        return (
+                          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+                            {/* Grid lines */}
+                            <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="currentColor" strokeDasharray="2 2" className="text-slate-200 dark:text-[#262B33]" />
+                            <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" className="text-slate-300 dark:text-[#333A44]" />
+
+                            {/* Y-Axis Labels */}
+                            <text x={padX - 8} y={padY + 4} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
+                              {maxVal.toFixed(1)}
+                            </text>
+                            <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
+                              {minVal.toFixed(1)}
+                            </text>
+
+                            {/* Trajectory Polyline */}
+                            <path
+                              d={pathD}
+                              fill="none"
+                              stroke="#334155"
+                              strokeWidth="2.5"
+                              className="dark:stroke-slate-300"
+                            />
+
+                            {/* Nodes */}
+                            {plotPoints.map((p, idx) => {
+                              const isHovered = activeHoverPoint?.date === p.date && activeHoverPoint?.sessionId === p.sessionId;
+                              return (
+                                <g
+                                  key={`node-${idx}`}
+                                  className="cursor-pointer group"
+                                  onClick={() => {
+                                    if (onNavigate) onNavigate('mhc');
+                                  }}
+                                  onMouseEnter={() => setActiveHoverPoint(p)}
+                                  onMouseLeave={() => setActiveHoverPoint(null)}
+                                >
+                                  <circle
+                                    cx={p.x}
+                                    cy={p.y}
+                                    r={isHovered ? 6 : 4.5}
+                                    fill="#0F172A"
+                                    className="dark:fill-slate-100 transition-transform"
+                                  />
+                                  <circle
+                                    cx={p.x}
+                                    cy={p.y}
+                                    r="2"
+                                    fill="#FFFFFF"
+                                    className="dark:fill-slate-900"
+                                  />
+                                  {!isHovered && (
+                                    <text
+                                      x={p.x}
+                                      y={p.y - 8}
+                                      textAnchor="middle"
+                                      fontSize="9.5"
+                                      fontFamily="monospace"
+                                      className="fill-slate-800 dark:fill-slate-200 font-semibold"
+                                    >
+                                      {p.value} {p.unit}
+                                    </text>
+                                  )}
+                                  <text
+                                    x={p.x}
+                                    y={height - 10}
+                                    textAnchor="middle"
+                                    fontSize="9"
+                                    fontFamily="monospace"
+                                    className="fill-slate-500"
                                   >
-                                    <ChevronRight className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                                    {p.date}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        );
+                      })()}
+
+                      {/* Tooltip */}
+                      {activeHoverPoint && (
+                        <div className="absolute top-2 right-2 bg-slate-900 text-white text-xs p-2.5 rounded shadow-lg border border-slate-700 pointer-events-none z-10 space-y-0.5 font-mono">
+                          <div className="text-[11px] text-slate-400">{activeHoverPoint.label || 'Laser Head'}</div>
+                          <div className="text-sm font-bold text-white">{activeHoverPoint.value} {activeHoverPoint.unit}</div>
+                          <div className="text-[11px] text-slate-400">Date: {activeHoverPoint.date}</div>
+                          {activeHoverPoint.sessionId && (
+                            <div className="text-[10px] text-slate-300 pt-0.5">Click to inspect source MHC session</div>
+                          )}
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            </section>
+                  </div>
+                )}
+              </section>
 
-            {/* 2. RECURRING FINDINGS */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Recurring Findings
+              {/* Table of Verified Longitudinal Measurements */}
+              {parameterTrajectoryData.points.length > 0 && (
+                <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Measurement Log ({parameterTrajectoryData.points.length} records)
                   </h3>
-                </div>
-                <span className="text-[11px] font-mono text-slate-500">
-                  {recurringFindingsData.length} finding{recurringFindingsData.length === 1 ? '' : 's'}
-                </span>
-              </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-[#262B33] text-slate-500 font-mono text-[11px]">
+                          <th className="py-2 px-3">Date</th>
+                          <th className="py-2 px-3">Component / Channel</th>
+                          <th className="py-2 px-3">Measured Value</th>
+                          <th className="py-2 px-3">Source Record</th>
+                          <th className="py-2 px-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-[#20252B]">
+                        {parameterTrajectoryData.points.map((pt, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#1A1D23]/50">
+                            <td className="py-2 px-3 font-mono text-slate-800 dark:text-slate-200">{pt.date}</td>
+                            <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{pt.label || 'Primary Laser'}</td>
+                            <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
+                              {pt.value} {pt.unit}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-slate-500">
+                              {pt.sessionId ? `MHC-${pt.sessionId.slice(-6).toUpperCase()}` : 'Machine Record'}
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              {onNavigate && (
+                                <button
+                                  onClick={() => onNavigate('mhc')}
+                                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline text-[11px]"
+                                >
+                                  Open MHC Record
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
 
-              {recurringFindingsData.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
-                  No recurring findings recorded.
+          {/* ========================================================================= */}
+          {/* VIEW 2: SUBSYSTEM ANALYSIS                                                */}
+          {/* ========================================================================= */}
+          {activeAnalysis === 'SUBSYSTEMS' && (
+            <div className="space-y-4">
+              <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      Subsystem Health & Verdict Distribution
+                    </h2>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Evaluated verdicts across {filteredCompletedSessions.length} completed MHC inspection sessions
+                    </span>
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {recurringFindingsData.map((f, idx) => {
-                    const isExpanded = expandedFindingComponent === f.component;
-                    const maxOccurrences = recurringFindingsData[0]?.occurrenceCount || 1;
-                    const barWidthPct = Math.max(12, Math.round((f.occurrenceCount / maxOccurrences) * 100));
 
-                    return (
-                      <div
-                        key={`find-${idx}`}
-                        className="p-2.5 rounded border border-slate-200 dark:border-[#262B33] bg-slate-50/40 dark:bg-[#1A1D23] space-y-1.5 transition-all"
-                      >
+                {/* Subsystem Grid List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(Object.keys(subsystemVerdicts) as Array<Exclude<SubsystemType, 'ALL'>>)
+                    .filter(key => subsystemFilter === 'ALL' || subsystemFilter === key)
+                    .map(key => {
+                      const item = subsystemVerdicts[key];
+                      const hasData = item.total > 0;
+                      const passPercent = hasData ? Math.round((item.pass / item.total) * 100) : 0;
+                      const isSelected = selectedSubsystemDrill === key;
+
+                      return (
                         <div
-                          onClick={() => setExpandedFindingComponent(isExpanded ? null : f.component)}
-                          className="flex items-center justify-between cursor-pointer text-xs"
+                          key={key}
+                          onClick={() => setSelectedSubsystemDrill(isSelected ? null : key)}
+                          className={`p-3.5 rounded border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-slate-800 dark:border-slate-300 bg-slate-50/80 dark:bg-[#1A1D23]'
+                              : 'border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] hover:border-slate-300 dark:hover:border-[#333A44]'
+                          }`}
                         >
-                          <div className="flex items-center gap-2">
-                            {f.isRecurring ? (
-                              <span className="text-[9.5px] font-mono font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                                RECURRING
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">{item.name}</h3>
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                {hasData ? `${item.total} inspections evaluated` : 'No inspections recorded'}
                               </span>
-                            ) : (
-                              <span className="text-[9.5px] font-mono font-medium px-1 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-[#262B33] dark:text-slate-300">
-                                ISOLATED
+                            </div>
+                            {hasData && (
+                              <span className={`text-xs font-bold font-mono px-1.5 py-0.5 rounded ${
+                                item.fail > 0 
+                                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400' 
+                                  : item.warn > 0 
+                                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
+                                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+                              }`}>
+                                {passPercent}% Pass
                               </span>
                             )}
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">
-                              {f.component}
-                            </span>
-                            <span className="text-[10.5px] text-slate-400">
-                              ({f.affectedMachines.size} unit{f.affectedMachines.size === 1 ? '' : 's'})
-                            </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            <span>{f.occurrenceCount}x</span>
-                            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          {/* Verdict Breakdown Bar */}
+                          {hasData && (
+                            <div className="mt-3 space-y-1.5">
+                              <div className="h-1.5 w-full bg-slate-100 dark:bg-[#20252B] rounded-full overflow-hidden flex">
+                                <div style={{ width: `${(item.pass / item.total) * 100}%` }} className="bg-emerald-600" />
+                                <div style={{ width: `${(item.warn / item.total) * 100}%` }} className="bg-amber-500" />
+                                <div style={{ width: `${(item.fail / item.total) * 100}%` }} className="bg-rose-600" />
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10.5px] font-mono text-slate-500">
+                                <span className="text-emerald-700 dark:text-emerald-400 font-medium">{item.pass} Pass</span>
+                                {item.warn > 0 && <span className="text-amber-700 dark:text-amber-400 font-medium">{item.warn} Warn</span>}
+                                {item.fail > 0 && <span className="text-rose-700 dark:text-rose-400 font-medium">{item.fail} Fail</span>}
+                              </div>
+                            </div>
+                          )}
+
+                          {item.nonPassItems.length > 0 && (
+                            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-amber-500" />
+                              <span>{item.nonPassItems.length} deviations recorded</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </section>
+
+              {/* Subsystem Deviation Detail Drilldown */}
+              {selectedSubsystemDrill && subsystemVerdicts[selectedSubsystemDrill as Exclude<SubsystemType, 'ALL'>]?.nonPassItems.length > 0 && (
+                <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      Recorded Deviations: {subsystemVerdicts[selectedSubsystemDrill as Exclude<SubsystemType, 'ALL'>].name}
+                    </h3>
+                    <button
+                      onClick={() => setSelectedSubsystemDrill(null)}
+                      className="text-xs text-slate-400 hover:text-slate-200"
+                    >
+                      Close Details
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 dark:divide-[#20252B]">
+                    {subsystemVerdicts[selectedSubsystemDrill as Exclude<SubsystemType, 'ALL'>].nonPassItems.map((item, idx) => (
+                      <div key={idx} className="py-2.5 flex items-start justify-between gap-4 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-1.5 py-0.2 font-mono text-[10px] font-bold rounded ${
+                              item.verdict === 'FAIL'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                            }`}>
+                              {item.verdict}
+                            </span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{item.machineLabel}</span>
+                            <span className="text-slate-400 font-mono text-[11px]">{item.date}</span>
                           </div>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px]">{item.detail}</p>
                         </div>
 
-                        {/* Frequency Bar */}
-                        <div className="w-full h-1 rounded-full overflow-hidden bg-slate-200 dark:bg-[#262B33]">
-                          <div
-                            className={`h-full rounded-full ${f.isRecurring ? 'bg-amber-500' : 'bg-slate-500'}`}
-                            style={{ width: `${barWidthPct}%` }}
-                          />
-                        </div>
+                        {onNavigate && (
+                          <button
+                            onClick={() => onNavigate('mhc')}
+                            className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline shrink-0 font-mono"
+                          >
+                            Open Session →
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
 
-                        {/* Expanded Drill-Down Details */}
-                        {isExpanded && (
-                          <div className="pt-2 border-t border-slate-200 dark:border-[#262B33] space-y-1.5 text-[11px]">
-                            <div className="text-slate-500 font-medium text-[10px] uppercase tracking-wider">Recorded Inspection Occurrences:</div>
+          {/* ========================================================================= */}
+          {/* VIEW 3: FINDINGS ANALYSIS                                                 */}
+          {/* ========================================================================= */}
+          {activeAnalysis === 'FINDINGS' && (
+            <div className="space-y-4">
+              <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Search className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      Recurring Findings & Component Defect Frequency
+                    </h2>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Ranked by recurrence frequency across completed MHC sessions
+                    </span>
+                  </div>
+                </div>
+
+                {recurringFindingsData.length === 0 ? (
+                  <div className="py-8 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      No recurring findings recorded.
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      No component defects or attention items were flagged in the selected scope.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-[#20252B]">
+                    {recurringFindingsData.map((group, idx) => {
+                      const isExpanded = expandedFindingComponent === group.component;
+                      return (
+                        <div key={idx} className="py-3 space-y-2">
+                          <div 
+                            className="flex items-start justify-between gap-4 cursor-pointer"
+                            onClick={() => setExpandedFindingComponent(isExpanded ? null : group.component)}
+                          >
                             <div className="space-y-1">
-                              {f.instances.map((inst, iIdx) => (
-                                <div
-                                  key={`inst-${iIdx}`}
-                                  className="p-1.5 rounded bg-white dark:bg-[#121418] border border-slate-100 dark:border-[#20252B] flex items-center justify-between"
-                                >
-                                  <div>
-                                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                                      {inst.machineLabel}
-                                    </span>
-                                    <span className="text-slate-400 ml-1.5">· {inst.date}</span>
-                                    {inst.conditions.length > 0 && (
-                                      <div className="text-[10px] text-slate-500">
-                                        Condition: {inst.conditions.join(', ')}
-                                      </div>
-                                    )}
-                                    {inst.actionRecommendation && (
-                                      <div className="text-[10px] text-amber-700 dark:text-amber-400">
-                                        Action: {inst.actionRecommendation}
-                                      </div>
-                                    )}
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">{group.component}</h3>
+                                {group.isRecurring && (
+                                  <span className="px-1.5 py-0.2 text-[10px] font-mono font-medium rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                                    Recurring
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+                                <span>{group.occurrenceCount} occurrences</span>
+                                <span>·</span>
+                                <span>Affected machines: {group.affectedMachineLabels.join(', ')}</span>
+                              </div>
+                            </div>
+
+                            <button className="text-xs text-slate-400 hover:text-slate-200 font-mono">
+                              {isExpanded ? 'Hide Instances' : `View ${group.instances.length} Instances →`}
+                            </button>
+                          </div>
+
+                          {/* Expanded Instances */}
+                          {isExpanded && (
+                            <div className="pl-3 border-l-2 border-slate-200 dark:border-[#262B33] space-y-2 mt-2 pt-1">
+                              {group.instances.map((inst, iIdx) => (
+                                <div key={iIdx} className="text-xs flex items-start justify-between gap-4 py-1">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">{inst.machineLabel}</span>
+                                      <span className="text-slate-400 font-mono text-[11px]">{inst.date}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                                      {inst.conditions.join(', ') || 'Condition recorded'}
+                                      {inst.actionRecommendation ? ` — Action: ${inst.actionRecommendation}` : ''}
+                                    </p>
                                   </div>
 
                                   {onNavigate && (
                                     <button
                                       onClick={() => onNavigate('mhc')}
-                                      className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
-                                      title="Open MHC Record"
+                                      className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline font-mono shrink-0"
                                     >
-                                      <ChevronRight className="w-3.5 h-3.5" />
+                                      Inspect MHC →
                                     </button>
                                   )}
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          </div>
-
-          {/* ============================================================= */}
-          {/* TERTIARY AREA: MHC ACTIVITY & MACHINE COMPARISON             */}
-          {/* ============================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            
-            {/* 1. MHC ACTIVITY */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    MHC Activity
-                  </h3>
-                </div>
-                <span className="text-[11px] font-mono text-slate-500">
-                  {activityTimeSeries.totalCompleted} completed session{activityTimeSeries.totalCompleted === 1 ? '' : 's'}
-                </span>
-              </div>
-
-              {activityTimeSeries.months.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
-                  No completed MHC records in selected filter range.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono pb-1">
-                    <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Inspected Units</span>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                        {activityTimeSeries.uniqueMachinesInspected} / {totalRegisteredMachines}
-                      </div>
-                    </div>
-                    <div className="p-2 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#22262E]">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Findings</span>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                        {activityTimeSeries.totalFindingsCount}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Monthly Activity List */}
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                    {activityTimeSeries.months.map(m => {
-                      const widthPct = Math.max(10, Math.round((m.sessionCount / activityTimeSeries.maxMonthlySessions) * 100));
-                      return (
-                        <div key={m.month} className="p-2 rounded bg-slate-50/60 dark:bg-[#1A1D23] space-y-1 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">{m.month}</span>
-                            <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                              {m.sessionCount} session{m.sessionCount === 1 ? '' : 's'} · {m.machineIds.size} unit{m.machineIds.size === 1 ? '' : 's'}
-                            </span>
-                          </div>
-                          <div className="w-full h-1 rounded-full overflow-hidden bg-slate-200 dark:bg-[#262B33]">
-                            <div className="h-full bg-slate-700 dark:bg-slate-300 rounded-full" style={{ width: `${widthPct}%` }} />
-                          </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              )}
-            </section>
-
-            {/* 2. MACHINE COMPARISON (Where real data supports it) */}
-            <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-2">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Machine Comparison
-                  </h3>
-                </div>
-                <span className="text-[11px] font-mono text-slate-500">
-                  {machineComparisonList.length} unit{machineComparisonList.length === 1 ? '' : 's'} with data
-                </span>
-              </div>
-
-              {machineComparisonList.length < 2 ? (
-                <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-[#1A1D23]/50 rounded border border-dashed border-slate-200 dark:border-[#262B33]">
-                  Machine comparison requires verified MHC data across at least 2 units.
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-0.5">
-                  {machineComparisonList.map(item => (
-                    <div
-                      key={item.machineId}
-                      className="p-2 rounded bg-slate-50/60 dark:bg-[#1A1D23] border border-slate-100 dark:border-[#20252B] flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
-                          {item.label}
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          {item.model} · {item.sessionCount} MHC session{item.sessionCount === 1 ? '' : 's'}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-right font-mono">
-                        {item.latestLaserPower !== undefined ? (
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase block">Latest Power</span>
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {item.latestLaserPower} {item.laserUnit}
-                            </span>
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase block">Latest Power</span>
-                            <span className="text-slate-400">N/A</span>
-                          </div>
-                        )}
-
-                        {item.passRatePercent !== undefined ? (
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase block">Pass Rate</span>
-                            <span className={`font-semibold ${item.passRatePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                              {item.passRatePercent}%
-                            </span>
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase block">Pass Rate</span>
-                            <span className="text-slate-400">N/A</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          {/* ============================================================= */}
-          {/* SUPPORTING FOOTER: CUSTOMER DISTRIBUTION & CONTRACTS          */}
-          {/* ============================================================= */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-            
-            {/* Customer Distribution */}
-            <div className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3 space-y-2">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Customer Distribution
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {siteActivityData.length} account{siteActivityData.length === 1 ? '' : 's'}
-                </span>
-              </div>
-
-              {siteActivityData.length === 0 ? (
-                <div className="py-2 text-center text-[11px] text-slate-400">
-                  No customer service records.
-                </div>
-              ) : (
-                <div className="space-y-1 max-h-24 overflow-y-auto text-xs">
-                  {siteActivityData.map((c, idx) => (
-                    <div
-                      key={`site-${idx}`}
-                      className="p-1.5 rounded bg-slate-50/60 dark:bg-[#1A1D23] flex items-center justify-between"
-                    >
-                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate mr-2">{c.name}</span>
-                      <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 shrink-0">
-                        {c.sessionCount}x ({c.machineCount} unit{c.machineCount === 1 ? '' : 's'})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Contract Protection Coverage */}
-            <div className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-3 space-y-2">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#20252B] pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Contract Coverage
-                  </h4>
-                </div>
-                {onNavigate && (
-                  <button
-                    onClick={() => onNavigate('contracts')}
-                    className="text-[10px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 underline"
-                  >
-                    Contracts →
-                  </button>
                 )}
-              </div>
+              </section>
+            </div>
+          )}
 
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Fleet Coverage:</span>
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                    {contractCoverage.coveragePercent}% ({contractCoverage.covered.length}/{totalRegisteredMachines})
-                  </span>
+          {/* ========================================================================= */}
+          {/* VIEW 4: MHC ACTIVITY ANALYSIS                                             */}
+          {/* ========================================================================= */}
+          {activeAnalysis === 'ACTIVITY' && (
+            <div className="space-y-4">
+              <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      MHC Service Execution Activity
+                    </h2>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Chronological service volume across completed inspection sessions
+                    </span>
+                  </div>
                 </div>
 
-                <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200 dark:bg-[#262B33]">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${contractCoverage.coveragePercent}%` }}
-                  />
+                {/* Activity Summary Bar */}
+                <div className="flex items-center gap-6 py-2 border-b border-slate-100 dark:border-[#20252B] text-xs">
+                  <div>
+                    <span className="text-[11px] text-slate-500">Completed Sessions: </span>
+                    <strong className="font-mono text-slate-900 dark:text-slate-100">{activityTimeSeries.totalCompleted}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500">Distinct Machines: </span>
+                    <strong className="font-mono text-slate-900 dark:text-slate-100">{activityTimeSeries.uniqueMachinesInspected}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500">Total Findings: </span>
+                    <strong className="font-mono text-slate-900 dark:text-slate-100">{activityTimeSeries.totalFindingsCount}</strong>
+                  </div>
                 </div>
 
-                {contractCoverage.uncovered.length > 0 ? (
-                  <div className="text-[10px] text-slate-500">
-                    {contractCoverage.uncovered.length} unprotected machine{contractCoverage.uncovered.length === 1 ? '' : 's'}.
+                {activityTimeSeries.months.length === 0 ? (
+                  <div className="py-8 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      No Data
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      No completed MHC sessions found in the selected date range.
+                    </p>
                   </div>
                 ) : (
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>100% active contract protection.</span>
+                  <div className="space-y-3 pt-2">
+                    {/* Activity Time Series Bars */}
+                    <div className="space-y-2">
+                      {activityTimeSeries.months.map((m, idx) => {
+                        const pct = Math.max(8, (m.sessionCount / activityTimeSeries.maxMonthlySessions) * 100);
+                        return (
+                          <div key={idx} className="space-y-1 text-xs">
+                            <div className="flex items-center justify-between font-mono text-[11px]">
+                              <span className="text-slate-800 dark:text-slate-200">{m.month}</span>
+                              <span className="text-slate-500">
+                                {m.sessionCount} sessions ({m.machineIds.size} machines, {m.findingsCount} findings)
+                              </span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-100 dark:bg-[#20252B] rounded-full overflow-hidden">
+                              <div style={{ width: `${pct}%` }} className="h-full bg-slate-700 dark:bg-slate-300 rounded-full" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
+              </section>
             </div>
+          )}
 
-          </div>
+          {/* ========================================================================= */}
+          {/* VIEW 5: MACHINE COMPARISON                                                */}
+          {/* ========================================================================= */}
+          {activeAnalysis === 'COMPARISON' && (
+            <div className="space-y-4">
+              <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      Cross-Machine Telemetry Comparison
+                    </h2>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Head-to-head comparison across machines with verified operational records
+                    </span>
+                  </div>
+                </div>
 
-        </div>
+                {machineComparisonList.length < 2 ? (
+                  <div className="py-8 px-4 rounded bg-slate-50/50 dark:bg-[#1A1D23]/50 border border-dashed border-slate-200 dark:border-[#262B33] text-center space-y-1">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Comparison requires at least 2 machines with verified data
+                    </span>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                      Currently {machineComparisonList.length} machine has completed inspection telemetry. Cross-machine comparison activates automatically when multiple units have verified service data.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-[#262B33] text-slate-500 font-mono text-[11px]">
+                          <th className="py-2 px-3">Equipment</th>
+                          <th className="py-2 px-3">Model</th>
+                          <th className="py-2 px-3">Completed Sessions</th>
+                          <th className="py-2 px-3">Latest Laser Power</th>
+                          <th className="py-2 px-3">Evaluated Subsystems</th>
+                          <th className="py-2 px-3">Pass Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-[#20252B]">
+                        {machineComparisonList.map((m, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#1A1D23]/50">
+                            <td className="py-2 px-3 font-semibold text-slate-900 dark:text-slate-100 font-mono">
+                              {m.label}
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">
+                              {m.model}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-slate-800 dark:text-slate-200">
+                              {m.sessionCount}
+                            </td>
+                            <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
+                              {m.latestLaserPower !== undefined ? `${m.latestLaserPower} ${m.laserUnit || 'W'}` : 'No Data'}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-slate-700 dark:text-slate-300">
+                              {m.evaluatedSubsystems} items ({m.passCount} Pass, {m.failCount} Fail)
+                            </td>
+                            <td className="py-2 px-3 font-mono">
+                              {m.passRatePercent !== undefined ? (
+                                <span className={`font-semibold ${
+                                  m.passRatePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                                }`}>
+                                  {m.passRatePercent}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">N/A</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+        </main>
       )}
     </div>
   );
