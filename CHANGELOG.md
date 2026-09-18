@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v2.7.0 — Application Shell UI/UX Refinement (2026-09-18)
+
+### Application Shell Refinement
+- **Calm Expanded Sidebar**: Streamlined navigation hierarchy by eliminating stacked multi-state active indicators, reducing border clutter, removing redundant dot decorators, and establishing a single, high-contrast active signal.
+- **Precision Collapsed Rail State**: Engineered an intentional, accessible collapsed rail layout with perfectly aligned icon triggers, keyboard-accessible expand/collapse actions, native tooltips, and seamless main content responsive adaptation.
+- **Harmonized Top Bar Architecture**: Consolidated fragmented top-bar widget capsules into a coherent, balanced header bar, establishing clear visual hierarchy between page title, quick search, primary actions (`+ New MHC`), and unified system controls.
+- **Contextual Directive Isolation**: Restricted the operational maintenance directive context exclusively to the Daily Work workspace, preventing redundant global header clutter on analytical and system screens.
+- **Settings Terminology Harmonization**: Formally aligned all shell and header references to "Settings" across all application contexts.
+
 ## v2.6.0 — Settings & Backup UX Reorganization (2026-09-18)
 
 ### Settings & Backup UX Reorganization (R12-C)
