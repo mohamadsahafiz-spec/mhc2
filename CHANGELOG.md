@@ -1,5 +1,27 @@
 # FSOS CHANGELOG
 
+## v2.9.1 — Duplicate Sidebar Toggle Removal (2026-09-18)
+
+### Sidebar Toggle Consolidation
+- **Single Authoritative Toggle**: Removed the duplicate collapse button from beside the page title in the Top Bar, ensuring the sole sidebar hide/collapse control resides directly at the Sidebar/Header boundary.
+- **Clean Restorative Trigger**: Maintained the unobtrusive Menu restore trigger in the Top Bar strictly when the sidebar is in its true-hidden state, preventing redundant side-by-side buttons when expanded.
+
+## v2.9.0 — Top Bar Minimal Cleanup (2026-09-18)
+
+### Top Bar Minimal Cleanup
+- **Focused Top Bar Surface**: Removed the redundant `+ New MHC` global shortcut from the header bar, centralizing MHC workflow initiation to its dedicated operational workspaces (Daily Work & MHC Autopilot) without competing entry points.
+- **Unused Notification Bell Removal**: Removed the placeholder notification bell and modal popover from the global header, eliminating inactive UI elements and leaving the header minimal, calm, and distraction-free.
+- **Essential Operational Context**: Kept only genuine system context (current page title, real-time sync status indicator, and engineer account/profile menu) within a clean, high-contrast industrial header bar.
+
+## v2.8.0 — Application Shell UI/UX Final Refinement (2026-09-18)
+
+### Final Application Shell Refinement
+- **Pure Typography Navigation Hierarchy**: Stripped excessive and decorative icon walls from sidebar menu items, letting crisp typography, clean grouping, and a single definitive active state provide clear visual navigation.
+- **True Sidebar Hide/Collapse Architecture**: When hidden, the navigation surface collapses completely rather than leaving an icon-only miniature column, enabling the main engineering workspace to naturally expand into the freed screen real estate.
+- **Accessible Sidebar Show Control**: Added a clear, accessible menu restore trigger in the global header with clear keyboard support and label state.
+- **Streamlined Calm Top Bar**: Removed redundant top-bar shortcuts (theme toggle, global search field, and workspace mode switcher) which are already canonically configured inside Settings, leaving a unified and calm operational header bar.
+- **Global Context Simplification**: Removed non-contextual operational directives from global headers, keeping the top bar focused on page context, real-time sync status, quick MHC creation, notifications, and account settings.
+
 ## v2.7.0 — Application Shell UI/UX Refinement (2026-09-18)
 
 ### Application Shell Refinement

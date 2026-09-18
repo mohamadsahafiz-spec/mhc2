@@ -92,6 +92,27 @@ function AppLayout() {
     return StorageService.getInitialActiveOperator();
   });
 
+  // Sidebar Visibility State
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('fsos_sidebar_open');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+    }
+    return true;
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('fsos_sidebar_open', String(next));
+      }
+      return next;
+    });
+  };
+
   // Load state from StorageService & IDB on mount
   useEffect(() => {
     // 1. Targeted startup image hydration & unseen media purge (runs independently of SyncEngine!)
@@ -475,6 +496,8 @@ function AppLayout() {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        isOpen={isSidebarOpen}
+        onToggleSidebar={handleToggleSidebar}
         urgentAlertsCount={alerts.filter((a) => a.severity === 'CRITICAL').length}
         profile={profile}
         workspaceMode={workspaceMode}
@@ -485,16 +508,9 @@ function AppLayout() {
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          alerts={alerts}
-          notifications={notifications}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={handleToggleSidebar}
           activeUser={activeUser}
-          onMarkAsRead={handleMarkNotificationAsRead}
-          onMarkAllAsRead={handleMarkAllNotificationsAsRead}
-          onClearAllNotifications={handleClearAllNotifications}
-          onOpenQuickMhc={() => setActiveTab('mhc_autopilot')}
-          nextPriorityAction={nextPriorityAction}
-          workspaceMode={workspaceMode}
-          onModeChange={handleModeChange}
           onLogout={handleLogout}
         />
 

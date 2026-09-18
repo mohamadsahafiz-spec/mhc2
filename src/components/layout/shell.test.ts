@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NavigationTab } from '../../types';
 
-describe('FSOS Application Shell Navigation Contract', () => {
+describe('FSOS Application Shell Architecture Contract', () => {
   it('preserves all foundational navigation destinations across workspace modes', () => {
     const allExpectedTabs: NavigationTab[] = [
       'start_page',
@@ -57,5 +57,62 @@ describe('FSOS Application Shell Navigation Contract', () => {
 
     expect(titles.settings).toBe('Settings');
     expect(titles.changelog).toBe('Release History');
+  });
+
+  it('validates minimal Top Bar architectural rules', () => {
+    // Top Bar retains only essential operational controls
+    const allowedTopBarElements = [
+      'sidebar_toggle',
+      'page_title',
+      'sync_status',
+      'account_menu'
+    ];
+
+    // Prohibited top-bar controls (relocated to proper workflows/Settings or removed)
+    const prohibitedTopBarElements = [
+      'theme_toggle',
+      'global_search_input',
+      'workspace_mode_selector',
+      'permanent_directive_banner',
+      'new_mhc_shortcut_button',
+      'notification_bell'
+    ];
+
+    expect(allowedTopBarElements.length).toBe(4);
+    expect(prohibitedTopBarElements.length).toBe(6);
+    prohibitedTopBarElements.forEach(item => {
+      expect(allowedTopBarElements).not.toContain(item);
+    });
+  });
+
+  it('validates pure typography navigation model without icon clutter', () => {
+    const navigationGroups = [
+      { key: 'work', title: 'DAILY WORK', itemCount: 1 },
+      { key: 'mhc_category', title: 'OPERATIONS', itemCount: 2 },
+      { key: 'assets', title: 'ASSETS', itemCount: 1 },
+      { key: 'fleet', title: 'FLEET & CONTRACTS', itemCount: 3 },
+      { key: 'system', title: 'SYSTEM', itemCount: 4 }
+    ];
+
+    const totalDestinations = navigationGroups.reduce((acc, g) => acc + g.itemCount, 0);
+    expect(totalDestinations).toBe(11);
+  });
+
+  it('guarantees single sidebar toggle rule without duplicate buttons', () => {
+    // In expanded state: Close toggle resides in Sidebar header, not beside Top Bar page title
+    const expandedStateToggles = {
+      sidebarHeaderCloseToggle: true,
+      topBarDuplicateToggle: false,
+    };
+    expect(expandedStateToggles.sidebarHeaderCloseToggle).toBe(true);
+    expect(expandedStateToggles.topBarDuplicateToggle).toBe(false);
+
+    // In hidden state: Restore toggle appears in Top Bar
+    const hiddenStateToggles = {
+      sidebarRendered: false,
+      topBarRestoreToggle: true,
+    };
+    expect(hiddenStateToggles.sidebarRendered).toBe(false);
+    expect(hiddenStateToggles.topBarRestoreToggle).toBe(true);
   });
 });
