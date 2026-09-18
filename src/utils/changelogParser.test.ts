@@ -4,11 +4,11 @@ import { getAuthoritativeChangelog, parseChangelog } from './changelogParser';
 describe('Authoritative Changelog Parser', () => {
   it('loads and parses the root CHANGELOG.md directly', () => {
     const entries = getAuthoritativeChangelog();
-    expect(entries.length).toBe(185);
+    expect(entries.length).toBe(186);
 
-    // Latest entry should be v2.9.1
+    // Latest entry should be v2.10.0
     const first = entries[0];
-    expect(first.version).toBe('v2.9.1');
+    expect(first.version).toBe('v2.10.0');
     expect(first.date).toBeTruthy();
     expect(first.title).toBeTruthy();
     expect(first.sections.length).toBeGreaterThan(0);
@@ -28,7 +28,7 @@ describe('Authoritative Changelog Parser', () => {
       expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(entry.sections.length).toBeGreaterThan(0);
     }
-    expect(versionSet.size).toBe(185);
+    expect(versionSet.size).toBe(186);
   });
 
   it('verifies all 16 normalized releases are present with full structured sections', () => {

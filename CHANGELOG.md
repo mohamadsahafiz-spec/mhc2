@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v2.10.0 — Login UI/UX & Motion Finalization (2026-09-18)
+
+### Login Experience & Mechanical Motion Finalization
+- **Calm Industrial Login Experience**: Redesigned the FSOS login interface to evoke precision engineering operations with clean typography, balanced spacing, and subtle grid background geometry.
+- **Restrained Workspace Selection**: Simplified MHC Mode and Founder Mode selection into cohesive, high-contrast industrial surfaces without decorative glowing gradients or purple accent clutter.
+- **Mechanical + Smooth Transitions**: Integrated purposeful arrival and interaction animations via Motion, with complete support for `prefers-reduced-motion` to eliminate non-essential animations when requested.
+- **Authentic Local Session Integrity**: Preserved local authentication semantics, account switching, credential handling, and session state generation without introducing third-party dependencies or mock backends.
+
 ## v2.9.1 — Duplicate Sidebar Toggle Removal (2026-09-18)
 
 ### Sidebar Toggle Consolidation
