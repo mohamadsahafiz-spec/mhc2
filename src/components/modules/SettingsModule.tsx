@@ -1,34 +1,44 @@
 import React, { useMemo, useState, useRef } from 'react';
 import {
-  RefreshCw,
-  User,
+  Palette,
+  Globe,
+  SlidersHorizontal,
+  Database,
+  HardDrive,
+  Info,
+  Sun,
+  Moon,
+  Monitor,
   Download,
   Upload,
   ShieldCheck,
   AlertTriangle,
-  FileJson,
   CheckCircle2,
   XCircle,
-  Info,
-  Loader2,
-  Image as ImageIcon,
+  Trash2,
+  RefreshCw,
+  FileJson,
   Package,
   Layers,
   Search,
   Filter,
   Copy,
   FileText,
-  Database,
-  BarChart3,
-  HardDrive,
-  Trash2,
-  History
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Clock,
+  Cpu,
+  History,
+  Check,
+  Zap,
+  RotateCcw
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
-import { useTheme } from '../../context/ThemeContext';
-import { APP_VERSION } from '../../constants/version';
-import { getAuthoritativeChangelog } from '../../utils/changelogParser';
+import { useTheme, ThemeMode } from '../../context/ThemeContext';
+import { APP_VERSION, APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
+import { StorageService } from '../../utils/persistence';
 import {
   exportFullBackup,
   exportCompleteArchive,
@@ -59,18 +69,42 @@ import {
   FSOSCompleteBackupValidationResult,
   FSOSPortableBackupValidationResult
 } from '../../types/backup';
+import { NavigationTab, WorkspaceMode } from '../../types';
 
-interface SettingsProps {
+export type SettingsSection = 
+  | 'appearance' 
+  | 'regional' 
+  | 'application' 
+  | 'backup' 
+  | 'maintenance' 
+  | 'about';
+
+interface SettingsModuleProps {
   onResetData: () => void;
-  initialSubTab?: 'backup' | 'changelog';
+  onNavigate?: (tab: NavigationTab) => void;
+  initialSection?: SettingsSection;
 }
 
-export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSubTab = 'backup' }) => {
-  const { effectiveTheme } = useTheme();
+export const SettingsModule: React.FC<SettingsModuleProps> = ({ 
+  onResetData, 
+  onNavigate,
+  initialSection = 'appearance' 
+}) => {
+  const { theme, setTheme, effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  const changelog = useMemo(() => getAuthoritativeChangelog(), []);
-  const [activeSubTab, setActiveSubTab] = useState<'backup' | 'changelog'>(initialSubTab);
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+
+  // Application Settings State
+  const [workspaceMode, setWorkspaceModeState] = useState<WorkspaceMode>(() => {
+    return StorageService.getWorkspaceMode() || 'MHC_MODE';
+  });
+  const [sidebarCollapsedDefault, setSidebarCollapsedDefault] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem('fsos_sidebar_collapsed') === 'true';
+    }
+    return false;
+  });
 
   // Backup & Restore State
   const coreFileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +113,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
   const [exportingCore, setExportingCore] = useState(false);
   const [exportingComplete, setExportingComplete] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
+  const [showLegacyExport, setShowLegacyExport] = useState(false);
 
   const [coreFileText, setCoreFileText] = useState<string>('');
   const [mediaFileText, setMediaFileText] = useState<string>('');
@@ -95,13 +130,18 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
-  // IndexedDB Contamination Audit & Safe Cleanup State
+  // Workspace Maintenance State
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+  const [resetConfirmInput, setResetConfirmInput] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Advanced Storage Diagnostics State
+  const [showAdvancedDiagnostics, setShowAdvancedDiagnostics] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [auditResult, setAuditResult] = useState<ImageContaminationAuditResult | null>(null);
   const [cleanupStatus, setCleanupStatus] = useState<string | null>(null);
 
-  // P1.3.5 Forensic Media Evidence Size & Provenance Audit State
   const [forensicReport, setForensicReport] = useState<MediaEvidenceAuditReport | null>(null);
   const [forensicSearch, setForensicSearch] = useState<string>('');
   const [forensicCategoryFilter, setForensicCategoryFilter] = useState<string>('ALL');
@@ -109,120 +149,31 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
   const [activeForensicTab, setActiveForensicTab] = useState<'summary' | 'categories' | 'references' | 'duplicates' | 'consumers'>('summary');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // P1.3.7 Safe Orphaned Media Reconciliation & Cleanup State
   const [cleaningOrphans, setCleaningOrphans] = useState(false);
   const [orphansCleanupResult, setOrphansCleanupResult] = useState<OrphanedMediaCleanupResult | null>(null);
 
-  // P1.3.8 Safe Media Deduplication & Physical Storage Reclaim
   const [deduplicating, setDeduplicating] = useState(false);
   const [deduplicationResult, setDeduplicationResult] = useState<MediaDeduplicationResult | null>(null);
 
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleAuditImages = async () => {
-    try {
-      setAuditing(true);
-      setCleanupStatus(null);
-      const [malformedRes, forensicRes] = await Promise.all([
-        ImageStore.auditMalformedImages(),
-        auditMediaEvidence()
-      ]);
-      setAuditResult(malformedRes);
-      setForensicReport(forensicRes);
-    } catch (err: any) {
-      console.error('[SettingsModule] Image audit error:', err);
-    } finally {
-      setAuditing(false);
+  // Handlers for Application Settings
+  const handleWorkspaceModeChange = (mode: WorkspaceMode) => {
+    setWorkspaceModeState(mode);
+    StorageService.saveWorkspaceMode(mode);
+    const currentAuth = StorageService.getAuth();
+    if (currentAuth) {
+      StorageService.saveAuth({ ...currentAuth, workspaceMode: mode });
     }
   };
 
-  const handleDeduplicateMedia = async () => {
-    try {
-      setDeduplicating(true);
-      setDeduplicationResult(null);
-      const res = await ImageStore.consolidateDuplicatePayloads();
-      setDeduplicationResult(res);
-
-      // Re-run forensic audit to refresh live report
-      const [malformedRes, forensicRes] = await Promise.all([
-        ImageStore.auditMalformedImages(),
-        auditMediaEvidence()
-      ]);
-      setAuditResult(malformedRes);
-      setForensicReport(forensicRes);
-    } catch (err: any) {
-      console.error('[SettingsModule] Deduplication error:', err);
-      alert(`Deduplication error: ${err?.message || err}`);
-    } finally {
-      setDeduplicating(false);
+  const handleSidebarPrefToggle = () => {
+    const next = !sidebarCollapsedDefault;
+    setSidebarCollapsedDefault(next);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('fsos_sidebar_collapsed', String(next));
     }
   };
 
-  const handleCleanupOrphanedMedia = async () => {
-    if (!forensicReport || forensicReport.summary.orphanedRecords === 0) return;
-
-    const orphanedCount = forensicReport.summary.orphanedRecords;
-    const reclaimableBytes = forensicReport.entries
-      .filter((e) => e.isOrphaned)
-      .reduce((acc, e) => acc + e.byteSize, 0);
-
-    const confirmed = window.confirm(
-      `Permanently remove ${orphanedCount} confirmed orphaned media entries (${formatBytes(reclaimableBytes)}) from IndexedDB?\n\n` +
-      `Safety Guarantee:\n` +
-      `• ONLY media not referenced by current FSOS Core Data will be removed.\n` +
-      `• All active machine passports, MHC sessions (including completed historical sessions), beam profiles, reports, and templates are strictly preserved.\n\n` +
-      `Proceed with safe orphaned media cleanup?`
-    );
-    if (!confirmed) return;
-
-    try {
-      setCleaningOrphans(true);
-      setOrphansCleanupResult(null);
-      const result = await cleanupOrphanedMedia();
-      setOrphansCleanupResult(result);
-
-      // Re-run audits automatically to refresh live UI
-      const [malformedRes, forensicRes] = await Promise.all([
-        ImageStore.auditMalformedImages(),
-        auditMediaEvidence()
-      ]);
-      setAuditResult(malformedRes);
-      setForensicReport(forensicRes);
-    } catch (err: any) {
-      console.error('[SettingsModule] Orphan cleanup error:', err);
-      alert(`Orphan cleanup error: ${err?.message || err}`);
-    } finally {
-      setCleaningOrphans(false);
-    }
-  };
-
-  const handleCleanupImages = async () => {
-    if (!auditResult || auditResult.malformed === 0) return;
-    const confirmed = window.confirm(
-      `Remove ${auditResult.malformed} confirmed React-derived internal artifact entries from IndexedDB?\n\nThis strictly preserves all ${auditResult.legitimate} legitimate engineering photos, beam profiles, and evidence images.`
-    );
-    if (!confirmed) return;
-
-    try {
-      setCleaning(true);
-      const res = await ImageStore.cleanupMalformedReactDerivedImages();
-      setCleanupStatus(`Successfully removed ${res.removed} React-derived entries. ${res.skipped} legitimate images preserved.`);
-      // Re-run audit to refresh stats
-      const nextAudit = await ImageStore.auditMalformedImages();
-      setAuditResult(nextAudit);
-    } catch (err: any) {
-      console.error('[SettingsModule] Image cleanup error:', err);
-      alert(`Cleanup error: ${err?.message || err}`);
-    } finally {
-      setCleaning(false);
-    }
-  };
-
-  // Re-run validation whenever core or media file text changes
+  // Handlers for Backup & Restore
   const runValidation = (coreText: string, mediaText: string) => {
     if (!coreText || coreText.trim() === '') {
       setCompleteValidation(null);
@@ -238,7 +189,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
       setExportSuccess(null);
       const res = await exportPortableBackup();
       setExportSuccess(
-        `Portable Complete Backup exported: ${res.filename} (${formatBytes(res.totalBytes)}, ${res.manifest.mediaSummary.canonicalMediaFiles} canonical files, ${res.manifest.mediaSummary.aliasReferences} alias refs)`
+        `Portable Backup exported: ${res.filename} (${formatBytes(res.totalBytes)}, ${res.manifest.mediaSummary.canonicalMediaFiles} canonical media files, ${res.manifest.mediaSummary.aliasReferences} alias references)`
       );
       setTimeout(() => setExportSuccess(null), 8000);
     } catch (err: any) {
@@ -254,7 +205,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
       setExportingCore(true);
       setExportSuccess(null);
       const { filename } = exportFullBackup();
-      setExportSuccess(`Core Data Backup downloaded: ${filename}`);
+      setExportSuccess(`Core Data JSON downloaded: ${filename}`);
       setTimeout(() => setExportSuccess(null), 7000);
     } catch (err: any) {
       console.error('[SettingsModule] Core export error:', err);
@@ -270,7 +221,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
       setExportSuccess(null);
       const res = await exportCompleteArchive();
       setExportSuccess(
-        `Complete Archive exported (${res.imageCount} images, Backup ID: ${res.backupId.slice(0, 18)}...): ${res.coreFilename} and ${res.mediaFilename}`
+        `Complete Archive exported (${res.imageCount} images): ${res.coreFilename} & ${res.mediaFilename}`
       );
       setTimeout(() => setExportSuccess(null), 8000);
     } catch (err: any) {
@@ -358,8 +309,6 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
 
     setSelectedMediaFileName(file.name);
     setValidating(true);
-    setRestoreError(null);
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -377,7 +326,7 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
     };
     reader.onerror = () => {
       setValidating(false);
-      alert('Failed to read selected media backup file.');
+      alert('Failed to read selected media archive file.');
       if (mediaFileInputRef.current) {
         mediaFileInputRef.current.value = '';
       }
@@ -385,1327 +334,1458 @@ export const SettingsModule: React.FC<SettingsProps> = ({ onResetData, initialSu
     reader.readAsText(file);
   };
 
-  const handleRemoveMediaFile = () => {
-    setMediaFileText('');
-    setSelectedMediaFileName('');
-    runValidation(coreFileText, '');
-  };
-
-  const handleConfirmRestore = async () => {
+  const handleApplyRestore = async () => {
     if (selectedArchiveType === 'portable') {
-      if (!portableZipBytes || !portableValidation?.valid) return;
+      if (!portableZipBytes || !portableValidation || !portableValidation.valid) return;
       try {
         setRestoring(true);
         setRestoreError(null);
         const res = await restorePortableBackup(portableZipBytes);
-        if (!res.success) {
-          setRestoreError(res.error || 'Restore failed.');
-          setRestoring(false);
+        if (res.success) {
+          alert(
+            `Restore Complete!\n\n` +
+            `• ${res.restoredImageCount ?? 0} media files restored to IndexedDB.\n` +
+            `• Pre-restore safety snapshot saved to: ${res.safetyBackupFilename || 'safety snapshot'}\n\n` +
+            `Click OK to reload the workspace.`
+          );
+          window.location.reload();
+        } else {
+          setRestoreError(`Restore failed: ${res.error || 'Unknown error'}`);
         }
       } catch (err: any) {
-        console.error('[SettingsModule] Portable restore error:', err);
-        setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
+        setRestoreError(`Restore execution error: ${err?.message || err}`);
+      } finally {
         setRestoring(false);
       }
     } else {
-      if (!completeValidation?.coreValidation?.envelope) return;
-
+      if (!completeValidation || !completeValidation.valid || !coreFileText) return;
       try {
         setRestoring(true);
         setRestoreError(null);
-
-        const res = await restoreCompleteBackup(
-          completeValidation.coreValidation.envelope,
-          completeValidation.mediaValidation?.envelope
-        );
-
-        if (!res.success) {
-          setRestoreError(res.error || 'Restore failed.');
-          setRestoring(false);
+        const parsedCore = JSON.parse(coreFileText);
+        const parsedMedia = mediaFileText ? JSON.parse(mediaFileText) : undefined;
+        const res = await restoreCompleteBackup(parsedCore, parsedMedia);
+        if (res.success) {
+          alert(
+            `Restore Complete!\n\n` +
+            `• ${res.restoredImageCount ?? 0} media evidence images restored.\n` +
+            `• Safety snapshot saved: ${res.safetyBackupFilename || 'safety snapshot'}\n\n` +
+            `Click OK to reload the workspace.`
+          );
+          window.location.reload();
+        } else {
+          setRestoreError(`Restore failed: ${res.error || 'Unknown error'}`);
         }
       } catch (err: any) {
-        console.error('[SettingsModule] Complete restore error:', err);
-        setRestoreError(`Restore failed: ${err?.message || 'Unknown error'}`);
+        setRestoreError(`Restore execution error: ${err?.message || err}`);
+      } finally {
         setRestoring(false);
       }
     }
   };
 
-  const renderFormattedLine = (line: string) => {
-    const isSubItem = line.startsWith('  - ') || line.startsWith('    - ');
-    const cleanLine = line.replace(/^\s*[-*]\s+/, '');
-    const parts = cleanLine.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
-
-    return (
-      <span className={`inline leading-relaxed ${isSubItem ? 'pl-2 block text-slate-400/90' : isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-        {parts.map((part, i) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return (
-              <strong key={i} className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                {part.slice(2, -2)}
-              </strong>
-            );
-          }
-          if (part.startsWith('`') && part.endsWith('`')) {
-            return (
-              <code key={i} className={`px-1 py-0.5 rounded font-mono text-[11px] ${isDark ? 'bg-slate-800 text-sky-300' : 'bg-slate-200 text-sky-800'}`}>
-                {part.slice(1, -1)}
-              </code>
-            );
-          }
-          if (part.startsWith('*') && part.endsWith('*')) {
-            return (
-              <em key={i} className={`italic ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                {part.slice(1, -1)}
-              </em>
-            );
-          }
-          return part;
-        })}
-      </span>
-    );
+  // Handlers for Advanced Maintenance / Storage Diagnostics
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
+
+  const handleAuditImages = async () => {
+    try {
+      setAuditing(true);
+      setCleanupStatus(null);
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
+    } catch (err: any) {
+      console.error('[SettingsModule] Image audit error:', err);
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const handleDeduplicateMedia = async () => {
+    try {
+      setDeduplicating(true);
+      setDeduplicationResult(null);
+      const res = await ImageStore.consolidateDuplicatePayloads();
+      setDeduplicationResult(res);
+
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
+    } catch (err: any) {
+      console.error('[SettingsModule] Deduplication error:', err);
+      alert(`Deduplication error: ${err?.message || err}`);
+    } finally {
+      setDeduplicating(false);
+    }
+  };
+
+  const handleCleanupOrphanedMedia = async () => {
+    if (!forensicReport || forensicReport.summary.orphanedRecords === 0) return;
+
+    const orphanedCount = forensicReport.summary.orphanedRecords;
+    const reclaimableBytes = forensicReport.entries
+      .filter((e) => e.isOrphaned)
+      .reduce((acc, e) => acc + e.byteSize, 0);
+
+    const confirmed = window.confirm(
+      `Permanently remove ${orphanedCount} confirmed orphaned media entries (${formatBytes(reclaimableBytes)}) from IndexedDB?\n\n` +
+      `Safety Guarantee:\n` +
+      `• ONLY media not referenced by current FSOS Core Data will be removed.\n` +
+      `• All active machine passports, MHC sessions, beam profiles, reports, and templates are strictly preserved.\n\n` +
+      `Proceed with safe orphaned media cleanup?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setCleaningOrphans(true);
+      setOrphansCleanupResult(null);
+      const result = await cleanupOrphanedMedia();
+      setOrphansCleanupResult(result);
+
+      const [malformedRes, forensicRes] = await Promise.all([
+        ImageStore.auditMalformedImages(),
+        auditMediaEvidence()
+      ]);
+      setAuditResult(malformedRes);
+      setForensicReport(forensicRes);
+    } catch (err: any) {
+      console.error('[SettingsModule] Orphan cleanup error:', err);
+      alert(`Orphan cleanup error: ${err?.message || err}`);
+    } finally {
+      setCleaningOrphans(false);
+    }
+  };
+
+  const handleCleanupImages = async () => {
+    if (!auditResult || auditResult.malformed === 0) return;
+    const confirmed = window.confirm(
+      `Remove ${auditResult.malformed} confirmed React-derived internal artifact entries from IndexedDB?\n\nThis strictly preserves all ${auditResult.legitimate} legitimate engineering photos, beam profiles, and evidence images.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setCleaning(true);
+      const res = await ImageStore.cleanupMalformedReactDerivedImages();
+      setCleanupStatus(`Successfully removed ${res.removed} React-derived entries. ${res.skipped} legitimate images preserved.`);
+      const nextAudit = await ImageStore.auditMalformedImages();
+      setAuditResult(nextAudit);
+    } catch (err: any) {
+      console.error('[SettingsModule] Image cleanup error:', err);
+      alert(`Cleanup error: ${err?.message || err}`);
+    } finally {
+      setCleaning(false);
+    }
+  };
+
+  const handleExecuteReset = async () => {
+    try {
+      setIsResetting(true);
+      setShowResetConfirmModal(false);
+      await onResetData();
+    } catch (err: any) {
+      console.error('[SettingsModule] Reset error:', err);
+      setIsResetting(false);
+      alert(`Failed to reset workspace: ${err?.message || err}`);
+    }
+  };
+
+  // Nav Sections Config
+  const sections: { id: SettingsSection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'regional', label: 'Regional', icon: Globe },
+    { id: 'application', label: 'Application', icon: SlidersHorizontal },
+    { id: 'backup', label: 'Backup & Restore', icon: Database },
+    { id: 'maintenance', label: 'Workspace Maintenance', icon: HardDrive },
+    { id: 'about', label: 'About FSOS', icon: Info },
+  ];
 
   return (
     <div className="space-y-6 pb-12">
-      {/* SubTab Navigation */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#2B323A]/60">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveSubTab('backup')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeSubTab === 'backup'
-                ? (isDark ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' : 'bg-sky-100 text-sky-800 border border-sky-300')
-                : (isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1D21]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>Backup & System Storage</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab('changelog')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeSubTab === 'changelog'
-                ? (isDark ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' : 'bg-sky-100 text-sky-800 border border-sky-300')
-                : (isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1D21]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
-            }`}
-          >
-            <History className="w-3.5 h-3.5" />
-            <span>Milestone Changelog</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-              {changelog.length}
-            </span>
-          </button>
+      {/* 1. Module Header */}
+      <div className={`p-5 sm:p-6 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+        isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-2 rounded-lg border ${
+              isDark ? 'bg-[#1F242C] border-[#2B323A] text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-700'
+            }`}>
+              <Database className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h1 className={`text-xl font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                System Settings & Storage
+              </h1>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Precision configuration, offline persistence, portable backup archive, and workspace maintenance
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="text-[11px] font-mono text-slate-500">
-          FSOS {APP_VERSION}
+
+        <div className="flex items-center gap-2 shrink-0">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('changelog')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
+                isDark 
+                  ? 'bg-[#1F242C] border-[#2B323A] text-slate-300 hover:bg-[#262C36]' 
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <History className="w-3.5 h-3.5 text-slate-400" />
+              <span>Release History</span>
+            </button>
+          )}
+          <div className={`px-3 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 ${
+            isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{APP_VERSION}</span>
+          </div>
         </div>
       </div>
 
-      {activeSubTab === 'backup' && (
-        <>
-          {/* Full System Backup & Restore */}
-          <Card
-            title="Full System Backup & Complete Archive Restore"
-            subtitle="Disaster recovery, media evidence preservation, and device migration for FSOS operational data"
-          >
-            <div className="space-y-4 text-xs">
-              {/* Action Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Export Card */}
-                <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div>
-                    <div className="flex items-center gap-2 font-bold text-sm text-sky-400 mb-1">
-                      <Package className="w-4 h-4" />
-                      <span>Export Portable Backup (.fsosbackup)</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-mono font-normal">{APP_VERSION}</span>
-                    </div>
-                    <p className="text-slate-400 leading-relaxed">
-                      Complete operational backup including structured data and deduplicated media.
-                    </p>
-                    <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-400/90 font-mono">
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span>Non-destructive, zero-mutation read-only export.</span>
-                    </div>
-                  </div>
+      {/* 2. Navigation Tab Bar */}
+      <div className={`p-1.5 rounded-xl border flex items-center gap-1 overflow-x-auto transition-colors ${
+        isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+      }`}>
+        {sections.map((sec) => {
+          const Icon = sec.icon;
+          const isActive = activeSection === sec.id;
+          return (
+            <button
+              key={sec.id}
+              onClick={() => setActiveSection(sec.id)}
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${
+                isActive
+                  ? isDark
+                    ? 'bg-[#1F242C] text-slate-100 shadow-sm border border-[#2B323A]'
+                    : 'bg-slate-900 text-white shadow-sm'
+                  : isDark
+                    ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026]'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? (isDark ? 'text-emerald-400' : 'text-emerald-400') : 'text-slate-400'}`} />
+              <span>{sec.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={exportingPortable ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
-                      onClick={handleExportPortableBackup}
-                      disabled={exportingPortable || exportingCore || exportingComplete}
-                    >
-                      {exportingPortable ? 'Packaging .fsosbackup...' : 'Export Portable Backup (.fsosbackup)'}
-                    </Button>
-                    <span className="text-[11px] text-slate-500 font-mono">Recommended</span>
-                  </div>
-                </div>
-
-                {/* Restore Card */}
-                <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div>
-                    <div className="flex items-center gap-2 font-bold text-sm text-emerald-400 mb-1">
-                      <Upload className="w-4 h-4" />
-                      <span>Restore Backup Archive</span>
-                    </div>
-                    <p className="text-slate-400 leading-relaxed">
-                      Select Backup (<code className="text-emerald-400/90">.fsosbackup</code> / supported legacy <code className="text-emerald-400/90">.json</code>). Pre-validates schema, domain record counts, and media files before restoring.
-                    </p>
-                    <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Automatic pre-restore safety snapshot included.</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
-                    <input
-                      type="file"
-                      ref={coreFileInputRef}
-                      onChange={handleCoreFileChange}
-                      accept=".fsosbackup,.zip,.json,application/json"
-                      className="hidden"
-                    />
-                    <input
-                      type="file"
-                      ref={mediaFileInputRef}
-                      onChange={handleMediaFileChange}
-                      accept=".json,application/json"
-                      className="hidden"
-                    />
-                    <span className="text-[11px] text-slate-500 font-mono">Safe Snapshot Replace</span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={validating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                      onClick={() => coreFileInputRef.current?.click()}
-                      disabled={validating}
-                    >
-                      {validating ? 'Validating...' : 'Select Backup (.fsosbackup / supported legacy .json)'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Export Success Toast */}
-              {exportSuccess && (
-                <div className={`p-3 rounded-lg border flex items-center gap-2 text-xs font-mono ${
-                  isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                }`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                  <span>{exportSuccess}</span>
-                </div>
-              )}
-            </div>
-          </Card>
-
-      {/* Restore Validation & Confirmation Modal */}
-      {showPreviewModal && (selectedArchiveType === 'portable' ? !!portableValidation : !!completeValidation) && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl p-6 space-y-5 my-8 ${
-            isDark ? 'bg-[#181B1F] border-[#2E353F] text-slate-200' : 'bg-white border-slate-300 text-slate-900'
-          }`}>
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-slate-700/60 pb-3">
+      {/* 3. Section Content */}
+      <div className="space-y-6">
+        {/* ========================================================================= */}
+        {/* SECTION 1: APPEARANCE */}
+        {/* ========================================================================= */}
+        {activeSection === 'appearance' && (
+          <div className="space-y-6">
+            <div className={`p-6 rounded-xl border space-y-6 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
               <div>
-                <h3 className="font-bold text-base flex items-center gap-2">
-                  <FileJson className="w-5 h-5 text-sky-400" />
-                  <span>
-                    {selectedArchiveType === 'portable'
-                      ? 'Restore Portable Complete Backup (.fsosbackup)'
-                      : 'Restore Archive Preview (Legacy JSON)'}
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  File: <span className="font-mono font-semibold text-slate-300">{selectedCoreFileName}</span>
-                </p>
-              </div>
-              <button
-                onClick={() => setShowPreviewModal(false)}
-                disabled={restoring}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg text-lg leading-none"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Legacy Media Attachment Selector (Only shown if legacy JSON format) */}
-            {selectedArchiveType === 'legacy' && completeValidation && (
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2.5 ${
-                isDark ? 'bg-[#14171A] border-[#252B33]' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Media Evidence Pack (Optional)</span>
-                  </span>
-                  {selectedMediaFileName ? (
-                    <button
-                      onClick={handleRemoveMediaFile}
-                      className="text-[11px] text-rose-400 hover:underline font-mono"
-                    >
-                      Remove Media File
-                    </button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Upload className="w-3 h-3" />}
-                      onClick={() => mediaFileInputRef.current?.click()}
-                    >
-                      Attach Media JSON
-                    </Button>
-                  )}
-                </div>
-
-                {selectedMediaFileName ? (
-                  <div className="flex items-center justify-between font-mono text-[11px] bg-sky-950/30 border border-sky-800/40 p-2 rounded-lg text-sky-300">
-                    <span>Attached: {selectedMediaFileName}</span>
-                    <span>{completeValidation.mediaValidation?.imageCount || 0} images</span>
-                  </div>
-                ) : (
-                  <p className="text-slate-400 text-[11px]">
-                    No media pack attached. Restoration will proceed with <strong>Core Data only</strong>. Existing images on this device will remain preserved.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Validation State Banner */}
-            {selectedArchiveType === 'portable' ? (
-              portableValidation?.valid ? (
-                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                  isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                }`}>
-                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                  <div className="space-y-1 text-xs">
-                    <p className="font-bold">Portable Complete Backup Verification Passed</p>
-                    <p className="text-[11px] leading-relaxed opacity-90">
-                      Archive structure, schema version, domain records, and binary media catalog are valid and ready for restoration.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                  isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800'
-                }`}>
-                  <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
-                  <div className="space-y-1 text-xs">
-                    <p className="font-bold">Portable Backup Verification Failed</p>
-                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                      {portableValidation?.errors.map((err, idx) => (
-                        <li key={idx}>{err}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )
-            ) : (
-              completeValidation?.valid ? (
-                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                  isDark ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                }`}>
-                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                  <div className="space-y-1 text-xs">
-                    <p className="font-bold">
-                      {completeValidation.hasMedia ? 'Complete Archive Verification Passed' : 'Core Backup Verification Passed'}
-                    </p>
-                    <p className="text-[11px] leading-relaxed opacity-90">
-                      {completeValidation.hasMedia
-                        ? `Core schema and media evidence dictionary are valid and share matching Backup ID (${completeValidation.coreValidation.manifest?.backupId}).`
-                        : 'The envelope structure, schema version, and operational domain records are valid and ready for restoration.'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                  isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800'
-                }`}>
-                  <XCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
-                  <div className="space-y-1 text-xs">
-                    <p className="font-bold">Archive Verification Failed</p>
-                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                      {completeValidation?.errors.map((err, idx) => (
-                        <li key={idx}>{err}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )
-            )}
-
-            {/* Manifest Metadata */}
-            {selectedArchiveType === 'portable' && portableValidation?.manifest && (
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                isDark ? 'bg-[#121417] border-[#252B33]' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Portable Archive Metadata</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
-                  <div>
-                    <span className="text-slate-500 block">Archive Format:</span>
-                    <span className="text-sky-400 font-bold">{portableValidation.manifest.format} v{portableValidation.manifest.formatVersion}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">App Version:</span>
-                    <span className="text-slate-300 font-bold">{portableValidation.manifest.appVersion || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Canonical Media:</span>
-                    <span className="text-emerald-400 font-bold">
-                      {portableValidation.canonicalCount} files ({formatBytes(portableValidation.manifest.mediaSummary?.totalMediaBytes || 0)})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Alias References:</span>
-                    <span className="text-sky-300 font-bold">
-                      {portableValidation.aliasCount} refs (0 byte bloat)
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Created At (UTC):</span>
-                    <span className="text-slate-300">{portableValidation.manifest.createdAt}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Backup ID:</span>
-                    <span className="text-slate-400 truncate block">{portableValidation.manifest.backupId}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedArchiveType === 'legacy' && completeValidation?.coreValidation.manifest && (
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2 ${
-                isDark ? 'bg-[#121417] border-[#252B33]' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className="font-bold text-[11px] uppercase tracking-wider text-slate-400">Backup Metadata</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
-                  <div>
-                    <span className="text-slate-500 block">Backup Version:</span>
-                    <span className="text-sky-400 font-bold">{completeValidation.coreValidation.manifest.backupVersion}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">App Version:</span>
-                    <span className="text-slate-300 font-bold">{completeValidation.coreValidation.manifest.appVersion || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Media Attached:</span>
-                    <span className={completeValidation.hasMedia ? 'text-emerald-400 font-bold' : 'text-slate-400 font-bold'}>
-                      {completeValidation.hasMedia ? `Yes (${completeValidation.mediaValidation?.imageCount} imgs)` : 'No (Core Only)'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Backup ID Match:</span>
-                    <span className={completeValidation.backupIdMatch ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-                      {completeValidation.backupIdMatch ? 'Verified ✓' : 'Mismatch ✕'}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Created At (UTC):</span>
-                    <span className="text-slate-300">{completeValidation.coreValidation.manifest.createdAt}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Shared Backup ID:</span>
-                    <span className="text-slate-400 truncate block">{completeValidation.coreValidation.manifest.backupId}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Domain Counts Grid */}
-            <div className="space-y-2">
-              <p className="font-bold text-xs uppercase tracking-wider text-slate-400">Domain Record Counts</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                {Object.entries(
-                  selectedArchiveType === 'portable'
-                    ? (portableValidation?.coreValidation?.domainCounts || portableValidation?.manifest?.domainCounts || {})
-                    : (completeValidation?.coreValidation.domainCounts || {})
-                ).map(([domain, count]) => (
-                  <div
-                    key={domain}
-                    className={`p-2 rounded-lg border flex items-center justify-between ${
-                      isDark ? 'bg-[#14171A] border-[#252B33]' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <span className="text-slate-400 capitalize text-[11px] truncate">{domain.replace(/_/g, ' ')}</span>
-                    <span className={`font-bold ${(Number(count) || 0) > 0 ? 'text-sky-400' : 'text-slate-600'}`}>{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Warnings & Notices */}
-            <div className="space-y-2 text-xs">
-              <div className={`p-3 rounded-lg border text-[11px] leading-relaxed space-y-1.5 ${
-                isDark ? 'bg-[#14171A] border-[#252B33] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
-              }`}>
-                <p className="text-slate-300">
-                  <strong className="text-sky-400">Media Policy:</strong>{' '}
-                  {selectedArchiveType === 'portable'
-                    ? `Restores ${portableValidation?.canonicalCount || 0} canonical media files and ${portableValidation?.aliasCount || 0} reference aliases non-destructively into IndexedDB.`
-                    : (completeValidation?.hasMedia
-                      ? 'Media images will be non-destructively restored into IndexedDB using their exact original keys. Existing images on this device will not be deleted.'
-                      : 'Core Data only. Existing IndexedDB images will remain untouched on this device.')}
-                </p>
-                <p className="text-amber-400/90 font-medium">
-                  <strong className="text-amber-300">Replacement Notice:</strong> Restoring this backup will replace current core FSOS data on this device. An automatic safety snapshot of your current core data will be downloaded before restoration begins.
+                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  Theme & Visual Identity
+                </h2>
+                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Configure the interface palette for your operating environment. Cleanroom and field operations typically utilize Precision Dark.
                 </p>
               </div>
 
-              {((selectedArchiveType === 'portable' ? portableValidation?.warnings : completeValidation?.warnings) || []).length > 0 && (
-                <div className="p-3 rounded-lg border border-amber-800/40 bg-amber-950/20 text-amber-300 text-[11px] space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Non-Fatal Warnings:</span>
-                  </div>
-                  <ul className="list-disc pl-4 space-y-0.5 opacity-90">
-                    {(selectedArchiveType === 'portable' ? portableValidation?.warnings : completeValidation?.warnings)?.map((w, idx) => (
-                      <li key={idx}>{w}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {restoreError && (
-                <div className="p-3 rounded-lg border border-rose-800/60 bg-rose-950/40 text-rose-300 text-xs">
-                  <p className="font-bold">Restore Failed:</p>
-                  <p className="mt-0.5">{restoreError}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-700/60">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowPreviewModal(false)}
-                disabled={restoring}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                icon={restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                onClick={handleConfirmRestore}
-                disabled={
-                  (selectedArchiveType === 'portable' ? !portableValidation?.valid : !completeValidation?.valid) ||
-                  restoring
-                }
-              >
-                {restoring
-                  ? 'Restoring Archive...'
-                  : selectedArchiveType === 'portable'
-                    ? 'Confirm & Restore Portable Backup'
-                    : 'Confirm & Restore Archive'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Media Evidence Diagnostics & Contamination Purge */}
-      <Card
-        title="Media Evidence Diagnostics & Storage Guard"
-        subtitle="Forensic size, provenance, active/orphaned reference audit and safe IndexedDB storage guard"
-      >
-        <div className="space-y-4 text-xs">
-          <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 font-bold text-sm text-sky-400">
-                <HardDrive className="w-4 h-4" />
-                <span>IndexedDB Evidence Forensic Audit & Storage Guard</span>
-              </div>
-              <p className="text-slate-400 leading-relaxed max-w-xl">
-                Executes a strict <strong>read-only</strong> forensic scan across all IndexedDB media evidence entries to analyze exact UTF-8 byte volumes, category provenance, active vs. orphaned Core Data references, and duplicate payload groups.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={auditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                onClick={handleAuditImages}
-                disabled={auditing || cleaning || deduplicating}
-              >
-                {auditing ? 'Running Forensic Scan...' : 'Audit Media Store'}
-              </Button>
-              {forensicReport && forensicReport.duplicates.length > 0 && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={deduplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
-                  onClick={handleDeduplicateMedia}
-                  disabled={auditing || cleaning || deduplicating}
-                >
-                  {deduplicating ? 'Consolidating Media...' : 'Consolidate Duplicate Payloads'}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Post-Deduplication Status Banner */}
-          {deduplicationResult && (
-            <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-              isDark ? 'bg-emerald-950/30 border-emerald-500/50' : 'bg-emerald-50 border-emerald-300'
-            }`}>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 font-bold text-xs text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Media Deduplication & Canonical Consolidation Completed</span>
-                </div>
-                <div className="text-slate-300 text-xs font-mono flex flex-wrap items-center gap-3 pt-0.5">
-                  <span>Groups Consolidated: <strong className="text-emerald-400">{deduplicationResult.consolidatedGroupsCount}</strong></span>
-                  <span>•</span>
-                  <span>Entries Deduplicated: <strong className="text-emerald-400">{deduplicationResult.deduplicatedEntriesCount}</strong></span>
-                  <span>•</span>
-                  <span>Storage Reclaimed: <strong className="text-emerald-400">{formatBytes(deduplicationResult.reclaimedBytes)}</strong></span>
-                  <span>•</span>
-                  <span>Unique Physical Payloads: <strong className="text-sky-400">{deduplicationResult.uniquePayloadsRemaining}</strong></span>
-                  <span>•</span>
-                  <span>Preserved References: <strong className="text-emerald-400">{deduplicationResult.totalLogicalReferencesPreserved} (100%)</strong></span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeduplicationResult(null)}
-                className="self-end md:self-center text-slate-400 hover:text-slate-200"
-              >
-                Dismiss
-              </Button>
-            </div>
-          )}
-
-          {/* Post-Cleanup Status Banner */}
-          {orphansCleanupResult && (
-            <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-              isDark ? 'bg-emerald-950/30 border-emerald-500/50' : 'bg-emerald-50 border-emerald-300'
-            }`}>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 font-bold text-xs text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Orphaned Media Cleanup Completed Successfully</span>
-                </div>
-                <div className="text-slate-300 text-xs font-mono flex flex-wrap items-center gap-3 pt-0.5">
-                  <span>Removed: <strong className="text-emerald-400">{orphansCleanupResult.removedCount}</strong> records</span>
-                  <span>•</span>
-                  <span>Reclaimed: <strong className="text-emerald-400">{formatBytes(orphansCleanupResult.reclaimedBytes)}</strong></span>
-                  <span>•</span>
-                  <span>Remaining Stored: <strong className="text-sky-400">{orphansCleanupResult.remainingIndexedDbEntries}</strong> records</span>
-                  <span>•</span>
-                  <span>Remaining Orphans: <strong className={orphansCleanupResult.remainingOrphanCount === 0 ? 'text-emerald-400' : 'text-amber-400'}>{orphansCleanupResult.remainingOrphanCount}</strong></span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOrphansCleanupResult(null)}
-                className="self-end md:self-center text-slate-400 hover:text-slate-200"
-              >
-                Dismiss
-              </Button>
-            </div>
-          )}
-
-          {/* Forensic Audit Report UI */}
-          {forensicReport && (
-            <div className="space-y-4">
-              {/* Navigation Sub-Tabs */}
-              <div className="flex items-center gap-1 border-b border-[#2B323A] pb-2 overflow-x-auto">
+              {/* Theme Selector Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                {/* Dark Theme */}
                 <button
                   type="button"
-                  onClick={() => setActiveForensicTab('summary')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                    activeForensicTab === 'summary'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => setTheme('dark')}
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                    theme === 'dark'
+                      ? isDark 
+                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
+                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
+                      : isDark
+                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
+                        : 'border-slate-200 bg-white hover:border-slate-400'
                   }`}
                 >
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  <span>Media Store Summary</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveForensicTab('categories')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                    activeForensicTab === 'categories'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Category Breakdown ({forensicReport.categories.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveForensicTab('references')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                    activeForensicTab === 'references'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  <span>Active vs Orphaned ({forensicReport.summary.orphanedRecords} orphans)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveForensicTab('duplicates')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                    activeForensicTab === 'duplicates'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Duplicate Payloads ({forensicReport.duplicates.length} groups)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveForensicTab('consumers')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                    activeForensicTab === 'consumers'
-                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Top Storage Consumers ({forensicReport.topConsumers.length})</span>
-                </button>
-              </div>
-
-              {/* TAB 1: MEDIA STORE SUMMARY */}
-              {activeForensicTab === 'summary' && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 font-mono text-[11px]">
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Total Logical Records</div>
-                      <div className="font-bold text-sky-400 text-lg mt-0.5">{forensicReport.summary.totalRecords}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">IndexedDB image references</div>
+                  <div className="flex items-center justify-between">
+                    <div className="p-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
+                      <Moon className="w-4 h-4 text-emerald-400" />
                     </div>
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Physical IndexedDB Size</div>
-                      <div className="font-bold text-indigo-400 text-lg mt-0.5">
-                        {formatBytes(forensicReport.summary.physicalStorageBytes || forensicReport.summary.totalStorageBytes)}
-                      </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">
-                        Hydrated: {formatBytes(forensicReport.summary.totalStorageBytes)}
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Active Referenced</div>
-                      <div className="font-bold text-emerald-400 text-lg mt-0.5">{forensicReport.summary.activeReferencedRecords}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Linked to live Core Data</div>
-                    </div>
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Orphaned / Unreferenced</div>
-                      <div className={`font-bold text-lg mt-0.5 ${forensicReport.summary.orphanedRecords > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
-                        {forensicReport.summary.orphanedRecords}
-                      </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">No active Core reference</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 font-mono text-[11px]">
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Unique Payload Count</div>
-                      <div className="font-bold text-sky-300 text-base mt-0.5">{forensicReport.summary.uniquePayloadCount}</div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">Distinct physical payloads</div>
-                    </div>
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Duplicate Groups & Aliases</div>
-                      <div className="font-bold text-base mt-0.5 text-slate-200">
-                        {forensicReport.summary.duplicateGroupsCount} groups ({forensicReport.summary.consolidatedAliasesCount || 0} alias pointers)
-                      </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">
-                        {forensicReport.summary.unconsolidatedDuplicatesCount ? `${forensicReport.summary.unconsolidatedDuplicatesCount} unconsolidated copies` : 'All duplicates consolidated as pointers'}
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="text-slate-400 text-[10px]">Deduplication Storage Reclaimed</div>
-                      <div className="font-bold text-base mt-0.5 text-emerald-400">
-                        {formatBytes(forensicReport.summary.actualReclaimedDuplicateBytes || 0)}
-                      </div>
-                      <div className="text-slate-500 text-[9px] mt-0.5">
-                        {forensicReport.summary.potentialDuplicateSavingsBytes > 0
-                          ? `Remaining reclaimable: ${formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}`
-                          : '100% physical duplicate storage eliminated'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: CATEGORY STORAGE BREAKDOWN */}
-              {activeForensicTab === 'categories' && (
-                <div className="space-y-3">
-                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
-                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
-                      <span className="font-bold text-xs">Deterministic Category Storage Distribution</span>
-                      <span className="font-mono text-[11px] text-slate-400">Total: {formatBytes(forensicReport.summary.totalStorageBytes)}</span>
-                    </div>
-                    <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px]">
-                      {forensicReport.categories.map((cat) => (
-                        <div key={cat.category} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                          <div className="space-y-1 min-w-[200px]">
-                            <div className="font-sans font-bold text-xs text-slate-200 flex items-center gap-2">
-                              <span>{cat.category}</span>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">
-                                {cat.count} {cat.count === 1 ? 'entry' : 'entries'}
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden max-w-xs">
-                              <div
-                                className="bg-sky-500 h-full rounded-full transition-all duration-300"
-                                style={{ width: `${Math.max(cat.percentageOfTotal, cat.count > 0 ? 1 : 0)}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-right">
-                            <div>
-                              <div className="text-slate-200 font-bold">{formatBytes(cat.totalBytes)}</div>
-                              <div className="text-slate-400 text-[10px]">{cat.percentageOfTotal.toFixed(1)}% of total</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: ACTIVE VS ORPHANED */}
-              {activeForensicTab === 'references' && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
-                    <div className={`p-4 rounded-xl border space-y-2 ${isDark ? 'bg-emerald-950/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'}`}>
-                      <div className="flex items-center gap-2 font-bold text-xs text-emerald-400 font-sans">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Active Reachable References ({forensicReport.summary.activeReferencedRecords})</span>
-                      </div>
-                      <p className="text-slate-400 text-xs font-sans leading-relaxed">
-                        These {forensicReport.summary.activeReferencedRecords} entries are physically referenced by existing Machines, MHC Sessions, Reports, Templates, or Engineer Profiles in active Core Data.
-                      </p>
-                    </div>
-
-                    <div className={`p-4 rounded-xl border space-y-2 ${
-                      forensicReport.summary.orphanedRecords > 0
-                        ? isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
-                        : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="flex items-center gap-2 font-bold text-xs text-amber-400 font-sans">
-                        <AlertTriangle className="w-4 h-4" />
-                        <span>Orphaned Entries ({forensicReport.summary.orphanedRecords})</span>
-                      </div>
-                      <p className="text-slate-400 text-xs font-sans leading-relaxed">
-                        These {forensicReport.summary.orphanedRecords} entries exist in IndexedDB but have no matching reference in current active Core Data.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* P1.3.7 Safe Orphaned Media Reconciliation & Cleanup Action Box */}
-                  {forensicReport.summary.orphanedRecords > 0 && (
-                    <div className={`p-4 rounded-xl border space-y-3 ${
-                      isDark ? 'bg-[#1C2026] border-amber-500/40' : 'bg-amber-50/80 border-amber-300'
-                    }`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Trash2 className="w-4 h-4 text-amber-400" />
-                            <span className="font-bold text-xs text-amber-300">
-                              Safe Orphaned Media Reconciliation & Cleanup
-                            </span>
-                          </div>
-                          <p className="text-slate-300 text-xs leading-relaxed font-sans">
-                            <strong>Explicit Rule:</strong> Only media not referenced by current FSOS Core Data will be removed.
-                          </p>
-                          <p className="text-slate-400 text-[11px] leading-relaxed font-sans">
-                            All active machine passports, MHC sessions (including completed historical sessions), beam profiles, reports, and templates are strictly protected.
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={auditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                            onClick={handleAuditImages}
-                            disabled={auditing || cleaningOrphans}
-                          >
-                            Preview / Re-run Audit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            icon={cleaningOrphans ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            onClick={handleCleanupOrphanedMedia}
-                            disabled={cleaningOrphans || auditing}
-                          >
-                            {cleaningOrphans ? 'Purging Orphans...' : `Clean Orphaned Media (${forensicReport.summary.orphanedRecords})`}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Orphan Metrics & Category Breakdown */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#2B323A]/60 font-mono text-[11px]">
-                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className="text-slate-400 text-[10px]">Orphan Candidates</div>
-                          <div className="font-bold text-amber-400 text-sm mt-0.5">{forensicReport.summary.orphanedRecords} records</div>
-                        </div>
-                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className="text-slate-400 text-[10px]">Reclaimable Storage</div>
-                          <div className="font-bold text-amber-400 text-sm mt-0.5">
-                            {formatBytes(
-                              forensicReport.entries
-                                .filter((e) => e.isOrphaned)
-                                .reduce((acc, e) => acc + e.byteSize, 0)
-                            )}
-                          </div>
-                        </div>
-                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className="text-slate-400 text-[10px]">Active Media Preserved</div>
-                          <div className="font-bold text-emerald-400 text-sm mt-0.5">{forensicReport.summary.activeReferencedRecords} records</div>
-                        </div>
-                        <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className="text-slate-400 text-[10px]">Total Stored Entries</div>
-                          <div className="font-bold text-sky-400 text-sm mt-0.5">{forensicReport.summary.totalRecords} records</div>
-                        </div>
-                      </div>
-
-                      {/* Orphan Candidates List */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="text-[10px] uppercase font-sans tracking-wider text-slate-400 font-bold">
-                          Orphan Candidates Ready for Reconciliation:
-                        </div>
-                        <div className="max-h-48 overflow-y-auto space-y-1 font-mono text-[10px] text-amber-300/90 divide-y divide-[#2B323A]/30">
-                          {forensicReport.entries
-                            .filter((e) => e.isOrphaned)
-                            .map((e) => (
-                              <div key={e.key} className="pt-1.5 pb-1 flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 truncate min-w-0">
-                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 text-[9px] shrink-0 font-sans">
-                                    {e.category}
-                                  </span>
-                                  <span className="truncate text-slate-300">{e.key}</span>
-                                </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <span className="text-slate-400">{formatBytes(e.byteSize)}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyKey(e.key)}
-                                    className="text-slate-500 hover:text-slate-300"
-                                    title="Copy key"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Missing Referenced Keys Warning */}
-                  {forensicReport.missingReferencedKeys.length > 0 && (
-                    <div className={`p-4 rounded-xl border space-y-2 ${isDark ? 'bg-rose-950/20 border-rose-800/40' : 'bg-rose-50 border-rose-200'}`}>
-                      <div className="flex items-center gap-2 font-bold text-xs text-rose-400 font-sans">
-                        <XCircle className="w-4 h-4" />
-                        <span>Missing Referenced Keys Detected ({forensicReport.missingReferencedKeys.length})</span>
-                      </div>
-                      <p className="text-slate-400 text-xs font-sans">
-                        Core Data references these `idb:` keys, but their payloads were not found in IndexedDB:
-                      </p>
-                      <div className="max-h-32 overflow-y-auto space-y-1 font-mono text-[10px] text-rose-300">
-                        {forensicReport.missingReferencedKeys.map((k) => (
-                          <div key={k} className="p-1.5 rounded bg-rose-950/40 border border-rose-900/50">
-                            {k}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB 4: DUPLICATE PAYLOAD ANALYSIS */}
-              {activeForensicTab === 'duplicates' && (
-                <div className="space-y-3">
-                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
-                    <div className="p-3 border-b border-[#2B323A]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs">Identical Payload Groups ({forensicReport.duplicates.length} groups)</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
-                          {forensicReport.summary.consolidatedAliasesCount || 0} Aliases Active
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-[11px] text-amber-400">
-                          {forensicReport.summary.potentialDuplicateSavingsBytes > 0
-                            ? `Unconsolidated Overhead: ${formatBytes(forensicReport.summary.potentialDuplicateSavingsBytes)}`
-                            : `Reclaimed Storage: ${formatBytes(forensicReport.summary.actualReclaimedDuplicateBytes || 0)}`}
-                        </span>
-                        {forensicReport.duplicates.some(d => d.wastedBytes > 0) && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={deduplicating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
-                            onClick={handleDeduplicateMedia}
-                            disabled={auditing || cleaning || deduplicating}
-                          >
-                            {deduplicating ? 'Consolidating...' : 'Consolidate All'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {forensicReport.duplicates.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400">
-                        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-80" />
-                        <div>No duplicate payloads detected. All stored image contents are unique.</div>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px] max-h-96 overflow-y-auto">
-                        {forensicReport.duplicates.map((dup) => (
-                          <div key={dup.groupId} className="p-3 space-y-2">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
-                                  {dup.groupId}
-                                </span>
-                                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">
-                                  {dup.payloadType}
-                                </span>
-                                <span className="text-slate-300 font-bold">{dup.count} references</span>
-                                {dup.isConsolidated || dup.wastedBytes === 0 ? (
-                                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-sans font-medium">
-                                    ✓ Consolidated (Zero Overhead)
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-sans font-medium">
-                                    ⚠ Unconsolidated Physical Copies
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <span className="text-slate-400 text-[10px]">Single: {formatBytes(dup.byteSizePerEntry)} | </span>
-                                <span className="text-slate-300 font-bold">Total Hydrated: {formatBytes(dup.totalBytes)} | </span>
-                                <span className={dup.wastedBytes > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold'}>
-                                  {dup.wastedBytes > 0 ? `Overhead: ${formatBytes(dup.wastedBytes)}` : `Physical IDB: ${formatBytes(dup.physicalStorageBytes || dup.byteSizePerEntry)}`}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="space-y-1 text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded-lg border border-[#2B323A]/40">
-                              <div className="text-slate-500 font-sans text-[9px] uppercase tracking-wider flex items-center justify-between">
-                                <span>Referencing Keys & Storage Role:</span>
-                                <span>Canonical: {dup.canonicalKey}</span>
-                              </div>
-                              {dup.keys.map((k) => {
-                                const isCanonical = k === dup.canonicalKey;
-                                return (
-                                  <div key={k} className="flex items-center justify-between gap-2 truncate py-0.5">
-                                    <div className="flex items-center gap-2 truncate">
-                                      {isCanonical ? (
-                                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-sans shrink-0">
-                                          Canonical Master
-                                        </span>
-                                      ) : dup.isConsolidated || dup.wastedBytes === 0 ? (
-                                        <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[9px] font-sans shrink-0">
-                                          Alias (ref: pointer)
-                                        </span>
-                                      ) : (
-                                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-sans shrink-0">
-                                          Physical Copy
-                                        </span>
-                                      )}
-                                      <span className={`truncate ${isCanonical ? 'text-emerald-200 font-bold' : 'text-slate-300'}`}>{k}</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCopyKey(k)}
-                                      className="text-slate-500 hover:text-slate-300 shrink-0"
-                                      title="Copy key"
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    {theme === 'dark' && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     )}
                   </div>
-                </div>
-              )}
-
-              {/* TAB 5: TOP STORAGE CONSUMERS & INVENTORY */}
-              {activeForensicTab === 'consumers' && (
-                <div className="space-y-3">
-                  {/* Search and Filters */}
-                  <div className="flex flex-col md:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search by key, record ID, or source..."
-                        value={forensicSearch}
-                        onChange={(e) => setForensicSearch(e.target.value)}
-                        className={`w-full pl-8 pr-3 py-1.5 rounded-lg border text-xs ${
-                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select
-                        value={forensicCategoryFilter}
-                        onChange={(e) => setForensicCategoryFilter(e.target.value)}
-                        className={`px-2.5 py-1.5 rounded-lg border text-xs ${
-                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
-                      >
-                        <option value="ALL">All Categories</option>
-                        {ALL_MEDIA_CATEGORIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={forensicStatusFilter}
-                        onChange={(e) => setForensicStatusFilter(e.target.value as any)}
-                        className={`px-2.5 py-1.5 rounded-lg border text-xs ${
-                          isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
-                      >
-                        <option value="ALL">All Status</option>
-                        <option value="ACTIVE">Active Only</option>
-                        <option value="ORPHANED">Orphaned Only</option>
-                        <option value="DUPLICATE">Duplicates Only</option>
-                      </select>
-                    </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Precision Dark
+                    </h3>
+                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      High contrast graphite canvas engineered for cleanrooms and low-glare field environments.
+                    </p>
                   </div>
+                </button>
 
-                  {/* Ranked Consumers List */}
-                  <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
-                    <div className="p-3 border-b border-[#2B323A]/60 flex items-center justify-between">
-                      <span className="font-bold text-xs">Media Storage Consumer Inventory</span>
-                      <span className="font-mono text-[11px] text-slate-400">
-                        Showing filtered entries (Ranked by size descending)
-                      </span>
+                {/* Light Theme */}
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                    theme === 'light'
+                      ? isDark 
+                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
+                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
+                      : isDark
+                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
+                        : 'border-slate-200 bg-white hover:border-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-2 rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
+                      <Sun className="w-4 h-4 text-amber-500" />
                     </div>
-
-                    <div className="divide-y divide-[#2B323A]/40 font-mono text-[11px] max-h-96 overflow-y-auto">
-                      {forensicReport.topConsumers
-                        .filter((entry) => {
-                          if (forensicCategoryFilter !== 'ALL' && entry.category !== forensicCategoryFilter) return false;
-                          if (forensicStatusFilter === 'ACTIVE' && !entry.isReferenced) return false;
-                          if (forensicStatusFilter === 'ORPHANED' && !entry.isOrphaned) return false;
-                          if (forensicStatusFilter === 'DUPLICATE' && !entry.isDuplicate) return false;
-                          if (forensicSearch.trim()) {
-                            const q = forensicSearch.toLowerCase();
-                            return (
-                              entry.key.toLowerCase().includes(q) ||
-                              entry.category.toLowerCase().includes(q) ||
-                              entry.sourceClassification.toLowerCase().includes(q)
-                            );
-                          }
-                          return true;
-                        })
-                        .map((entry, idx) => (
-                          <div key={entry.key} className="p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-slate-500 text-[10px]">#{idx + 1}</span>
-                                <span className="font-semibold text-slate-200 truncate">{entry.key}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyKey(entry.key)}
-                                  className="text-slate-500 hover:text-slate-300"
-                                  title="Copy key"
-                                >
-                                  {copiedKey === entry.key ? (
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
-                                  )}
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
-                                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400">{entry.category}</span>
-                                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">{entry.payloadType}</span>
-                                <span className="text-slate-500 truncate">{entry.sourceClassification}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              {entry.isReferenced ? (
-                                <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-medium font-sans">
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[10px] font-medium font-sans">
-                                  Orphaned
-                                </span>
-                              )}
-                              {entry.isDuplicate && (
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 text-[10px] font-medium font-sans">
-                                  Duplicate ({entry.duplicateCount}x)
-                                </span>
-                              )}
-                              <div className="text-right min-w-[70px]">
-                                <div className="font-bold text-slate-200">{formatBytes(entry.byteSize)}</div>
-                                <div className="text-slate-500 text-[9px]">{entry.charLength.toLocaleString()} chars</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                    {theme === 'light' && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Refined Light
+                    </h3>
+                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Crisp daylight neutral palette with crisp typography for office reports and documentation.
+                    </p>
+                  </div>
+                </button>
 
-          {/* Existing P1.3.4 Contamination Audit & Safe Cleanup Guard */}
-          {auditResult && auditResult.malformed > 0 && (
-            <div className={`p-4 rounded-xl border space-y-3 ${
-              isDark ? 'bg-amber-950/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-xs">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  <span className="text-amber-300">
-                    Contamination Detected: {auditResult.malformed} React-derived entries found
-                  </span>
-                </div>
-                <span className="font-mono text-[11px] text-slate-400">Total Records: {auditResult.total}</span>
+                {/* System Preference */}
+                <button
+                  type="button"
+                  onClick={() => setTheme('system')}
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                    theme === 'system'
+                      ? isDark 
+                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
+                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
+                      : isDark
+                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
+                        : 'border-slate-200 bg-white hover:border-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-2 rounded-lg bg-slate-800/40 text-slate-300 border border-slate-700">
+                      <Monitor className="w-4 h-4 text-blue-400" />
+                    </div>
+                    {theme === 'system' && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      System Sync
+                    </h3>
+                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Automatically matches your operating system display preference ({effectiveTheme}).
+                    </p>
+                  </div>
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 font-mono text-[11px]">
-                <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className="text-slate-400 text-[10px]">Legitimate Evidence</div>
-                  <div className="font-bold text-emerald-400 text-sm mt-0.5">{auditResult.legitimate}</div>
+              {/* Design Standards Note */}
+              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-1.5 ${
+                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <div className="flex items-center gap-2 font-semibold text-emerald-400">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>Calm Industrial & Precision Operations Standard</span>
                 </div>
-                <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className="text-slate-400 text-[10px]">React Fiber Artifacts</div>
-                  <div className="font-bold text-sm mt-0.5 text-amber-400">
-                    {auditResult.malformed}
+                <p>
+                  FSOS enforces strict neutral-first typography and optical contrast. High-contrast Monospace is standard for machine metrics, calibration readings, and audit timestamps. Color accents are strictly reserved for genuine operational states (Pass / Warning / Defect).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 2: REGIONAL */}
+        {/* ========================================================================= */}
+        {activeSection === 'regional' && (
+          <div className="space-y-6">
+            <div className={`p-6 rounded-xl border space-y-6 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div>
+                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  Regional & Engineering Measurement Standards
+                </h2>
+                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  FSOS enforces international precision standards across all inspection logs, machine passports, and executive export reports.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date & Time Standard */}
+                <div className={`p-4 rounded-xl border space-y-3 ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex items-center gap-2 font-semibold text-xs text-slate-200">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    <span>Date & Timestamp Standard</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
+                      <span className="text-slate-400">Date Format</span>
+                      <span className="font-mono font-medium text-slate-200">ISO 8601 (YYYY-MM-DD)</span>
+                    </div>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
+                      <span className="text-slate-400">Time Standard</span>
+                      <span className="font-mono font-medium text-slate-200">24-Hour Military Time</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Manifest Timestamps</span>
+                      <span className="font-mono font-medium text-slate-200">UTC / ISO 8601</span>
+                    </div>
                   </div>
                 </div>
-                <div className={`col-span-2 md:col-span-1 p-2.5 rounded-lg border flex items-center justify-center ${
-                  isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+
+                {/* Units of Measurement */}
+                <div className={`p-4 rounded-xl border space-y-3 ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
                 }`}>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    icon={cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                    onClick={handleCleanupImages}
-                    disabled={cleaning}
+                  <div className="flex items-center gap-2 font-semibold text-xs text-slate-200">
+                    <Cpu className="w-4 h-4 text-emerald-400" />
+                    <span>Industrial Units of Measurement (SI)</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
+                      <span className="text-slate-400">Laser Power</span>
+                      <span className="font-mono font-medium text-slate-200">Watts (W) / Joules (J)</span>
+                    </div>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
+                      <span className="text-slate-400">Optical Dimensions</span>
+                      <span className="font-mono font-medium text-slate-200">Micrometers (μm) / mm</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Thermal / Pressure</span>
+                      <span className="font-mono font-medium text-slate-200">Celsius (°C) / bar</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-lg border text-xs leading-relaxed ${
+                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+              }`}>
+                All engineering exports and machine passport records strictly adhere to UTF-8 character encoding and international metrology conventions to guarantee deterministic parsing across automated equipment analyzers.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 3: APPLICATION */}
+        {/* ========================================================================= */}
+        {activeSection === 'application' && (
+          <div className="space-y-6">
+            <div className={`p-6 rounded-xl border space-y-6 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div>
+                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  Application & Workspace Configuration
+                </h2>
+                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Configure default operational behavior and active workspace modes.
+                </p>
+              </div>
+
+              {/* Workspace Mode Setting */}
+              <div className="space-y-3">
+                <label className={`text-xs font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  Default Workspace Mode
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <button
+                    type="button"
+                    onClick={() => handleWorkspaceModeChange('MHC_MODE')}
+                    className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                      workspaceMode === 'MHC_MODE'
+                        ? isDark 
+                          ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
+                          : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
+                        : isDark
+                          ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
+                          : 'border-slate-200 bg-white hover:border-slate-400'
+                    }`}
                   >
-                    {cleaning ? 'Purging Artifacts...' : 'Purge React Artifacts'}
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-emerald-400">MHC MODE</span>
+                      {workspaceMode === 'MHC_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                        Machine Health Check Focused
+                      </h4>
+                      <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Streamlined layout optimized for field technicians performing cleanroom diagnostics, calibration logs, and MHC inspection sessions.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleWorkspaceModeChange('FOUNDER_MODE')}
+                    className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                      workspaceMode === 'FOUNDER_MODE'
+                        ? isDark 
+                          ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
+                          : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
+                        : isDark
+                          ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
+                          : 'border-slate-200 bg-white hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-emerald-400">OPERATIONS SUITE</span>
+                      {workspaceMode === 'FOUNDER_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                        Complete Operations Suite
+                      </h4>
+                      <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Unlocks complete fleet hierarchies, customer and contract databases, engineer directory, and multi-facility operational analytics.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Sidebar Display Preference */}
+              <div className="pt-4 border-t border-slate-700/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Sidebar Default State
+                    </h4>
+                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Choose whether the navigation sidebar starts in compact icon mode or expanded label mode.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSidebarPrefToggle}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      sidebarCollapsedDefault
+                        ? isDark
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold'
+                        : isDark
+                          ? 'bg-[#1F242C] text-slate-300 border-[#2B323A]'
+                          : 'bg-slate-100 text-slate-700 border-slate-300'
+                    }`}
+                  >
+                    {sidebarCollapsedDefault ? 'Compact / Collapsed' : 'Expanded Default'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Engine Status Summary */}
+              <div className="pt-4 border-t border-slate-700/30 space-y-3">
+                <h4 className={`text-xs font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  Core Engine & Persistence Architecture
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className={`p-3 rounded-lg border ${
+                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="text-slate-400 font-medium">Local Web Storage</div>
+                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Active & Persistent
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg border ${
+                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="text-slate-400 font-medium">IndexedDB Media Store</div>
+                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Binary Chunk Storage
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg border ${
+                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="text-slate-400 font-medium">Sync Engine</div>
+                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Offline-First Replicating
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 4: BACKUP & RESTORE */}
+        {/* ========================================================================= */}
+        {activeSection === 'backup' && (
+          <div className="space-y-6">
+            {/* Feedback alert */}
+            {exportSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{exportSuccess}</span>
+              </div>
+            )}
+
+            {/* 1. Primary Hero: Export Portable Backup */}
+            <div className={`p-6 rounded-xl border space-y-5 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      RECOMMENDED
+                    </span>
+                    <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Portable Complete Backup (.fsosbackup)
+                    </h2>
+                  </div>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Exports all core operational databases, machine passports, contracts, MHC sessions, and high-resolution binary media into a self-contained archive.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleExportPortableBackup}
+                  disabled={exportingPortable}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold text-xs px-4 py-2.5 shrink-0 flex items-center gap-2"
+                >
+                  {exportingPortable ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Packaging Archive...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export Portable Backup</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Sizing & Integrity Explanation */}
+              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-2 ${
+                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <div className="flex items-center gap-2 font-semibold text-slate-200">
+                  <Info className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Backup Storage Characteristics</span>
+                </div>
+                <p>
+                  • <strong>Media Evidence Scale:</strong> Archive size is naturally determined by stored image evidence (beam profile scans, calibration photos, optical inspection snapshots).
+                </p>
+                <p>
+                  • <strong>Deduplication & Alias References:</strong> Duplicate media entries share canonical payloads inside the archive to prevent unnecessary bloat.
+                </p>
+                <p>
+                  • <strong>Zero Mutation:</strong> The backup export process is strictly read-only and non-destructive to active workspace state.
+                </p>
+              </div>
+
+              {/* Subordinated Legacy Multi-File JSON Option */}
+              <div className="pt-3 border-t border-slate-700/30">
+                <button
+                  type="button"
+                  onClick={() => setShowLegacyExport(!showLegacyExport)}
+                  className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 font-medium transition-colors"
+                >
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showLegacyExport ? 'rotate-90' : ''}`} />
+                  <span>Legacy Multi-File JSON Export (Subordinated)</span>
+                </button>
+
+                {showLegacyExport && (
+                  <div className="mt-3 p-3.5 rounded-lg border bg-slate-950/40 border-slate-700/40 space-y-2.5">
+                    <p className="text-xs text-slate-400">
+                      Legacy exports generate standalone raw JSON files without binary packaging. Used primarily for specialized script parsing.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={handleExportCoreBackup}
+                        disabled={exportingCore}
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <FileJson className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                        Export Core Data JSON
+                      </Button>
+                      <Button
+                        onClick={handleExportCompleteArchive}
+                        disabled={exportingComplete}
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <Package className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                        Export Split JSON Set (Core + Media)
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Restore Backup Archive */}
+            <div className={`p-6 rounded-xl border space-y-5 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div>
+                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  Restore Workspace Archive
+                </h2>
+                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Load an authoritative backup archive into this workstation. Supports modern portable archives (<span className="font-mono">.fsosbackup</span>) and legacy JSON backups.
+                </p>
+              </div>
+
+              {/* Upload Dropzones / Selectors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Portable Archive File Picker */}
+                <div className={`p-5 rounded-xl border border-dashed text-center flex flex-col items-center justify-center gap-3 transition-colors ${
+                  isDark ? 'bg-[#111315] border-[#2B323A] hover:border-emerald-500/50' : 'bg-slate-50 border-slate-300 hover:border-emerald-500'
+                }`}>
+                  <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400">
+                    <Package className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      Select .fsosbackup Archive
+                    </h3>
+                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      All-in-one archive containing both operational data and media
+                    </p>
+                  </div>
+
+                  <input
+                    ref={coreFileInputRef}
+                    type="file"
+                    accept=".fsosbackup,.zip,.json"
+                    onChange={handleCoreFileChange}
+                    className="hidden"
+                  />
+
+                  <Button
+                    onClick={() => coreFileInputRef.current?.click()}
+                    disabled={validating}
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs mt-1"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    {validating ? 'Inspecting File...' : 'Choose Backup File'}
+                  </Button>
+                </div>
+
+                {/* Legacy Secondary Media File Picker (Optional) */}
+                <div className={`p-5 rounded-xl border border-dashed text-center flex flex-col items-center justify-center gap-3 opacity-80 transition-colors ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-300'
+                }`}>
+                  <div className="p-3 rounded-full bg-slate-800 text-slate-400">
+                    <FileJson className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      Legacy Media JSON (Optional)
+                    </h3>
+                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Only required if restoring split legacy multi-file backups
+                    </p>
+                  </div>
+
+                  <input
+                    ref={mediaFileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleMediaFileChange}
+                    className="hidden"
+                  />
+
+                  <Button
+                    onClick={() => mediaFileInputRef.current?.click()}
+                    disabled={validating}
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs mt-1"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    Select Media JSON
                   </Button>
                 </div>
               </div>
 
-              {cleanupStatus && (
-                <div className={`p-2.5 rounded-lg border flex items-center gap-2 text-[11px] font-mono ${
-                  isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                }`}>
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
-                  <span>{cleanupStatus}</span>
+              {/* Safety Pre-Restore Banner */}
+              <div className={`p-3.5 rounded-lg border text-xs flex items-center gap-2.5 ${
+                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>
+                  <strong>Automatic Safety Snapshot:</strong> Before applying any restore, FSOS automatically generates and downloads an immutable safety snapshot of your current local state.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 5: WORKSPACE MAINTENANCE */}
+        {/* ========================================================================= */}
+        {activeSection === 'maintenance' && (
+          <div className="space-y-6">
+            {/* 1. Factory Reset Action */}
+            <div className={`p-6 rounded-xl border space-y-5 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-rose-400">
+                  <AlertTriangle className="w-5 h-5" />
+                  <h2 className="text-base font-semibold">
+                    Reset Local Workspace State
+                  </h2>
+                </div>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Clears all locally stored records and returns the workstation to a clean factory zero-state.
+                </p>
+              </div>
+
+              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-2.5 ${
+                isDark ? 'bg-rose-950/20 border-rose-900/40 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}>
+                <div className="font-semibold text-rose-400">
+                  Detailed Scope of Factory Reset:
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  <li>Permanently removes all Customer, Plant, and Production Line records.</li>
+                  <li>Permanently removes all Machine Passports, MHC inspection history, and saved drafts.</li>
+                  <li>Permanently removes all Service Contracts, Scheduled Maintenance tasks, and Quality Alerts.</li>
+                  <li>Completely purges all high-resolution images, beam profiles, and media evidence from IndexedDB.</li>
+                  <li>Restores default cleanroom baseline operators and initial clean workspace state.</li>
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-slate-500">
+                  This action is permanent. Export a Portable Backup before proceeding if you wish to preserve your data.
+                </span>
+                <Button
+                  onClick={() => {
+                    setResetConfirmInput('');
+                    setShowResetConfirmModal(true);
+                  }}
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs px-4 py-2 shrink-0 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Reset Workspace...</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* 2. Advanced Storage Diagnostics & Optimization (Collapsible Boundary) */}
+            <div className={`rounded-xl border transition-all ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedDiagnostics(!showAdvancedDiagnostics)}
+                className="w-full p-5 flex items-center justify-between text-left gap-4 hover:opacity-95"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg border ${
+                    isDark ? 'bg-[#1F242C] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+                  }`}>
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Advanced Storage Diagnostics & Optimization
+                    </h3>
+                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Read-only forensic media audits, duplicate payload consolidation, and safe orphaned media cleanup
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-mono px-2 py-1 rounded ${
+                    isDark ? 'bg-[#111315] text-slate-400' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {showAdvancedDiagnostics ? 'Collapse' : 'Expand Tools'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showAdvancedDiagnostics ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+
+              {showAdvancedDiagnostics && (
+                <div className="p-6 pt-0 space-y-6 border-t border-slate-700/30">
+                  {/* Action Bar */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-4">
+                    <Button
+                      onClick={handleAuditImages}
+                      disabled={auditing}
+                      variant="secondary"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {auditing ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          Running Audit...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                          Run Forensic Audit
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={handleDeduplicateMedia}
+                      disabled={deduplicating || !forensicReport}
+                      variant="secondary"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {deduplicating ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          Consolidating...
+                        </>
+                      ) : (
+                        <>
+                          <Layers className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+                          Consolidate Duplicates
+                        </>
+                      )}
+                    </Button>
+
+                    {forensicReport && forensicReport.summary.orphanedRecords > 0 && (
+                      <Button
+                        onClick={handleCleanupOrphanedMedia}
+                        disabled={cleaningOrphans}
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs text-amber-400 border-amber-500/30"
+                      >
+                        {cleaningOrphans ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                            Purging Orphans...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            Safe Orphan Cleanup ({forensicReport.summary.orphanedRecords})
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {auditResult && auditResult.malformed > 0 && (
+                      <Button
+                        onClick={handleCleanupImages}
+                        disabled={cleaning}
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs text-rose-400 border-rose-500/30"
+                      >
+                        {cleaning ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                            Purging Artifacts...
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+                            Purge React Artifacts ({auditResult.malformed})
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Feedback Status */}
+                  {cleanupStatus && (
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                      {cleanupStatus}
+                    </div>
+                  )}
+
+                  {deduplicationResult && (
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono">
+                      Deduplication complete: {deduplicationResult.consolidatedAliasesCount} alias pointers consolidated. Reclaimed {formatBytes(deduplicationResult.reclaimedBytes)}.
+                    </div>
+                  )}
+
+                  {/* Forensic Audit Report Display */}
+                  {forensicReport ? (
+                    <div className="space-y-4">
+                      {/* Summary Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className={`p-3 rounded-lg border ${
+                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className="text-slate-400 font-medium">Total Media Entries</div>
+                          <div className="text-slate-100 font-mono font-bold text-sm mt-1">
+                            {forensicReport.summary.totalRecords} ({formatBytes(forensicReport.summary.totalBytes)})
+                          </div>
+                        </div>
+
+                        <div className={`p-3 rounded-lg border ${
+                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className="text-slate-400 font-medium">Active References</div>
+                          <div className="text-emerald-400 font-mono font-bold text-sm mt-1">
+                            {forensicReport.summary.referencedRecords} entries
+                          </div>
+                        </div>
+
+                        <div className={`p-3 rounded-lg border ${
+                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className="text-slate-400 font-medium">Orphaned Records</div>
+                          <div className={`font-mono font-bold text-sm mt-1 ${
+                            forensicReport.summary.orphanedRecords > 0 ? 'text-amber-400' : 'text-slate-400'
+                          }`}>
+                            {forensicReport.summary.orphanedRecords} entries
+                          </div>
+                        </div>
+
+                        <div className={`p-3 rounded-lg border ${
+                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className="text-slate-400 font-medium">Duplicate Payloads</div>
+                          <div className="text-blue-400 font-mono font-bold text-sm mt-1">
+                            {forensicReport.summary.duplicateGroupsCount} groups
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Diagnostic Tab Filter Bar */}
+                      <div className="flex items-center gap-1.5 border-b border-slate-700/30 pb-2 text-xs">
+                        <button
+                          onClick={() => setActiveForensicTab('summary')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            activeForensicTab === 'summary'
+                              ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          Overview
+                        </button>
+                        <button
+                          onClick={() => setActiveForensicTab('categories')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            activeForensicTab === 'categories'
+                              ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          Category Breakdown
+                        </button>
+                        <button
+                          onClick={() => setActiveForensicTab('references')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            activeForensicTab === 'references'
+                              ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          All Key References ({forensicReport.entries.length})
+                        </button>
+                        <button
+                          onClick={() => setActiveForensicTab('duplicates')}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            activeForensicTab === 'duplicates'
+                              ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          Duplicates ({forensicReport.duplicates.length})
+                        </button>
+                      </div>
+
+                      {/* Tab 1: Summary Overview */}
+                      {activeForensicTab === 'summary' && (
+                        <div className="space-y-3 text-xs">
+                          <div className={`p-4 rounded-lg border ${
+                            isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                          }`}>
+                            <h4 className="font-semibold text-slate-200 mb-2">Media Store Provenance</h4>
+                            <p className="text-slate-400 leading-relaxed">
+                              Media evidence is isolated in the local IndexedDB Object Store (<span className="font-mono">fsos_media_store</span>). Each image is indexed by canonical content keys to prevent bloating main operational local storage.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tab 2: Category Breakdown */}
+                      {activeForensicTab === 'categories' && (
+                        <div className="space-y-2">
+                          {forensicReport.categories.map((cat) => (
+                            <div
+                              key={cat.category}
+                              className={`p-3 rounded-lg border flex items-center justify-between text-xs ${
+                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                              }`}
+                            >
+                              <span className="font-medium text-slate-200">{cat.category}</span>
+                              <div className="flex items-center gap-3 font-mono">
+                                <span className="text-slate-400">{cat.count} files</span>
+                                <span className="text-slate-200 font-semibold">{formatBytes(cat.totalBytes)}</span>
+                                <span className="text-emerald-400">{cat.percentageOfTotal.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tab 3: All Key References */}
+                      {activeForensicTab === 'references' && (
+                        <div className="space-y-2 max-h-72 overflow-y-auto font-mono text-[11px]">
+                          {forensicReport.entries.map((entry) => (
+                            <div
+                              key={entry.key}
+                              className={`p-2 rounded border flex items-center justify-between gap-2 ${
+                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                              }`}
+                            >
+                              <div className="truncate flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleCopyKey(entry.key)}
+                                  className="text-slate-500 hover:text-slate-300"
+                                  title="Copy key"
+                                >
+                                  {copiedKey === entry.key ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                                <span className="text-slate-300 truncate">{entry.key}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`px-1.5 py-0.2 rounded text-[10px] ${
+                                  entry.isOrphaned 
+                                    ? 'bg-amber-500/20 text-amber-400' 
+                                    : 'bg-emerald-500/20 text-emerald-400'
+                                }`}>
+                                  {entry.isOrphaned ? 'ORPHAN' : 'ACTIVE'}
+                                </span>
+                                <span className="text-slate-400">{formatBytes(entry.byteSize)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tab 4: Duplicates */}
+                      {activeForensicTab === 'duplicates' && (
+                        <div className="space-y-2 text-xs">
+                          {forensicReport.duplicates.length === 0 ? (
+                            <div className="p-4 text-center text-slate-500 font-mono">
+                              Zero un-consolidated duplicate payloads detected.
+                            </div>
+                          ) : (
+                            forensicReport.duplicates.map((dup) => (
+                              <div
+                                key={dup.groupId}
+                                className={`p-3 rounded-lg border space-y-1.5 ${
+                                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between font-mono text-[11px]">
+                                  <span className="text-slate-300 truncate max-w-xs">{dup.sampleKey}</span>
+                                  <span className="text-blue-400">{dup.count} instances ({formatBytes(dup.totalBytes)})</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-700/40 rounded-lg">
+                      Click "Run Forensic Audit" to inspect the live IndexedDB media evidence store.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </Card>
+          </div>
+        )}
 
-          {/* System Data & Workspace Management */}
-          <Card title="System Data & Workspace Management">
-            <div className="space-y-4 text-xs">
-              <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
-                isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-              }`}>
+        {/* ========================================================================= */}
+        {/* SECTION 6: ABOUT FSOS */}
+        {/* ========================================================================= */}
+        {activeSection === 'about' && (
+          <div className="space-y-6">
+            <div className={`p-6 rounded-xl border space-y-6 ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-sm text-[#E98A8A]">Reset Local Workspace State</p>
-                  <p className="text-slate-400 mt-0.5">Restores default contracts, machines, schedule, tasks, and MHC audit records.</p>
+                  <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    Field Service Operations System (FSOS)
+                  </h2>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Precision Engineering & Optical Alignment Platform
+                  </p>
                 </div>
-                <Button variant="danger" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={onResetData}>
-                  Reset State
-                </Button>
+                {onNavigate && (
+                  <Button
+                    onClick={() => onNavigate('changelog')}
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs flex items-center gap-1.5"
+                  >
+                    <History className="w-3.5 h-3.5 text-slate-400" />
+                    <span>View Release History</span>
+                  </Button>
+                )}
               </div>
 
-              <div className={`p-4 rounded-xl border ${
-                isDark ? 'bg-[#141618] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
-              }`}>
-                <div className="flex items-center gap-2 font-bold text-xs text-[#8B9DFF] mb-1">
-                  <User className="w-4 h-4" />
-                  <span>Engineer Profile Governance</span>
+              {/* Version & Build Matrix */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                <div className={`p-3.5 rounded-lg border ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-slate-400 font-medium">Version Release</div>
+                  <div className="text-slate-100 font-mono font-bold text-sm mt-1 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    {APP_VERSION}
+                  </div>
                 </div>
-                <p className="text-[11px] leading-relaxed text-slate-400">
-                  Personal identity details, avatar photo management, contact preferences, and certifications have been centralized under <strong>My Profile</strong> in accordance with FSOS Identity Standard v0.7.5.
+
+                <div className={`p-3.5 rounded-lg border ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-slate-400 font-medium">Build Identifier</div>
+                  <div className="text-slate-300 font-mono text-xs mt-1">
+                    {APP_BUILD_ID}
+                  </div>
+                </div>
+
+                <div className={`p-3.5 rounded-lg border ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-slate-400 font-medium">Milestone Architecture</div>
+                  <div className="text-emerald-400 font-medium text-xs mt-1 truncate" title={APP_CODENAME}>
+                    {APP_CODENAME}
+                  </div>
+                </div>
+              </div>
+
+              {/* Architecture Details */}
+              <div className={`p-4 rounded-lg border space-y-2 text-xs leading-relaxed ${
+                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <h4 className="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Offline-First Field Operations Architecture</span>
+                </h4>
+                <p>
+                  FSOS is engineered for mission-critical cleanroom field operations. The application executes completely client-side with native HTML5 storage, IndexedDB binary media partitioning, and portable archive interchange. Real-time calibration analysis, beam profile calculations, and MHC inspection session state remain fully operational regardless of network connectivity.
                 </p>
               </div>
             </div>
-          </Card>
-        </>
-      )}
+          </div>
+        )}
+      </div>
 
-      {/* Structured Changelog (Dedicated to version/history) */}
-      {activeSubTab === 'changelog' && (
-        <Card
-          title="Authoritative Engineering Milestone Changelog"
-          subtitle={`Derived directly from single source of truth CHANGELOG.md (${changelog.length} milestone releases)`}
-        >
-          <div className="space-y-4">
-            {changelog.map((entry) => (
-              <div
-                key={entry.version}
-                className={`p-4 rounded-xl border text-xs space-y-3 ${
-                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}
+      {/* ========================================================================= */}
+      {/* RESTORE PREVIEW & CONFIRMATION MODAL */}
+      {/* ========================================================================= */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`w-full max-w-lg rounded-xl border p-6 space-y-5 shadow-2xl transition-all ${
+            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-emerald-400" />
+                <h3 className={`text-base font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {selectedArchiveType === 'portable' ? 'Validate & Restore Portable Backup' : 'Validate & Restore Legacy Backup'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="text-slate-500 hover:text-slate-300"
               >
-                <div className="flex items-center justify-between border-b border-[#2B323A]/60 pb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-[#8B9DFF]">{entry.version}</span>
-                    <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{entry.title}</span>
-                  </div>
-                  {entry.date && <span className="font-mono text-slate-400 whitespace-nowrap">{entry.date}</span>}
-                </div>
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
 
-                <div className="space-y-2.5">
-                  {entry.sections.map((sec, sIdx) => (
-                    <div key={sIdx} className="space-y-1.5">
-                      {sec.heading && (
-                        <h4 className="font-bold text-[11px] uppercase tracking-wider text-sky-400/90 pt-1">
-                          {sec.heading}
-                        </h4>
-                      )}
-                      <ul className="space-y-1 list-disc pl-4 text-slate-400">
-                        {sec.items.map((item, iIdx) => (
-                          <li key={iIdx}>
-                            {renderFormattedLine(item)}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+            {/* Validation Details */}
+            {selectedArchiveType === 'portable' && portableValidation ? (
+              <div className="space-y-3 text-xs">
+                {portableValidation.valid ? (
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Archive valid! Ready for safe restoration.</span>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    <span>Archive validation errors detected.</span>
+                  </div>
+                )}
+
+                <div className={`p-4 rounded-lg border space-y-2 font-mono ${
+                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Archive Version:</span>
+                    <span className="text-slate-200 font-bold">{portableValidation.manifest.backupVersion}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Total Size:</span>
+                    <span className="text-slate-200">{formatBytes(portableValidation.totalArchiveBytes)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Canonical Media Files:</span>
+                    <span className="text-emerald-400">{portableValidation.manifest.mediaSummary.canonicalMediaFiles}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Alias References:</span>
+                    <span className="text-slate-300">{portableValidation.manifest.mediaSummary.aliasReferences}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Machine Passports:</span>
+                    <span className="text-slate-200">{portableValidation.manifest.domainCounts.machines || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">MHC Sessions:</span>
+                    <span className="text-slate-200">{portableValidation.manifest.domainCounts.mhc_sessions || 0}</span>
+                  </div>
                 </div>
               </div>
-            ))}
+            ) : completeValidation ? (
+              <div className="space-y-3 text-xs">
+                {completeValidation.valid ? (
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Legacy JSON valid!</span>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    <span>Errors: {completeValidation.errors.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {restoreError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                {restoreError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/30">
+              <Button
+                onClick={() => setShowPreviewModal(false)}
+                variant="secondary"
+                size="sm"
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleApplyRestore}
+                disabled={restoring || (selectedArchiveType === 'portable' ? !portableValidation?.valid : !completeValidation?.valid)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold text-xs px-4"
+              >
+                {restoring ? 'Applying Safe Restore...' : 'Confirm & Apply Restore'}
+              </Button>
+            </div>
           </div>
-        </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* FACTORY RESET CONFIRMATION MODAL */}
+      {/* ========================================================================= */}
+      {showResetConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-xl border p-6 space-y-5 shadow-2xl ${
+            isDark ? 'bg-[#16191D] border-rose-900/40' : 'bg-white border-rose-300'
+          }`}>
+            <div className="flex items-center gap-2.5 text-rose-400">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-base font-bold">
+                Confirm Factory Workspace Reset
+              </h3>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                You are about to permanently purge all operational customer data, machine passports, inspection sessions, reports, and IndexedDB media evidence.
+              </p>
+              <p className="font-semibold text-rose-400">
+                To confirm, type <span className="font-mono underline">RESET</span> in the box below:
+              </p>
+
+              <input
+                type="text"
+                placeholder="Type RESET to confirm"
+                value={resetConfirmInput}
+                onChange={(e) => setResetConfirmInput(e.target.value)}
+                className={`w-full px-3 py-2 rounded-lg text-xs font-mono border outline-none ${
+                  isDark
+                    ? 'bg-[#111315] border-rose-900/60 text-rose-200 placeholder-slate-600 focus:ring-1 focus:ring-rose-500'
+                    : 'bg-rose-50 border-rose-200 text-rose-900 placeholder-rose-400 focus:ring-1 focus:ring-rose-500'
+                }`}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/30">
+              <Button
+                onClick={() => setShowResetConfirmModal(false)}
+                variant="secondary"
+                size="sm"
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleExecuteReset}
+                disabled={resetConfirmInput.trim() !== 'RESET' || isResetting}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs px-4"
+              >
+                {isResetting ? 'Resetting Workspace...' : 'Permanently Reset Workspace'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

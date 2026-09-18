@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v2.6.0 — Settings & Backup UX Reorganization (2026-09-18)
+
+### Settings & Backup UX Reorganization (R12-C)
+- **Calm Industrial Settings Architecture**: Reorganized Settings into six purpose-built domains: Appearance, Regional, Application, Backup & Restore, Workspace Maintenance, and About FSOS.
+- **Dedicated Changelog Page**: Extracted the full release history from Settings into an independent, top-level navigation destination with instant search, release milestone filtering, and collapsible change logs.
+- **Portable Backup & Safe Restore Experience**: Elevated Portable Backup (`.fsosbackup`) as the primary path with clear plain-language explanation of archive sizing (driven by image evidence) and subordinate legacy JSON restore support.
+- **Workspace Maintenance & Guarded Reset**: Integrated plain-language explanation of factory reset impacts with a strict two-stage confirmation modal, alongside a collapsible Advanced Storage Diagnostics & Optimization panel housing forensic media audit and deduplication tools.
+- **Pure Operational Realism**: Strict zero-fabrication guarantees across all preferences, storage telemetry, and backup validation stats.
+
 ## v2.5.5 — Engineering Analysis Workspace Redesign (2026-09-17)
 
 ### Engineering Analysis Workspace Redesign

@@ -19,7 +19,8 @@ export type NavigationTab =
   | 'analytics'
   | 'users'
   | 'settings'
-  | 'profile';
+  | 'profile'
+  | 'changelog';
 
 export type WorkspaceMode = 'MHC_MODE' | 'FOUNDER_MODE';
 

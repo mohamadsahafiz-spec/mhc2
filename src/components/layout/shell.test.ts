@@ -13,7 +13,8 @@ describe('FSOS R2 Application Shell Navigation Contract', () => {
       'analytics',
       'profile',
       'users',
-      'settings'
+      'settings',
+      'changelog'
     ];
 
     const mhcAllowedTabs: NavigationTab[] = [
@@ -25,7 +26,8 @@ describe('FSOS R2 Application Shell Navigation Contract', () => {
       'contracts',
       'analytics',
       'profile',
-      'settings'
+      'settings',
+      'changelog'
     ];
 
     // Verify all MHC allowed tabs are valid navigation tabs
@@ -33,7 +35,7 @@ describe('FSOS R2 Application Shell Navigation Contract', () => {
       expect(allExpectedTabs).toContain(tab);
     });
 
-    expect(allExpectedTabs.length).toBe(10);
-    expect(mhcAllowedTabs.length).toBe(9);
+    expect(allExpectedTabs.length).toBe(11);
+    expect(mhcAllowedTabs.length).toBe(10);
   });
 });

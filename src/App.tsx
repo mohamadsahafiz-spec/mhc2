@@ -42,6 +42,7 @@ import { AnalyticsModule } from './components/modules/AnalyticsModule';
 import { UsersModule } from './components/modules/UsersModule';
 import { ProfileModule } from './components/modules/ProfileModule';
 import { SettingsModule } from './components/modules/SettingsModule';
+import { ChangelogModule } from './components/modules/ChangelogModule';
 
 function AppLayout() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('start_page');
@@ -631,7 +632,14 @@ function AppLayout() {
 
           {activeTab === 'settings' && (
             <SettingsModule 
-              onResetData={handleResetData} 
+              onResetData={handleResetData}
+              onNavigate={setActiveTab}
+            />
+          )}
+
+          {activeTab === 'changelog' && (
+            <ChangelogModule 
+              onNavigate={setActiveTab}
             />
           )}
         </main>

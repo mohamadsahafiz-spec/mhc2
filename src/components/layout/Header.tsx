@@ -13,7 +13,8 @@ import {
   Palette, 
   BellRing,
   Activity,
-  Layers
+  Layers,
+  ScrollText
 } from 'lucide-react';
 import { NavigationTab, AlertItem, NotificationItem, SystemUser, WorkspaceMode } from '../../types';
 import { Button } from '../common/Button';
@@ -74,6 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'users': return 'Engineers Directory';
       case 'settings': return 'System Settings & Backup';
       case 'profile': return 'My Profile';
+      case 'changelog': return 'Release History & Changelog';
       default: return 'Field Operations System';
     }
   };
@@ -325,6 +327,19 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
                   <span>Settings & Backup</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('changelog');
+                    setShowUserMenu(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <ScrollText className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Release History</span>
                 </button>
               </div>
 

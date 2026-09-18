@@ -18,7 +18,8 @@ import {
   PanelLeftOpen,
   Activity,
   SlidersHorizontal,
-  CircleDot
+  CircleDot,
+  ScrollText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NavigationTab, EngineerProfile, WorkspaceMode } from '../../types';
@@ -114,7 +115,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'profile', label: 'My Profile', icon: User },
         { id: 'users', label: 'Engineers Directory', icon: Users },
-        { id: 'settings', label: 'Backup & Settings', icon: Database },
+        { id: 'settings', label: 'Settings', icon: Database },
+        { id: 'changelog', label: 'Release History', icon: ScrollText },
       ]
     }
   ];
@@ -134,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } else if (group.key === 'fleet') {
       allowedIds = ['customers', 'contracts', 'analytics'];
     } else if (group.key === 'system') {
-      allowedIds = ['profile', 'settings'];
+      allowedIds = ['profile', 'settings', 'changelog'];
     }
 
     return {
