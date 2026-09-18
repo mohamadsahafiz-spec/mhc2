@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v2.10.1 — Animated Login Experience & Brand Mark Presentation (2026-09-18)
+
+### Animated Login Experience & Brand Mark Finalization
+- **FSOS Brand Mark Presence**: Removed the cramped button-like container and elevated the wafer mark to a prominent, unclipped 64px centerpiece framed with a precision optical alignment reticle and mechanical entry alignment sweep.
+- **Animated Precision Environment**: Introduced an interactive background environment with a fine technical coordinate grid, smooth mechanical laser scan beam, cursor-responsive ambient spotlight, and viewport registration crosshairs.
+- **Dynamic Workspace Mode Switching**: Added a physical sliding indicator transition between MHC Mode and Founder Mode powered by Motion `layoutId`, providing tactile operational feedback.
+- **Polished Session Handshake**: Implemented a multi-stage primary action response (`idle` → `authenticating` → `success confirmed`) transitioning seamlessly into the FSOS workspace.
+- **Motion & Reduced Motion Compliance**: All animations adhere to the Mechanical + Smooth motion language and gracefully deactivate continuous sweeps/translations when `prefers-reduced-motion` is active.
+
 ## v2.10.0 — Login UI/UX & Motion Finalization (2026-09-18)
 
 ### Login Experience & Mechanical Motion Finalization
