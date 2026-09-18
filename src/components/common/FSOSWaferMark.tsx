@@ -13,7 +13,7 @@ export const FSOSWaferMark: React.FC<FSOSWaferMarkProps> = ({
 
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 -3.25 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -68,8 +68,12 @@ export const FSOSWaferMark: React.FC<FSOSWaferMarkProps> = ({
         </linearGradient>
       </defs>
 
-      {/* Wafer Shadow Backdrop */}
-      <circle cx="50" cy="51" r="44" fill="#000000" fillOpacity="0.4" />
+      {/* Wafer Silhouette Shadow Backdrop */}
+      <path
+        d="M 50,7 A 44,44 0 1,0 71.5,88.5 L 53,88.5 L 50,85.5 L 47,88.5 L 28.5,88.5 A 44,44 0 0,0 50,7 Z"
+        fill="#000000"
+        fillOpacity="0.35"
+      />
 
       {/* Wafer Body Clipped Area */}
       <g clipPath="url(#fsos-wafer-silhouette)">
@@ -166,8 +170,14 @@ export const FSOSWaferMark: React.FC<FSOSWaferMarkProps> = ({
         strokeLinejoin="round"
       />
 
-      {/* Outer Glow / Highlight Accent Ring */}
-      <circle cx="50" cy="50" r="44.8" stroke="#6366f1" strokeWidth="0.4" strokeOpacity="0.3" fill="none" />
+      {/* Outer Subtle Accent Ring Matching Silhouette Geometry */}
+      <path
+        d="M 50,5.2 A 44.8,44.8 0 1,0 71.9,88.2 L 53.2,88.2 L 50,85.0 L 46.8,88.2 L 28.1,88.2 A 44.8,44.8 0 0,0 50,5.2 Z"
+        stroke="#6366f1"
+        strokeWidth="0.4"
+        strokeOpacity="0.3"
+        fill="none"
+      />
     </svg>
   );
 };

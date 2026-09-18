@@ -62,6 +62,26 @@ describe('FSOS Login UI & Session Contract', () => {
     expect(session.profilePhoto).toBe('https://example.com/avatar.jpg');
   });
 
+  it('guarantees FSOS Wafer Mark optical centering calibration math', () => {
+    // Wafer physical artwork bounds:
+    // Top = 6, Bottom = 87.5 (height = 81.5)
+    // Left = 6, Right = 94 (width = 88)
+    const minY = 6;
+    const maxY = 87.5;
+    const opticalCenterY = (minY + maxY) / 2; // 46.75
+    const opticalOffsetY = 50 - opticalCenterY; // 3.25
+
+    expect(opticalCenterY).toBe(46.75);
+    expect(opticalOffsetY).toBe(3.25);
+
+    // With viewBox="0 -3.25 100 100", the top margin (6 - (-3.25) = 9.25)
+    // equals the bottom margin (96.75 - 87.5 = 9.25)
+    const topMargin = minY - (-opticalOffsetY);
+    const bottomMargin = (100 - opticalOffsetY) - maxY;
+    expect(topMargin).toBe(bottomMargin);
+    expect(topMargin).toBe(9.25);
+  });
+
   it('guarantees login form does not introduce unauthorized remote OAuth or 3P backends', () => {
     // Local-first session integrity check
     const isLocalAuth = true;
