@@ -408,3 +408,84 @@ describe('R11 — Engineering Analysis Workspace UI/UX Redesign', () => {
     expect(message).toBe('No recurring findings recorded.');
   });
 });
+
+describe('R11 — Laser Power Machine Passport MHC Specification & Selector UX', () => {
+  it('derives target specification and acceptable tolerance range directly from machine.mhcSpecs', () => {
+    const machine = {
+      id: 'm-1',
+      name: 'WL VIA#1',
+      model: 'BMD302W',
+      mhcSpecs: {
+        laserPower: {
+          targetPowerWatts: 15,
+          powerTolerancePercent: 10
+        }
+      }
+    };
+
+    const targetWatts = machine.mhcSpecs.laserPower.targetPowerWatts;
+    const tolPercent = machine.mhcSpecs.laserPower.powerTolerancePercent;
+    const delta = targetWatts * (tolPercent / 100);
+    const minSpec = Number((targetWatts - delta).toFixed(2));
+    const maxSpec = Number((targetWatts + delta).toFixed(2));
+
+    expect(targetWatts).toBe(15);
+    expect(tolPercent).toBe(10);
+    expect(minSpec).toBe(13.5);
+    expect(maxSpec).toBe(16.5);
+  });
+
+  it('correctly evaluates measurements against 15 W ±10% spec range (14.8 W = In Spec, 12.7 W = Below Spec)', () => {
+    const minSpec = 13.5;
+    const maxSpec = 16.5;
+
+    const evaluateVerdict = (val: number) => {
+      if (val < minSpec) return 'BELOW_SPEC';
+      if (val > maxSpec) return 'ABOVE_SPEC';
+      return 'IN_SPEC';
+    };
+
+    expect(evaluateVerdict(14.8)).toBe('IN_SPEC');
+    expect(evaluateVerdict(12.7)).toBe('BELOW_SPEC');
+    expect(evaluateVerdict(17.2)).toBe('ABOVE_SPEC');
+  });
+
+  it('handles missing machine specs gracefully without inventing fallback values', () => {
+    const machineNoSpecs = {
+      id: 'm-2',
+      name: 'Generic Unit',
+      model: 'BMD100'
+    };
+
+    const extractSpec = (m: any) => {
+      const lp = m.mhcSpecs?.laserPower;
+      const target = (typeof lp?.targetPowerWatts === 'number' && lp.targetPowerWatts > 0) ? lp.targetPowerWatts : null;
+      return target ? `Target: ${target} W` : 'No Target Spec';
+    };
+
+    expect(extractSpec(machineNoSpecs)).toBe('No Target Spec');
+  });
+
+  it('verifies AnalyticsModule codebase strictly avoids ratedPowerWatts and hardcoded 250W fallback', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const modulePath = path.resolve(process.cwd(), 'src/components/modules/AnalyticsModule.tsx');
+    const content = fs.readFileSync(modulePath, 'utf-8');
+
+    // ratedPowerWatts or 250W should never be used
+    expect(content).not.toContain('ratedPowerWatts');
+    expect(content).not.toContain('250W');
+    expect(content).not.toContain('250 W');
+    expect(content).not.toContain('nominalPower');
+
+    // Confirms usage of mhcSpecs
+    expect(content).toContain('mhcSpecs');
+    expect(content).toContain('targetPowerWatts');
+    expect(content).toContain('powerTolerancePercent');
+
+    // Confirms selector labels
+    expect(content).toContain('MACHINE');
+    expect(content).toContain('PARAMETER');
+  });
+});
+

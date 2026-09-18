@@ -261,6 +261,204 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
   }, [trajectoryMachineId, trajectoryParam, machines, mhcSessions]);
 
   // -------------------------------------------------------------
+  // 2b. AUTHORITATIVE MACHINE SPECIFICATION (MHC / CALIBRATION SPECS)
+  // -------------------------------------------------------------
+  const machineSpec = useMemo(() => {
+    const machine = parameterTrajectoryData.machine;
+    if (!machine) {
+      return {
+        hasSpec: false,
+        hasTolerance: false,
+        targetValue: null as number | null,
+        tolerancePercent: null as number | null,
+        toleranceValue: null as number | null,
+        minSpec: null as number | null,
+        maxSpec: null as number | null,
+        specLabel: 'No Target Spec',
+        acceptableLabel: '',
+        source: 'Machine Passport (MHC / Calibration Specs)'
+      };
+    }
+
+    if (trajectoryParam === 'LASER_POWER') {
+      const lp = machine.mhcSpecs?.laserPower;
+      const targetWatts = (typeof lp?.targetPowerWatts === 'number' && lp.targetPowerWatts > 0) ? lp.targetPowerWatts : null;
+      const tolerancePercent = (typeof lp?.powerTolerancePercent === 'number' && lp.powerTolerancePercent >= 0) ? lp.powerTolerancePercent : null;
+
+      if (targetWatts !== null) {
+        if (tolerancePercent !== null) {
+          const delta = targetWatts * (tolerancePercent / 100);
+          const minSpec = Number((targetWatts - delta).toFixed(2));
+          const maxSpec = Number((targetWatts + delta).toFixed(2));
+          return {
+            hasSpec: true,
+            hasTolerance: true,
+            targetValue: targetWatts,
+            tolerancePercent: tolerancePercent,
+            toleranceValue: delta,
+            minSpec: minSpec,
+            maxSpec: maxSpec,
+            specLabel: `Target: ${targetWatts} W ±${tolerancePercent}%`,
+            acceptableLabel: `Acceptable: ${minSpec}–${maxSpec} W`,
+            source: 'Machine Passport (MHC / Calibration Specs)'
+          };
+        } else {
+          return {
+            hasSpec: true,
+            hasTolerance: false,
+            targetValue: targetWatts,
+            tolerancePercent: null,
+            toleranceValue: null,
+            minSpec: null,
+            maxSpec: null,
+            specLabel: `Target: ${targetWatts} W`,
+            acceptableLabel: 'No Tolerance Configured',
+            source: 'Machine Passport (MHC / Calibration Specs)'
+          };
+        }
+      }
+
+      return {
+        hasSpec: false,
+        hasTolerance: false,
+        targetValue: null,
+        tolerancePercent: null,
+        toleranceValue: null,
+        minSpec: null,
+        maxSpec: null,
+        specLabel: 'No Target Spec',
+        acceptableLabel: '',
+        source: 'Machine Passport (MHC / Calibration Specs)'
+      };
+    }
+
+    if (trajectoryParam === 'STAGE_CALIBRATION') {
+      const sc = machine.mhcSpecs?.stageCalibration;
+      const tol = (typeof sc?.toleranceUm === 'number' && sc.toleranceUm > 0) ? sc.toleranceUm : null;
+      if (tol !== null) {
+        return {
+          hasSpec: true,
+          hasTolerance: true,
+          targetValue: 0,
+          tolerancePercent: null,
+          toleranceValue: tol,
+          minSpec: 0,
+          maxSpec: tol,
+          specLabel: `Tolerance: ±${tol} µm`,
+          acceptableLabel: `Acceptable: 0.0–${tol} µm`,
+          source: 'Machine Passport (MHC / Calibration Specs)'
+        };
+      }
+      return {
+        hasSpec: false,
+        hasTolerance: false,
+        targetValue: null,
+        tolerancePercent: null,
+        toleranceValue: null,
+        minSpec: null,
+        maxSpec: null,
+        specLabel: 'No Target Spec',
+        acceptableLabel: '',
+        source: 'Machine Passport (MHC / Calibration Specs)'
+      };
+    }
+
+    if (trajectoryParam === 'AGC_ERROR') {
+      const agc = machine.mhcSpecs?.agcCalibration;
+      const tol = (typeof agc?.toleranceUm === 'number' && agc.toleranceUm > 0) ? agc.toleranceUm : null;
+      if (tol !== null) {
+        return {
+          hasSpec: true,
+          hasTolerance: true,
+          targetValue: 0,
+          tolerancePercent: null,
+          toleranceValue: tol,
+          minSpec: 0,
+          maxSpec: tol,
+          specLabel: `Tolerance: ±${tol} µm`,
+          acceptableLabel: `Acceptable: 0.0–${tol} µm`,
+          source: 'Machine Passport (MHC / Calibration Specs)'
+        };
+      }
+      return {
+        hasSpec: false,
+        hasTolerance: false,
+        targetValue: null,
+        tolerancePercent: null,
+        toleranceValue: null,
+        minSpec: null,
+        maxSpec: null,
+        specLabel: 'No Target Spec',
+        acceptableLabel: '',
+        source: 'Machine Passport (MHC / Calibration Specs)'
+      };
+    }
+
+    return {
+      hasSpec: false,
+      hasTolerance: false,
+      targetValue: null,
+      tolerancePercent: null,
+      toleranceValue: null,
+      minSpec: null,
+      maxSpec: null,
+      specLabel: 'No Target Spec',
+      acceptableLabel: '',
+      source: 'Machine Passport (MHC / Calibration Specs)'
+    };
+  }, [parameterTrajectoryData.machine, trajectoryParam]);
+
+  const getPointVerdict = (val: number) => {
+    if (!machineSpec.hasSpec) {
+      return {
+        status: 'NO_SPEC' as const,
+        badgeText: 'No Target Spec',
+        fullText: 'No machine specification configured',
+        colorClass: 'text-slate-400 dark:text-slate-500',
+        bgClass: 'bg-slate-100 dark:bg-[#1E232B] text-slate-600 dark:text-slate-400'
+      };
+    }
+
+    if (!machineSpec.hasTolerance || machineSpec.minSpec === null || machineSpec.maxSpec === null) {
+      return {
+        status: 'UNRATED' as const,
+        badgeText: machineSpec.specLabel,
+        fullText: machineSpec.specLabel,
+        colorClass: 'text-slate-600 dark:text-slate-400',
+        bgClass: 'bg-slate-100 dark:bg-[#1E232B] text-slate-700 dark:text-slate-300'
+      };
+    }
+
+    if (val < machineSpec.minSpec) {
+      return {
+        status: 'BELOW_SPEC' as const,
+        badgeText: 'Below Spec',
+        fullText: `Below Spec (${machineSpec.minSpec}–${machineSpec.maxSpec} ${parameterTrajectoryData.unit})`,
+        colorClass: 'text-rose-600 dark:text-rose-400',
+        bgClass: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50'
+      };
+    }
+
+    if (val > machineSpec.maxSpec) {
+      return {
+        status: 'ABOVE_SPEC' as const,
+        badgeText: 'Above Spec',
+        fullText: `Above Spec (${machineSpec.minSpec}–${machineSpec.maxSpec} ${parameterTrajectoryData.unit})`,
+        colorClass: 'text-amber-600 dark:text-amber-400',
+        bgClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
+      };
+    }
+
+    return {
+      status: 'IN_SPEC' as const,
+      badgeText: 'Within Spec',
+      fullText: `Within Spec (${machineSpec.minSpec}–${machineSpec.maxSpec} ${parameterTrajectoryData.unit})`,
+      colorClass: 'text-emerald-600 dark:text-emerald-400',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50'
+    };
+  };
+
+  // -------------------------------------------------------------
   // 3. SUBSYSTEM RESULTS AGGREGATION
   // -------------------------------------------------------------
   interface SubsystemNonPassItem {
@@ -303,7 +501,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
       // 1. Laser Output (Stage 03)
       if (s.stage03_laserPower && Array.isArray(s.stage03_laserPower)) {
         s.stage03_laserPower.forEach(lp => {
-          if (lp.afterValueWatts > 0 || lp.beforeValueWatts > 0 || lp.ratedPowerWatts > 0) {
+          if (lp.afterValueWatts > 0 || lp.beforeValueWatts > 0 || lp.result) {
             data.LASER.total++;
             if (lp.result === 'PASS' || (!lp.result && lp.afterValueWatts > 0)) {
               data.LASER.pass++;
@@ -799,36 +997,44 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
         <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
           {/* Machine selector (Relevant for Laser Power) */}
           {activeAnalysis === 'LASER_POWER' && (
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-              <span className="text-[11px] text-slate-400 font-medium">Machine:</span>
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1A1D23] px-2.5 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                MACHINE
+              </span>
               <select
                 value={trajectoryMachineId}
                 onChange={e => setTrajectoryMachineId(e.target.value)}
-                aria-label="Target Machine"
-                className="bg-transparent text-slate-800 dark:text-slate-200 font-mono font-medium focus:outline-none cursor-pointer"
+                aria-label="Select Machine"
+                className="bg-transparent text-slate-900 dark:text-slate-100 font-mono text-xs font-semibold focus:outline-none cursor-pointer pr-1"
               >
-                {machines.map(m => (
-                  <option key={m.id} value={m.id} className="bg-white dark:bg-[#1A1D23]">
-                    {m.machineNumber || m.serialNumber || m.name} ({m.model})
-                  </option>
-                ))}
+                {machines.map(m => {
+                  const machineNum = m.machineNumber || m.machineNo || m.serialNumber || m.name || m.id;
+                  const modelStr = m.model ? ` · ${m.model}` : '';
+                  return (
+                    <option key={m.id} value={m.id} className="bg-white dark:bg-[#1A1D23] text-slate-900 dark:text-slate-100 font-sans">
+                      {machineNum}{modelStr}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           )}
 
           {/* Metric selector (Relevant for Laser Power) */}
           {activeAnalysis === 'LASER_POWER' && (
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1A1D23] px-2 py-1 rounded border border-slate-200 dark:border-[#262B33]">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1A1D23] px-2.5 py-1 rounded border border-slate-200 dark:border-[#262B33]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                PARAMETER
+              </span>
               <select
                 value={trajectoryParam}
                 onChange={e => setTrajectoryParam(e.target.value as ParameterMetric)}
-                aria-label="Measurement Metric"
-                className="bg-transparent text-slate-800 dark:text-slate-200 font-medium focus:outline-none cursor-pointer"
+                aria-label="Select Parameter"
+                className="bg-transparent text-slate-900 dark:text-slate-100 text-xs font-semibold focus:outline-none cursor-pointer pr-1"
               >
-                <option value="LASER_POWER" className="bg-white dark:bg-[#1A1D23]">Laser Power (Watts)</option>
-                <option value="STAGE_CALIBRATION" className="bg-white dark:bg-[#1A1D23]">Stage Accuracy (µm)</option>
-                <option value="AGC_ERROR" className="bg-white dark:bg-[#1A1D23]">AGC Positioning (µm)</option>
+                <option value="LASER_POWER" className="bg-white dark:bg-[#1A1D23] text-slate-900 dark:text-slate-100">Laser Power · W</option>
+                <option value="STAGE_CALIBRATION" className="bg-white dark:bg-[#1A1D23] text-slate-900 dark:text-slate-100">Stage Accuracy · µm</option>
+                <option value="AGC_ERROR" className="bg-white dark:bg-[#1A1D23] text-slate-900 dark:text-slate-100">AGC Telemetry · µm</option>
               </select>
             </div>
           )}
@@ -915,7 +1121,7 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
           {activeAnalysis === 'LASER_POWER' && (
             <div className="space-y-4">
               <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#20252B]">
                   <div>
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
@@ -924,6 +1130,30 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
                       Physical verified telemetry for {parameterTrajectoryData.machine?.machineNumber || 'Selected Unit'} ({parameterTrajectoryData.machine?.model || 'Equipment'})
                     </span>
+                  </div>
+
+                  {/* Machine Passport Specification Reference Badge */}
+                  <div className="flex items-center gap-2">
+                    {machineSpec.hasSpec ? (
+                      <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#1E232B] px-3 py-1.5 rounded border border-slate-200 dark:border-[#2D333B] text-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          SPEC
+                        </span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                          {machineSpec.specLabel}
+                        </span>
+                        {machineSpec.acceptableLabel && (
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                            · {machineSpec.acceptableLabel}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#1E232B] px-2.5 py-1 rounded border border-slate-200 dark:border-[#2D333B] text-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SPEC:</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">No Target Spec</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -940,198 +1170,324 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                 )}
 
                 {/* State: 1 measurement */}
-                {parameterTrajectoryData.points.length === 1 && (
-                  <div className="p-4 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                          {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500 font-mono">
-                          1 verified measurement
-                        </span>
+                {parameterTrajectoryData.points.length === 1 && (() => {
+                  const pt = parameterTrajectoryData.points[0];
+                  const verdict = getPointVerdict(pt.value);
+                  return (
+                    <div className="p-4 rounded bg-slate-50 dark:bg-[#1A1D23] border border-slate-200 dark:border-[#262B33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                            {pt.value} {parameterTrajectoryData.unit}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded font-medium ${verdict.bgClass}`}>
+                            {verdict.badgeText}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500 font-mono">
+                            1 verified measurement
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Recorded on <span className="font-mono text-slate-700 dark:text-slate-300">{pt.date}</span> ({pt.label || 'Reading'}).
+                          {machineSpec.hasSpec && machineSpec.acceptableLabel && (
+                            <span className="ml-1 text-slate-600 dark:text-slate-400">
+                              · Machine spec target: <strong className="font-mono text-slate-800 dark:text-slate-200">{machineSpec.specLabel}</strong> ({machineSpec.acceptableLabel}).
+                            </span>
+                          )}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500">
-                        Recorded on <span className="font-mono text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].date}</span> ({parameterTrajectoryData.points[0].label || 'Reading'}). Minimum 2 measurements required to plot a trend line.
-                      </p>
-                    </div>
 
-                    {onNavigate && parameterTrajectoryData.points[0].sessionId && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onNavigate('mhc')}
-                        icon={<ExternalLink className="w-3.5 h-3.5" />}
-                      >
-                        View Source MHC Record
-                      </Button>
-                    )}
-                  </div>
-                )}
+                      {onNavigate && pt.sessionId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onNavigate('mhc')}
+                          icon={<ExternalLink className="w-3.5 h-3.5" />}
+                        >
+                          View Source MHC Record
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* State: 2+ measurements (Precision SVG Visual) */}
-                {parameterTrajectoryData.points.length >= 2 && (
-                  <div className="space-y-4">
-                    {/* Measurement Summary Strip */}
-                    <div className="flex flex-wrap items-baseline justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#20252B]">
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                          {parameterTrajectoryData.points[0].value} {parameterTrajectoryData.unit} → {parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value} {parameterTrajectoryData.unit}
-                        </span>
-                        <span className="text-xs font-mono text-slate-500">
-                          {parameterTrajectoryData.points.length} verified measurements
-                        </span>
+                {parameterTrajectoryData.points.length >= 2 && (() => {
+                  const pts = parameterTrajectoryData.points;
+                  const firstPt = pts[0];
+                  const latestPt = pts[pts.length - 1];
+                  const latestVerdict = getPointVerdict(latestPt.value);
+                  const delta = Number((latestPt.value - firstPt.value).toFixed(2));
+                  const sign = delta > 0 ? `+${delta}` : `${delta}`;
+                  const isDrift = delta < 0 && trajectoryParam === 'LASER_POWER';
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Measurement Summary Strip */}
+                      <div className="flex flex-wrap items-baseline justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#20252B]">
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
+                            {firstPt.value} {parameterTrajectoryData.unit} → {latestPt.value} {parameterTrajectoryData.unit}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded font-medium ${latestVerdict.bgClass}`}>
+                            Latest: {latestVerdict.badgeText}
+                          </span>
+                          <span className="text-xs font-mono text-slate-500">
+                            {pts.length} verified measurements
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+                          <span>First: <strong className="text-slate-700 dark:text-slate-300">{firstPt.value}{parameterTrajectoryData.unit}</strong> ({firstPt.date})</span>
+                          <span>·</span>
+                          <span>Latest: <strong className="text-slate-900 dark:text-slate-100">{latestPt.value}{parameterTrajectoryData.unit}</strong> ({latestPt.date})</span>
+                          <span>·</span>
+                          <span className={isDrift ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300'}>
+                            Δ {sign} {parameterTrajectoryData.unit}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
-                        <span>First: <strong className="text-slate-700 dark:text-slate-300">{parameterTrajectoryData.points[0].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[0].date})</span>
-                        <span>·</span>
-                        <span>Latest: <strong className="text-slate-900 dark:text-slate-100">{parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value}{parameterTrajectoryData.unit}</strong> ({parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].date})</span>
-                        <span>·</span>
+                      {/* Precision SVG Chart with Specification Tolerance Band */}
+                      <div className="h-64 w-full relative pt-2">
                         {(() => {
-                          const first = parameterTrajectoryData.points[0].value;
-                          const latest = parameterTrajectoryData.points[parameterTrajectoryData.points.length - 1].value;
-                          const delta = Number((latest - first).toFixed(2));
-                          const sign = delta > 0 ? `+${delta}` : `${delta}`;
-                          const isDrift = delta < 0 && trajectoryParam === 'LASER_POWER';
+                          const values = pts.map(p => p.value);
+                          if (machineSpec.hasSpec && machineSpec.targetValue !== null) {
+                            values.push(machineSpec.targetValue);
+                          }
+                          if (machineSpec.minSpec !== null) values.push(machineSpec.minSpec);
+                          if (machineSpec.maxSpec !== null) values.push(machineSpec.maxSpec);
+
+                          const rawMin = Math.min(...values);
+                          const rawMax = Math.max(...values);
+                          
+                          const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
+                          const minVal = Math.max(0, Number((rawMin - span * 0.2).toFixed(1)));
+                          const maxVal = Number((rawMax + span * 0.2).toFixed(1));
+                          const range = (maxVal - minVal) || 1;
+
+                          const width = 740;
+                          const height = 210;
+                          const padX = 55;
+                          const padY = 30;
+
+                          const getY = (val: number) => {
+                            return height - padY - ((val - minVal) / range) * (height - 2 * padY);
+                          };
+
+                          const plotPoints = pts.map((p, idx) => {
+                            const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
+                            const y = getY(p.value);
+                            const verdict = getPointVerdict(p.value);
+                            return { ...p, x, y, verdict };
+                          });
+
+                          const pathD = plotPoints.reduce((acc, p, idx) => 
+                            idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
+                          );
+
                           return (
-                            <span className={isDrift ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-700 dark:text-slate-300'}>
-                              Δ {sign} {parameterTrajectoryData.unit}
-                            </span>
+                            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+                              {/* Specification Acceptable Tolerance Band (Shaded Zone) */}
+                              {machineSpec.hasTolerance && machineSpec.minSpec !== null && machineSpec.maxSpec !== null && (
+                                <g>
+                                  <rect
+                                    x={padX}
+                                    y={getY(machineSpec.maxSpec)}
+                                    width={width - 2 * padX}
+                                    height={Math.max(2, getY(machineSpec.minSpec) - getY(machineSpec.maxSpec))}
+                                    fill="currentColor"
+                                    className="text-emerald-500/10 dark:text-emerald-400/10"
+                                  />
+                                  {/* Max spec dashed boundary */}
+                                  <line
+                                    x1={padX}
+                                    y1={getY(machineSpec.maxSpec)}
+                                    x2={width - padX}
+                                    y2={getY(machineSpec.maxSpec)}
+                                    stroke="currentColor"
+                                    strokeDasharray="3 3"
+                                    strokeWidth="1"
+                                    className="text-emerald-600/40 dark:text-emerald-400/40"
+                                  />
+                                  <text
+                                    x={width - padX + 4}
+                                    y={getY(machineSpec.maxSpec) + 3}
+                                    fontSize="8"
+                                    fontFamily="monospace"
+                                    className="fill-emerald-600/70 dark:fill-emerald-400/70"
+                                  >
+                                    +Spec {machineSpec.maxSpec}
+                                  </text>
+
+                                  {/* Min spec dashed boundary */}
+                                  <line
+                                    x1={padX}
+                                    y1={getY(machineSpec.minSpec)}
+                                    x2={width - padX}
+                                    y2={getY(machineSpec.minSpec)}
+                                    stroke="currentColor"
+                                    strokeDasharray="3 3"
+                                    strokeWidth="1"
+                                    className="text-emerald-600/40 dark:text-emerald-400/40"
+                                  />
+                                  <text
+                                    x={width - padX + 4}
+                                    y={getY(machineSpec.minSpec) + 3}
+                                    fontSize="8"
+                                    fontFamily="monospace"
+                                    className="fill-emerald-600/70 dark:fill-emerald-400/70"
+                                  >
+                                    -Spec {machineSpec.minSpec}
+                                  </text>
+                                </g>
+                              )}
+
+                              {/* Target Specification Line */}
+                              {machineSpec.hasSpec && machineSpec.targetValue !== null && (
+                                <g>
+                                  <line
+                                    x1={padX}
+                                    y1={getY(machineSpec.targetValue)}
+                                    x2={width - padX}
+                                    y2={getY(machineSpec.targetValue)}
+                                    stroke="currentColor"
+                                    strokeDasharray="4 4"
+                                    strokeWidth="1.25"
+                                    className="text-emerald-600 dark:text-emerald-500"
+                                  />
+                                  <text
+                                    x={padX - 8}
+                                    y={getY(machineSpec.targetValue) + 3}
+                                    textAnchor="end"
+                                    fontSize="8.5"
+                                    fontFamily="monospace"
+                                    className="fill-emerald-600 dark:fill-emerald-400 font-semibold"
+                                  >
+                                    Target {machineSpec.targetValue}
+                                  </text>
+                                </g>
+                              )}
+
+                              {/* Base Grid lines */}
+                              <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="currentColor" strokeDasharray="2 2" className="text-slate-200 dark:text-[#262B33]" />
+                              <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" className="text-slate-300 dark:text-[#333A44]" />
+
+                              {/* Y-Axis Labels */}
+                              <text x={padX - 8} y={padY + 4} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
+                                {maxVal.toFixed(1)}
+                              </text>
+                              <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
+                                {minVal.toFixed(1)}
+                              </text>
+
+                              {/* Trajectory Polyline */}
+                              <path
+                                d={pathD}
+                                fill="none"
+                                stroke="#334155"
+                                strokeWidth="2.5"
+                                className="dark:stroke-slate-300"
+                              />
+
+                              {/* Nodes */}
+                              {plotPoints.map((p, idx) => {
+                                const isHovered = activeHoverPoint?.date === p.date && activeHoverPoint?.sessionId === p.sessionId;
+                                const isPass = p.verdict.status === 'IN_SPEC';
+                                const isFail = p.verdict.status === 'BELOW_SPEC' || p.verdict.status === 'ABOVE_SPEC';
+
+                                return (
+                                  <g
+                                    key={`node-${idx}`}
+                                    className="cursor-pointer group"
+                                    onClick={() => {
+                                      if (onNavigate) onNavigate('mhc');
+                                    }}
+                                    onMouseEnter={() => setActiveHoverPoint(p)}
+                                    onMouseLeave={() => setActiveHoverPoint(null)}
+                                  >
+                                    <circle
+                                      cx={p.x}
+                                      cy={p.y}
+                                      r={isHovered ? 6.5 : 4.5}
+                                      fill={isFail ? '#E11D48' : isPass ? '#059669' : '#0F172A'}
+                                      className="transition-transform"
+                                    />
+                                    <circle
+                                      cx={p.x}
+                                      cy={p.y}
+                                      r="2"
+                                      fill="#FFFFFF"
+                                      className="dark:fill-slate-900"
+                                    />
+                                    {!isHovered && (
+                                      <text
+                                        x={p.x}
+                                        y={p.y - 8}
+                                        textAnchor="middle"
+                                        fontSize="9.5"
+                                        fontFamily="monospace"
+                                        className={`font-semibold ${
+                                          isFail ? 'fill-rose-600 dark:fill-rose-400' : isPass ? 'fill-emerald-700 dark:fill-emerald-400' : 'fill-slate-800 dark:fill-slate-200'
+                                        }`}
+                                      >
+                                        {p.value} {p.unit}
+                                      </text>
+                                    )}
+                                    <text
+                                      x={p.x}
+                                      y={height - 10}
+                                      textAnchor="middle"
+                                      fontSize="9"
+                                      fontFamily="monospace"
+                                      className="fill-slate-500"
+                                    >
+                                      {p.date}
+                                    </text>
+                                  </g>
+                                );
+                              })}
+                            </svg>
+                          );
+                        })()}
+
+                        {/* Tooltip */}
+                        {activeHoverPoint && (() => {
+                          const v = getPointVerdict(activeHoverPoint.value);
+                          return (
+                            <div className="absolute top-2 right-2 bg-slate-900 text-white text-xs p-2.5 rounded shadow-lg border border-slate-700 pointer-events-none z-10 space-y-0.5 font-mono">
+                              <div className="text-[11px] text-slate-400">{activeHoverPoint.label || 'Laser Head'}</div>
+                              <div className="text-sm font-bold text-white">{activeHoverPoint.value} {activeHoverPoint.unit}</div>
+                              <div className="text-[11px] pt-0.5">
+                                Status: <span className={v.status === 'IN_SPEC' ? 'text-emerald-400 font-semibold' : v.status === 'BELOW_SPEC' ? 'text-rose-400 font-semibold' : 'text-slate-300'}>{v.badgeText}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-400">Date: {activeHoverPoint.date}</div>
+                              {activeHoverPoint.sessionId && (
+                                <div className="text-[10px] text-slate-300 pt-0.5">Click to inspect source MHC session</div>
+                              )}
+                            </div>
                           );
                         })()}
                       </div>
                     </div>
-
-                    {/* Precision SVG Chart */}
-                    <div className="h-60 w-full relative pt-2">
-                      {(() => {
-                        const pts = parameterTrajectoryData.points;
-                        const values = pts.map(p => p.value);
-                        const rawMin = Math.min(...values);
-                        const rawMax = Math.max(...values);
-                        
-                        const span = (rawMax - rawMin) || (rawMax * 0.1) || 1;
-                        const minVal = Math.max(0, rawMin - span * 0.25);
-                        const maxVal = rawMax + span * 0.25;
-                        const range = (maxVal - minVal) || 1;
-
-                        const width = 720;
-                        const height = 200;
-                        const padX = 45;
-                        const padY = 28;
-
-                        const plotPoints = pts.map((p, idx) => {
-                          const x = padX + (idx / (pts.length - 1)) * (width - 2 * padX);
-                          const y = height - padY - ((p.value - minVal) / range) * (height - 2 * padY);
-                          return { ...p, x, y };
-                        });
-
-                        const pathD = plotPoints.reduce((acc, p, idx) => 
-                          idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
-                        );
-
-                        return (
-                          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-                            {/* Grid lines */}
-                            <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="currentColor" strokeDasharray="2 2" className="text-slate-200 dark:text-[#262B33]" />
-                            <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" className="text-slate-300 dark:text-[#333A44]" />
-
-                            {/* Y-Axis Labels */}
-                            <text x={padX - 8} y={padY + 4} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
-                              {maxVal.toFixed(1)}
-                            </text>
-                            <text x={padX - 8} y={height - padY + 2} textAnchor="end" fontSize="9" fontFamily="monospace" className="fill-slate-400">
-                              {minVal.toFixed(1)}
-                            </text>
-
-                            {/* Trajectory Polyline */}
-                            <path
-                              d={pathD}
-                              fill="none"
-                              stroke="#334155"
-                              strokeWidth="2.5"
-                              className="dark:stroke-slate-300"
-                            />
-
-                            {/* Nodes */}
-                            {plotPoints.map((p, idx) => {
-                              const isHovered = activeHoverPoint?.date === p.date && activeHoverPoint?.sessionId === p.sessionId;
-                              return (
-                                <g
-                                  key={`node-${idx}`}
-                                  className="cursor-pointer group"
-                                  onClick={() => {
-                                    if (onNavigate) onNavigate('mhc');
-                                  }}
-                                  onMouseEnter={() => setActiveHoverPoint(p)}
-                                  onMouseLeave={() => setActiveHoverPoint(null)}
-                                >
-                                  <circle
-                                    cx={p.x}
-                                    cy={p.y}
-                                    r={isHovered ? 6 : 4.5}
-                                    fill="#0F172A"
-                                    className="dark:fill-slate-100 transition-transform"
-                                  />
-                                  <circle
-                                    cx={p.x}
-                                    cy={p.y}
-                                    r="2"
-                                    fill="#FFFFFF"
-                                    className="dark:fill-slate-900"
-                                  />
-                                  {!isHovered && (
-                                    <text
-                                      x={p.x}
-                                      y={p.y - 8}
-                                      textAnchor="middle"
-                                      fontSize="9.5"
-                                      fontFamily="monospace"
-                                      className="fill-slate-800 dark:fill-slate-200 font-semibold"
-                                    >
-                                      {p.value} {p.unit}
-                                    </text>
-                                  )}
-                                  <text
-                                    x={p.x}
-                                    y={height - 10}
-                                    textAnchor="middle"
-                                    fontSize="9"
-                                    fontFamily="monospace"
-                                    className="fill-slate-500"
-                                  >
-                                    {p.date}
-                                  </text>
-                                </g>
-                              );
-                            })}
-                          </svg>
-                        );
-                      })()}
-
-                      {/* Tooltip */}
-                      {activeHoverPoint && (
-                        <div className="absolute top-2 right-2 bg-slate-900 text-white text-xs p-2.5 rounded shadow-lg border border-slate-700 pointer-events-none z-10 space-y-0.5 font-mono">
-                          <div className="text-[11px] text-slate-400">{activeHoverPoint.label || 'Laser Head'}</div>
-                          <div className="text-sm font-bold text-white">{activeHoverPoint.value} {activeHoverPoint.unit}</div>
-                          <div className="text-[11px] text-slate-400">Date: {activeHoverPoint.date}</div>
-                          {activeHoverPoint.sessionId && (
-                            <div className="text-[10px] text-slate-300 pt-0.5">Click to inspect source MHC session</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </section>
 
               {/* Table of Verified Longitudinal Measurements */}
               {parameterTrajectoryData.points.length > 0 && (
                 <section className="rounded-md border border-slate-200 dark:border-[#262B33] bg-white dark:bg-[#16191D] p-4 space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    Measurement Log ({parameterTrajectoryData.points.length} records)
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Measurement Log ({parameterTrajectoryData.points.length} records)
+                    </h3>
+                    {machineSpec.hasSpec && (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Spec Reference: {machineSpec.specLabel}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
@@ -1139,33 +1495,42 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                           <th className="py-2 px-3">Date</th>
                           <th className="py-2 px-3">Component / Channel</th>
                           <th className="py-2 px-3">Measured Value</th>
+                          <th className="py-2 px-3">Spec Verdict</th>
                           <th className="py-2 px-3">Source Record</th>
                           <th className="py-2 px-3 text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-[#20252B]">
-                        {parameterTrajectoryData.points.map((pt, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#1A1D23]/50">
-                            <td className="py-2 px-3 font-mono text-slate-800 dark:text-slate-200">{pt.date}</td>
-                            <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{pt.label || 'Primary Laser'}</td>
-                            <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
-                              {pt.value} {pt.unit}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-slate-500">
-                              {pt.sessionId ? `MHC-${pt.sessionId.slice(-6).toUpperCase()}` : 'Machine Record'}
-                            </td>
-                            <td className="py-2 px-3 text-right">
-                              {onNavigate && (
-                                <button
-                                  onClick={() => onNavigate('mhc')}
-                                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline text-[11px]"
-                                >
-                                  Open MHC Record
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        {parameterTrajectoryData.points.map((pt, idx) => {
+                          const verdict = getPointVerdict(pt.value);
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#1A1D23]/50">
+                              <td className="py-2 px-3 font-mono text-slate-800 dark:text-slate-200">{pt.date}</td>
+                              <td className="py-2 px-3 text-slate-700 dark:text-slate-300">{pt.label || 'Primary Laser'}</td>
+                              <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
+                                {pt.value} {pt.unit}
+                              </td>
+                              <td className="py-2 px-3">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${verdict.bgClass}`}>
+                                  {verdict.badgeText}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 font-mono text-slate-500">
+                                {pt.sessionId ? `MHC-${pt.sessionId.slice(-6).toUpperCase()}` : 'Machine Record'}
+                              </td>
+                              <td className="py-2 px-3 text-right">
+                                {onNavigate && (
+                                  <button
+                                    onClick={() => onNavigate('mhc')}
+                                    className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline text-[11px]"
+                                  >
+                                    Open MHC Record
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
