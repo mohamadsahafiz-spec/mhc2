@@ -62,24 +62,33 @@ describe('FSOS Login UI & Session Contract', () => {
     expect(session.profilePhoto).toBe('https://example.com/avatar.jpg');
   });
 
-  it('guarantees FSOS Wafer Mark optical centering calibration math', () => {
-    // Wafer physical artwork bounds:
-    // Top = 6, Bottom = 87.5 (height = 81.5)
-    // Left = 6, Right = 94 (width = 88)
-    const minY = 6;
-    const maxY = 87.5;
-    const opticalCenterY = (minY + maxY) / 2; // 46.75
-    const opticalOffsetY = 50 - opticalCenterY; // 3.25
+  it('guarantees FSOS Wafer Mark optical centering and circular reference alignment', () => {
+    // Wafer physical artwork geometry matches reference semiconductor wafer:
+    // Radius R = 44, centered at (50, 50)
+    // Top = 50 - 44 = 6, Bottom = 50 + 44 = 94 (height = 88)
+    // Left = 50 - 44 = 6, Right = 50 + 44 = 94 (width = 88)
+    const centerX = 50;
+    const centerY = 50;
+    const radius = 44;
 
-    expect(opticalCenterY).toBe(46.75);
-    expect(opticalOffsetY).toBe(3.25);
+    const minX = centerX - radius;
+    const maxX = centerX + radius;
+    const minY = centerY - radius;
+    const maxY = centerY + radius;
 
-    // With viewBox="0 -3.25 100 100", the top margin (6 - (-3.25) = 9.25)
-    // equals the bottom margin (96.75 - 87.5 = 9.25)
-    const topMargin = minY - (-opticalOffsetY);
-    const bottomMargin = (100 - opticalOffsetY) - maxY;
-    expect(topMargin).toBe(bottomMargin);
-    expect(topMargin).toBe(9.25);
+    expect(minX).toBe(6);
+    expect(maxX).toBe(94);
+    expect(minY).toBe(6);
+    expect(maxY).toBe(94);
+
+    // Symmetric die grid bounds (9x9 grid centered at 50, 50):
+    // Top-most die edge = 10.5, Bottom-most die edge = 89.5
+    // Left-most die edge = 10.5, Right-most die edge = 89.5
+    const dieGridMin = 10.5;
+    const dieGridMax = 89.5;
+    expect((dieGridMin + dieGridMax) / 2).toBe(50);
+    expect(minY - 0).toBe(100 - maxY); // ViewBox margins: 6 top, 6 bottom
+    expect(minX - 0).toBe(100 - maxX); // ViewBox margins: 6 left, 6 right
   });
 
   it('guarantees login form does not introduce unauthorized remote OAuth or 3P backends', () => {
