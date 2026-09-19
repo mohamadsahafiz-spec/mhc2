@@ -295,6 +295,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'APPROVED':
       case 'COMPLETE':
       case 'NORMAL':
+      case 'SAFE':
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 leading-none">
             <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
@@ -311,10 +312,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'PENDING':
       case 'PENDING_APPROVAL':
       case 'PENDING_REVIEW':
+      case 'BASELINE_REQUIRED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-300 leading-none">
             <Clock className="w-3 h-3 text-amber-600 shrink-0" />
-            <span className="leading-none">{label || 'PENDING REVIEW'}</span>
+            <span className="leading-none">{label || (status === 'BASELINE_REQUIRED' ? 'BASELINE REQUIRED' : 'PENDING REVIEW')}</span>
           </span>
         );
       case 'WARNING':
@@ -332,6 +334,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       case 'OUT_OF_SPEC':
       case 'HALTED':
       case 'CRITICAL':
+      case 'ALARM':
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300 leading-none">
             <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
@@ -500,27 +503,24 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     return sec.isVisible && sec.status !== 'NOT_COLLECTED' && sec.status !== 'NOT_APPLICABLE';
   };
 
-  // Laser Lifecycle Items with Authoritative LaserEngine
-  const rawLaserHours = sections['04']?.data?.laserHours || [];
+  // Section 04 Laser Lifecycle Telemetry Data (prepared authoritatively in mhcReportEngine)
+  const laserHoursSectionData = sections['04']?.data;
+  const rawLaserHours = laserHoursSectionData?.laserHours || [];
   const laserLifecycleHeads = rawLaserHours.map((item, idx) => {
     const currentLaserHour = Number(item.currentLaserHour ?? item.verifiedHour ?? item.calculatedCurrentHour ?? item.recordedLaserHour ?? 0);
     const errorEolLimit = Number(item.errorEolLimit || item.criticalThreshold || 25000);
     const warningLimit = Number(item.warningLimit || item.warningThreshold || Math.floor(errorEolLimit * 0.8));
-
-    const remainingHours = LaserEngine.calculateRemainingHours(currentLaserHour, errorEolLimit);
-    const lifeRemainingPercent = LaserEngine.calculateLifeRemainingPercent(remainingHours, errorEolLimit);
-    const remainingDays = LaserEngine.calculateRemainingDays(remainingHours);
-    const estimatedEolDate = LaserEngine.calculateEstimatedEndOfLifeDate(
+    const remainingHours = typeof item.remainingHours === 'number' ? item.remainingHours : LaserEngine.calculateRemainingHours(currentLaserHour, errorEolLimit);
+    const lifeRemainingPercent = typeof item.lifeRemainingPercent === 'number' ? item.lifeRemainingPercent : LaserEngine.calculateLifeRemainingPercent(remainingHours, errorEolLimit);
+    const remainingDays = typeof item.remainingDays === 'number' ? item.remainingDays : LaserEngine.calculateRemainingDays(remainingHours);
+    const estimatedEolDate = item.estimatedEolDate || LaserEngine.calculateEstimatedEndOfLifeDate(
       currentLaserHour,
       errorEolLimit,
       inspectionDate
     );
-
-    const calcStatus = LaserEngine.calculateLaserStatus(currentLaserHour, errorEolLimit, warningLimit);
-    const verdict: 'PASS' | 'WARNING' | 'FAIL' = calcStatus === 'SAFE' ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
-
+    const calcStatus = item.status || LaserEngine.calculateLaserStatus(currentLaserHour, errorEolLimit, warningLimit);
+    const verdict: 'PASS' | 'WARNING' | 'FAIL' = (calcStatus === 'SAFE' || calcStatus === 'PASS') ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
     const serialNumber = item.serialNumber || (item as any).serialNo || undefined;
-
     const aiRecommendation = item.aiRecommendation || LaserEngine.calculateLaserLifecycleRecommendation({
       currentHour: currentLaserHour,
       ratedLife: errorEolLimit,
@@ -529,9 +529,8 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       lifeRemainingPercent,
       estimatedEolDate
     });
-
-    const laserIdentifier = resolveLaserHeadIdentifier(
-      item.laserIdentifier || (item as any).name || (item as any).model,
+    const laserIdentifier = item.laserIdentifier || resolveLaserHeadIdentifier(
+      (item as any).name || (item as any).model,
       idx,
       {
         machineNumber: machineNumber || (metadata as any).machineNumber,
@@ -552,6 +551,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
       remainingDays,
       estimatedEolDate,
       verdict,
+      status: calcStatus,
       aiRecommendation
     };
   });
@@ -1134,124 +1134,243 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 04: LASER LIFECYCLE & USAGE TELEMETRY */}
+              {/* SECTION 04: LASER LIFECYCLE & USAGE TELEMETRY (V2 HIERARCHY) */}
               <div className="space-y-2 pt-0.5">
+                {/* SECTION 04 HEADER: MACHINE LIFECYCLE STATE */}
                 <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5">
-                  <h2 className="text-base font-extrabold tracking-tight text-slate-900">
-                    04 LASER LIFECYCLE &amp; USAGE TELEMETRY
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold tracking-tight text-slate-900">
+                      04 LASER LIFECYCLE &amp; USAGE TELEMETRY
+                    </h2>
+                    {laserHoursSectionData?.machineStatus && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                        laserHoursSectionData.machineStatus === 'SAFE'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : laserHoursSectionData.machineStatus === 'WARNING'
+                          ? 'bg-amber-100 text-amber-800 border-amber-300'
+                          : laserHoursSectionData.machineStatus === 'ALARM'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : 'bg-amber-50 text-amber-900 border-amber-300'
+                      }`}>
+                        SYSTEM: {laserHoursSectionData.machineStatus.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs font-mono font-bold text-cyan-800">
-                    {laserLifecycleHeads.length} HEADS ANALYZED
+                    {laserLifecycleHeads.length} {laserLifecycleHeads.length === 1 ? 'HEAD' : 'HEADS'} ANALYZED
                   </span>
                 </div>
 
-                {/* Laser Lifecycle Cards for Each Head */}
-                <div className="space-y-2">
-                  {laserLifecycleHeads.map((head) => {
-                    const isHealthy = head.lifeRemainingPercent >= 30;
-                    const isWarning = head.lifeRemainingPercent < 30 && head.lifeRemainingPercent >= 15;
-
-                    return (
-                      <div 
-                        key={head.laserId} 
-                        className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs font-sans"
-                      >
-                        {/* Head Header */}
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-xs font-sans">{head.laserIdentifier}</span>
-                            {head.serialNumber ? (
-                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold">
-                                SN: {head.serialNumber}
-                              </span>
-                            ) : null}
-                          </div>
-                          {renderStatusBadge(head.verdict)}
-                        </div>
-
-                        {/* Top Metrics Row: Operating Hours, Remaining Hours, Limits */}
-                        <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
-                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8.5px] text-slate-500 font-sans font-bold block">OPERATING RUN TIME</span>
-                            <strong className="text-slate-800 text-xs block font-bold">
-                              {head.currentLaserHour.toLocaleString()} hrs
-                            </strong>
-                            <span className="text-[8.5px] text-slate-600 font-sans">Accumulated Run Time</span>
-                          </div>
-
-                          <div className="p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-300">
-                            <span className="text-[8.5px] text-emerald-900 font-sans font-bold block">REMAINING LIFESPAN</span>
-                            <strong className="text-emerald-950 text-xs block font-extrabold">
-                              {head.remainingHours.toLocaleString()} hrs
-                            </strong>
-                            <span className="text-[8.5px] text-emerald-800 font-semibold font-sans">{head.lifeRemainingPercent.toFixed(1)}% Capacity Left</span>
-                          </div>
-
-                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8.5px] text-amber-900 font-sans font-bold block">WARNING THRESHOLD</span>
-                            <strong className="text-amber-800 block font-bold">
-                              {head.warningLimit.toLocaleString()} hrs
-                            </strong>
-                            <span className="text-[8.5px] text-amber-700 font-sans font-medium">Maintenance Alert</span>
-                          </div>
-
-                          <div className="p-1.5 rounded-lg bg-white border border-slate-200">
-                            <span className="text-[8.5px] text-slate-500 font-sans font-bold block">RATED EOL LIMIT</span>
-                            <strong className="text-slate-800 block font-bold">
-                              {head.errorEolLimit.toLocaleString()} hrs
-                            </strong>
-                            <span className="text-[8.5px] text-slate-600 font-sans font-medium">Total Tube Lifespan</span>
-                          </div>
-                        </div>
-
-                        {/* Visual Life Bar */}
-                        <div className="space-y-0.5 pt-0.5">
-                          <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-600">
-                            <span>0 hrs</span>
-                            <span className="font-bold text-slate-800">
-                              {head.remainingHours.toLocaleString()} HOURS REMAINING ({head.lifeRemainingPercent.toFixed(1)}%)
-                            </span>
-                            <span>{head.errorEolLimit.toLocaleString()} hrs (EOL)</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isHealthy 
-                                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
-                                  : isWarning 
-                                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400' 
-                                  : 'bg-gradient-to-r from-rose-500 to-red-400'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(2, head.lifeRemainingPercent))}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Bottom Projections Row (Non-redundant) */}
-                        <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-slate-200 text-[9px] font-mono">
-                          <div>
-                            <span className="text-slate-500 font-sans font-bold text-[8.5px] block">EST. REMAINING DAYS (24/7 PACE)</span>
-                            <strong className="text-slate-800 font-bold">{head.remainingDays.toLocaleString()} days (~{(head.remainingDays / 365).toFixed(1)} yrs)</strong>
-                          </div>
-
-                          <div>
-                            <span className="text-slate-500 font-sans font-bold text-[8.5px] block">PROJECTED EOL DATE</span>
-                            <strong className="text-cyan-900 font-bold">{head.estimatedEolDate}</strong>
-                          </div>
-
-                          <div>
-                            <span className="text-slate-500 font-sans font-bold text-[8.5px] block">TELEMETRY VERIFICATION</span>
-                            <strong className="text-slate-700 font-bold">Physical Counter Verified</strong>
-                          </div>
-                        </div>
-
+                {/* CONDITIONAL REQUIRED ACTION BANNER (Shown ONLY when actionable) */}
+                {laserHoursSectionData?.requiredAction && (
+                  <div className={`p-2.5 rounded-xl border flex items-start gap-2.5 font-sans text-xs ${
+                    laserHoursSectionData.requiredAction.type === 'ALARM'
+                      ? 'bg-rose-50 border-rose-300 text-rose-950'
+                      : 'bg-amber-50 border-amber-300 text-amber-950'
+                  }`}>
+                    <div className={`p-1 rounded-md shrink-0 mt-0.5 ${
+                      laserHoursSectionData.requiredAction.type === 'ALARM'
+                        ? 'bg-rose-200 text-rose-800'
+                        : 'bg-amber-200 text-amber-800'
+                    }`}>
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-xs tracking-tight flex items-center gap-2">
+                        <span>{laserHoursSectionData.requiredAction.title}</span>
+                        <span className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-white/70 border border-current">
+                          {laserHoursSectionData.requiredAction.type.replace('_', ' ')}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <p className="text-[11px] leading-snug mt-0.5 text-slate-800">
+                        {laserHoursSectionData.requiredAction.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* MACHINE LIFECYCLE HERO: DOMINANT REMAINING MARGIN & SYSTEM LIFE CAPACITY */}
+                <div className="grid grid-cols-12 gap-2">
+                  {/* Dominant Remaining Margin (Hero Card) */}
+                  <div className="col-span-5 p-3 rounded-xl bg-slate-900 text-white flex flex-col justify-between space-y-2 border border-slate-800 shadow-sm">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-300 tracking-wider">
+                        <span className="uppercase font-bold text-cyan-400">REMAINING LIFE MARGIN</span>
+                        {laserHoursSectionData?.totalLasers && laserHoursSectionData.totalLasers > 1 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            Avg: {laserHoursSectionData.formattedAvgLifeRemaining}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-2">
+                        <span className={`text-3xl font-extrabold font-mono tracking-tight ${
+                          (laserHoursSectionData?.dominantMarginPercent ?? 100) >= 30
+                            ? 'text-emerald-400'
+                            : (laserHoursSectionData?.dominantMarginPercent ?? 100) >= 15
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }`}>
+                          {laserHoursSectionData?.dominantFormattedMargin || '—'}
+                        </span>
+                        <span className="text-xs text-slate-300 font-sans font-medium">
+                          critical head margin
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-300">
+                      <div>
+                        <span className="text-slate-400 text-[9px] block font-sans">REMAINING TIME</span>
+                        <strong className="text-white text-xs font-bold">
+                          {typeof laserHoursSectionData?.dominantRemainingHours === 'number'
+                            ? `${laserHoursSectionData.dominantRemainingHours.toLocaleString()} hrs`
+                            : '—'}
+                        </strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-slate-400 text-[9px] block font-sans">EST. DURATION</span>
+                        <strong className="text-cyan-300 font-bold">
+                          {laserHoursSectionData?.dominantRemainingDaysText || '—'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Life Capacity & EOL Projection Card */}
+                  <div className="col-span-7 p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-2 text-xs font-sans">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 pb-1 border-b border-slate-200">
+                        <span className="font-bold text-slate-800 uppercase">SYSTEM LIFE CAPACITY</span>
+                        <span className="text-[9px] text-slate-500">
+                          Limiting Head: <strong className="text-slate-800">{laserHoursSectionData?.dominantHeadName || 'Laser Head 1'}</strong>
+                        </span>
+                      </div>
+
+                      {/* Capacity Bar */}
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-600">
+                          <span>
+                            Acc: <strong className="text-slate-900">{typeof laserHoursSectionData?.dominantCurrentHour === 'number' ? `${laserHoursSectionData.dominantCurrentHour.toLocaleString()} hrs` : '—'}</strong>
+                          </span>
+                          <span className="font-bold text-slate-800">
+                            {laserHoursSectionData?.dominantMarginPercent !== null && laserHoursSectionData?.dominantMarginPercent !== undefined
+                              ? `${(100 - laserHoursSectionData.dominantMarginPercent).toFixed(1)}% Consumed`
+                              : '—'}
+                          </span>
+                          <span>
+                            Rated EOL: <strong className="text-slate-900">{typeof laserHoursSectionData?.dominantRatedLife === 'number' ? `${laserHoursSectionData.dominantRatedLife.toLocaleString()} hrs` : '25,000 hrs'}</strong>
+                          </span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden p-0.5 border border-slate-300">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              (laserHoursSectionData?.dominantMarginPercent ?? 100) >= 30
+                                ? 'bg-emerald-500'
+                                : (laserHoursSectionData?.dominantMarginPercent ?? 100) >= 15
+                                ? 'bg-amber-500'
+                                : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${Math.min(100, Math.max(2, laserHoursSectionData?.dominantMarginPercent ?? 0))}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Projections Strip */}
+                    <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2 text-[10px] font-mono">
+                      <div>
+                        <span className="text-[8.5px] text-slate-500 font-sans font-bold block">PROJECTED EOL DATE</span>
+                        <strong className="text-cyan-900 font-extrabold text-xs block">
+                          {laserHoursSectionData?.dominantEolDate || '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[8.5px] text-slate-500 font-sans font-bold block">ACTIVE HEAD IDENTIFIERS</span>
+                        <span className="text-slate-800 font-semibold block truncate">
+                          {laserLifecycleHeads.map(h => h.laserIdentifier).join(' • ') || '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Lifecycle Prognosis & Service Recommendations */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs font-sans">
+                {/* COMPACT LASER HEAD ENGINEERING SUMMARY TABLE */}
+                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-xs">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100/90 text-slate-700 font-mono text-[9px] uppercase border-b border-slate-200">
+                        <th className="py-1.5 px-2.5 font-extrabold">Laser Head</th>
+                        <th className="py-1.5 px-2 font-extrabold text-center">Status</th>
+                        <th className="py-1.5 px-2 font-extrabold text-right">Operating Hours</th>
+                        <th className="py-1.5 px-2 font-extrabold text-right">Remaining Life</th>
+                        <th className="py-1.5 px-2 font-extrabold text-right">Rated Limit</th>
+                        <th className="py-1.5 px-2 font-extrabold text-center">Est. EOL</th>
+                        <th className="py-1.5 px-2.5 font-extrabold text-right">Verification Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-[10px]">
+                      {laserLifecycleHeads.map((head, idx) => {
+                        const hasRealHours = typeof head.currentLaserHour === 'number' && head.currentLaserHour > 0;
+                        return (
+                          <tr key={head.laserId || idx} className="hover:bg-slate-50/50">
+                            <td className="py-2 px-2.5 font-sans">
+                              <div className="font-bold text-slate-900 text-xs">{head.laserIdentifier}</div>
+                              {head.serialNumber && (
+                                <div className="text-[9px] font-mono text-slate-500 font-semibold">SN: {head.serialNumber}</div>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              {renderStatusBadge(head.status || head.verdict || 'SAFE')}
+                            </td>
+                            <td className="py-2 px-2 text-right">
+                              <span className="font-bold text-slate-900 block">
+                                {hasRealHours ? `${head.currentLaserHour.toLocaleString()} hrs` : '—'}
+                              </span>
+                              <span className="text-[8.5px] text-slate-500 font-sans">
+                                {head.errorEolLimit ? `${((head.currentLaserHour / head.errorEolLimit) * 100).toFixed(1)}% consumed` : ''}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-right">
+                              <span className={`font-bold block ${
+                                head.lifeRemainingPercent >= 30 ? 'text-emerald-700' : head.lifeRemainingPercent >= 15 ? 'text-amber-700' : 'text-rose-700'
+                              }`}>
+                                {head.formattedLifeRemaining || `${head.lifeRemainingPercent.toFixed(1)}%`}
+                              </span>
+                              <span className="text-[8.5px] text-slate-500 font-sans">
+                                {head.remainingHours ? `${head.remainingHours.toLocaleString()} hrs` : '—'}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-right text-slate-600">
+                              <span>{head.errorEolLimit ? `${head.errorEolLimit.toLocaleString()} hrs` : '—'}</span>
+                              <span className="text-[8.5px] text-slate-400 block font-sans">
+                                Warn: {head.warningLimit ? `${head.warningLimit.toLocaleString()} hrs` : '—'}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-center font-bold text-cyan-950">
+                              {head.estimatedEolDate || '—'}
+                            </td>
+                            <td className="py-2 px-2.5 text-right font-sans">
+                              {head.isVerified ? (
+                                <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  Physical Counter Verified
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9.5px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+                                  {head.accuracyLabel ? head.accuracyLabel : 'Deterministic Model'}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* LIFECYCLE PROGNOSIS & SERVICE RECOMMENDATIONS */}
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs font-sans">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-1 font-mono text-[9px]">
                     <div className="flex items-center gap-1.5 font-bold text-slate-700 uppercase">
                       <span className="w-2 h-2 rounded-full bg-cyan-600 inline-block" />
@@ -1263,18 +1382,11 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   </div>
 
                   <div className="space-y-1 text-xs text-slate-700">
-                    {laserLifecycleHeads.map((head) => (
-                      <div key={head.laserId} className="flex items-start gap-1.5">
+                    {laserLifecycleHeads.map((head, idx) => (
+                      <div key={head.laserId || idx} className="flex items-start gap-1.5">
                         <span className="font-bold text-slate-900 font-mono text-[10.5px] shrink-0">{head.laserIdentifier}:</span>
                         <span className="text-slate-800 text-[10.5px] leading-snug">
-                          {head.aiRecommendation || LaserEngine.calculateLaserLifecycleRecommendation({
-                            currentHour: head.currentLaserHour,
-                            ratedLife: head.errorEolLimit,
-                            warningLife: head.warningLimit,
-                            remainingHours: head.remainingHours,
-                            lifeRemainingPercent: head.lifeRemainingPercent,
-                            estimatedEolDate: head.estimatedEolDate
-                          })}
+                          {head.aiRecommendation || 'Operational hours within expected parameters. Continue standard routine inspection intervals.'}
                         </span>
                       </div>
                     ))}

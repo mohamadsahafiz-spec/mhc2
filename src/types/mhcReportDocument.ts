@@ -164,13 +164,20 @@ export interface MhcReportLaserHourHeadDetail {
   errorEolLimit: number;
   warningLimit: number;
   lifeRemainingPercent: number;
+  formattedLifeRemaining?: string;
   remainingHours: number;
   remainingDays: number;
+  remainingDaysFormatted?: string;
   estimatedEolDate: string;
   verdict: 'PASS' | 'WARNING' | 'FAIL';
+  status?: 'SAFE' | 'WARNING' | 'ALARM' | 'BASELINE_REQUIRED';
   runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL';
   readingDate: string;
   isVerified: boolean;
+  accuracyLabel?: string;
+  accuracyColor?: string;
+  baseLaserHour?: number | null;
+  baseTimestamp?: string | null;
   notes?: string;
   aiRecommendation?: string;
 }
@@ -178,6 +185,27 @@ export interface MhcReportLaserHourHeadDetail {
 export interface MhcReportLaserHoursData {
   laserHours: MhcReportLaserHourHeadDetail[];
   summaryText: string;
+  machineStatus?: 'SAFE' | 'WARNING' | 'ALARM' | 'BASELINE_REQUIRED';
+  totalLasers?: number;
+  dominantMarginPercent?: number | null;
+  dominantFormattedMargin?: string;
+  dominantRemainingHours?: number | null;
+  dominantRemainingDaysText?: string;
+  dominantCurrentHour?: number | null;
+  dominantRatedLife?: number | null;
+  dominantEolDate?: string;
+  dominantHeadName?: string;
+  avgLifeRemaining?: number | null;
+  formattedAvgLifeRemaining?: string;
+  baselineRequiredCount?: number;
+  alarmCount?: number;
+  warningCount?: number;
+  safeCount?: number;
+  requiredAction?: {
+    type: 'BASELINE_REQUIRED' | 'ALARM' | 'WARNING';
+    title: string;
+    message: string;
+  } | null;
   aiAdvisoryNotes?: string[];
 }
 

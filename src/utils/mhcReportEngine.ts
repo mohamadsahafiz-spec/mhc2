@@ -597,31 +597,90 @@ export function buildMhcReportDocument(
     data: coverData
   };
 
-  // 05 LASER HOURS & LIFECYCLE (AUTHORITATIVE CALCULATION VIA LaserEngine)
+  // 04 LASER HOURS & LIFECYCLE (AUTHORITATIVE CALCULATION VIA LaserEngine.calculateMachineMetrics)
   const hrsItems = session.stage01_laserHours && session.stage01_laserHours.length > 0
     ? session.stage01_laserHours
     : [];
 
-  const laserHoursDetails: MhcReportLaserHourHeadDetail[] = hrsItems.map((item, idx) => {
-    // ONE authoritative current-hour value only
-    const currentLaserHour = Number(item.verifiedHour ?? item.calculatedCurrentHour ?? item.recordedLaserHour ?? 0);
-    const errorEolLimit = Number(item.criticalThreshold || 25000);
-    const warningLimit = Number(item.warningThreshold || Math.floor(errorEolLimit * 0.8));
+  // Build laser head list for MachineDomain calculation
+  const machineLasers: import('./laserEngine').LaserHeadDomain[] = [];
 
-    const remainingHours = LaserEngine.calculateRemainingHours(currentLaserHour, errorEolLimit);
-    const lifeRemainingPercent = LaserEngine.calculateLifeRemainingPercent(remainingHours, errorEolLimit);
-    const remainingDays = LaserEngine.calculateRemainingDays(remainingHours);
-    const estimatedEolDate = LaserEngine.calculateEstimatedEndOfLifeDate(
-      currentLaserHour,
-      errorEolLimit,
-      session.completedDate || session.startDate
-    );
+  if (hrsItems.length > 0) {
+    hrsItems.forEach((item, idx) => {
+      const matchedHead = matchedMachine?.lasers?.find(l => l.id === item.laserId || l.name === item.laserIdentifier)
+        || (matchedMachine?.laserHeads as any[])?.find(l => l.id === item.laserId || l.name === item.laserIdentifier || (l as any).headName === item.laserIdentifier)
+        || matchedMachine?.lasers?.[idx]
+        || (matchedMachine?.laserHeads as any[])?.[idx];
 
-    const calcStatus = LaserEngine.calculateLaserStatus(currentLaserHour, errorEolLimit, warningLimit);
-    const verdict: 'PASS' | 'WARNING' | 'FAIL' = calcStatus === 'SAFE' ? 'PASS' : calcStatus === 'WARNING' ? 'WARNING' : 'FAIL';
-    const runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL' = calcStatus === 'SAFE' ? 'NORMAL' : calcStatus === 'WARNING' ? 'WARNING' : 'CRITICAL';
+      const currentVal = item.verifiedHour ?? item.calculatedCurrentHour ?? item.recordedLaserHour ?? matchedHead?.baseLaserHour ?? null;
+      const ratedLife = Number(item.criticalThreshold || matchedHead?.ratedLife || matchedMachine?.ratedLife || 25000);
+      const warningLife = Number(item.warningThreshold || matchedHead?.warningLife || matchedMachine?.warningLife || Math.floor(ratedLife * 0.8));
 
-    const serialNumber = (item as any).serialNumber || (item as any).serialNo || undefined;
+      const laserIdentifier = resolveLaserHeadIdentifier(
+        item.laserIdentifier || (item as any).name || (item as any).model || matchedHead?.name,
+        idx,
+        {
+          machineNumber: session.machineName || coverData.machineNumber,
+          machineModel: session.machineModel || coverData.machineModel,
+          machineSerialNumber: session.machineSerialNumber || coverData.machineSerialNumber
+        }
+      );
+
+      machineLasers.push({
+        id: item.laserId || matchedHead?.id || `lh-${idx + 1}`,
+        name: laserIdentifier,
+        serialNo: (item as any).serialNumber || (item as any).serialNo || matchedHead?.serialNo || matchedHead?.serialNumber || '',
+        ratedLife,
+        warningLife,
+        contingencyCeiling: matchedHead?.contingencyCeiling || Math.floor(ratedLife * 1.12),
+        baseLaserHour: currentVal,
+        baseTimestamp: item.readingDate || matchedHead?.baseTimestamp || session.completedDate || session.startDate || null,
+        lastRecalibrationDate: matchedHead?.lastRecalibrationDate || null,
+        calibrationHistory: matchedHead?.calibrationHistory || []
+      });
+    });
+  } else if (matchedMachine?.lasers && matchedMachine.lasers.length > 0) {
+    matchedMachine.lasers.forEach((l, idx) => {
+      machineLasers.push({
+        ...l,
+        name: resolveLaserHeadIdentifier(l.name, idx, {
+          machineNumber: session.machineName || coverData.machineNumber,
+          machineModel: session.machineModel || coverData.machineModel,
+          machineSerialNumber: session.machineSerialNumber || coverData.machineSerialNumber
+        })
+      });
+    });
+  }
+
+  const machineForLaserCalc: import('./laserEngine').MachineDomain = {
+    id: session.machineId || matchedMachine?.id || 'MCH-01',
+    machineNo: machineNumber || matchedMachine?.machineNo,
+    machineName: session.machineName || matchedMachine?.machineName || session.machineModel,
+    machineNumber: machineNumber || matchedMachine?.machineNumber,
+    customerName: session.customerName || matchedMachine?.customerName,
+    model: session.machineModel || matchedMachine?.model,
+    serialNumber: session.machineSerialNumber || matchedMachine?.serialNumber,
+    lasers: machineLasers
+  };
+
+  const machineMetrics = LaserEngine.calculateMachineMetrics(
+    machineForLaserCalc,
+    session.completedDate || session.startDate
+  );
+
+  const laserHoursDetails: MhcReportLaserHourHeadDetail[] = machineMetrics.laserMetricsList.map((lm, idx) => {
+    const matchedItem = hrsItems.find(h => h.laserId === lm.id || h.laserIdentifier === lm.name) || hrsItems[idx];
+    const currentLaserHour = Number(lm.currentHour ?? (typeof lm.currentHourRaw === 'number' ? lm.currentHourRaw : 0));
+    const errorEolLimit = lm.ratedLife;
+    const warningLimit = lm.warningLife;
+    const remainingHours = typeof lm.recommendedRemainingHour === 'number'
+      ? lm.recommendedRemainingHour
+      : (typeof lm.remainingTotal === 'number' ? lm.remainingTotal : 0);
+    const lifeRemainingPercent = lm.lifeRemainingPercent ?? 0;
+    const remainingDays = typeof lm.remainingDays === 'number' ? lm.remainingDays : 0;
+    const estimatedEolDate = lm.estimatedRecommendedEOL || lm.eolDate || '—';
+    const verdict: 'PASS' | 'WARNING' | 'FAIL' = lm.status === 'SAFE' ? 'PASS' : lm.status === 'WARNING' ? 'WARNING' : 'FAIL';
+    const runtimeStatus: 'NORMAL' | 'WARNING' | 'CRITICAL' = lm.status === 'SAFE' ? 'NORMAL' : lm.status === 'WARNING' ? 'WARNING' : 'CRITICAL';
 
     const aiRecommendation = LaserEngine.calculateLaserLifecycleRecommendation({
       currentHour: currentLaserHour,
@@ -632,37 +691,36 @@ export function buildMhcReportDocument(
       estimatedEolDate
     });
 
-    const laserIdentifier = resolveLaserHeadIdentifier(
-      item.laserIdentifier || (item as any).name || (item as any).model,
-      idx,
-      {
-        machineNumber: session.machineName || coverData.machineNumber,
-        machineModel: session.machineModel || coverData.machineModel,
-        machineSerialNumber: session.machineSerialNumber || coverData.machineSerialNumber
-      }
-    );
+    const isVerified = Boolean(matchedItem?.isVerified);
 
     return {
-      laserId: item.laserId,
-      laserIdentifier,
-      serialNumber,
-      recordedLaserHour: item.recordedLaserHour,
-      verifiedHour: item.verifiedHour,
-      calculatedCurrentHour: item.calculatedCurrentHour,
+      laserId: lm.id,
+      laserIdentifier: lm.name,
+      serialNumber: lm.serialNo || undefined,
+      recordedLaserHour: matchedItem?.recordedLaserHour,
+      verifiedHour: matchedItem?.verifiedHour,
+      calculatedCurrentHour: typeof lm.currentHour === 'number' ? lm.currentHour : (matchedItem?.calculatedCurrentHour ?? 0),
       currentLaserHour,
       warningThreshold: warningLimit,
       criticalThreshold: errorEolLimit,
       errorEolLimit,
       warningLimit,
       lifeRemainingPercent,
+      formattedLifeRemaining: lm.formattedLifeRemaining,
       remainingHours,
       remainingDays,
+      remainingDaysFormatted: lm.remainingDaysInfo.formattedText,
       estimatedEolDate,
       verdict,
+      status: lm.status,
       runtimeStatus,
-      readingDate: item.readingDate || coverData.date,
-      isVerified: item.isVerified ?? false,
-      notes: item.verificationNotes,
+      readingDate: matchedItem?.readingDate || coverData.date,
+      isVerified,
+      accuracyLabel: lm.accuracy.label,
+      accuracyColor: lm.accuracy.color,
+      baseLaserHour: lm.baseLaserHour,
+      baseTimestamp: lm.baseTimestamp,
+      notes: matchedItem?.verificationNotes,
       aiRecommendation
     };
   });
@@ -671,11 +729,49 @@ export function buildMhcReportDocument(
     `${h.laserIdentifier}: ${h.aiRecommendation}`
   );
 
+  let requiredAction: { type: 'BASELINE_REQUIRED' | 'ALARM' | 'WARNING'; title: string; message: string } | null = null;
+  if (machineMetrics.baselineRequiredCount > 0) {
+    requiredAction = {
+      type: 'BASELINE_REQUIRED',
+      title: 'INITIAL PHYSICAL BASELINE REQUIRED',
+      message: `Physical hour meter baseline required on ${machineMetrics.baselineRequiredCount} head(s) to activate deterministic lifecycle tracking.`
+    };
+  } else if (machineMetrics.status === 'ALARM') {
+    requiredAction = {
+      type: 'ALARM',
+      title: 'CRITICAL RUNTIME THRESHOLD REACHED',
+      message: `Laser tube operating hours on ${machineMetrics.mostCriticalLaser.name} have exceeded rated lifespan. Scheduled tube replacement or contingency plan required.`
+    };
+  } else if (machineMetrics.recalRecommendation.urgency === 'WARNING') {
+    requiredAction = {
+      type: 'WARNING',
+      title: 'PHYSICAL VERIFICATION RECOMMENDED',
+      message: `Physical meter verification recommended to prevent model drift (last verified ${machineMetrics.daysSinceRecal ?? '—'} days ago).`
+    };
+  }
+
   const laserHoursData: MhcReportLaserHoursData = {
     laserHours: laserHoursDetails,
     summaryText: laserHoursDetails.length > 0
       ? `Authoritative laser lifecycle telemetry computed for ${laserHoursDetails.length} head(s) against rated EOL and warning limits.`
       : 'Laser hour telemetry not recorded.',
+    machineStatus: machineMetrics.status,
+    totalLasers: machineMetrics.totalLasers,
+    dominantMarginPercent: machineMetrics.mostCriticalLaser.lifeRemainingPercent,
+    dominantFormattedMargin: machineMetrics.mostCriticalLaser.formattedLifeRemaining,
+    dominantRemainingHours: machineMetrics.mostCriticalLaser.recommendedRemainingHour,
+    dominantRemainingDaysText: machineMetrics.mostCriticalLaser.remainingDaysInfo.formattedText,
+    dominantCurrentHour: typeof machineMetrics.mostCriticalLaser.currentHour === 'number' ? machineMetrics.mostCriticalLaser.currentHour : null,
+    dominantRatedLife: machineMetrics.mostCriticalLaser.ratedLife,
+    dominantEolDate: machineMetrics.mostCriticalLaser.estimatedRecommendedEOL || machineMetrics.mostCriticalLaser.eolDate || '—',
+    dominantHeadName: machineMetrics.mostCriticalLaser.name,
+    avgLifeRemaining: machineMetrics.avgLifeRemaining,
+    formattedAvgLifeRemaining: machineMetrics.formattedAvgLifeRemaining,
+    baselineRequiredCount: machineMetrics.baselineRequiredCount,
+    alarmCount: machineMetrics.alarmCount,
+    warningCount: machineMetrics.warningCount,
+    safeCount: machineMetrics.safeCount,
+    requiredAction,
     aiAdvisoryNotes
   };
 
