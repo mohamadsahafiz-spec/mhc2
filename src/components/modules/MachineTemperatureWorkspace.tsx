@@ -15,7 +15,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Sliders,
+  Eye,
+  ArrowRight,
+  Database,
+  X
 } from 'lucide-react';
 import { Machine } from '../../types';
 import {
@@ -50,8 +55,9 @@ const CHANNEL_COLORS: Record<number, string> = {
   6: '#6A4C93'
 };
 
-// Visual per-channel engineering summary table with magnitude emphasis
-interface ChannelSummaryTableProps {
+// Visual per-channel engineering summary table with magnitude bars
+// Hierarchy: CH | MIN (Blue) | MAX (Red) | AVG (Green) | RANGE (Purple) | POINTS
+export interface ChannelSummaryTableProps {
   channelStats: Record<number, ChannelStats>;
   activeChannels?: number[];
   onToggleChannel?: (ch: number) => void;
@@ -70,7 +76,37 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
 
   if (channels.length === 0) return null;
 
-  const maxRangeAcrossChannels = Math.max(...channels.map((ch) => channelStats[ch]?.range || 0), 1);
+  // Extents across channels for relative magnitude comparison
+  const minMin = Math.min(...channels.map((ch) => channelStats[ch]?.min ?? 0));
+  const maxMin = Math.max(...channels.map((ch) => channelStats[ch]?.min ?? 0));
+
+  const minMax = Math.min(...channels.map((ch) => channelStats[ch]?.max ?? 0));
+  const maxMax = Math.max(...channels.map((ch) => channelStats[ch]?.max ?? 0));
+
+  const minAvg = Math.min(...channels.map((ch) => channelStats[ch]?.avg ?? 0));
+  const maxAvg = Math.max(...channels.map((ch) => channelStats[ch]?.avg ?? 0));
+
+  const maxRange = Math.max(...channels.map((ch) => channelStats[ch]?.range ?? 0), 0.1);
+
+  // Helper calculations for magnitude fill (15% to 100%)
+  const calcMinPct = (val: number) => {
+    if (maxMin === minMin) return 60;
+    return Math.max(15, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20));
+  };
+
+  const calcMaxPct = (val: number) => {
+    if (maxMax === minMax) return 60;
+    return Math.max(15, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20));
+  };
+
+  const calcAvgPct = (val: number) => {
+    if (maxAvg === minAvg) return 60;
+    return Math.max(15, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20));
+  };
+
+  const calcRangePct = (val: number) => {
+    return Math.max(12, Math.min(100, (val / maxRange) * 100));
+  };
 
   return (
     <div className="space-y-2">
@@ -79,21 +115,21 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
           Per-Channel Engineering Summary
         </h4>
         <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-          Magnitude Comparison & Spread
+          Visual Magnitude Comparison (Blue: MIN · Red: MAX · Green: AVG · Purple: RANGE)
         </span>
       </div>
 
       <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
-        isDark ? 'border-[#2B323A] bg-[#111315]/80' : 'border-slate-200 bg-slate-50'
+        isDark ? 'border-[#2B323A] bg-[#111315]/90' : 'border-slate-200 bg-slate-50'
       }`}>
         <table className="w-full text-left">
           <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
             <tr>
               <th className="py-2.5 px-3">CH</th>
-              <th className="py-2.5 px-3">MIN</th>
-              <th className="py-2.5 px-3">MAX</th>
-              <th className="py-2.5 px-3">AVG</th>
-              <th className="py-2.5 px-3 min-w-[140px]">RANGE (SPREAD)</th>
+              <th className="py-2.5 px-3 min-w-[110px]">MIN</th>
+              <th className="py-2.5 px-3 min-w-[110px]">MAX</th>
+              <th className="py-2.5 px-3 min-w-[110px]">AVG</th>
+              <th className="py-2.5 px-3 min-w-[120px]">RANGE</th>
               <th className="py-2.5 px-3 text-right">POINTS</th>
             </tr>
           </thead>
@@ -103,7 +139,7 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
               const isActive = !activeChannels || activeChannels.includes(ch);
               if (!st) return null;
 
-              const rangePercent = Math.min(100, Math.max(8, (st.range / maxRangeAcrossChannels) * 100));
+              const markboxName = ch === 1 || ch === 4 ? 'MB1' : ch === 2 || ch === 5 ? 'MB2' : 'MB3';
 
               return (
                 <tr
@@ -114,16 +150,16 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                         ? 'hover:bg-[#1A1D21]'
                         : 'hover:bg-white'
                       : isDark
-                      ? 'opacity-40 hover:opacity-70 bg-[#111315]'
-                      : 'opacity-40 hover:opacity-70 bg-slate-100'
+                      ? 'opacity-35 hover:opacity-60 bg-[#111315]'
+                      : 'opacity-35 hover:opacity-60 bg-slate-100'
                   }`}
                 >
                   {/* CH */}
-                  <td className="py-2 px-3">
+                  <td className="py-2.5 px-3">
                     <button
                       type="button"
                       onClick={() => onToggleChannel?.(ch)}
-                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         isActive
                           ? 'text-white shadow-xs'
                           : isDark
@@ -137,53 +173,76 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                       title={onToggleChannel ? (isActive ? 'Click to hide channel' : 'Click to show channel') : undefined}
                     >
                       <span>CH{ch}</span>
+                      <span className="text-[9px] opacity-75 font-normal">({markboxName})</span>
                     </button>
                   </td>
 
-                  {/* MIN */}
-                  <td className="py-2 px-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sky-500 dark:text-sky-400 font-bold">{st.min.toFixed(1)}</span>
-                      <span className="text-[10px] text-slate-400">°C</span>
-                    </div>
-                  </td>
-
-                  {/* MAX */}
-                  <td className="py-2 px-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-rose-500 dark:text-rose-400 font-bold">{st.max.toFixed(1)}</span>
-                      <span className="text-[10px] text-slate-400">°C</span>
-                    </div>
-                  </td>
-
-                  {/* AVG */}
-                  <td className="py-2 px-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">{st.avg.toFixed(1)}</span>
-                      <span className="text-[10px] text-slate-400">°C</span>
-                    </div>
-                  </td>
-
-                  {/* RANGE with visual magnitude emphasis */}
-                  <td className="py-2 px-3">
+                  {/* MIN (Blue scale) */}
+                  <td className="py-2.5 px-3">
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-amber-500 dark:text-amber-400 font-bold">{st.range.toFixed(1)}°C</span>
-                        <span className="text-[9.5px] text-slate-400 font-normal">
-                          {((st.range / (st.avg || 1)) * 100).toFixed(1)}% var
-                        </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sky-500 dark:text-sky-400 font-bold">{st.min.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-sky-950/50' : 'bg-sky-100'}`}>
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all duration-300"
-                          style={{ width: `${rangePercent}%` }}
+                          className="h-full rounded-full bg-sky-500 transition-all duration-300"
+                          style={{ width: `${calcMinPct(st.min)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* MAX (Red scale) */}
+                  <td className="py-2.5 px-3">
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-rose-500 dark:text-rose-400 font-bold">{st.max.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400">°C</span>
+                      </div>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-rose-950/50' : 'bg-rose-100'}`}>
+                        <div
+                          className="h-full rounded-full bg-rose-500 transition-all duration-300"
+                          style={{ width: `${calcMaxPct(st.max)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* AVG (Green scale) */}
+                  <td className="py-2.5 px-3">
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{st.avg.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400">°C</span>
+                      </div>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-emerald-950/50' : 'bg-emerald-100'}`}>
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${calcAvgPct(st.avg)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* RANGE (Purple scale) */}
+                  <td className="py-2.5 px-3">
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-purple-600 dark:text-purple-400 font-bold">{st.range.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400">°C</span>
+                      </div>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-purple-950/50' : 'bg-purple-100'}`}>
+                        <div
+                          className="h-full rounded-full bg-purple-500 transition-all duration-300"
+                          style={{ width: `${calcRangePct(st.range)}%` }}
                         />
                       </div>
                     </div>
                   </td>
 
                   {/* POINTS */}
-                  <td className="py-2 px-3 text-right">
+                  <td className="py-2.5 px-3 text-right">
                     <span className="text-slate-400 text-[11px]">{st.points.toLocaleString()}</span>
                   </td>
                 </tr>
@@ -230,6 +289,22 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
 
   const [activeChannels, setActiveChannels] = useState<number[]>([1, 2, 3, 4, 5, 6]);
   const [graphPreset, setGraphPreset] = useState<GraphPreset>('engineering');
+
+  // Display & Axis custom settings
+  const [isAutoY, setIsAutoY] = useState<boolean>(true);
+  const [customMinStr, setCustomMinStr] = useState<string>('');
+  const [customMaxStr, setCustomMaxStr] = useState<string>('');
+  const [selectedYStep, setSelectedYStep] = useState<number | null>(null);
+  const [showDayBoundaries, setShowDayBoundaries] = useState<boolean>(true);
+  const [isThresholdActive, setIsThresholdActive] = useState<boolean>(false);
+  const [thresholdInput, setThresholdInput] = useState<string>('24.0');
+  const [xTickDensity, setXTickDensity] = useState<'auto' | 'dense' | 'sparse'>('auto');
+
+  // Collapsible control sections
+  const [showAdvancedControls, setShowAdvancedControls] = useState<boolean>(false);
+  const [activeControlsTab, setActiveControlsTab] = useState<'axes' | 'filters' | 'preview'>('axes');
+
+  // Modal / Detail state
   const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<SavedTemperatureRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<SavedTemperatureRecord | null>(null);
 
@@ -387,7 +462,6 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     delete tempDraftCache[machine.id];
     setSelectedFiles([]);
     setAnalysisResult(null);
-    alert('Temperature inspection record saved successfully to Machine Passport history.');
   };
 
   const handleRequestDeleteSavedRecord = (record: SavedTemperatureRecord) => {
@@ -468,9 +542,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     return [...list].sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
   }, [machine.manualTemperatureReadings]);
 
+  // Derived overrides for chart display
+  const yMinOverride = !isAutoY && customMinStr !== '' && !isNaN(parseFloat(customMinStr)) ? parseFloat(customMinStr) : null;
+  const yMaxOverride = !isAutoY && customMaxStr !== '' && !isNaN(parseFloat(customMaxStr)) ? parseFloat(customMaxStr) : null;
+  const thresholdVal = isThresholdActive && thresholdInput !== '' && !isNaN(parseFloat(thresholdInput)) ? parseFloat(thresholdInput) : null;
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
+      {/* 1. Header Banner */}
       <div
         className={`p-5 rounded-2xl border ${
           isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200 shadow-2xs'
@@ -484,14 +563,19 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             <div>
               <div className="flex items-center gap-2">
                 <h2 className={`text-base font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  Machine Temperature Telemetry & History
+                  Machine Temperature Telemetry
                 </h2>
                 <Badge variant="cyan" size="sm">
                   {machine.machineNumber}
                 </Badge>
+                <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                  isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                }`}>
+                  {machine.model}
+                </span>
               </div>
               <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Parsed with native FSOS TemperatureEngine · {savedRecords.length} Saved Inspections · {manualReadings.length} Manual Readings
+                Native Temperature Engine · {savedRecords.length} Saved Inspections · {manualReadings.length} Spot Readings
               </p>
             </div>
           </div>
@@ -506,369 +590,544 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             >
               + Manual Reading
             </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Upload className="w-3.5 h-3.5" />}
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs"
+            >
+              Import Log Files
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              multiple
+              accept=".log,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
         </div>
       </div>
 
-      {/* Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Log Ingestion & Controls */}
-        <div className="space-y-4">
-          <Card title="Raw .log / .txt File Import">
-            <div className="space-y-3">
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleFileDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`p-5 rounded-xl border-2 border-dashed text-center cursor-pointer transition-all ${
-                  isDark
-                    ? 'border-[#2B323A] hover:border-rose-500/60 bg-[#111315]/50 hover:bg-[#1A1D21]'
-                    : 'border-slate-300 hover:border-rose-500 bg-slate-50 hover:bg-rose-50/30'
-                }`}
-              >
-                <Upload className="w-8 h-8 mx-auto mb-2 text-rose-500 opacity-80" />
-                <p className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                  Drop .log or .txt files here
-                </p>
-                <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                  or click to browse multiple files
-                </p>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  multiple
-                  accept=".log,.txt"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
+      {/* 2. ACTIVE LOG ANALYSIS VIEW (If files uploaded) */}
+      {analysisResult ? (
+        <div className={`rounded-2xl border p-6 space-y-6 ${
+          isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200 shadow-sm'
+        }`}>
+          {/* LEVEL 1: RECORD IDENTITY */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider bg-rose-500 text-white">
+                  Active Analysis
+                </span>
+                <h3 className={`text-base font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {machine.model} Log Ingestion Session
+                </h3>
+                <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                  isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+                }`}>
+                  {analysisResult.rawRecords.length.toLocaleString()} raw pts
+                </span>
               </div>
+              <p className={`text-xs font-mono flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <span>Bucket: {intervalSec}s</span>
+                <span>•</span>
+                <span>Files ({analysisResult.sourceFileNames.length}): {analysisResult.sourceFileNames.join(', ')}</span>
+              </p>
+            </div>
 
-              {selectedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
-                      Selected Files ({selectedFiles.length}):
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleClearFiles}
-                      className="text-rose-400 hover:text-rose-300 text-[11px] underline"
-                    >
-                      Clear All
-                    </button>
-                  </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<X className="w-3.5 h-3.5" />}
+                onClick={handleClearFiles}
+                className="text-xs"
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<Save className="w-3.5 h-3.5" />}
+                onClick={handleSaveTemperatureRecord}
+                className="text-xs"
+              >
+                Save to Machine Passport
+              </Button>
+            </div>
+          </div>
 
-                  <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                    {selectedFiles.map((f, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-2 rounded-lg border text-xs font-mono flex items-center justify-between ${
-                          isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-100 border-slate-200'
-                        }`}
-                      >
-                        <span className="truncate max-w-[200px] text-slate-300">{f.name}</span>
-                        <Badge variant="emerald" size="sm">
-                          Ready
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Parsing Parameters */}
-              <div className={`p-3.5 rounded-xl border space-y-3 ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                  <Filter className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Parsing Parameters</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className={`block text-[10px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Command No Filter
-                    </label>
-                    <input
-                      type="text"
-                      value={cmdFilter}
-                      onChange={(e) => {
-                        setCmdFilter(e.target.value);
-                        runEngineAnalysis(selectedFiles, e.target.value, intervalSec, filterMin, filterMax);
-                      }}
-                      className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border font-mono ${
-                        isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300'
-                      }`}
-                      placeholder="e.g. 1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-[10px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Resample Bucket
-                    </label>
-                    <select
-                      value={intervalSec}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        setIntervalSec(val);
-                        runEngineAnalysis(selectedFiles, cmdFilter, val, filterMin, filterMax);
-                      }}
-                      className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border font-mono ${
-                        isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300'
-                      }`}
-                    >
-                      <option value={10}>10 seconds</option>
-                      <option value={30}>30 seconds</option>
-                      <option value={60}>1 minute</option>
-                      <option value={300}>5 minutes</option>
-                      <option value={600}>10 minutes</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className={`block text-[10px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Raw Min Cutoff
-                    </label>
-                    <input
-                      type="number"
-                      value={filterMin}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        setFilterMin(val);
-                        runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, val, filterMax);
-                      }}
-                      className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border font-mono ${
-                        isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-[10px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Raw Max Cutoff
-                    </label>
-                    <input
-                      type="number"
-                      value={filterMax}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 9999;
-                        setFilterMax(val);
-                        runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, filterMin, val);
-                      }}
-                      className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border font-mono ${
-                        isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-200' : 'bg-white border-slate-300'
-                      }`}
-                    />
-                  </div>
-                </div>
+          {/* LEVEL 2: KEY ENGINEERING SUMMARY */}
+          {analysisResult.stats && (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className={`p-3.5 rounded-xl border font-mono ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase block font-semibold text-sky-400">MIN TEMP</span>
+                <strong className="text-xl text-sky-400 font-bold block mt-0.5">{analysisResult.stats.min.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3.5 rounded-xl border font-mono ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase block font-semibold text-rose-400">MAX TEMP</span>
+                <strong className="text-xl text-rose-400 font-bold block mt-0.5">{analysisResult.stats.max.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3.5 rounded-xl border font-mono ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase block font-semibold text-emerald-400">AVG TEMP</span>
+                <strong className="text-xl text-emerald-400 font-bold block mt-0.5">{analysisResult.stats.avg.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3.5 rounded-xl border font-mono ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase block font-semibold text-purple-400">RANGE (SPREAD)</span>
+                <strong className="text-xl text-purple-400 font-bold block mt-0.5">{analysisResult.stats.range.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3.5 rounded-xl border font-mono col-span-2 sm:col-span-1 ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase block font-semibold text-indigo-400">TOTAL POINTS</span>
+                <strong className="text-xl text-indigo-400 font-bold block mt-0.5">{analysisResult.stats.points.toLocaleString()}</strong>
               </div>
             </div>
-          </Card>
-        </div>
+          )}
 
-        {/* Right Column (2 Spans): Active Result / Graphs / Statistics */}
-        <div className="lg:col-span-2 space-y-4">
-          {!analysisResult ? (
-            <Card className="p-12 text-center space-y-3">
-              <Thermometer className="w-10 h-10 mx-auto text-slate-500 opacity-50" />
-              <h3 className={`text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                No Active Log File Session
-              </h3>
-              <p className={`text-xs max-w-sm mx-auto ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                Upload .log or .txt raw machine telemetry files to generate real-time temperature graphs, station statistics, and save history records.
-              </p>
-            </Card>
-          ) : (
-            <Card className="p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-                <div>
-                  <h3 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                    Active Log Inspection Results
-                  </h3>
-                  <p className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {analysisResult.rawRecords.length.toLocaleString()} raw points parsed · {analysisResult.sourceFileNames.length} file(s)
-                  </p>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="primary"
-                  icon={<Save className="w-3.5 h-3.5" />}
-                  onClick={handleSaveTemperatureRecord}
+          {/* LEVEL 3: CHANNEL FILTER PILLS */}
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <span className={`text-xs font-mono font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Channels:
+            </span>
+            {[1, 2, 3, 4, 5, 6].map((ch) => {
+              const isActive = activeChannels.includes(ch);
+              const st = analysisResult.channelStats[ch];
+              return (
+                <button
+                  key={ch}
+                  type="button"
+                  onClick={() => toggleChannel(ch)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 border ${
+                    isActive
+                      ? 'border-transparent text-white shadow-xs'
+                      : isDark
+                      ? 'bg-[#1A1D21] border-[#2B323A] text-slate-500 opacity-50'
+                      : 'bg-slate-100 border-slate-200 text-slate-400'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined
+                  }}
                 >
-                  Save Temperature Record
-                </Button>
+                  <span>CH{ch}</span>
+                  {st && <span className="text-[10.5px] opacity-90 font-normal">({st.avg.toFixed(1)}°C)</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* LEVEL 4: LARGE TEMPERATURE TREND (DOMINANT ANALYTICAL GRAPH) */}
+          <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="flex items-center justify-between pb-3">
+              <span className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Multi-Channel Temperature Trend
+              </span>
+              <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+                {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setGraphPreset(p)}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
+                      graphPreset === p
+                        ? 'bg-rose-500 text-white font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {/* Statistics Overview Grid */}
-              {analysisResult.stats && (
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>MIN TEMP</span>
-                    <strong className="text-base text-sky-400 font-mono font-bold">{analysisResult.stats.min}°C</strong>
-                  </div>
-                  <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>MAX TEMP</span>
-                    <strong className="text-base text-rose-400 font-mono font-bold">{analysisResult.stats.max}°C</strong>
-                  </div>
-                  <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>AVG TEMP</span>
-                    <strong className="text-base text-emerald-400 font-mono font-bold">{analysisResult.stats.avg}°C</strong>
-                  </div>
-                  <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>RANGE</span>
-                    <strong className="text-base text-amber-400 font-mono font-bold">{analysisResult.stats.range}°C</strong>
-                  </div>
-                  <div className={`p-3 rounded-xl border text-center col-span-2 sm:col-span-1 ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className={`text-[10px] uppercase font-mono block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>POINTS</span>
-                    <strong className="text-base text-indigo-400 font-mono font-bold">{analysisResult.stats.points}</strong>
-                  </div>
-                </div>
-              )}
+            <TemperatureGraph
+              channelData={analysisResult.resampledChannels}
+              activeChannels={activeChannels}
+              stats={analysisResult.stats}
+              dayBoundaries={analysisResult.dayBoundaries}
+              thresholdTemp={thresholdVal}
+              thresholdLabel="Target Spec"
+              yStep={selectedYStep}
+              preset={graphPreset}
+              height={440}
+              showDayBoundaries={showDayBoundaries}
+              yMinOverride={yMinOverride}
+              yMaxOverride={yMaxOverride}
+              showYAxisControls={false}
+              showStatsBanner={false}
+            />
+          </div>
 
-              {/* Channel Filter Toggles */}
-              <div className="flex items-center gap-2 flex-wrap pt-1">
-                <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Channels/Stations:
-                </span>
-                {[1, 2, 3, 4, 5, 6].map((ch) => {
-                  const isActive = activeChannels.includes(ch);
-                  const st = analysisResult.channelStats[ch];
-                  return (
-                    <button
-                      key={ch}
-                      type="button"
-                      onClick={() => toggleChannel(ch)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 border ${
-                        isActive
-                          ? 'border-transparent text-white shadow-xs'
-                          : isDark
-                          ? 'bg-[#1A1D21] border-[#2B323A] text-slate-500 opacity-60'
-                          : 'bg-slate-100 border-slate-200 text-slate-400'
-                      }`}
-                      style={{
-                        backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined
-                      }}
-                    >
-                      <span>CH{ch}</span>
-                      {st && <span className="text-[10px] opacity-80">({st.avg}°C)</span>}
-                    </button>
-                  );
-                })}
+          {/* LEVEL 5: PER-CHANNEL ENGINEERING SUMMARY (Magnitude bars) */}
+          {analysisResult.channelStats && Object.keys(analysisResult.channelStats).length > 0 && (
+            <div>
+              <ChannelSummaryTable
+                channelStats={analysisResult.channelStats}
+                activeChannels={activeChannels}
+                onToggleChannel={toggleChannel}
+                isDark={isDark}
+              />
+            </div>
+          )}
+
+          {/* LEVEL 6: ADVANCED CONTROLS & DETAILED DATA */}
+          <div className={`rounded-xl border overflow-hidden ${
+            isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedControls(!showAdvancedControls)}
+              className={`w-full p-3.5 flex items-center justify-between text-xs font-bold font-mono transition-colors ${
+                isDark ? 'hover:bg-[#1A1D21] text-slate-300' : 'hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-rose-400" />
+                <span>Advanced Engineering Controls & Data Details</span>
               </div>
+              {showAdvancedControls ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
 
-              {/* Per-Channel Engineering Summary Table */}
-              {analysisResult.channelStats && Object.keys(analysisResult.channelStats).length > 0 && (
-                <div className="pt-1">
-                  <ChannelSummaryTable
-                    channelStats={analysisResult.channelStats}
-                    activeChannels={activeChannels}
-                    onToggleChannel={toggleChannel}
-                    isDark={isDark}
-                  />
+            {showAdvancedControls && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                {/* Tabs */}
+                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveControlsTab('axes')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                      activeControlsTab === 'axes'
+                        ? 'bg-rose-500 text-white shadow-xs'
+                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Axes & Display Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveControlsTab('filters')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                      activeControlsTab === 'filters'
+                        ? 'bg-rose-500 text-white shadow-xs'
+                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Data & Parsing Filters
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveControlsTab('preview')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                      activeControlsTab === 'preview'
+                        ? 'bg-rose-500 text-white shadow-xs'
+                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Resampled Data Points
+                  </button>
                 </div>
-              )}
 
-              {/* Preset Selector & Temperature Graph */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    Telemetry Trend Visualization
-                  </span>
-                  <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
-                    {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setGraphPreset(p)}
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
-                          graphPreset === p
-                            ? 'bg-rose-500 text-white font-bold shadow-xs'
-                            : 'text-slate-400 hover:text-slate-200'
+                {/* Tab Content: Axes & Display */}
+                {activeControlsTab === 'axes' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+                    {/* Y-Axis Bounds */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Y-Axis Bounds
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsAutoY(true)}
+                          className={`px-2.5 py-1 rounded text-[11px] border ${
+                            isAutoY
+                              ? 'bg-rose-500 text-white border-rose-500 font-bold'
+                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+                          }`}
+                        >
+                          Auto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAutoY(false)}
+                          className={`px-2.5 py-1 rounded text-[11px] border ${
+                            !isAutoY
+                              ? 'bg-rose-500 text-white border-rose-500 font-bold'
+                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+                          }`}
+                        >
+                          Manual
+                        </button>
+                      </div>
+                      {!isAutoY && (
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <input
+                            type="number"
+                            placeholder="Min °C"
+                            value={customMinStr}
+                            onChange={(e) => setCustomMinStr(e.target.value)}
+                            className={`w-20 px-2 py-1 rounded border text-xs ${
+                              isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
+                            }`}
+                          />
+                          <span className="text-slate-500">-</span>
+                          <input
+                            type="number"
+                            placeholder="Max °C"
+                            value={customMaxStr}
+                            onChange={(e) => setCustomMaxStr(e.target.value)}
+                            className={`w-20 px-2 py-1 rounded border text-xs ${
+                              isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Y-Axis Step */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Y Major Step
+                      </label>
+                      <select
+                        value={selectedYStep === null ? 'auto' : String(selectedYStep)}
+                        onChange={(e) => setSelectedYStep(e.target.value === 'auto' ? null : parseFloat(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
                         }`}
                       >
-                        {p}
-                      </button>
-                    ))}
+                        <option value="auto">Auto Steps</option>
+                        <option value="0.5">0.5 °C</option>
+                        <option value="1.0">1.0 °C</option>
+                        <option value="2.0">2.0 °C</option>
+                        <option value="5.0">5.0 °C</option>
+                      </select>
+                    </div>
+
+                    {/* Visual Reference Spec Line */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Visual Spec Line
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="active-thresh"
+                          checked={isThresholdActive}
+                          onChange={(e) => setIsThresholdActive(e.target.checked)}
+                          className="rounded text-rose-500"
+                        />
+                        <label htmlFor="active-thresh" className="text-xs text-slate-300">
+                          Show Spec Line
+                        </label>
+                      </div>
+                      {isThresholdActive && (
+                        <div className="flex items-center gap-1 pt-1">
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={thresholdInput}
+                            onChange={(e) => setThresholdInput(e.target.value)}
+                            className={`w-20 px-2 py-1 rounded border text-xs ${
+                              isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
+                            }`}
+                          />
+                          <span className="text-[10px] text-slate-400">°C (visual only)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Day Boundaries & X-Ticks */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Day Boundaries
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="active-day-lines"
+                          checked={showDayBoundaries}
+                          onChange={(e) => setShowDayBoundaries(e.target.checked)}
+                          className="rounded text-rose-500"
+                        />
+                        <label htmlFor="active-day-lines" className="text-xs text-slate-300">
+                          Show Day Lines ({analysisResult.dayBoundaries.length})
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                  <TemperatureGraph
-                    channelData={analysisResult.resampledChannels}
-                    activeChannels={activeChannels}
-                    stats={analysisResult.stats}
-                    dayBoundaries={analysisResult.dayBoundaries}
-                    preset={graphPreset}
-                    height={320}
-                  />
-                </div>
-              </div>
+                {/* Tab Content: Data & Parsing Filters */}
+                {activeControlsTab === 'filters' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Command No Filter
+                      </label>
+                      <input
+                        type="text"
+                        value={cmdFilter}
+                        onChange={(e) => {
+                          setCmdFilter(e.target.value);
+                          runEngineAnalysis(selectedFiles, e.target.value, intervalSec, filterMin, filterMax);
+                        }}
+                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        }`}
+                        placeholder="e.g. 1"
+                      />
+                    </div>
 
-              {/* Parsed Temperature Readings Table Preview */}
-              <div className="space-y-2 pt-2">
-                <h4 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  Resampled Read Data Preview
-                </h4>
-                <div className="max-h-60 overflow-y-auto rounded-xl border font-mono text-xs">
-                  <table className="w-full text-left">
-                    <thead className={isDark ? 'bg-[#111315] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
-                      <tr>
-                        <th className="p-2">Timestamp</th>
-                        <th className="p-2">Channel</th>
-                        <th className="p-2">Temperature (°C)</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${isDark ? 'divide-[#2B323A]/50' : 'divide-slate-200'}`}>
-                      {Object.entries(analysisResult.resampledChannels)
-                        .flatMap(([chStr, pts]) => (pts as Array<{ ts: Date; val: number }>).map((p) => ({ ch: parseInt(chStr, 10), ts: p.ts, val: p.val })))
-                        .filter((p) => activeChannels.includes(p.ch))
-                        .slice(0, 50)
-                        .map((p, idx) => (
-                          <tr key={idx} className={isDark ? 'hover:bg-[#1A1D21]' : 'hover:bg-slate-50'}>
-                            <td className="p-2 text-slate-300">{p.ts.toISOString().replace('T', ' ').slice(0, 19)}</td>
-                            <td className="p-2">
-                              <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
-                                style={{ backgroundColor: CHANNEL_COLORS[p.ch] }}
-                              >
-                                CH{p.ch}
-                              </span>
-                            </td>
-                            <td className="p-2 font-bold text-slate-100">{p.val.toFixed(1)} °C</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Resample Bucket
+                      </label>
+                      <select
+                        value={intervalSec}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setIntervalSec(val);
+                          runEngineAnalysis(selectedFiles, cmdFilter, val, filterMin, filterMax);
+                        }}
+                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        }`}
+                      >
+                        <option value={10}>10 seconds</option>
+                        <option value={30}>30 seconds</option>
+                        <option value={60}>1 minute</option>
+                        <option value={300}>5 minutes</option>
+                        <option value={600}>10 minutes</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Raw Min Cutoff
+                      </label>
+                      <input
+                        type="number"
+                        value={filterMin}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setFilterMin(val);
+                          runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, val, filterMax);
+                        }}
+                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Raw Max Cutoff
+                      </label>
+                      <input
+                        type="number"
+                        value={filterMax}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 9999;
+                          setFilterMax(val);
+                          runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, filterMin, val);
+                        }}
+                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab Content: Resampled Data Points */}
+                {activeControlsTab === 'preview' && (
+                  <div className="max-h-60 overflow-y-auto rounded-xl border font-mono text-xs">
+                    <table className="w-full text-left">
+                      <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
+                        <tr>
+                          <th className="p-2">Timestamp</th>
+                          <th className="p-2">Channel</th>
+                          <th className="p-2">Temperature (°C)</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${isDark ? 'divide-[#2B323A]/50' : 'divide-slate-200'}`}>
+                        {Object.entries(analysisResult.resampledChannels)
+                          .flatMap(([chStr, pts]) => (pts as Array<{ ts: Date; val: number }>).map((p) => ({ ch: parseInt(chStr, 10), ts: p.ts, val: p.val })))
+                          .filter((p) => activeChannels.includes(p.ch))
+                          .slice(0, 100)
+                          .map((p, idx) => (
+                            <tr key={idx} className={isDark ? 'hover:bg-[#1A1D21]' : 'hover:bg-slate-50'}>
+                              <td className="p-2 text-slate-300">{p.ts.toISOString().replace('T', ' ').slice(0, 19)}</td>
+                              <td className="p-2">
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
+                                  style={{ backgroundColor: CHANNEL_COLORS[p.ch] }}
+                                >
+                                  CH{p.ch}
+                                </span>
+                              </td>
+                              <td className="p-2 font-bold text-slate-100">{p.val.toFixed(1)} °C</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            </Card>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Log Import Dropzone if no active session */
+        <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleFileDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`p-6 rounded-2xl border-2 border-dashed text-center cursor-pointer transition-all ${
+            isDark
+              ? 'border-[#2B323A] hover:border-rose-500/60 bg-[#14171A]/60 hover:bg-[#1A1D21]'
+              : 'border-slate-300 hover:border-rose-500 bg-slate-50 hover:bg-rose-50/20'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Upload className="w-6 h-6 text-rose-500 opacity-80 shrink-0" />
+            <div className="text-center sm:text-left">
+              <p className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                Import Machine Temperature Log Files (.log / .txt)
+              </p>
+              <p className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                Drag and drop raw log files or click to browse. Instant 6-channel trend extraction and telemetry parsing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Saved Temperature History Records */}
+      {/* 3. SAVED TEMPERATURE INSPECTIONS (PRIMARY WORKSPACE HISTORY) */}
       <Card title={`Saved Machine Temperature History (${savedRecords.length})`}>
         {savedRecords.length === 0 ? (
-          <p className={`text-xs py-6 text-center ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-            No temperature data recorded for this machine. Upload log files above and click "Save Temperature Record".
-          </p>
+          <div className={`p-8 text-center rounded-xl border border-dashed font-mono text-xs ${
+            isDark ? 'border-[#2B323A] text-slate-500' : 'border-slate-200 text-slate-500'
+          }`}>
+            <span>No temperature data recorded for this machine. Upload log files above to generate telemetry and save history records.</span>
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {savedRecords.map((rec) => (
               <div
                 key={rec.id}
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-5 rounded-xl border transition-all ${
                   isDark ? 'bg-[#14171A] border-[#2B323A] hover:border-slate-700' : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  {/* ZONE 1 & 2: PRIMARY IDENTITY + SECONDARY METADATA */}
-                  <div className="space-y-1.5 min-w-0 flex-1">
+                  {/* ZONE 1 & 2: PRIMARY IDENTITY + METADATA */}
+                  <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <span className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                         {rec.title}
                       </span>
                       <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 ${
@@ -878,69 +1137,81 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                       </span>
                     </div>
 
-                    <div className={`flex items-center gap-2 text-xs flex-wrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-xs flex-wrap font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 opacity-70" />
                         {new Date(rec.createdAt).toLocaleString()}
                       </span>
                       <span>•</span>
-                      <span className="font-mono">
-                        {rec.intervalSec}s interval
+                      <span>{rec.intervalSec}s bucket</span>
+                      <span>•</span>
+                      <span className="truncate max-w-xs" title={rec.sourceFileNames.join(', ')}>
+                        {rec.sourceFileNames.join(', ')}
                       </span>
                     </div>
 
-                    {/* Secondary metadata: files subtly styled so they don't visually compete */}
-                    <div
-                      className={`flex items-center gap-1.5 text-[11px] pt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'} truncate`}
-                      title={rec.sourceFileNames.join(', ')}
-                    >
-                      <FileText className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                      <span className="truncate">
-                        Source: {rec.sourceFileNames.join(', ')}
-                      </span>
-                    </div>
+                    {/* Channel tags with their avg temps */}
+                    {rec.channelStats && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        {Object.entries(rec.channelStats).map(([chStr, statVal]) => {
+                          const ch = parseInt(chStr, 10);
+                          const st = statVal as ChannelStats;
+                          if (!st || typeof st.avg !== 'number') return null;
+                          return (
+                            <span
+                              key={ch}
+                              className="px-2 py-0.5 rounded text-[10px] font-mono font-bold text-white shadow-2xs"
+                              style={{ backgroundColor: CHANNEL_COLORS[ch] }}
+                            >
+                              CH{ch}: {st.avg.toFixed(1)}°C
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {/* ZONE 3 & 4: STATISTICS & ACTIONS */}
-                  <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
-                    {/* Core statistics: clear, prominent metrics */}
-                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center font-mono">
+                  {/* ZONE 3: VISUAL STATISTICS CARDS & ACTIONS */}
+                  <div className="flex items-center gap-4 shrink-0 flex-wrap sm:flex-nowrap">
+                    {/* Visual 4-metric summary strip */}
+                    <div className="grid grid-cols-4 gap-2 text-center font-mono">
                       <div className={`px-2.5 py-1.5 rounded-lg border ${
-                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
                       }`}>
-                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MIN</span>
-                        <strong className="text-xs sm:text-sm font-bold text-sky-500 dark:text-sky-400">{rec.stats.min}°C</strong>
+                        <span className="text-[9px] font-semibold block uppercase tracking-wider text-sky-400">MIN</span>
+                        <strong className="text-xs sm:text-sm font-bold text-sky-400">{rec.stats.min.toFixed(1)}°C</strong>
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-lg border ${
-                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
                       }`}>
-                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MAX</span>
-                        <strong className="text-xs sm:text-sm font-bold text-rose-500 dark:text-rose-400">{rec.stats.max}°C</strong>
+                        <span className="text-[9px] font-semibold block uppercase tracking-wider text-rose-400">MAX</span>
+                        <strong className="text-xs sm:text-sm font-bold text-rose-400">{rec.stats.max.toFixed(1)}°C</strong>
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-lg border ${
-                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
                       }`}>
-                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>AVG</span>
-                        <strong className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400">{rec.stats.avg}°C</strong>
+                        <span className="text-[9px] font-semibold block uppercase tracking-wider text-emerald-400">AVG</span>
+                        <strong className="text-xs sm:text-sm font-bold text-emerald-400">{rec.stats.avg.toFixed(1)}°C</strong>
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-lg border ${
-                        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
+                        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-2xs'
                       }`}>
-                        <span className={`text-[9px] font-semibold block uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>RANGE</span>
-                        <strong className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400">{rec.stats.range}°C</strong>
+                        <span className="text-[9px] font-semibold block uppercase tracking-wider text-purple-400">RANGE</span>
+                        <strong className="text-xs sm:text-sm font-bold text-purple-400">{rec.stats.range.toFixed(1)}°C</strong>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5 border-l pl-3 border-slate-700/40 dark:border-slate-800">
+                    {/* Action Button */}
+                    <div className="flex items-center gap-2 border-l pl-3 border-slate-700/40 dark:border-slate-800">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="primary"
                         onClick={() => setSelectedRecordForDetail(rec)}
-                        className="text-xs flex items-center gap-1 py-1.5"
+                        className="text-xs flex items-center gap-1.5 py-1.5 px-3"
                       >
                         <BarChart2 className="w-3.5 h-3.5" />
-                        <span>View Graph</span>
+                        <span>Open Analysis</span>
+                        <ArrowRight className="w-3 h-3 opacity-70" />
                       </Button>
                       <button
                         type="button"
@@ -959,7 +1230,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
         )}
       </Card>
 
-      {/* Manual Temperature Readings History */}
+      {/* 4. MANUAL SPOT READINGS */}
       <Card title={`Manual Spot Readings (${manualReadings.length})`}>
         {manualReadings.length === 0 ? (
           <p className={`text-xs py-4 text-center ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
@@ -970,7 +1241,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             {manualReadings.map((r) => (
               <div
                 key={r.id}
-                className={`p-3 rounded-xl border space-y-2 ${
+                className={`p-3.5 rounded-xl border space-y-2 ${
                   isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
                 }`}
               >
@@ -1002,7 +1273,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
         )}
       </Card>
 
-      {/* Manual Reading Modal */}
+      {/* MANUAL READING MODAL */}
       <Modal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
@@ -1088,7 +1359,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
         </form>
       </Modal>
 
-      {/* Saved Record Detail Modal */}
+      {/* SAVED RECORD FULL ENGINEERING ANALYSIS MODAL */}
       {selectedRecordForDetail && (
         <Modal
           isOpen={!!selectedRecordForDetail}
@@ -1096,26 +1367,70 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
           title={selectedRecordForDetail.title}
           size="lg"
         >
-          <div className="space-y-4">
-            <div className={`p-3 rounded-xl border flex flex-wrap justify-between items-center text-xs font-mono gap-2 ${
+          <div className="space-y-5">
+            {/* LEVEL 1: RECORD IDENTITY */}
+            <div className={`p-4 rounded-xl border flex flex-wrap justify-between items-center text-xs font-mono gap-2 ${
               isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
             }`}>
-              <span>Recorded: {new Date(selectedRecordForDetail.createdAt).toLocaleString()}</span>
-              <span>Raw Points: {selectedRecordForDetail.rawRecordsCount}</span>
-              <span>Bucket: {selectedRecordForDetail.intervalSec}s</span>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-100">{machine.model} ({machine.machineNumber})</span>
+                  <span>•</span>
+                  <span>Recorded: {new Date(selectedRecordForDetail.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {selectedRecordForDetail.rawRecordsCount.toLocaleString()} points · {selectedRecordForDetail.intervalSec}s bucket · Source: {selectedRecordForDetail.sourceFileNames.join(', ')}
+                </div>
+              </div>
             </div>
 
-            <TemperatureGraph
-              channelData={selectedRecordForDetail.channelData}
-              activeChannels={[1, 2, 3, 4, 5, 6]}
-              stats={selectedRecordForDetail.stats}
-              dayBoundaries={selectedRecordForDetail.dayBoundaries}
-              preset={graphPreset}
-              height={320}
-            />
+            {/* LEVEL 2: KEY ENGINEERING SUMMARY */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono">
+              <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase font-semibold text-sky-400 block">MIN TEMP</span>
+                <strong className="text-base text-sky-400 font-bold block mt-0.5">{selectedRecordForDetail.stats.min.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase font-semibold text-rose-400 block">MAX TEMP</span>
+                <strong className="text-base text-rose-400 font-bold block mt-0.5">{selectedRecordForDetail.stats.max.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase font-semibold text-emerald-400 block">AVG TEMP</span>
+                <strong className="text-base text-emerald-400 font-bold block mt-0.5">{selectedRecordForDetail.stats.avg.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3 rounded-xl border text-center ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase font-semibold text-purple-400 block">RANGE</span>
+                <strong className="text-base text-purple-400 font-bold block mt-0.5">{selectedRecordForDetail.stats.range.toFixed(1)}°C</strong>
+              </div>
+              <div className={`p-3 rounded-xl border text-center col-span-2 sm:col-span-1 ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] uppercase font-semibold text-indigo-400 block">POINTS</span>
+                <strong className="text-base text-indigo-400 font-bold block mt-0.5">{selectedRecordForDetail.stats.points.toLocaleString()}</strong>
+              </div>
+            </div>
 
+            {/* LEVEL 3: LARGE TEMPERATURE TREND GRAPH */}
+            <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+              <TemperatureGraph
+                channelData={selectedRecordForDetail.channelData}
+                activeChannels={[1, 2, 3, 4, 5, 6]}
+                stats={selectedRecordForDetail.stats}
+                dayBoundaries={selectedRecordForDetail.dayBoundaries}
+                thresholdTemp={thresholdVal}
+                thresholdLabel="Target Spec"
+                yStep={selectedYStep}
+                preset={graphPreset}
+                height={400}
+                showDayBoundaries={showDayBoundaries}
+                yMinOverride={yMinOverride}
+                yMaxOverride={yMaxOverride}
+                showYAxisControls={false}
+                showStatsBanner={false}
+              />
+            </div>
+
+            {/* LEVEL 4: PER-CHANNEL ENGINEERING SUMMARY */}
             {selectedRecordForDetail.channelStats && Object.keys(selectedRecordForDetail.channelStats).length > 0 && (
-              <div className="pt-2">
+              <div>
                 <ChannelSummaryTable
                   channelStats={selectedRecordForDetail.channelStats}
                   isDark={isDark}
@@ -1123,7 +1438,8 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
               <Button
                 size="sm"
                 variant="danger"
@@ -1134,14 +1450,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                 Delete Record
               </Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedRecordForDetail(null)}>
-                Close
+                Close Analysis
               </Button>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Delete Temperature Record In-App Confirmation Modal */}
+      {/* DELETE CONFIRMATION MODAL */}
       {recordToDelete && (
         <Modal
           isOpen={!!recordToDelete}

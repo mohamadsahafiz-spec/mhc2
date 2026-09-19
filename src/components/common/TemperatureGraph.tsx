@@ -53,13 +53,13 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
   thresholdLabel = 'Target Spec',
   yStep = null,
   preset = 'engineering',
-  height = 320,
+  height = 360,
   showGrid = true,
   showLegend = true,
-  showStatsBanner = true,
+  showStatsBanner = false,
   title,
   className = '',
-  showYAxisControls = true,
+  showYAxisControls = false,
   showDayBoundaries = true,
   yMinOverride = null,
   yMaxOverride = null
@@ -231,28 +231,39 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
   const parsedCustomMin = parseFloat(customMinStr);
   const parsedCustomMax = parseFloat(customMaxStr);
 
-  const yMin = !isAutoY && !isNaN(parsedCustomMin) ? parsedCustomMin : autoYMin;
-  const yMax = !isAutoY && !isNaN(parsedCustomMax) ? parsedCustomMax : autoYMax;
+  const yMin = yMinOverride !== null && yMinOverride !== undefined
+    ? yMinOverride
+    : (!isAutoY && !isNaN(parsedCustomMin) ? parsedCustomMin : autoYMin);
 
-  // Calculate explicit Y-Axis ticks if selectedYStep is active
+  const yMax = yMaxOverride !== null && yMaxOverride !== undefined
+    ? yMaxOverride
+    : (!isAutoY && !isNaN(parsedCustomMax) ? parsedCustomMax : autoYMax);
+
+  const activeYStep = yStep !== null && yStep !== undefined ? yStep : selectedYStep;
+
+  // Calculate explicit Y-Axis ticks if activeYStep is active
   const yTicks = useMemo(() => {
-    if (!selectedYStep || selectedYStep <= 0) return undefined;
+    if (!activeYStep || activeYStep <= 0) return undefined;
     const ticks: number[] = [];
-    const start = Math.floor(yMin / selectedYStep) * selectedYStep;
-    const end = Math.ceil(yMax / selectedYStep) * selectedYStep;
-    const stepCount = Math.round((end - start) / selectedYStep);
+    const start = Math.floor(yMin / activeYStep) * activeYStep;
+    const end = Math.ceil(yMax / activeYStep) * activeYStep;
+    const stepCount = Math.round((end - start) / activeYStep);
 
     if (stepCount > 60 || stepCount <= 0) return undefined;
 
-    for (let val = start; val <= end + 0.0001; val += selectedYStep) {
+    for (let val = start; val <= end + 0.0001; val += activeYStep) {
       ticks.push(Math.round(val * 100) / 100);
     }
     return ticks.length > 1 ? ticks : undefined;
-  }, [yMin, yMax, selectedYStep]);
+  }, [yMin, yMax, activeYStep]);
 
   // Calculate parsed visual threshold line value
   const parsedThreshold = parseFloat(thresholdInput);
-  const effectiveThreshold = isThresholdActive && !isNaN(parsedThreshold) ? parsedThreshold : null;
+  const effectiveThreshold = thresholdTemp !== null && thresholdTemp !== undefined
+    ? thresholdTemp
+    : (isThresholdActive && !isNaN(parsedThreshold) ? parsedThreshold : null);
+
+  const effectiveShowDayLines = showDayBoundaries !== undefined ? showDayBoundaries : isDayLinesVisible;
 
   const showDots = chartData.length <= 100;
 
@@ -282,7 +293,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                 <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'monospace', paddingTop: '4px' }} />
               )}
               {/* Day boundaries */}
-              {isDayLinesVisible && boundaryReferenceLines.map((b) => (
+              {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
                 <ReferenceLine
                   key={b.date}
                   x={b.timeStr}
@@ -337,7 +348,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
               <YAxis domain={[yMin, yMax]} ticks={yTicks} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
               {/* Day boundaries */}
-              {isDayLinesVisible && boundaryReferenceLines.map((b) => (
+              {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
                 <ReferenceLine
                   key={b.date}
                   x={b.timeStr}
@@ -578,7 +589,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
               />
             )}
             {/* Day Boundaries Reference Lines */}
-            {isDayLinesVisible && boundaryReferenceLines.map((b) => (
+            {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
               <ReferenceLine
                 key={b.date}
                 x={b.timeStr}

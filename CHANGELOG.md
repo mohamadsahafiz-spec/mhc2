@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v3.1.2 — Temperature UX Restructure (2026-09-19)
+
+### Temperature UX Restructure
+- **LOOK → UNDERSTAND → DRILL DOWN Hierarchy**: Restructured the temperature analysis workflow so the visual trend graph and key engineering metrics dominate the initial view, moving detailed configurations to clean, compact secondary sections.
+- **Visual Magnitude Comparison Table**: Upgraded the per-channel summary (`CH | MIN | MAX | AVG | RANGE | POINTS`) with instant cross-channel magnitude indicator bars (MIN: Blue scale, MAX: Red scale, AVG: Green scale, RANGE: Purple scale) while keeping numeric measurements clearly legible.
+- **Dominant Trend Visualization**: Elevated the multi-channel temperature graph to a generous 440px canvas with integrated day boundaries, target spec lines, and channel color differentiation.
+- **Main Workspace Organization**: Enhanced the outer temperature workspace with rich saved-record identity cards, mini-telemetry strips, and direct drilldown into full engineering analysis.
+- **Segregated Advanced Controls**: Grouped display bounds, Y-major steps, X-tick density, parsing filters, and raw point previews into organized collapsible tabs.
+
 ## v3.1.1 — Temperature Engineering Visualization (2026-09-19)
 
 ### Temperature Engineering Visualization
