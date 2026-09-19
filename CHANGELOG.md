@@ -1,5 +1,30 @@
 # FSOS CHANGELOG
 
+## v3.1.0 — LMS v2 Laser Lifecycle Visual Structure Refinement (2026-09-19)
+
+### LMS v2 Laser Lifecycle Visual Structure Refinement
+- **LMS v2 Information Hierarchy**: Refactored Laser Lifecycle presentation into a streamlined, high-clarity surface matching LMS v2 architecture.
+- **Concise Multi-Head Lifecycle Margins**: Displayed operating runtime vs rated capacity with percentage consumption and estimated EOL dates on clean progress bars without redundant telemetry.
+- **Streamlined Key Parameter Strip**: Compacted physical baseline, remaining margin, and verification freshness into a clean 3-metric parameter bar per laser head.
+- **Contextual Action Callouts**: Surfaced prominent action alerts for required physical meter baselines or threshold alerts with zero visual noise.
+
+## v3.0.0 — Machine Passport v2 Identity-First UI Correction (2026-09-19)
+
+### Machine Passport v2 Identity-First UI Correction
+- **Identity-First Information Hierarchy**: Refactored Machine Passport to prioritize machine identity (Machine #, Model, Serial #, Customer, Plant, Production Line, Zone) cleanly at the top of the workspace.
+- **Concise Laser Lifecycle Surface**: Replaced telemetry-heavy dashboard noise with clean, calm per-head lifecycle cards displaying real operating hours, rated life, remaining percentage, and physical meter baseline freshness.
+- **Lifecycle & Calibration History**: Added a dedicated historical record view capturing initial commissioning baselines, physical meter verifications, and routine service events without dummy placeholders.
+- **Segregated Machine Engineering Health**: Structured MHC Baseline Engineering Specifications (Laser Power, Beam Profile, Stage Calibration, AGC Galvo, Cooling Temperature) alongside recent MHC audit logs and overall scores in a clear, segregated domain.
+
+## v2.10.10 — Machine Passport v2 & LMS Lifecycle Integration (2026-09-19)
+
+### Machine Passport v2 & LMS Lifecycle Integration
+- **Identity-First Information Hierarchy**: Upgraded Machine Passport with the clean LMS v2 information hierarchy, highlighting machine number, model, serial number, customer account, plant site, and production line without visual noise or excessive telemetry walls.
+- **LMS Lifecycle & Health Source of Truth**: Connected Machine Passport lifecycle presentation directly to existing `LaserEngine` deterministic runtime calculations, displaying operating hours, remaining lifecycle percentage, EOL prognosis, and physical meter calibration freshness per laser head.
+- **Truthful LMS Synchronization State**: Embedded a concise LMS integration status and timestamp indicator directly within the lifecycle surface, showing real last updated timestamps and unrecorded states without fabricating sync data.
+- **Separation of Concerns**: Strictly segregated FSOS MHC engineering baseline specifications (target power, beam profile mode, stage tolerance, AGC scanner tolerance, cooling temperature) from LMS physical laser-hour lifecycle baselines.
+- **Robust Machine & Laser Matching**: Reused the authoritative matching engine in `LaserEngine.parseAndMapLaserMonitorJson` (matching by machine ID, machine number, serial number, and physical laser serials) and merged calibration histories without duplicating records.
+
 ## v2.10.9 — MHC Autopilot Verification & Routing Reliability (2026-09-19)
 
 ### MHC Autopilot Verification & Routing Fixes

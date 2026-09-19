@@ -36,7 +36,8 @@ import {
   Crosshair, 
   Package, 
   Share2, 
-  Search 
+  Search,
+  RefreshCw 
 } from 'lucide-react';
 import { Machine, MHCRecord, Customer, MachineMhcSpecs } from '../../types';
 import { StorageService } from '../../utils/persistence';
@@ -2010,338 +2011,563 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 className="flex-1 min-w-0 w-full"
               >
                 {passportSubTab === 'lifecycle' ? (
-            <div className="space-y-6">
-          {/* Hardware & Installation Telemetry */}
-          <div className={`grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 rounded-xl border ${
-            isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div>
-              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Production Line</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.productionLineName || '—'}</p>
-            </div>
-            <div>
-              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Zone</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.zone || '—'}</p>
-            </div>
-            <div>
-              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Installation Date</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.installationDate}</p>
-            </div>
-            <div>
-              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Factory Baseline Date</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{selectedMachine.baselineDate}</p>
-            </div>
-            <div>
-              <span className={`text-[11px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Next MHC Target</span>
-              <p className={`text-xs font-bold mt-0.5 ${isDark ? 'text-[#8ECDF7]' : 'text-sky-800'}`}>{selectedMachine.nextMhcDate}</p>
-            </div>
-          </div>
+                  <div className="space-y-5">
+                    {/* SECTION 1: LMS v2 LASER LIFECYCLE OVERVIEW & HEADS */}
+                    <div className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                      isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
+                    }`}>
+                      {/* LMS v2 System Header Strip */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className={`text-sm font-bold font-mono tracking-tight uppercase ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                              Laser Lifecycle
+                            </h2>
+                            <Badge 
+                              variant={
+                                machineMetrics.status === 'SAFE' ? 'emerald' :
+                                machineMetrics.status === 'WARNING' ? 'amber' :
+                                machineMetrics.status === 'ALARM' ? 'rose' : 'amber'
+                              }
+                              size="sm"
+                            >
+                              {machineMetrics.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : machineMetrics.status.replace('_', ' ')}
+                            </Badge>
+                            <span className={`text-[11px] px-2 py-0.5 rounded font-mono font-medium border ${
+                              isDark ? 'bg-sky-950/40 text-sky-400 border-sky-800/60' : 'bg-sky-50 text-sky-700 border-sky-200'
+                            }`}>
+                              {machineMetrics.totalLasers} {machineMetrics.totalLasers === 1 ? 'Head' : 'Heads'}
+                            </span>
+                            {machineMetrics.avgLifeRemaining !== null && (
+                              <span className={`text-[11px] px-2 py-0.5 rounded font-mono font-medium border ${
+                                machineMetrics.avgLifeRemaining <= 10
+                                  ? (isDark ? 'bg-rose-950/40 text-rose-400 border-rose-800/60' : 'bg-rose-50 text-rose-700 border-rose-200')
+                                  : machineMetrics.avgLifeRemaining <= 20
+                                  ? (isDark ? 'bg-amber-950/40 text-amber-400 border-amber-800/60' : 'bg-amber-50 text-amber-700 border-amber-200')
+                                  : (isDark ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                              }`}>
+                                Avg Margin: {machineMetrics.formattedAvgLifeRemaining}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {selectedMachine.lastUpdated ? (
+                              <>Synchronized LMS record: <span className="font-mono">{new Date(selectedMachine.lastUpdated).toLocaleDateString()} {new Date(selectedMachine.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></>
+                            ) : (
+                              <>Physical runtime hours & deterministic lifecycle tracking</>
+                            )}
+                          </p>
+                        </div>
 
-          {/* MHC / CALIBRATION SPECIFICATIONS */}
-          <div className={`p-5 rounded-2xl border space-y-4 ${
-            isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
-          }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-2 rounded-xl ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                    MHC / CALIBRATION SPECIFICATIONS
-                  </h3>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Authoritative baseline engineering tolerances & calibration target specs for MHC reports
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={<Share2 className="w-3.5 h-3.5 text-indigo-500" />}
-                  onClick={handleOpenFanOut}
-                  className="text-xs"
-                >
-                  Fan-Out to Fleet
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={<Edit3 className="w-3.5 h-3.5" />}
-                  onClick={handleOpenEdit}
-                  className="text-xs"
-                >
-                  Configure Specs
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-              {/* Laser Power */}
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Laser Power</span>
-                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== undefined && selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== null
-                    ? `${selectedMachine.mhcSpecs.laserPower.targetPowerWatts} W${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== undefined && selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== null ? ` ±${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent}%` : ''}`
-                    : '— (Unrecorded)'}
-                </p>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target Power & Tol</span>
-              </div>
-
-              {/* Beam Profile / Mode */}
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Beam Profile / Mode</span>
-                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {selectedMachine.mhcSpecs?.beamProfile?.profileMode || '— (Unrecorded)'}
-                </p>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Profile geometry / mode</span>
-              </div>
-
-              {/* Stage Calibration */}
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Stage Calibration</span>
-                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== null
-                    ? `±${selectedMachine.mhcSpecs.stageCalibration.toleranceUm} µm`
-                    : '— (Unrecorded)'}
-                </p>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Stage tolerance spec</span>
-              </div>
-
-              {/* AGC / Scanner Calibration */}
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>AGC / Scanner</span>
-                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== null
-                    ? `±${selectedMachine.mhcSpecs.agcCalibration.toleranceUm} µm`
-                    : '— (Unrecorded)'}
-                </p>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Galvo scanner tolerance</span>
-              </div>
-
-              {/* Temperature / Cooling */}
-              <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-                <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Temperature / Cooling</span>
-                <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined && selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== null
-                    ? `${selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius}°C${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== undefined && selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== null ? ` ±${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius}°C` : ''}`
-                    : '— (Unrecorded)'}
-                </p>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target temp & tolerance</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Laser Heads Runtime Telemetry & Lifecycle Module */}
-          <div className={`p-5 rounded-2xl border space-y-4 ${
-            isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
-          }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                    Laser Heads Runtime Telemetry & Lifecycle Engine
-                  </h3>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Live deterministic lifecycle tracking based on physical meter baseline & elapsed runtime
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Badge 
-                  variant={
-                    machineMetrics.status === 'SAFE' ? 'emerald' :
-                    machineMetrics.status === 'WARNING' ? 'amber' :
-                    machineMetrics.status === 'ALARM' ? 'rose' : 'amber'
-                  }
-                  size="md"
-                >
-                  SYSTEM: {machineMetrics.status.replace('_', ' ')}
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={handleOpenAddLaser}
-                  className="text-xs"
-                >
-                  Add Laser Head
-                </Button>
-              </div>
-            </div>
-
-            {/* Baseline Required Warning Banner */}
-            {machineMetrics.baselineRequiredCount > 0 && (
-              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-                isDark ? 'bg-amber-950/40 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>
-                    <strong>Baseline Required:</strong> Physical meter reading has not been recorded for {machineMetrics.baselineRequiredCount} laser head(s). Please verify physical meter to activate lifecycle engine.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Per-Laser Head Lifecycle Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {machineMetrics.laserMetricsList.map((lm) => {
-                const isBaselineReq = lm.status === 'BASELINE_REQUIRED';
-                const percentUsed = lm.lifeRemainingPercent !== null 
-                  ? Math.min(100, Math.max(0, 100 - lm.lifeRemainingPercent))
-                  : 0;
-
-                return (
-                  <div key={lm.id} className={`p-4 rounded-xl border space-y-3.5 transition-all ${
-                    lm.status === 'ALARM'
-                      ? (isDark ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/80 border-rose-200')
-                      : lm.status === 'WARNING'
-                      ? (isDark ? 'bg-amber-950/20 border-amber-800/60' : 'bg-amber-50/80 border-amber-200')
-                      : (isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200')
-                  }`}>
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Zap className={`w-4 h-4 shrink-0 ${
-                          lm.status === 'ALARM' ? 'text-rose-500' :
-                          lm.status === 'WARNING' ? 'text-amber-500' :
-                          isDark ? 'text-[#EFCB7A]' : 'text-amber-600'
-                        }`} />
-                        <div className="min-w-0">
-                          <span className={`text-xs font-bold block truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                            {lm.name}
-                          </span>
-                          <span className={`text-[10px] font-mono block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                            SN: {lm.serialNo}
-                          </span>
+                        {/* Top Action Controls */}
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={<Upload className="w-3.5 h-3.5 text-slate-400" />}
+                            onClick={handleTriggerImportFile}
+                            className="text-xs h-7.5 px-2.5 font-sans"
+                            title="Import Laser Monitor JSON"
+                          >
+                            Sync LMS
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={<Download className="w-3.5 h-3.5 text-slate-400" />}
+                            onClick={handleExportJson}
+                            className="text-xs h-7.5 px-2.5 font-sans"
+                            title="Export Laser Lifecycle JSON"
+                          >
+                            Export
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={<Plus className="w-3.5 h-3.5" />}
+                            onClick={handleOpenAddLaser}
+                            className="text-xs h-7.5 px-2.5 font-sans"
+                          >
+                            Add Head
+                          </Button>
                         </div>
                       </div>
 
-                      <Badge 
-                        variant={
-                          lm.status === 'SAFE' ? 'emerald' :
-                          lm.status === 'WARNING' ? 'amber' :
-                          lm.status === 'ALARM' ? 'rose' : 'amber'
-                        } 
-                        size="sm"
-                      >
-                        {lm.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : lm.status}
-                      </Badge>
+                      {/* Required Action Callout (LMS v2 style) */}
+                      {machineMetrics.baselineRequiredCount > 0 ? (
+                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                          isDark ? 'bg-amber-950/30 border-amber-800/50 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span>
+                              <strong>Action Required:</strong> Initial physical meter baseline needed for {machineMetrics.baselineRequiredCount} head(s).
+                            </span>
+                          </div>
+                        </div>
+                      ) : machineMetrics.status === 'ALARM' ? (
+                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                          isDark ? 'bg-rose-950/30 border-rose-800/50 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-900'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                            <span>
+                              <strong>Critical Lifecycle Threshold Reached:</strong> Laser runtime has exceeded rated operational limits.
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* LMS v2 Laser Head Cards */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {machineMetrics.laserMetricsList.map((lm) => {
+                          const isBaselineReq = lm.status === 'BASELINE_REQUIRED';
+                          const percentUsed = lm.lifeRemainingPercent !== null 
+                            ? Math.min(100, Math.max(0, 100 - lm.lifeRemainingPercent))
+                            : 0;
+
+                          return (
+                            <div 
+                              key={lm.id} 
+                              className={`p-4 rounded-xl border space-y-3.5 transition-all ${
+                                lm.status === 'ALARM'
+                                  ? (isDark ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/80 border-rose-200')
+                                  : lm.status === 'WARNING'
+                                  ? (isDark ? 'bg-amber-950/20 border-amber-800/60' : 'bg-amber-50/80 border-amber-200')
+                                  : (isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50/70 border-slate-200')
+                              }`}
+                            >
+                              {/* Head Header: Title, Serial Pill, Status */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className={`text-xs font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {lm.name}
+                                  </span>
+                                  <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
+                                    isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-white text-slate-700 border-slate-200'
+                                  }`}>
+                                    SN: {lm.serialNo || 'N/A'}
+                                  </span>
+                                </div>
+
+                                <Badge 
+                                  variant={
+                                    lm.status === 'SAFE' ? 'emerald' :
+                                    lm.status === 'WARNING' ? 'amber' :
+                                    lm.status === 'ALARM' ? 'rose' : 'amber'
+                                  } 
+                                  size="sm"
+                                >
+                                  {lm.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : lm.status}
+                                </Badge>
+                              </div>
+
+                              {/* Primary Hours & Lifecycle Margin */}
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-baseline text-xs font-mono">
+                                  <span className={isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}>
+                                    Operating Hours:
+                                  </span>
+                                  <span className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {lm.currentHour !== null ? `${lm.currentHour.toLocaleString()} hrs` : 'Unrecorded'}
+                                    <span className={`text-xs font-normal ml-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                                      / {lm.ratedLife.toLocaleString()} rated ({percentUsed.toFixed(1)}%)
+                                    </span>
+                                  </span>
+                                </div>
+
+                                <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      lm.status === 'ALARM' ? 'bg-rose-500' :
+                                      lm.status === 'WARNING' ? 'bg-amber-500' :
+                                      isDark ? 'bg-sky-500' : 'bg-sky-600'
+                                    }`}
+                                    style={{ width: `${percentUsed}%` }}
+                                  />
+                                </div>
+
+                                <div className={`flex justify-between text-[11px] font-mono pt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                  <span>
+                                    Life Margin: <strong className={
+                                      lm.status === 'ALARM' ? 'text-rose-400' :
+                                      lm.status === 'WARNING' ? 'text-amber-400' :
+                                      'text-emerald-500'
+                                    }>{lm.formattedLifeRemaining}</strong>
+                                  </span>
+                                  <span>
+                                    Est. EOL: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{lm.estimatedRecommendedEOL || '—'}</strong>
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Concise Key Parameters (LMS v2 format) */}
+                              <div className={`grid grid-cols-3 gap-2 text-xs font-mono p-2.5 rounded-lg border ${
+                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'
+                              }`}>
+                                <div>
+                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Physical Meter:</span>
+                                  <span className={`font-semibold text-[11px] truncate block ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    {lm.baseLaserHour !== null ? `${lm.baseLaserHour.toLocaleString()} h` : 'Unset'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Remaining Margin:</span>
+                                  <span className={`font-semibold text-[11px] truncate block ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    {lm.recommendedRemainingHour !== null ? `${lm.recommendedRemainingHour.toLocaleString()} h` : '—'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Freshness:</span>
+                                  <span className={`font-semibold text-[11px] truncate block ${
+                                    lm.accuracy.color === 'emerald' ? 'text-emerald-500' :
+                                    lm.accuracy.color === 'amber' ? 'text-amber-500' :
+                                    'text-slate-400'
+                                  }`}>
+                                    {lm.accuracy.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Action Bar */}
+                              <div className="flex items-center gap-2 pt-1">
+                                <Button
+                                  size="sm"
+                                  variant={isBaselineReq ? 'warning' : 'primary'}
+                                  icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                                  onClick={() => handleOpenVerifyModal(lm)}
+                                  className="flex-1 text-xs py-1.5 font-sans font-medium"
+                                >
+                                  {isBaselineReq ? 'Set Physical Baseline' : 'Verify Physical Meter'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  icon={<Settings className="w-3.5 h-3.5" />}
+                                  onClick={() => handleOpenConfigModal(lm)}
+                                  className="text-xs py-1.5"
+                                  title="Configure Laser Head & Ratings"
+                                >
+                                  Config
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    {/* Progress Bar / Rated Life */}
-                    <div className="space-y-1 text-xs font-mono">
-                      <div className={`flex justify-between ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
-                        <span>Current Estimated:</span>
-                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {lm.currentHour !== null ? `${lm.currentHour.toLocaleString()} / ${lm.ratedLife.toLocaleString()} hrs` : 'Unset'}
-                        </span>
-                      </div>
-
-                      <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            lm.status === 'ALARM' ? 'bg-rose-500' :
-                            lm.status === 'WARNING' ? 'bg-amber-500' :
-                            isDark ? 'bg-[#8ECDF7]' : 'bg-sky-600'
-                          }`}
-                          style={{ width: `${percentUsed}%` }}
-                        />
-                      </div>
-
-                      <div className={`flex justify-between text-[10px] pt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                        <span>Life Remaining: <strong className={lm.status === 'ALARM' ? 'text-rose-400' : lm.status === 'WARNING' ? 'text-amber-400' : 'text-emerald-400'}>{lm.formattedLifeRemaining}</strong></span>
-                        <span>Est. EOL: {lm.estimatedRecommendedEOL || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {/* Grid Metrics */}
-                    <div className={`grid grid-cols-2 gap-2 text-[11px] font-mono p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'
+                    {/* SECTION 2: LIFECYCLE & CALIBRATION HISTORY */}
+                    <div className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                      isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
                     }`}>
-                      <div>
-                        <span className={isDark ? 'text-slate-500' : 'text-slate-500'}>Physical Meter:</span>
-                        <p className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                          {lm.baseLaserHour !== null ? `${lm.baseLaserHour.toLocaleString()} hrs` : 'Not Set'}
-                        </p>
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                        <div>
+                          <h3 className={`text-sm font-bold font-mono tracking-tight uppercase ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            Lifecycle & Calibration History
+                          </h3>
+                          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Verified physical meter records, recalibrations, and maintenance events
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <span className={isDark ? 'text-slate-500' : 'text-slate-500'}>Remaining Hours:</span>
-                        <p className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                          {lm.recommendedRemainingHour !== null ? `${lm.recommendedRemainingHour.toLocaleString()} hrs` : 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className={isDark ? 'text-slate-500' : 'text-slate-500'}>Remaining Days:</span>
-                        <p className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                          {lm.remainingDaysInfo.formattedText}
-                        </p>
-                      </div>
-                      <div>
-                        <span className={isDark ? 'text-slate-500' : 'text-slate-500'}>Freshness:</span>
-                        <p className={`font-bold ${lm.accuracy.color === 'emerald' ? 'text-emerald-400' : lm.accuracy.color === 'amber' ? 'text-amber-400' : 'text-slate-400'}`}>
-                          {lm.accuracy.label}
-                        </p>
+
+                      {/* History Content */}
+                      <div className="space-y-2">
+                        {/* Summary metadata cards */}
+                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl border text-xs font-mono ${
+                          isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div>
+                            <span className={`text-[10px] uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Installation Date</span>
+                            <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{selectedMachine.installationDate || '—'}</p>
+                          </div>
+                          <div>
+                            <span className={`text-[10px] uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Factory Baseline Date</span>
+                            <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{selectedMachine.baselineDate || '—'}</p>
+                          </div>
+                          <div>
+                            <span className={`text-[10px] uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Next MHC Target</span>
+                            <p className={`font-bold mt-0.5 ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>{selectedMachine.nextMhcDate || '—'}</p>
+                          </div>
+                          <div>
+                            <span className={`text-[10px] uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Production Line / Zone</span>
+                            <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                              {selectedMachine.productionLineName || 'Line'}{selectedMachine.zone ? ` (${selectedMachine.zone})` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Calibration and meter verification entries */}
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {(() => {
+                            const calibList: {
+                              id: string;
+                              date: string;
+                              head: string;
+                              sn: string;
+                              type: string;
+                              hours: number | null;
+                              rating?: string;
+                              notes?: string;
+                              performedBy?: string;
+                            }[] = [];
+
+                            if (selectedMachine.baselineDate) {
+                              calibList.push({
+                                id: `base-${selectedMachine.id}`,
+                                date: selectedMachine.baselineDate,
+                                head: 'All Heads',
+                                sn: selectedMachine.serialNumber || selectedMachine.serialNo || '—',
+                                type: 'Factory Baseline',
+                                hours: selectedMachine.baseLaserHour ?? null,
+                                notes: 'Initial factory / commissioning baseline',
+                                performedBy: 'Commissioning Team'
+                              });
+                            }
+
+                            (selectedMachine.lasers || selectedMachine.laserHeads || []).forEach((l, idx) => {
+                              const headName = l.name || `Laser Head ${idx + 1}`;
+                              const sn = l.serialNo || l.serialNumber || '—';
+                              if (l.calibrationHistory && Array.isArray(l.calibrationHistory)) {
+                                l.calibrationHistory.forEach((rec, rIdx) => {
+                                  calibList.push({
+                                    id: `cal-${idx}-${rIdx}`,
+                                    date: rec.date || 'N/A',
+                                    head: headName,
+                                    sn,
+                                    type: 'Meter Verification',
+                                    hours: rec.physicalHour ?? null,
+                                    rating: rec.accuracyRating,
+                                    notes: rec.notes || (rec.driftHours !== undefined ? `Drift: ${rec.driftHours > 0 ? '+' : ''}${rec.driftHours}h` : undefined),
+                                    performedBy: rec.performedBy || 'Service Engineer'
+                                  });
+                                });
+                              }
+                            });
+
+                            if (selectedMachine.maintenanceHistory && Array.isArray(selectedMachine.maintenanceHistory)) {
+                              selectedMachine.maintenanceHistory.forEach((rec, mIdx) => {
+                                calibList.push({
+                                  id: `maint-${mIdx}`,
+                                  date: rec.date || 'N/A',
+                                  head: 'System',
+                                  sn: selectedMachine.serialNumber || '—',
+                                  type: 'Maintenance',
+                                  hours: rec.currentHours ?? null,
+                                  notes: rec.description || rec.notes || 'Routine maintenance service',
+                                  performedBy: rec.technician || 'Service Engineer'
+                                });
+                              });
+                            }
+
+                            if (calibList.length === 0) {
+                              return (
+                                <p className={`text-xs py-4 text-center ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                                  No historical calibration or meter adjustment records logged.
+                                </p>
+                              );
+                            }
+
+                            return calibList
+                              .sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0))
+                              .map((entry) => (
+                                <div 
+                                  key={entry.id}
+                                  className={`p-2.5 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${
+                                    isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="font-mono text-xs font-bold text-slate-500 min-w-[75px]">
+                                      {entry.date}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                                          {entry.head}
+                                        </span>
+                                        <span className="text-[10px] font-mono text-slate-500">
+                                          ({entry.type})
+                                        </span>
+                                        {entry.rating && (
+                                          <span className="text-[10px] text-amber-500 font-medium">
+                                            {entry.rating}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {entry.notes && (
+                                        <p className={`text-[11px] truncate max-w-md ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                          {entry.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 shrink-0 font-mono text-right">
+                                    {entry.hours !== null && (
+                                      <span className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                        {entry.hours.toLocaleString()} hrs
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-slate-500">
+                                      {entry.performedBy}
+                                    </span>
+                                  </div>
+                                </div>
+                              ));
+                          })()}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Action Bar */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        variant={isBaselineReq ? 'warning' : 'primary'}
-                        icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                        onClick={() => handleOpenVerifyModal(lm)}
-                        className="flex-1 text-xs py-1.5"
-                      >
-                        {isBaselineReq ? 'Set Physical Baseline' : 'Verify Physical Meter'}
-                      </Button>
+                    {/* SECTION 3: MACHINE ENGINEERING HEALTH (MHC SPECIFICATIONS & RECENT INSPECTIONS) */}
+                    <div className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                      isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`p-2 rounded-xl ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                            <ShieldCheck className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className={`text-sm font-bold font-mono tracking-tight uppercase ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                              MHC Baseline Engineering Specifications
+                            </h3>
+                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              Authoritative engineering thresholds & tolerances for Machine Health Check reports
+                            </p>
+                          </div>
+                        </div>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        icon={<Settings className="w-3.5 h-3.5" />}
-                        onClick={() => handleOpenConfigModal(lm)}
-                        className="text-xs py-1.5"
-                        title="Configure Laser Head & Calibration History"
-                      >
-                        Config
-                      </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={<Share2 className="w-3.5 h-3.5 text-indigo-500" />}
+                            onClick={handleOpenFanOut}
+                            className="text-xs h-7.5 px-2.5"
+                          >
+                            Fan-Out
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon={<Edit3 className="w-3.5 h-3.5" />}
+                            onClick={handleOpenEdit}
+                            className="text-xs h-7.5 px-2.5"
+                          >
+                            Configure Specs
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* 5 Engineering Baseline Tolerances */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                        {/* Laser Power */}
+                        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                          <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Laser Power</span>
+                          <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== undefined && selectedMachine.mhcSpecs?.laserPower?.targetPowerWatts !== null
+                              ? `${selectedMachine.mhcSpecs.laserPower.targetPowerWatts} W${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== undefined && selectedMachine.mhcSpecs.laserPower.powerTolerancePercent !== null ? ` ±${selectedMachine.mhcSpecs.laserPower.powerTolerancePercent}%` : ''}`
+                              : '— (Unrecorded)'}
+                          </p>
+                          <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target Power & Tol</span>
+                        </div>
+
+                        {/* Beam Profile / Mode */}
+                        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                          <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Beam Profile / Mode</span>
+                          <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {selectedMachine.mhcSpecs?.beamProfile?.profileMode || '— (Unrecorded)'}
+                          </p>
+                          <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Profile geometry / mode</span>
+                        </div>
+
+                        {/* Stage Calibration */}
+                        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                          <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Stage Calibration</span>
+                          <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.stageCalibration?.toleranceUm !== null
+                              ? `±${selectedMachine.mhcSpecs.stageCalibration.toleranceUm} µm`
+                              : '— (Unrecorded)'}
+                          </p>
+                          <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Stage tolerance spec</span>
+                        </div>
+
+                        {/* AGC / Scanner Calibration */}
+                        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                          <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>AGC / Scanner</span>
+                          <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== undefined && selectedMachine.mhcSpecs?.agcCalibration?.toleranceUm !== null
+                              ? `±${selectedMachine.mhcSpecs.agcCalibration.toleranceUm} µm`
+                              : '— (Unrecorded)'}
+                          </p>
+                          <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Galvo scanner tolerance</span>
+                        </div>
+
+                        {/* Temperature / Cooling */}
+                        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                          <span className={`text-[10px] uppercase font-mono tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600 font-semibold'}`}>Temperature / Cooling</span>
+                          <p className={`text-xs font-bold mt-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== undefined && selectedMachine.mhcSpecs?.temperatureCooling?.targetTempCelsius !== null
+                              ? `${selectedMachine.mhcSpecs.temperatureCooling.targetTempCelsius}°C${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== undefined && selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius !== null ? ` ±${selectedMachine.mhcSpecs.temperatureCooling.tempToleranceCelsius}°C` : ''}`
+                              : '— (Unrecorded)'}
+                          </p>
+                          <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Target temp & tolerance</span>
+                        </div>
+                      </div>
+
+                      {/* Recent Machine Health Checks Table */}
+                      <div className="pt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs font-bold font-mono tracking-tight ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            Recent MHC Inspections
+                          </span>
+                        </div>
+                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                          {machineMhcs.length === 0 ? (
+                            <p className={`text-xs py-3 text-center ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                              No completed MHC inspection records logged for this machine.
+                            </p>
+                          ) : (
+                            machineMhcs.map((rec) => (
+                              <div 
+                                key={rec.id} 
+                                className={`p-2.5 rounded-lg border flex justify-between items-center text-xs ${
+                                  isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <div className="min-w-0 pr-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                                      {rec.date}
+                                    </span>
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded border ${
+                                      rec.status === 'COMPLETED'
+                                        ? (isDark ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                        : (isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200')
+                                    }`}>
+                                      {rec.status}
+                                    </span>
+                                  </div>
+                                  <p className={`text-[10px] truncate max-w-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                    {rec.engineerRemarks || 'Standard comprehensive health audit'}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <Badge variant="cyan" size="sm">
+                                    Score: {rec.healthScores?.overallScore ?? 100}/100
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Maintenance & MHC Log History */}
-          <Card title="Machine Health Check Log">
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {machineMhcs.length === 0 ? (
-                <p className={`text-xs py-4 text-center ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>No past MHC records.</p>
-              ) : (
-                machineMhcs.map((rec) => (
-                  <div key={rec.id} className={`p-2.5 rounded-lg border flex justify-between items-center text-xs ${
-                    isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <div>
-                      <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>{rec.date}</span>
-                      <p className={`text-[10px] truncate max-w-xs ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>{rec.engineerRemarks}</p>
-                    </div>
-                    <Badge variant="cyan" size="sm">{rec.healthScores.overallScore}/100</Badge>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-        </div>
-        ) : passportSubTab === 'temperature' ? (
+                ) : passportSubTab === 'temperature' ? (
           <MachineTemperatureWorkspace
             machine={selectedMachine}
             onUpdateMachine={(updated) => onEditMachine?.(updated)}

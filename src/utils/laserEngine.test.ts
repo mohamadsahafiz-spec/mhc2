@@ -471,6 +471,147 @@ describe('LaserEngine', () => {
       expect(m2?.model).toBe('BMD250WM');
     });
   });
+
+  describe('LMS v2 Information Model & Integration Parity (10 Tenets)', () => {
+    it('Tenet 1 & 4: LMS lifecycle telemetry propagates to Machine Passport lifecycle fields', () => {
+      const fsosFleet = [
+        {
+          id: 'WD-77972',
+          machineNumber: 'WLVIA#1',
+          serialNo: 'MC23006',
+          model: 'BMD250WM',
+          mhcSpecs: {
+            laserPower: { targetPowerWatts: 10.5, powerTolerancePercent: 5 }
+          },
+          lasers: [
+            { id: 'WD-77972-L1', serialNo: 'MC23006-L1', baseLaserHour: 10000, baseTimestamp: '2026-01-01T00:00:00.000Z', ratedLife: 25000, warningLife: 20000 }
+          ]
+        }
+      ];
+
+      const lmsJson = JSON.stringify({
+        version: '0.9.0',
+        machines: [
+          {
+            id: 'WD-77972',
+            machineNumber: 'WLVIA#1',
+            serialNo: 'MC23006',
+            lasers: [
+              { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 12500, baseTimestamp: '2026-01-01T00:00:00.000Z', ratedLife: 25000, warningLife: 20000 }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(lmsJson, fsosFleet, []);
+      expect(res.mappedMachines.length).toBe(1);
+      const mapped = res.mappedMachines[0];
+      const metrics = LaserEngine.calculateMachineMetrics(mapped, '2026-01-01T00:00:00.000Z');
+      expect(metrics.laserMetricsList[0].currentHour).toBe(12500);
+      expect(metrics.laserMetricsList[0].lifeRemainingPercent).toBe(50);
+      expect(metrics.laserMetricsList[0].status).toBe('SAFE');
+      // FSOS MHC baseline specs remain intact
+      expect(mapped.mhcSpecs.laserPower.targetPowerWatts).toBe(10.5);
+    });
+
+    it('Tenet 2 & 3: Matching by ID, Machine Number, and Physical Serial No with head preservation', () => {
+      const fsosFleet = [
+        {
+          id: 'WD-MATCH-1',
+          machineNumber: 'MCH-ALPHA',
+          serialNo: 'SN-ALPHA-99',
+          lasers: [
+            { id: 'WD-MATCH-1-L1', serialNo: 'LASER-SN-001', baseLaserHour: 2000 }
+          ]
+        }
+      ];
+
+      const lmsJson = JSON.stringify({
+        machines: [
+          {
+            id: 'DIFFERENT-ID-BUT-SAME-NO',
+            machineNumber: 'mch-alpha',
+            serialNo: 'SN-ALPHA-99',
+            lasers: [
+              { id: 'NEW-L-ID', serialNo: 'laser-sn-001', baseLaserHour: 3000 }
+            ]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(lmsJson, fsosFleet, []);
+      expect(res.mappedMachines.length).toBe(1);
+      expect(res.mappedMachines[0].lasers[0].baseLaserHour).toBe(3000);
+      expect(res.mappedMachines[0].lasers[0].serialNo.toLowerCase()).toBe('laser-sn-001');
+    });
+
+    it('Tenet 5: Recalibration and physical baseline updates merge correctly', () => {
+      const machine: MachineDomain = {
+        id: 'WD-RECAL-1',
+        machineNo: 'WLVIA#10',
+        lasers: [
+          { id: 'WD-RECAL-1-L1', serialNo: 'SN-L1', baseLaserHour: 5000, baseTimestamp: '2026-01-01T00:00:00.000Z', ratedLife: 25000, warningLife: 20000 }
+        ]
+      };
+
+      const recal = LaserEngine.executeRecalibration(machine, 'WD-RECAL-1-L1', 5200, 'Shift Inspection', '2026-01-02T00:00:00.000Z');
+      expect(recal.updatedMachine.lasers![0].baseLaserHour).toBe(5200);
+      expect(recal.updatedMachine.lasers![0].calibrationHistory!.length).toBe(1);
+      expect(recal.updatedMachine.lasers![0].calibrationHistory![0].actualHour).toBe(5200);
+    });
+
+    it('Tenet 6 & 7: Truthful missing baseline handling produces BASELINE_REQUIRED without fabricating values', () => {
+      const machineWithoutBaseline = {
+        id: 'WD-NO-BASE',
+        machineNo: 'WLVIA#99',
+        lasers: [
+          { id: 'L-UNSET', serialNo: 'SN-UNSET', baseLaserHour: null, baseTimestamp: null, ratedLife: 25000, warningLife: 20000 }
+        ]
+      };
+
+      const metrics = LaserEngine.calculateMachineMetrics(machineWithoutBaseline, '2026-01-01T00:00:00.000Z');
+      expect(metrics.status).toBe('BASELINE_REQUIRED');
+      expect(metrics.laserMetricsList[0].currentHour).toBeNull();
+      expect(metrics.laserMetricsList[0].formattedLifeRemaining).toBe('—');
+    });
+
+    it('Tenet 8: FSOS MHC specifications are never overwritten or conflated with LMS laser hour baseline', () => {
+      const fsosMachine = {
+        id: 'WD-MHC-SPEC-1',
+        machineNumber: 'WLVIA#01',
+        serialNo: 'MC2026-01',
+        mhcSpecs: {
+          laserPower: { targetPowerWatts: 12.0, powerTolerancePercent: 3 },
+          beamProfile: { profileMode: 'TEM00 Gaussian' },
+          stageCalibration: { toleranceUm: 1.5 },
+          agcCalibration: { toleranceUm: 1.0 },
+          temperatureCooling: { targetTempCelsius: 22.0, tempToleranceCelsius: 0.5 }
+        },
+        lasers: [{ id: 'L1', serialNo: 'SN1', baseLaserHour: 8000 }]
+      };
+
+      const lmsJson = JSON.stringify({
+        machines: [
+          {
+            id: 'WD-MHC-SPEC-1',
+            machineNumber: 'WLVIA#01',
+            serialNo: 'MC2026-01',
+            lasers: [{ id: 'L1', serialNo: 'SN1', baseLaserHour: 8500 }]
+          }
+        ]
+      });
+
+      const res = LaserEngine.parseAndMapLaserMonitorJson(lmsJson, [fsosMachine], []);
+      const mapped = res.mappedMachines[0];
+      expect(mapped.lasers[0].baseLaserHour).toBe(8500);
+      // Specs intact
+      expect(mapped.mhcSpecs.laserPower.targetPowerWatts).toBe(12.0);
+      expect(mapped.mhcSpecs.beamProfile.profileMode).toBe('TEM00 Gaussian');
+      expect(mapped.mhcSpecs.stageCalibration.toleranceUm).toBe(1.5);
+      expect(mapped.mhcSpecs.agcCalibration.toleranceUm).toBe(1.0);
+      expect(mapped.mhcSpecs.temperatureCooling.targetTempCelsius).toBe(22.0);
+    });
+  });
 });
 
 export function runLaserEngineParityTests(): { success: boolean; log: string[] } {
