@@ -21,6 +21,7 @@ import {
   Settings, 
   Building2, 
   ChevronDown, 
+  ChevronUp, 
   Copy, 
   Archive, 
   MapPin, 
@@ -127,6 +128,12 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
     return sessions.find(s => s.machineId === selectedMachine.id && s.completionStatus === 'IN_PROGRESS') || null;
   }, [selectedMachine?.id]);
   const isResumableActive = resumableSession ? hasMeaningfulMhcProgress(resumableSession) : false;
+
+  // Laser Head Progressive Detail Expansion State
+  const [expandedLaserIds, setExpandedLaserIds] = useState<Record<string, boolean>>({});
+  const toggleExpandLaser = (id: string) => {
+    setExpandedLaserIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Physical Meter Verification Modal State
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -2011,18 +2018,21 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 className="flex-1 min-w-0 w-full"
               >
                 {passportSubTab === 'lifecycle' ? (
-                  <div className="space-y-5">
-                    {/* SECTION 1: LMS v2 LASER LIFECYCLE OVERVIEW & HEADS */}
-                    <div className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                  <div className="space-y-6">
+                    {/* SECTION 1: PRIMARY MACHINE-LEVEL LIFECYCLE (LMS v2 Hierarchy) */}
+                    <div className={`p-6 rounded-2xl border transition-all space-y-6 ${
                       isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-white border-slate-200'
                     }`}>
-                      {/* LMS v2 System Header Strip */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className={`text-sm font-bold font-mono tracking-tight uppercase ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                              Laser Lifecycle
-                            </h2>
+                      {/* 1.1 Machine Identity & Lifecycle Header Strip */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                              {selectedMachine.machineNumber || selectedMachine.machineNo || 'MCH'}
+                            </span>
+                            <span className={`text-sm font-semibold truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                              {selectedMachine.machineName || selectedMachine.name || 'Laser System'}
+                            </span>
                             <Badge 
                               variant={
                                 machineMetrics.status === 'SAFE' ? 'emerald' :
@@ -2031,42 +2041,31 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                               }
                               size="sm"
                             >
-                              {machineMetrics.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : machineMetrics.status.replace('_', ' ')}
+                              {machineMetrics.status === 'BASELINE_REQUIRED' ? 'BASELINE REQUIRED' : machineMetrics.status}
                             </Badge>
                             <span className={`text-[11px] px-2 py-0.5 rounded font-mono font-medium border ${
                               isDark ? 'bg-sky-950/40 text-sky-400 border-sky-800/60' : 'bg-sky-50 text-sky-700 border-sky-200'
                             }`}>
-                              {machineMetrics.totalLasers} {machineMetrics.totalLasers === 1 ? 'Head' : 'Heads'}
+                              {machineMetrics.totalLasers} {machineMetrics.totalLasers === 1 ? 'Laser Head' : 'Laser Heads'}
                             </span>
-                            {machineMetrics.avgLifeRemaining !== null && (
-                              <span className={`text-[11px] px-2 py-0.5 rounded font-mono font-medium border ${
-                                machineMetrics.avgLifeRemaining <= 10
-                                  ? (isDark ? 'bg-rose-950/40 text-rose-400 border-rose-800/60' : 'bg-rose-50 text-rose-700 border-rose-200')
-                                  : machineMetrics.avgLifeRemaining <= 20
-                                  ? (isDark ? 'bg-amber-950/40 text-amber-400 border-amber-800/60' : 'bg-amber-50 text-amber-700 border-amber-200')
-                                  : (isDark ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-                              }`}>
-                                Avg Margin: {machineMetrics.formattedAvgLifeRemaining}
-                              </span>
-                            )}
                           </div>
-                          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            {selectedMachine.lastUpdated ? (
-                              <>Synchronized LMS record: <span className="font-mono">{new Date(selectedMachine.lastUpdated).toLocaleDateString()} {new Date(selectedMachine.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></>
-                            ) : (
-                              <>Physical runtime hours & deterministic lifecycle tracking</>
-                            )}
-                          </p>
+                          <div className={`flex items-center gap-3 text-xs flex-wrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <span>Model: <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>{selectedMachine.model || selectedMachine.laserModel || '—'}</strong></span>
+                            <span>•</span>
+                            <span>Serial: <strong className="font-mono text-slate-400">{selectedMachine.serialNumber || selectedMachine.serialNo || '—'}</strong></span>
+                            <span>•</span>
+                            <span>Customer: <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>{selectedMachine.customerName || 'Global Cleanroom'}</strong></span>
+                          </div>
                         </div>
 
-                        {/* Top Action Controls */}
+                        {/* Top Global Actions */}
                         <div className="flex items-center gap-2 shrink-0 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
                             icon={<Upload className="w-3.5 h-3.5 text-slate-400" />}
                             onClick={handleTriggerImportFile}
-                            className="text-xs h-7.5 px-2.5 font-sans"
+                            className="text-xs h-8 px-3 font-sans"
                             title="Import Laser Monitor JSON"
                           >
                             Sync LMS
@@ -2076,7 +2075,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                             variant="outline"
                             icon={<Download className="w-3.5 h-3.5 text-slate-400" />}
                             onClick={handleExportJson}
-                            className="text-xs h-7.5 px-2.5 font-sans"
+                            className="text-xs h-8 px-3 font-sans"
                             title="Export Laser Lifecycle JSON"
                           >
                             Export
@@ -2086,174 +2085,417 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                             variant="outline"
                             icon={<Plus className="w-3.5 h-3.5" />}
                             onClick={handleOpenAddLaser}
-                            className="text-xs h-7.5 px-2.5 font-sans"
+                            className="text-xs h-8 px-3 font-sans"
                           >
                             Add Head
                           </Button>
                         </div>
                       </div>
 
-                      {/* Required Action Callout (LMS v2 style) */}
+                      {/* 1.2 REQUIRED ACTION (Rendered ONLY when an actual action is required) */}
                       {machineMetrics.baselineRequiredCount > 0 ? (
-                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-                          isDark ? 'bg-amber-950/30 border-amber-800/50 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
+                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                          isDark ? 'bg-amber-950/30 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-900'
                         }`}>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                            <span>
-                              <strong>Action Required:</strong> Initial physical meter baseline needed for {machineMetrics.baselineRequiredCount} head(s).
-                            </span>
+                          <div className="flex items-start sm:items-center gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
+                            <div>
+                              <span className="font-bold font-mono">ACTION REQUIRED:</span> Initial physical meter baseline required for{' '}
+                              <strong>{machineMetrics.baselineRequiredCount} laser head(s)</strong> to activate deterministic runtime calculations.
+                            </div>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="warning"
+                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                              const firstUnbaselined = machineMetrics.laserMetricsList.find(l => l.status === 'BASELINE_REQUIRED') || machineMetrics.mostCriticalLaser;
+                              handleOpenVerifyModal(firstUnbaselined);
+                            }}
+                            className="text-xs py-1 px-3 shrink-0"
+                          >
+                            Set Baseline Meter
+                          </Button>
                         </div>
                       ) : machineMetrics.status === 'ALARM' ? (
-                        <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-                          isDark ? 'bg-rose-950/30 border-rose-800/50 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-900'
+                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                          isDark ? 'bg-rose-950/30 border-rose-800/60 text-rose-200' : 'bg-rose-50 border-rose-300 text-rose-900'
                         }`}>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-                            <span>
-                              <strong>Critical Lifecycle Threshold Reached:</strong> Laser runtime has exceeded rated operational limits.
-                            </span>
+                          <div className="flex items-start sm:items-center gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 sm:mt-0" />
+                            <div>
+                              <span className="font-bold font-mono">CRITICAL THRESHOLD:</span> Laser operating runtime has exceeded rated life capacity on{' '}
+                              <strong>{machineMetrics.mostCriticalLaser.name}</strong>. Replacement or contingency planning required.
+                            </div>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                            onClick={() => handleOpenVerifyModal(machineMetrics.mostCriticalLaser)}
+                            className="text-xs py-1 px-3 shrink-0"
+                          >
+                            Verify Meter
+                          </Button>
+                        </div>
+                      ) : machineMetrics.recalRecommendation.urgency === 'WARNING' ? (
+                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                          isDark ? 'bg-amber-950/20 border-amber-800/40 text-amber-200' : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                        }`}>
+                          <div className="flex items-start sm:items-center gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
+                            <div>
+                              <span className="font-bold font-mono">VERIFICATION RECOMMENDED:</span> Physical meter verification is recommended to maintain runtime accuracy (last verified {machineMetrics.daysSinceRecal ?? '—'} days ago).
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="warning"
+                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                            onClick={() => handleOpenVerifyModal(machineMetrics.mostCriticalLaser)}
+                            className="text-xs py-1 px-3 shrink-0"
+                          >
+                            Verify Meter
+                          </Button>
                         </div>
                       ) : null}
 
-                      {/* LMS v2 Laser Head Cards */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {machineMetrics.laserMetricsList.map((lm) => {
-                          const isBaselineReq = lm.status === 'BASELINE_REQUIRED';
-                          const percentUsed = lm.lifeRemainingPercent !== null 
-                            ? Math.min(100, Math.max(0, 100 - lm.lifeRemainingPercent))
-                            : 0;
-
-                          return (
-                            <div 
-                              key={lm.id} 
-                              className={`p-4 rounded-xl border space-y-3.5 transition-all ${
-                                lm.status === 'ALARM'
-                                  ? (isDark ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/80 border-rose-200')
-                                  : lm.status === 'WARNING'
-                                  ? (isDark ? 'bg-amber-950/20 border-amber-800/60' : 'bg-amber-50/80 border-amber-200')
-                                  : (isDark ? 'bg-[#1A1D21] border-[#2B323A]' : 'bg-slate-50/70 border-slate-200')
-                              }`}
-                            >
-                              {/* Head Header: Title, Serial Pill, Status */}
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className={`text-xs font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                                    {lm.name}
-                                  </span>
-                                  <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
-                                    isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-white text-slate-700 border-slate-200'
-                                  }`}>
-                                    SN: {lm.serialNo || 'N/A'}
-                                  </span>
-                                </div>
-
-                                <Badge 
-                                  variant={
-                                    lm.status === 'SAFE' ? 'emerald' :
-                                    lm.status === 'WARNING' ? 'amber' :
-                                    lm.status === 'ALARM' ? 'rose' : 'amber'
-                                  } 
-                                  size="sm"
-                                >
-                                  {lm.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : lm.status}
-                                </Badge>
-                              </div>
-
-                              {/* Primary Hours & Lifecycle Margin */}
-                              <div className="space-y-1.5">
-                                <div className="flex justify-between items-baseline text-xs font-mono">
-                                  <span className={isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}>
-                                    Operating Hours:
-                                  </span>
-                                  <span className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                                    {lm.currentHour !== null ? `${lm.currentHour.toLocaleString()} hrs` : 'Unrecorded'}
-                                    <span className={`text-xs font-normal ml-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                                      / {lm.ratedLife.toLocaleString()} rated ({percentUsed.toFixed(1)}%)
-                                    </span>
-                                  </span>
-                                </div>
-
-                                <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                                  <div
-                                    className={`h-full rounded-full transition-all duration-300 ${
-                                      lm.status === 'ALARM' ? 'bg-rose-500' :
-                                      lm.status === 'WARNING' ? 'bg-amber-500' :
-                                      isDark ? 'bg-sky-500' : 'bg-sky-600'
-                                    }`}
-                                    style={{ width: `${percentUsed}%` }}
-                                  />
-                                </div>
-
-                                <div className={`flex justify-between text-[11px] font-mono pt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                                  <span>
-                                    Life Margin: <strong className={
-                                      lm.status === 'ALARM' ? 'text-rose-400' :
-                                      lm.status === 'WARNING' ? 'text-amber-400' :
-                                      'text-emerald-500'
-                                    }>{lm.formattedLifeRemaining}</strong>
-                                  </span>
-                                  <span>
-                                    Est. EOL: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{lm.estimatedRecommendedEOL || '—'}</strong>
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Concise Key Parameters (LMS v2 format) */}
-                              <div className={`grid grid-cols-3 gap-2 text-xs font-mono p-2.5 rounded-lg border ${
-                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'
+                      {/* 1.3 PRIMARY LIFECYCLE HERO: REMAINING MARGIN & LIFE CAPACITY */}
+                      <div className={`p-5 rounded-xl border ${
+                        isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                          {/* Dominant Remaining Margin */}
+                          <div className="lg:col-span-5 space-y-1.5 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 pb-4 lg:pb-0 lg:pr-6">
+                            <span className={`text-[11px] font-mono uppercase tracking-wider block font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              Remaining Lifecycle Margin
+                            </span>
+                            <div className="flex items-baseline gap-3">
+                              <span className={`text-4xl font-extrabold font-mono tracking-tight ${
+                                machineMetrics.status === 'ALARM' ? 'text-rose-500' :
+                                machineMetrics.status === 'WARNING' ? 'text-amber-500' :
+                                'text-emerald-500'
                               }`}>
-                                <div>
-                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Physical Meter:</span>
-                                  <span className={`font-semibold text-[11px] truncate block ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                                    {lm.baseLaserHour !== null ? `${lm.baseLaserHour.toLocaleString()} h` : 'Unset'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Remaining Margin:</span>
-                                  <span className={`font-semibold text-[11px] truncate block ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                                    {lm.recommendedRemainingHour !== null ? `${lm.recommendedRemainingHour.toLocaleString()} h` : '—'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className={`text-[10px] block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Freshness:</span>
-                                  <span className={`font-semibold text-[11px] truncate block ${
-                                    lm.accuracy.color === 'emerald' ? 'text-emerald-500' :
-                                    lm.accuracy.color === 'amber' ? 'text-amber-500' :
-                                    'text-slate-400'
-                                  }`}>
-                                    {lm.accuracy.label}
-                                  </span>
-                                </div>
-                              </div>
+                                {machineMetrics.mostCriticalLaser.formattedLifeRemaining}
+                              </span>
+                              {machineMetrics.totalLasers > 1 && machineMetrics.avgLifeRemaining !== null && (
+                                <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                                  isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-white text-slate-600 border-slate-200'
+                                }`}>
+                                  Avg: {machineMetrics.formattedAvgLifeRemaining}
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-xs font-mono ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {machineMetrics.mostCriticalLaser.recommendedRemainingHour !== null
+                                ? <><strong className="text-slate-100 dark:text-slate-100">{machineMetrics.mostCriticalLaser.recommendedRemainingHour.toLocaleString()} hrs</strong> remaining margin</>
+                                : 'Initial meter reading required'
+                              }
+                              {machineMetrics.mostCriticalLaser.remainingDaysInfo.formattedText && (
+                                <span className="text-slate-400 ml-1">({machineMetrics.mostCriticalLaser.remainingDaysInfo.formattedText})</span>
+                              )}
+                            </p>
+                          </div>
 
-                              {/* Action Bar */}
-                              <div className="flex items-center gap-2 pt-1">
-                                <Button
-                                  size="sm"
-                                  variant={isBaselineReq ? 'warning' : 'primary'}
-                                  icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                                  onClick={() => handleOpenVerifyModal(lm)}
-                                  className="flex-1 text-xs py-1.5 font-sans font-medium"
-                                >
-                                  {isBaselineReq ? 'Set Physical Baseline' : 'Verify Physical Meter'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  icon={<Settings className="w-3.5 h-3.5" />}
-                                  onClick={() => handleOpenConfigModal(lm)}
-                                  className="text-xs py-1.5"
-                                  title="Configure Laser Head & Ratings"
-                                >
-                                  Config
-                                </Button>
+                          {/* Life Capacity & Hours */}
+                          <div className="lg:col-span-7 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-mono">
+                              <span className={isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}>
+                                System Life Capacity (Critical: {machineMetrics.mostCriticalLaser.name})
+                              </span>
+                              <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                {machineMetrics.mostCriticalLaser.currentHour !== null
+                                  ? `${Number(machineMetrics.mostCriticalLaser.currentHour).toLocaleString()} hrs`
+                                  : 'Unrecorded'
+                                }
+                                <span className={`font-normal ml-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                                  / {machineMetrics.mostCriticalLaser.ratedLife.toLocaleString()} rated hrs
+                                </span>
+                              </span>
+                            </div>
+
+                            {/* Visual Progress Bar */}
+                            {(() => {
+                              const usedPct = machineMetrics.mostCriticalLaser.lifeRemainingPercent !== null
+                                ? Math.min(100, Math.max(0, 100 - machineMetrics.mostCriticalLaser.lifeRemainingPercent))
+                                : 0;
+                              return (
+                                <div className="space-y-1.5">
+                                  <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                                    <div 
+                                      className={`h-full rounded-full transition-all duration-300 ${
+                                        machineMetrics.status === 'ALARM' ? 'bg-rose-500' :
+                                        machineMetrics.status === 'WARNING' ? 'bg-amber-500' :
+                                        isDark ? 'bg-sky-500' : 'bg-sky-600'
+                                      }`}
+                                      style={{ width: `${usedPct}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between items-center text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                                    <span>0 hrs</span>
+                                    <span>{usedPct.toFixed(1)}% Consumed</span>
+                                    <span>{machineMetrics.mostCriticalLaser.ratedLife.toLocaleString()} hrs</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Projected EOL & Freshness Strip */}
+                            <div className="flex items-center justify-between text-xs font-mono pt-1 text-slate-400">
+                              <div>
+                                <span>Est. EOL: </span>
+                                <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>
+                                  {machineMetrics.mostCriticalLaser.estimatedRecommendedEOL || machineMetrics.eolDate || '—'}
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Telemetry Freshness: </span>
+                                <strong className={
+                                  machineMetrics.mostCriticalLaser.accuracy.color === 'emerald' ? 'text-emerald-500' :
+                                  machineMetrics.mostCriticalLaser.accuracy.color === 'amber' ? 'text-amber-500' :
+                                  'text-slate-400'
+                                }>
+                                  {machineMetrics.mostCriticalLaser.accuracy.label}
+                                </strong>
                               </div>
                             </div>
-                          );
-                        })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 1.4 SECONDARY LASER-HEAD VIEW (Compact List with Progressive Disclosure) */}
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className={`text-xs font-bold font-mono tracking-wider uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            Configured Laser Heads ({machineMetrics.totalLasers})
+                          </h3>
+                          <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+                            Click details to view complete telemetry & verification records
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {machineMetrics.laserMetricsList.map((lm) => {
+                            const isExpanded = !!expandedLaserIds[lm.id];
+                            const isBaselineReq = lm.status === 'BASELINE_REQUIRED';
+                            const percentUsed = lm.lifeRemainingPercent !== null 
+                              ? Math.min(100, Math.max(0, 100 - lm.lifeRemainingPercent))
+                              : 0;
+
+                            return (
+                              <div 
+                                key={lm.id}
+                                className={`rounded-xl border transition-all overflow-hidden ${
+                                  isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50/80 border-slate-200'
+                                }`}
+                              >
+                                {/* Compact Header Summary Row */}
+                                <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                  {/* Head Identity */}
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`p-2 rounded-lg shrink-0 ${
+                                      lm.status === 'ALARM' ? (isDark ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-100 text-rose-700') :
+                                      lm.status === 'WARNING' ? (isDark ? 'bg-amber-950/50 text-amber-400' : 'bg-amber-100 text-amber-700') :
+                                      (isDark ? 'bg-sky-950/50 text-sky-400' : 'bg-sky-100 text-sky-700')
+                                    }`}>
+                                      <Zap className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-sm font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                          {lm.name}
+                                        </span>
+                                        <span className={`text-[11px] font-mono px-1.5 py-0.2 rounded border ${
+                                          isDark ? 'bg-slate-800/80 text-slate-300 border-slate-700' : 'bg-white text-slate-700 border-slate-200'
+                                        }`}>
+                                          SN: {lm.serialNo || 'N/A'}
+                                        </span>
+                                        <Badge 
+                                          variant={
+                                            lm.status === 'SAFE' ? 'emerald' :
+                                            lm.status === 'WARNING' ? 'amber' :
+                                            lm.status === 'ALARM' ? 'rose' : 'amber'
+                                          } 
+                                          size="sm"
+                                        >
+                                          {lm.status === 'BASELINE_REQUIRED' ? 'BASELINE REQ' : lm.status}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                                        <span>Operating: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{lm.currentHour !== null ? `${lm.currentHour.toLocaleString()} hrs` : 'Unrecorded'}</strong></span>
+                                        <span>•</span>
+                                        <span>Rated: {lm.ratedLife.toLocaleString()} hrs</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Center Margin Bar */}
+                                  <div className="md:w-64 space-y-1">
+                                    <div className="flex justify-between text-xs font-mono">
+                                      <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Life Margin:</span>
+                                      <strong className={
+                                        lm.status === 'ALARM' ? 'text-rose-400' :
+                                        lm.status === 'WARNING' ? 'text-amber-400' :
+                                        'text-emerald-500'
+                                      }>
+                                        {lm.formattedLifeRemaining}
+                                      </strong>
+                                    </div>
+                                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                          lm.status === 'ALARM' ? 'bg-rose-500' :
+                                          lm.status === 'WARNING' ? 'bg-amber-500' :
+                                          isDark ? 'bg-sky-500' : 'bg-sky-600'
+                                        }`}
+                                        style={{ width: `${percentUsed}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Action Controls & Progressive Toggle */}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant={isBaselineReq ? 'warning' : 'outline'}
+                                      icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                                      onClick={() => handleOpenVerifyModal(lm)}
+                                      className="text-xs h-7.5 px-2.5 font-sans"
+                                    >
+                                      {isBaselineReq ? 'Set Baseline' : 'Verify'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      icon={<Settings className="w-3.5 h-3.5" />}
+                                      onClick={() => handleOpenConfigModal(lm)}
+                                      className="text-xs h-7.5 px-2"
+                                      title="Configure Laser Head"
+                                    >
+                                      Config
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      icon={isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                      onClick={() => toggleExpandLaser(lm.id)}
+                                      className="text-xs h-7.5 px-2.5 font-mono text-slate-400 hover:text-slate-200"
+                                    >
+                                      {isExpanded ? 'Hide' : 'Details'}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* 1.5 PROGRESSIVE DETAIL PANEL (Disclosed on demand) */}
+                                {isExpanded && (
+                                  <div className={`p-4 border-t space-y-4 text-xs font-mono ${
+                                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-white border-slate-200'
+                                  }`}>
+                                    {/* 6-Grid Detailed Telemetry */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Physical Meter</span>
+                                        <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {lm.baseLaserHour !== null ? `${lm.baseLaserHour.toLocaleString()} hrs` : 'Unrecorded'}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block truncate">
+                                          {lm.baseTimestamp ? new Date(lm.baseTimestamp).toLocaleDateString() : 'No timestamp'}
+                                        </span>
+                                      </div>
+
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Estimated Current</span>
+                                        <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {lm.estimatedCurrentHour !== null ? `${lm.estimatedCurrentHour.toLocaleString()} hrs` : '—'}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block">
+                                          {lm.runtimeState}
+                                        </span>
+                                      </div>
+
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Remaining Hours</span>
+                                        <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {lm.recommendedRemainingHour !== null ? `${lm.recommendedRemainingHour.toLocaleString()} hrs` : '—'}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block truncate">
+                                          {lm.remainingDaysInfo.formattedText}
+                                        </span>
+                                      </div>
+
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Estimated EOL</span>
+                                        <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {lm.estimatedRecommendedEOL || lm.eolDate || '—'}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block">
+                                          Rated: {lm.ratedLife.toLocaleString()}h
+                                        </span>
+                                      </div>
+
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Accuracy Rating</span>
+                                        <p className={`font-bold mt-0.5 ${
+                                          lm.accuracy.color === 'emerald' ? 'text-emerald-500' :
+                                          lm.accuracy.color === 'amber' ? 'text-amber-500' :
+                                          'text-slate-400'
+                                        }`}>
+                                          {lm.accuracy.label}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block truncate">
+                                          {lm.daysSinceRecal !== null ? `${lm.daysSinceRecal}d since verify` : 'Uncalibrated'}
+                                        </span>
+                                      </div>
+
+                                      <div className={`p-2.5 rounded-lg border ${isDark ? 'bg-[#181B1F] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+                                        <span className="text-[10px] text-slate-500 uppercase block">Last Calibration</span>
+                                        <p className={`font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {lm.lastRecalibrationDate || 'Never'}
+                                        </p>
+                                        <span className="text-[10px] text-slate-500 block truncate">
+                                          Contingency: {lm.contingencyCeiling.toLocaleString()}h
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Head Specific Calibration History Records (if any exist) */}
+                                    {lm.calibrationHistory && lm.calibrationHistory.length > 0 && (
+                                      <div className="space-y-1.5 pt-1">
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                                          Calibration & Verification History ({lm.calibrationHistory.length} records)
+                                        </span>
+                                        <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                                          {lm.calibrationHistory.map((rec, rIdx) => (
+                                            <div 
+                                              key={rIdx}
+                                              className={`p-2 rounded border flex items-center justify-between gap-2 text-[11px] ${
+                                                isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-bold text-slate-400">{rec.date} {rec.time || ''}</span>
+                                                <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>{rec.reason || 'Verification'}</span>
+                                                {rec.rating && <span className="text-amber-500 text-[10px] font-medium">({rec.rating})</span>}
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <span className="font-bold">{rec.actualHour.toLocaleString()} hrs</span>
+                                                {rec.difference !== 0 && (
+                                                  <span className="text-slate-400 text-[10px]">
+                                                    (Δ {rec.difference > 0 ? '+' : ''}{rec.difference}h)
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 
