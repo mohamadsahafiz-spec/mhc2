@@ -390,7 +390,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              DAY 3 • ACTIVITY 06_VIA
+              DAY 3 • 07
             </span>
             <Badge variant="outline" className="text-xs font-mono">
               PROCESS & DRILL VERIFICATION

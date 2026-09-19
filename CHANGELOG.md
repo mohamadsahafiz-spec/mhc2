@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v2.10.8 — MHC Autopilot Activity Routing & Gate Wiring Fix (2026-09-19)
+
+### MHC Autopilot Activity Routing Fix
+- **Product & Process Activity Routing**: Mapped authoritative activity code `06_via` to `MhcProductProcessActivity` in `MhcWorkstationActivityHost`, ensuring Activity 07 correctly displays the dedicated Product/Recipe parameter verification and synthetic SEM via quality inspection UI.
+- **Recommendations & Spare Parts Routing**: Corrected activity code condition in `MhcWorkstationActivityHost` so authoritative code `07` renders `MhcRecommendationsSparePartsActivity` instead of falling through or colliding with Product & Process.
+- **Readiness Review Gate Callback Alignment**: Aligned callback prop names (`onProceedToReportGeneration` and `onNavigateToActivity`) between `MhcWorkstationActivityHost` and `MhcReadinessReviewActivity`, unblocking the "Unlock & Proceed to Report Generation" transition to Activity 10.
+- **Surrounding Navigation Continuity**: Restored bidirectional navigation links in `MhcRecommendationsSparePartsActivity` (`06_via` ← `07` → `08`) and clarified completion notification indicators in `MhcTemperatureEvidenceActivity`.
+
 ## v2.10.7 — M6 Experimental Engineering (2026-09-19)
 
 ### M6 Experimental Engineering Implementation

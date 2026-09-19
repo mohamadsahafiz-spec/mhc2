@@ -229,7 +229,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
     onUpdateSession(updatedSession);
 
     if (showNotification) {
-      showNotification('Activity 06 Temperature Telemetry COMPLETED! Advanced to Day 4 MHC Readiness Review.');
+      showNotification('Activity 06 Temperature Telemetry COMPLETED! Advanced to Activity 07 Product & Process / Via.');
     }
 
     onCompleteActivity();

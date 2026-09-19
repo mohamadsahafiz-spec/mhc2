@@ -249,7 +249,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                 showNotification={showNotification}
                 activeCode={progress.currentActivityCode}
               />
-            ) : (progress.currentActivityCode === '07_via1' || progress.currentActivityCode === '07_via2' || progress.currentActivityCode === '07') ? (
+            ) : (progress.currentActivityCode === '06_via' || progress.currentActivityCode === '07_via1' || progress.currentActivityCode === '07_via2') ? (
               <MhcProductProcessActivity
                 session={effectiveSession}
                 machine={localSelectedMachine}
@@ -260,13 +260,14 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                 showNotification={showNotification}
                 activeCode={progress.currentActivityCode}
               />
-            ) : (progress.currentActivityCode === '07_spare1' || progress.currentActivityCode === '07_spare2' || progress.currentActivityCode === '07_spares') ? (
+            ) : (progress.currentActivityCode === '07' || progress.currentActivityCode === '07_spares' || progress.currentActivityCode === '07_spare1' || progress.currentActivityCode === '07_spare2') ? (
               <MhcRecommendationsSparePartsActivity
                 session={effectiveSession}
                 machine={localSelectedMachine}
                 isReadOnly={isReadOnlyMode}
                 onUpdateSession={onUpdateSession}
                 onCompleteActivity={handleCompleteCurrentActivity}
+                onNavigateToActivity={handleJumpToActivityCode}
                 isDark={isDark}
                 showNotification={showNotification}
               />
@@ -276,8 +277,8 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                 machine={localSelectedMachine}
                 isReadOnly={isReadOnlyMode}
                 onUpdateSession={onUpdateSession}
-                onJumpToActivity={handleJumpToActivityCode}
-                onProceedToReport={handleProceedToReportGeneration}
+                onNavigateToActivity={handleJumpToActivityCode}
+                onProceedToReportGeneration={handleProceedToReportGeneration}
                 isDark={isDark}
                 showNotification={showNotification}
               />

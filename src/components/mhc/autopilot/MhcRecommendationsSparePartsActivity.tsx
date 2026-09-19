@@ -291,7 +291,7 @@ export const MhcRecommendationsSparePartsActivity: React.FC<MhcRecommendationsSp
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-800">
-                DAY 4 • 07
+                DAY 4 • 08
               </span>
               <h2 className="text-base font-bold tracking-tight">Recommendations &amp; Spare Parts</h2>
             </div>
@@ -849,11 +849,11 @@ export const MhcRecommendationsSparePartsActivity: React.FC<MhcRecommendationsSp
       } flex flex-wrap items-center justify-between gap-3`}>
         <button
           type="button"
-          onClick={() => onNavigateToActivity?.('06')}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-2"
+          onClick={() => onNavigateToActivity?.('06_via')}
+          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-2 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>← Back to Activity 06 (Temperature &amp; Evidence)</span>
+          <span>← Back to Activity 07 (Product &amp; Process / Via)</span>
         </button>
 
         {!isReadOnly ? (
@@ -863,16 +863,16 @@ export const MhcRecommendationsSparePartsActivity: React.FC<MhcRecommendationsSp
             onClick={() => onCompleteActivity()}
             className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ring-2 ring-emerald-400/50 ml-auto"
           >
-            <span>Complete Activity 07 &amp; Proceed to 08 Readiness Review</span>
+            <span>Complete Activity 08 &amp; Proceed to 09 Readiness Review</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         ) : (
           <button
             type="button"
             onClick={() => onNavigateToActivity?.('08')}
-            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-2 ml-auto"
+            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-2 ml-auto cursor-pointer"
           >
-            <span>View 08 Readiness Review →</span>
+            <span>View 09 Readiness Review →</span>
           </button>
         )}
       </div>
