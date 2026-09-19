@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v2.10.7 — M6 Experimental Engineering (2026-09-19)
+
+### M6 Experimental Engineering Implementation
+- **Inspection Context Alignment Sweep**: Integrated a single-shot calibrated datum sweep in `MhcWorkstationActivityHost` upon activity transitions, providing visual indexing and context lock for sequential engineering audits.
+- **Machine Identity Reticle Settling**: Implemented a calibrated engineering datum settling line on the Machine Identity surface in `MachinePassportModule` upon machine selection.
+- **Evidence Verification Lock**: Added a locked verification state transition in `ViaQualityInspectionCard` when micro-inspection evidence is captured and resolved.
+- **Tolerance Gate & Verdict Settling**: Introduced responsive settling transitions for live Taper Ratio calculations and Head Pass/Fail verdict gates in `ViaQualityInspectionCard`.
+- **Absolute Reduced Motion Compliance**: Ensured all experimental engineering motion moments strictly respect `prefers-reduced-motion`, disabling spatial sweeps and translations with zero disruption to functional feedback.
+
 ## v2.10.6 — M5 Micro-Interactions (2026-09-18)
 
 ### M5 Micro-Interactions Implementation
