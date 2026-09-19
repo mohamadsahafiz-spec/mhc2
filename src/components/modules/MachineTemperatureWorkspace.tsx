@@ -50,6 +50,152 @@ const CHANNEL_COLORS: Record<number, string> = {
   6: '#6A4C93'
 };
 
+// Visual per-channel engineering summary table with magnitude emphasis
+interface ChannelSummaryTableProps {
+  channelStats: Record<number, ChannelStats>;
+  activeChannels?: number[];
+  onToggleChannel?: (ch: number) => void;
+  isDark?: boolean;
+}
+
+export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
+  channelStats,
+  activeChannels,
+  onToggleChannel,
+  isDark = true
+}) => {
+  const channels = Object.keys(channelStats)
+    .map((k) => parseInt(k, 10))
+    .sort((a, b) => a - b);
+
+  if (channels.length === 0) return null;
+
+  const maxRangeAcrossChannels = Math.max(...channels.map((ch) => channelStats[ch]?.range || 0), 1);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h4 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+          Per-Channel Engineering Summary
+        </h4>
+        <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+          Magnitude Comparison & Spread
+        </span>
+      </div>
+
+      <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
+        isDark ? 'border-[#2B323A] bg-[#111315]/80' : 'border-slate-200 bg-slate-50'
+      }`}>
+        <table className="w-full text-left">
+          <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
+            <tr>
+              <th className="py-2.5 px-3">CH</th>
+              <th className="py-2.5 px-3">MIN</th>
+              <th className="py-2.5 px-3">MAX</th>
+              <th className="py-2.5 px-3">AVG</th>
+              <th className="py-2.5 px-3 min-w-[140px]">RANGE (SPREAD)</th>
+              <th className="py-2.5 px-3 text-right">POINTS</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y ${isDark ? 'divide-[#2B323A]/50' : 'divide-slate-200'}`}>
+            {channels.map((ch) => {
+              const st = channelStats[ch];
+              const isActive = !activeChannels || activeChannels.includes(ch);
+              if (!st) return null;
+
+              const rangePercent = Math.min(100, Math.max(8, (st.range / maxRangeAcrossChannels) * 100));
+
+              return (
+                <tr
+                  key={ch}
+                  className={`transition-colors ${
+                    isActive
+                      ? isDark
+                        ? 'hover:bg-[#1A1D21]'
+                        : 'hover:bg-white'
+                      : isDark
+                      ? 'opacity-40 hover:opacity-70 bg-[#111315]'
+                      : 'opacity-40 hover:opacity-70 bg-slate-100'
+                  }`}
+                >
+                  {/* CH */}
+                  <td className="py-2 px-3">
+                    <button
+                      type="button"
+                      onClick={() => onToggleChannel?.(ch)}
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition ${
+                        isActive
+                          ? 'text-white shadow-xs'
+                          : isDark
+                          ? 'bg-slate-800 border-slate-700 text-slate-500'
+                          : 'bg-slate-200 border-slate-300 text-slate-500'
+                      }`}
+                      style={{
+                        backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined,
+                        borderColor: isActive ? CHANNEL_COLORS[ch] : undefined
+                      }}
+                      title={onToggleChannel ? (isActive ? 'Click to hide channel' : 'Click to show channel') : undefined}
+                    >
+                      <span>CH{ch}</span>
+                    </button>
+                  </td>
+
+                  {/* MIN */}
+                  <td className="py-2 px-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sky-500 dark:text-sky-400 font-bold">{st.min.toFixed(1)}</span>
+                      <span className="text-[10px] text-slate-400">°C</span>
+                    </div>
+                  </td>
+
+                  {/* MAX */}
+                  <td className="py-2 px-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-rose-500 dark:text-rose-400 font-bold">{st.max.toFixed(1)}</span>
+                      <span className="text-[10px] text-slate-400">°C</span>
+                    </div>
+                  </td>
+
+                  {/* AVG */}
+                  <td className="py-2 px-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">{st.avg.toFixed(1)}</span>
+                      <span className="text-[10px] text-slate-400">°C</span>
+                    </div>
+                  </td>
+
+                  {/* RANGE with visual magnitude emphasis */}
+                  <td className="py-2 px-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-amber-500 dark:text-amber-400 font-bold">{st.range.toFixed(1)}°C</span>
+                        <span className="text-[9.5px] text-slate-400 font-normal">
+                          {((st.range / (st.avg || 1)) * 100).toFixed(1)}% var
+                        </span>
+                      </div>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all duration-300"
+                          style={{ width: `${rangePercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* POINTS */}
+                  <td className="py-2 px-3 text-right">
+                    <span className="text-slate-400 text-[11px]">{st.points.toLocaleString()}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // In-memory cache for unsaved imported temperature drafts per machine
 const tempDraftCache: Record<string, {
   selectedFiles: { name: string; text: string }[];
@@ -613,6 +759,18 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                 })}
               </div>
 
+              {/* Per-Channel Engineering Summary Table */}
+              {analysisResult.channelStats && Object.keys(analysisResult.channelStats).length > 0 && (
+                <div className="pt-1">
+                  <ChannelSummaryTable
+                    channelStats={analysisResult.channelStats}
+                    activeChannels={activeChannels}
+                    onToggleChannel={toggleChannel}
+                    isDark={isDark}
+                  />
+                </div>
+              )}
+
               {/* Preset Selector & Temperature Graph */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
@@ -642,8 +800,9 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                     channelData={analysisResult.resampledChannels}
                     activeChannels={activeChannels}
                     stats={analysisResult.stats}
+                    dayBoundaries={analysisResult.dayBoundaries}
                     preset={graphPreset}
-                    height={300}
+                    height={320}
                   />
                 </div>
               </div>
@@ -950,9 +1109,19 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               channelData={selectedRecordForDetail.channelData}
               activeChannels={[1, 2, 3, 4, 5, 6]}
               stats={selectedRecordForDetail.stats}
+              dayBoundaries={selectedRecordForDetail.dayBoundaries}
               preset={graphPreset}
               height={320}
             />
+
+            {selectedRecordForDetail.channelStats && Object.keys(selectedRecordForDetail.channelStats).length > 0 && (
+              <div className="pt-2">
+                <ChannelSummaryTable
+                  channelStats={selectedRecordForDetail.channelStats}
+                  isDark={isDark}
+                />
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
               <Button

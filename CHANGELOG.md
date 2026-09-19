@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v3.1.1 — Temperature Engineering Visualization (2026-09-19)
+
+### Temperature Engineering Visualization
+- **Day-Boundary Visual Reference Lines**: Rendered vertical dashed day boundaries across multi-day temperature telemetry datasets for instant temporal orientation.
+- **Visual Threshold Spec Line**: Added configurable visual target spec line with live engineering guidance.
+- **Y-Axis Major Step & Scale Controls**: Implemented explicit Y-axis step controls (1°C, 2°C, 5°C, Auto) alongside flexible manual min/max overrides.
+- **X-Axis Tick Density Management**: Added selectable X-tick density controls (Auto, Dense, Sparse) for dense telemetry inspection.
+- **Per-Channel Engineering Summary Table**: Integrated visual channel summary (`CH | MIN | MAX | AVG | RANGE | POINTS`) with relative spread magnitude indicators.
+
 ## v3.1.0 — LMS v2 Laser Lifecycle Visual Structure Refinement (2026-09-19)
 
 ### LMS v2 Laser Lifecycle Visual Structure Refinement

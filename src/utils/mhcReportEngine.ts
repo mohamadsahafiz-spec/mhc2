@@ -668,7 +668,9 @@ export function buildMhcReportDocument(
     session.completedDate || session.startDate
   );
 
-  const laserHoursDetails: MhcReportLaserHourHeadDetail[] = machineMetrics.laserMetricsList.map((lm, idx) => {
+  const hasLaserData = hrsItems.length > 0 || Boolean(matchedMachine?.lasers && matchedMachine.lasers.length > 0);
+
+  const laserHoursDetails: MhcReportLaserHourHeadDetail[] = hasLaserData ? machineMetrics.laserMetricsList.map((lm, idx) => {
     const matchedItem = hrsItems.find(h => h.laserId === lm.id || h.laserIdentifier === lm.name) || hrsItems[idx];
     const currentLaserHour = Number(lm.currentHour ?? (typeof lm.currentHourRaw === 'number' ? lm.currentHourRaw : 0));
     const errorEolLimit = lm.ratedLife;
@@ -723,7 +725,7 @@ export function buildMhcReportDocument(
       notes: matchedItem?.verificationNotes,
       aiRecommendation
     };
-  });
+  }) : [];
 
   const aiAdvisoryNotes: string[] = laserHoursDetails.map(h => 
     `${h.laserIdentifier}: ${h.aiRecommendation}`
