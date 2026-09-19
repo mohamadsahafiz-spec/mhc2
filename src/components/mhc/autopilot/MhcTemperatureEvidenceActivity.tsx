@@ -231,8 +231,7 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
     if (showNotification) {
       showNotification('Activity 06 Temperature Telemetry COMPLETED! Advanced to Activity 07 Product & Process / Via.');
     }
-
-    onCompleteActivity();
+    // Note: onUpdateSession has already persisted the session with currentActivityCode = '06_via' (IN_PROGRESS).
   };
 
   const hasValidAnalysis = Boolean(tempEvidenceData?.hasValidTemperatureAnalysis && tempEvidenceData?.stats);

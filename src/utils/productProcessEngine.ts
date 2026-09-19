@@ -124,7 +124,7 @@ export class ProductProcessEngine {
     const l2Bottom = draft.laser2Via?.bottomWidthUm ?? null;
     const l2 = this.evaluateVia(l2Top, l2Bottom, draft.laser2Via?.viaImageDataUrl, spec);
 
-    const overallResult = draft.overallResult || ((l1.overallPass && l2.overallPass) ? 'PASS' : 'FAIL');
+    const overallResult: 'PASS' | 'FAIL' = (l1.overallPass && l2.overallPass) ? 'PASS' : 'FAIL';
 
     return {
       id: draft.id || `pp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,

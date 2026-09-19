@@ -322,7 +322,8 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
           showNotification(`${agcName} saved as ${disposition}. Advanced to Day 3 Temperature & Evidence (Finding recorded for Readiness Review).`);
         }
       }
-      onCompleteActivity(updatedSession);
+      // Note: onUpdateSession has already persisted the session with currentActivityCode = '06' (IN_PROGRESS).
+      // We do not call onCompleteActivity here to avoid triggering duplicate advance in MhcAutopilot.
     } else {
       if (showNotification) {
         showNotification(`${agcName} Disposition (${disposition}) recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);

@@ -253,12 +253,12 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
       // Both Stage 1 and Stage 2 addressed! Advance Autopilot
       if (showNotification) {
         if (isBothPass) {
-          showNotification(`Stage 1 & Stage 2 saved with Engineer Disposition (${disposition}). Advanced to Day 3 AGC.`);
+          showNotification(`Stage 1 & Stage 2 saved with Engineer Disposition (${disposition}). Advanced to Day 3 Focus Optimization.`);
         } else {
-          showNotification(`${stageName} saved as ${disposition}. Advanced to Day 3 AGC (Finding recorded for Readiness Review).`);
+          showNotification(`${stageName} saved as ${disposition}. Advanced to Day 3 Focus Optimization (Finding recorded for Readiness Review).`);
         }
       }
-      onCompleteActivity(updatedSession);
+      // Note: onUpdateSession has already persisted the session with currentActivityCode = '03_focus' (IN_PROGRESS).
     } else {
       // Switch tab to the other stage automatically
       if (showNotification) {

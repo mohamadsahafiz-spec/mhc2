@@ -68,19 +68,41 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
 }) => {
   // Determine initial authoritative record
   const initialRecord = useMemo<ProductProcessRecord>(() => {
-    const passportRecord = machine?.productProcessRecords?.[0];
+    const passportRecords = machine?.productProcessRecords || [];
+    const sortedPassportRecords = [...passportRecords].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    const passportRecord = sortedPassportRecords[0];
     const sessionRecordId = `PP-SESSION-${session.id || Date.now()}`;
 
     if (session.productProcessRecord) {
       // Guard against direct passport reference aliasing from legacy sessions
       const isDirectPassportRef = passportRecord && session.productProcessRecord.id === passportRecord.id;
-      if (!isDirectPassportRef) {
-        return ImageStore.hydrateImagesSync(session.productProcessRecord);
-      }
-      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(session.productProcessRecord));
-      cloned.id = sessionRecordId;
-      cloned.date = session.startDate || getLocalDateString();
-      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
+      const baseRec = isDirectPassportRef
+        ? JSON.parse(JSON.stringify(session.productProcessRecord))
+        : session.productProcessRecord;
+
+      const hydrated = ImageStore.hydrateImagesSync(baseRec);
+      const merged: ProductProcessRecord = {
+        ...hydrated,
+        id: isDirectPassportRef ? sessionRecordId : hydrated.id,
+        date: hydrated.date || session.startDate || getLocalDateString(),
+        productName: hydrated.productName || passportRecord?.productName || session.stage02_laserProfile?.productName || '',
+        recipeName: hydrated.recipeName || passportRecord?.recipeName || session.stage02_laserProfile?.recipeProgram || '',
+        lotPanel: hydrated.lotPanel || passportRecord?.lotPanel || '',
+        laser1PowerOffsetPercent: (hydrated.laser1PowerOffsetPercent !== undefined && hydrated.laser1PowerOffsetPercent !== null)
+          ? hydrated.laser1PowerOffsetPercent
+          : (passportRecord?.laser1PowerOffsetPercent !== undefined && passportRecord?.laser1PowerOffsetPercent !== null ? passportRecord.laser1PowerOffsetPercent : null),
+        laser2PowerOffsetPercent: (hydrated.laser2PowerOffsetPercent !== undefined && hydrated.laser2PowerOffsetPercent !== null)
+          ? hydrated.laser2PowerOffsetPercent
+          : (passportRecord?.laser2PowerOffsetPercent !== undefined && passportRecord?.laser2PowerOffsetPercent !== null ? passportRecord.laser2PowerOffsetPercent : null),
+        viaSpec: hydrated.viaSpec || passportRecord?.viaSpec || { ...DEFAULT_SPEC },
+        phase1: hydrated.phase1 || passportRecord?.phase1 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
+        phase2: hydrated.phase2 || passportRecord?.phase2 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
+        laser1Via: hydrated.laser1Via || passportRecord?.laser1Via || { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false },
+        laser2Via: hydrated.laser2Via || passportRecord?.laser2Via || { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false }
+      };
+      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(merged));
     }
 
     if (passportRecord) {
@@ -92,46 +114,46 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
       return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
     }
 
-    // Default baseline record with Standard 50µm specs
+    // Default baseline record when genuinely absent from Machine Passport
     const base: ProductProcessRecord = {
       id: sessionRecordId,
       date: session.startDate || getLocalDateString(),
-      productName: session.stage02_laserProfile?.productName || machine?.model || 'STANDARD DUMMY WAFER',
-      recipeName: session.stage02_laserProfile?.recipeProgram || 'MHC-VIA-RECIPE-01',
-      lotPanel: 'LOT-MHC-01',
+      productName: session.stage02_laserProfile?.productName || '',
+      recipeName: session.stage02_laserProfile?.recipeProgram || '',
+      lotPanel: '',
       engineerRemarks: '',
-      laser1PowerOffsetPercent: 0,
-      laser2PowerOffsetPercent: 0,
+      laser1PowerOffsetPercent: null,
+      laser2PowerOffsetPercent: null,
       viaSpec: { ...DEFAULT_SPEC },
       phase1: {
-        powerWatts: 12.5,
-        frequencyKhz: 80,
-        shotCount: 15,
-        maskMm: 1.2,
-        defocusMm: 0
+        powerWatts: null,
+        frequencyKhz: null,
+        shotCount: null,
+        maskMm: null,
+        defocusMm: null
       },
       phase2: {
-        powerWatts: 8.0,
-        frequencyKhz: 100,
-        shotCount: 5,
-        maskMm: 1.2,
-        defocusMm: 0
+        powerWatts: null,
+        frequencyKhz: null,
+        shotCount: null,
+        maskMm: null,
+        defocusMm: null
       },
       laser1Via: {
-        topWidthUm: 50.8,
-        bottomWidthUm: 23.2,
-        topPass: true,
-        bottomPass: true,
-        overallPass: true
+        topWidthUm: null,
+        bottomWidthUm: null,
+        topPass: false,
+        bottomPass: false,
+        overallPass: false
       },
       laser2Via: {
-        topWidthUm: 51.2,
-        bottomWidthUm: 22.8,
-        topPass: true,
-        bottomPass: true,
-        overallPass: true
+        topWidthUm: null,
+        bottomWidthUm: null,
+        topPass: false,
+        bottomPass: false,
+        overallPass: false
       },
-      overallResult: 'PASS',
+      overallResult: 'FAIL',
       createdAt: new Date().toISOString()
     };
     return ProductProcessEngine.evaluateRecord(base);
@@ -374,8 +396,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           : 'Activity Product & Process / Via COMPLETED ✓ Advanced to Day 4 Recommendations.'
       );
     }
-
-    onCompleteActivity(updatedSession, activeCode, completionStatus);
+    // Note: onUpdateSession has already persisted the session with currentActivityCode = '07' (IN_PROGRESS).
   };
 
   const isCurrentCompleted = session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED';
@@ -506,9 +527,10 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             <input
               type="number"
               step="0.1"
-              value={record.laser1PowerOffsetPercent ?? ''}
-              onChange={(e) => setRecord(prev => ({ ...prev, laser1PowerOffsetPercent: parseFloat(e.target.value) || 0 }))}
+              value={record.laser1PowerOffsetPercent !== null && record.laser1PowerOffsetPercent !== undefined ? record.laser1PowerOffsetPercent : ''}
+              onChange={(e) => setRecord(prev => ({ ...prev, laser1PowerOffsetPercent: e.target.value === '' ? null : (parseFloat(e.target.value) || 0) }))}
               disabled={isReadOnly}
+              placeholder="e.g. 0.0"
               className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
             />
             <span className="text-xs text-slate-400">%</span>
@@ -521,9 +543,10 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             <input
               type="number"
               step="0.1"
-              value={record.laser2PowerOffsetPercent ?? ''}
-              onChange={(e) => setRecord(prev => ({ ...prev, laser2PowerOffsetPercent: parseFloat(e.target.value) || 0 }))}
+              value={record.laser2PowerOffsetPercent !== null && record.laser2PowerOffsetPercent !== undefined ? record.laser2PowerOffsetPercent : ''}
+              onChange={(e) => setRecord(prev => ({ ...prev, laser2PowerOffsetPercent: e.target.value === '' ? null : (parseFloat(e.target.value) || 0) }))}
               disabled={isReadOnly}
+              placeholder="e.g. 0.0"
               className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
             />
             <span className="text-xs text-slate-400">%</span>

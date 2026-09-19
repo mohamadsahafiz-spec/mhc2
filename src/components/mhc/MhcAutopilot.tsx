@@ -208,16 +208,29 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   const [sessionToDiscard, setSessionToDiscard] = useState<MHCSession | null>(null);
   const [isDiscarding, setIsDiscarding] = useState<boolean>(false);
 
-  // Scroll locking for Review / Completion Modal or Discard Modal
+  // Scroll locking and escape key handling for Review / Completion Modal or Discard Modal
   useEffect(() => {
     if (showReviewCompletionModal || Boolean(sessionToDiscard)) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (showReviewCompletionModal && !isConfirmingCompletion) {
+            setShowReviewCompletionModal(false);
+          } else if (sessionToDiscard && !isDiscarding) {
+            setSessionToDiscard(null);
+          }
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+
       return () => {
         document.body.style.overflow = originalOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [showReviewCompletionModal, sessionToDiscard]);
+  }, [showReviewCompletionModal, sessionToDiscard, isConfirmingCompletion, isDiscarding]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -660,9 +673,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className={`fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center ${
-      showReviewCompletionModal ? 'overflow-hidden' : 'overflow-y-auto'
-    }`}>
+    <div className="fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center overflow-y-auto">
       
       {/* Toast Notification */}
       <AnimatePresence>
@@ -804,7 +815,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                 setIsConfirmingCompletion(false);
               }
             }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] overflow-y-auto"
           >
             <motion.div
               id="modal-mhc-review-completion-dialog"
@@ -942,7 +953,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: motionTimings.quick }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] overflow-y-auto"
             onClick={(e) => {
               if (e.target === e.currentTarget && !isDiscarding) {
                 setSessionToDiscard(null);

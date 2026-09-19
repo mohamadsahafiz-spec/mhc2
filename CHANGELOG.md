@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v2.10.9 — MHC Autopilot Verification & Routing Reliability (2026-09-19)
+
+### MHC Autopilot Verification & Routing Fixes
+- **AGC Autopilot Advance Correction**: Resolved duplicate advancement sequence in `MhcAgcActivity` where completing AGC 1 & AGC 2 previously triggered double-advancement past Activity 06; completing AGC now reliably lands engineers directly in Activity 06 Temperature & Evidence.
+- **Product & Process Overall Verdict Integrity**: Corrected aggregate calculation in `ProductProcessEngine.evaluateRecord` so overall verdict accurately evaluates to `PASS` when both Laser Head 1 and Laser Head 2 pass inspection, avoiding stale truthy fallback.
+- **Authoritative Machine Passport Seeding**: Enhanced `MhcProductProcessActivity` to sort and inherit from the latest authoritative Machine Passport records (`productName`, `recipeName`, power offsets) without hardcoded dummy placeholders.
+- **PDF Confirmation Modal Viewport & Backdrop**: Fixed confirmation modal viewport alignment and double-backdrop opacity in `MhcAutopilot` to ensure crisp centering, zero layout shift, and proper keyboard dismissal handling.
+
 ## v2.10.8 — MHC Autopilot Activity Routing & Gate Wiring Fix (2026-09-19)
 
 ### MHC Autopilot Activity Routing Fix

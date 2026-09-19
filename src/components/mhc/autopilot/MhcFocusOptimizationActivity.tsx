@@ -291,8 +291,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
     if (showNotification) {
       showNotification('Activity 03 Focus Optimization COMPLETED (Not Required) ✓ Advanced to Day 3 AGC Calibration.');
     }
-
-    onCompleteActivity(sessionWithProgress, activeCode, 'COMPLETED');
+    // Note: onUpdateSession has already persisted the session with currentActivityCode = '05_agc1' (IN_PROGRESS).
   };
 
   // Complete Activity 03 Focus Optimization as PERFORMED
@@ -337,8 +336,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
     if (showNotification) {
       showNotification('Activity 03 Focus Optimization COMPLETED ✓ Advanced to Day 3 AGC Calibration.');
     }
-
-    onCompleteActivity(updatedSession, activeCode, 'COMPLETED');
+    // Note: onUpdateSession has already persisted the session with currentActivityCode = '05_agc1' (IN_PROGRESS).
   };
 
   const isCurrentCompleted = session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED';
