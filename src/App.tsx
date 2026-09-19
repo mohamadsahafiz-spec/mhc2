@@ -27,6 +27,8 @@ import { StorageService } from './utils/persistence';
 import { ImageStore, mergeMachinesPreservingImages } from './utils/imageStore';
 import { SyncEngine } from './utils/syncEngine';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { motionTimings, motionEasings } from './theme/motion';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LoginPage } from './components/auth/LoginPage';
@@ -48,6 +50,7 @@ function AppLayout() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('start_page');
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   // Auth & Workspace Mode State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -493,15 +496,19 @@ function AppLayout() {
   return (
     <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150`}>
       {/* Sidebar Navigation */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isOpen={isSidebarOpen}
-        onToggleSidebar={handleToggleSidebar}
-        urgentAlertsCount={alerts.filter((a) => a.severity === 'CRITICAL').length}
-        profile={profile}
-        workspaceMode={workspaceMode}
-      />
+      <AnimatePresence initial={false}>
+        {isSidebarOpen && (
+          <Sidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isOpen={isSidebarOpen}
+            onToggleSidebar={handleToggleSidebar}
+            urgentAlertsCount={alerts.filter((a) => a.severity === 'CRITICAL').length}
+            profile={profile}
+            workspaceMode={workspaceMode}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -519,145 +526,156 @@ function AppLayout() {
             ? 'p-2 sm:p-3 max-w-none w-full overflow-y-auto'
             : 'p-4 md:p-6 max-w-7xl w-full mx-auto overflow-y-auto'
         }`}>
-          {activeTab === 'start_page' && (
-            <StartPageModule
-              onNavigate={setActiveTab}
-              schedule={schedule}
-              machines={machines}
-              tasks={tasks}
-              alerts={alerts}
-              profile={profile}
-              unreadNotificationsCount={notifications.filter(n => !n.read).length}
-              onSelectMachine={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('machines');
-              }}
-              onContinueMhcSession={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('mhc_autopilot');
-              }}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+              className="w-full"
+            >
+              {activeTab === 'start_page' && (
+                <StartPageModule
+                  onNavigate={setActiveTab}
+                  schedule={schedule}
+                  machines={machines}
+                  tasks={tasks}
+                  alerts={alerts}
+                  profile={profile}
+                  unreadNotificationsCount={notifications.filter(n => !n.read).length}
+                  onSelectMachine={(id) => {
+                    setSelectedMachineId(id);
+                    setActiveTab('machines');
+                  }}
+                  onContinueMhcSession={(id) => {
+                    setSelectedMachineId(id);
+                    setActiveTab('mhc_autopilot');
+                  }}
+                />
+              )}
 
-          {activeTab === 'contracts' && (
-            <ContractsModule
-              contracts={contracts}
-              onUpdateContract={handleUpdateContract}
-              onOpenPlannerForContract={() => setActiveTab('contracts')}
-              onOpenMhcSession={(machId) => {
-                setSelectedMachineId(machId);
-                setActiveTab('mhc_history');
-              }}
-            />
-          )}
+              {activeTab === 'contracts' && (
+                <ContractsModule
+                  contracts={contracts}
+                  onUpdateContract={handleUpdateContract}
+                  onOpenPlannerForContract={() => setActiveTab('contracts')}
+                  onOpenMhcSession={(machId) => {
+                    setSelectedMachineId(machId);
+                    setActiveTab('mhc_history');
+                  }}
+                />
+              )}
 
-          {activeTab === 'customers' && (
-            <CustomersPlantsModule
-              customers={customers}
-              plants={plants}
-              lines={lines}
-              machines={machines}
-              contracts={contracts}
-              mhcSessions={StorageService.getMhcSessions()}
-              onSelectMachine={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('machines');
-              }}
-              onOpenMhcHistory={(machId) => {
-                setSelectedMachineId(machId);
-                setActiveTab('mhc_history');
-              }}
-              onAddCustomer={handleAddCustomer}
-              onEditCustomer={handleEditCustomer}
-              onDeleteCustomer={handleDeleteCustomer}
-              onTransferMachine={handleTransferMachine}
-              onSaveContract={handleSaveContract}
-              onOpenPlanner={() => setActiveTab('contracts')}
-            />
-          )}
+              {activeTab === 'customers' && (
+                <CustomersPlantsModule
+                  customers={customers}
+                  plants={plants}
+                  lines={lines}
+                  machines={machines}
+                  contracts={contracts}
+                  mhcSessions={StorageService.getMhcSessions()}
+                  onSelectMachine={(id) => {
+                    setSelectedMachineId(id);
+                    setActiveTab('machines');
+                  }}
+                  onOpenMhcHistory={(machId) => {
+                    setSelectedMachineId(machId);
+                    setActiveTab('mhc_history');
+                  }}
+                  onAddCustomer={handleAddCustomer}
+                  onEditCustomer={handleEditCustomer}
+                  onDeleteCustomer={handleDeleteCustomer}
+                  onTransferMachine={handleTransferMachine}
+                  onSaveContract={handleSaveContract}
+                  onOpenPlanner={() => setActiveTab('contracts')}
+                />
+              )}
 
-          {activeTab === 'machines' && (
-            <MachinePassportModule
-              machines={machines}
-              customers={customers}
-              selectedMachineId={selectedMachineId}
-              onSelectMachine={setSelectedMachineId}
-              mhcRecords={mhcRecords}
-              onOpenMhcForMachine={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('mhc_autopilot');
-              }}
-              onAddMachine={handleAddMachine}
-              onEditMachine={handleEditMachine}
-              onDeleteMachine={handleDeleteMachine}
-              onBatchImportMachines={handleBatchImportMachines}
-              onAddCustomer={handleAddCustomer}
-              onEditCustomer={handleEditCustomer}
-              onDeleteCustomer={handleDeleteCustomer}
-            />
-          )}
+              {activeTab === 'machines' && (
+                <MachinePassportModule
+                  machines={machines}
+                  customers={customers}
+                  selectedMachineId={selectedMachineId}
+                  onSelectMachine={setSelectedMachineId}
+                  mhcRecords={mhcRecords}
+                  onOpenMhcForMachine={(id) => {
+                    setSelectedMachineId(id);
+                    setActiveTab('mhc_autopilot');
+                  }}
+                  onAddMachine={handleAddMachine}
+                  onEditMachine={handleEditMachine}
+                  onDeleteMachine={handleDeleteMachine}
+                  onBatchImportMachines={handleBatchImportMachines}
+                  onAddCustomer={handleAddCustomer}
+                  onEditCustomer={handleEditCustomer}
+                  onDeleteCustomer={handleDeleteCustomer}
+                />
+              )}
 
-          {(activeTab === 'mhc' || activeTab.startsWith('mhc_')) && (
-            <MachineHealthCheckModule
-              machines={machines}
-              initialMachineId={selectedMachineId}
-              activeSubTab={activeTab}
-              onSaveMhcRecord={handleSaveMhcRecord}
-              onNavigate={setActiveTab}
-              onUpdateMachine={handleEditMachine}
-            />
-          )}
+              {(activeTab === 'mhc' || activeTab.startsWith('mhc_')) && (
+                <MachineHealthCheckModule
+                  machines={machines}
+                  initialMachineId={selectedMachineId}
+                  activeSubTab={activeTab}
+                  onSaveMhcRecord={handleSaveMhcRecord}
+                  onNavigate={setActiveTab}
+                  onUpdateMachine={handleEditMachine}
+                />
+              )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsModule 
-              machines={machines}
-              mhcSessions={StorageService.getMhcSessions(true)}
-              contracts={contracts}
-              customers={customers}
-              onNavigate={setActiveTab}
-              onSelectMachine={(id) => {
-                setSelectedMachineId(id);
-                setActiveTab('machines');
-              }}
-            />
-          )}
+              {activeTab === 'analytics' && (
+                <AnalyticsModule 
+                  machines={machines}
+                  mhcSessions={StorageService.getMhcSessions(true)}
+                  contracts={contracts}
+                  customers={customers}
+                  onNavigate={setActiveTab}
+                  onSelectMachine={(id) => {
+                    setSelectedMachineId(id);
+                    setActiveTab('machines');
+                  }}
+                />
+              )}
 
-          {activeTab === 'users' && (
-            <UsersModule
-              users={users}
-              activeUser={activeUser}
-              onSetActiveUser={handleSetActiveUser}
-              onAddUser={handleAddUser}
-              onUpdateUser={handleUpdateUser}
-              onDeleteUser={handleDeleteUser}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {activeTab === 'users' && (
+                <UsersModule
+                  users={users}
+                  activeUser={activeUser}
+                  onSetActiveUser={handleSetActiveUser}
+                  onAddUser={handleAddUser}
+                  onUpdateUser={handleUpdateUser}
+                  onDeleteUser={handleDeleteUser}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {activeTab === 'profile' && (
-            <ProfileModule
-              activeUser={activeUser}
-              currentUserRole={activeUser.role}
-              workspaceMode={workspaceMode}
-              plants={plants}
-              customers={customers}
-              onUpdateUser={handleUpdateUser}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {activeTab === 'profile' && (
+                <ProfileModule
+                  activeUser={activeUser}
+                  currentUserRole={activeUser.role}
+                  workspaceMode={workspaceMode}
+                  plants={plants}
+                  customers={customers}
+                  onUpdateUser={handleUpdateUser}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {activeTab === 'settings' && (
-            <SettingsModule 
-              onResetData={handleResetData}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {activeTab === 'settings' && (
+                <SettingsModule 
+                  onResetData={handleResetData}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {activeTab === 'changelog' && (
-            <ChangelogModule 
-              onNavigate={setActiveTab}
-            />
-          )}
+              {activeTab === 'changelog' && (
+                <ChangelogModule 
+                  onNavigate={setActiveTab}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

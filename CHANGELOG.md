@@ -1,6 +1,64 @@
 # FSOS CHANGELOG
 
-## v2.10.1 — Animated Login Experience & Brand Mark Presentation (2026-09-18)
+## v2.10.6 — M5 Micro-Interactions (2026-09-18)
+
+### M5 Micro-Interactions Implementation
+- **Universal Button Primitives**: Integrated restrained mechanical press interactions (`mechanicalPressConfig.tap` and `mechanicalPressConfig.subtleTap`) into the reusable `Button` component with automatic `prefers-reduced-motion` compliance.
+- **Interactive Card Elements**: Upgraded `Card` with interactive motion awareness, delivering subtle elevation and scale responses for actionable cards and cleanroom list items.
+- **Modal Dialog Emergence**: Unified modal backdrops and surface transitions across `Modal` and `FounderBrandingModal` using `AnimatePresence` and `createScaleFadeVariants`.
+- **Navigation Controls & Section Tabs**: Applied tactile feedback to secondary navigation tabs, category switchers, and filter pills in `SettingsModule`, `CustomersPlantsModule`, and `ChangelogModule`.
+- **Fluid Expandable Containers**: Enhanced accordion details and release notes cards in `ChangelogModule` with smooth height and opacity transitions (`AnimatePresence`) and rotating state indicators.
+- **Universal Reduced Motion Compliance**: Verified all micro-interactions rigorously respect `prefers-reduced-motion`, disabling spatial scaling and transforms without breaking interactivity.
+
+## v2.10.5 — M4 MHC Autopilot Motion (2026-09-18)
+
+### M4 MHC Autopilot Motion Implementation
+- **Activity Progression Flow**: Applied seamless, mechanical activity-to-activity transitions (`AnimatePresence mode="wait"`) across Activities 01 through 10 in `MhcWorkstationActivityHost`, giving the sequential engineering audit a fluid, physical progression.
+- **tactile Workstation Controls**: Implemented responsive tactile feedback (`mechanicalPressConfig.tap` & `mechanicalPressConfig.subtleTap`) across Mark Complete, Flag for Review, Discard Draft Session, Activity Jump buttons, and Session Completion triggers.
+- **Navigator Sub-rail Motion**: Added subtle mechanical press responses across the 4-Day schedule tree and sub-activities in `MhcWorkstationNavigator`.
+- **Review & Discard Modal Emergence**: Integrated smooth backdrop and modal dialog scaling/fading (`AnimatePresence` with `createScaleFadeVariants` and `motionTimings.quick`) for session completion reviews and discard confirmation dialogs.
+- **Autopilot Toast Emergence**: Added fluid entry/exit states for action notifications using calibrated fade-slide tokens.
+- **Universal Reduced Motion Support**: Fully honored `prefers-reduced-motion` across all MHC Autopilot workstation motion elements, ensuring zero disorienting spatial movement when reduced motion is preferred.
+
+## v2.10.4 — M3 Machine Passport Motion (2026-09-18)
+
+### M3 Machine Passport Motion Implementation
+- **Living Instrument Identity Surface**: Added responsive mechanical transitions (`AnimatePresence mode="wait"`) when switching machines or updating customer allocation, providing seamless machine context updates without page reflows.
+- **Physical Subsystem Indicator**: Integrated high-precision sliding active indicator transitions across technical subsystems (Lifecycle, Temperature, Laser Power, Beam Profile, Focus Optimization, Product & Process, Recommended Items) powered by Motion `layoutId="passportSubsystemActiveIndicator"` and `slidingIndicatorTransition`.
+- **Subsystem Workspace Switching**: Implemented clean, smooth content transitions between active engineering subsystem workspaces using directional fade-slide motion (`motionTimings.standard` 250ms with `motionEasings.responsive`).
+- **Tactile Fleet & Subsystem Controls**: Provided tactile mechanical feedback (`mechanicalPressConfig.subtleTap` & `mechanicalPressConfig.tap`) across customer account buttons, fleet machine pills, and subsystem navigator items.
+- **Alert & Toast Emergence**: Added fluid entry and exit states for system status alerts and notifications using calibrated fade-down transitions.
+- **Universal Reduced Motion Support**: Fully respected `prefers-reduced-motion` across all Machine Passport motion elements, collapsing spatial movements into clean, instantaneous or fade-only feedback.
+
+## v2.10.3 — M2 Daily Work Motion (2026-09-18)
+
+### M2 Daily Work Motion Implementation
+- **Polished Workspace Arrival**: Structured Daily Work entry with a calibrated stagger container and section-level fade-slide transitions, presenting today's operational workspace in a unified, professional flow.
+- **Dynamic Focus Card Transitions**: Implemented seamless `AnimatePresence mode="wait"` state changes across ongoing health checks, zero-progress drafts, scheduled items, and truthful empty states.
+- **Genuine Readiness Progress Animation**: Added a smooth, deterministic progress bar transition for active health check readiness score without synthetic counters or fake progression.
+- **Tactile Action & Schedule Interactions**: Provided responsive mechanical press and hover feedback (`mechanicalPressConfig.hover` / `tap` / `subtleTap`) across primary CTA buttons, attention alerts, and schedule cards.
+- **Truthful Calm Empty States**: Preserved authentic empty state behavior with gentle, calm arrivals without manufactured placeholder data.
+- **Universal Reduced Motion Support**: Fully honored `prefers-reduced-motion` across all Daily Work motion elements, ensuring zero layout shifts or distracting spatial displacement when reduced motion is preferred.
+
+## v2.10.2 — M1 Application Shell Motion (2026-09-18)
+
+### M1 Application Shell Motion Implementation
+- **Smooth Sidebar Open/Close Mechanics**: Integrated smooth entry and exit transitions for the true-hidden sidebar using `motion.aside` and `AnimatePresence` with calibrated `motionTimings.standard` (250ms) and `motionEasings.responsive`, eliminating jarring layout reflows while preserving full screen real estate when collapsed.
+- **Dynamic Navigation Indicator**: Implemented physical sliding active tab indicators using Motion `layoutId="sidebarActiveIndicator"` and `slidingIndicatorTransition`, providing fluid spatial connection across navigation changes without distracting decorations.
+- **Context & Top Bar Transitions**: Added subtle, high-performance page title and context transitions using `AnimatePresence mode="wait"` with `motionTimings.quick` (150ms), paired with an animated emergence transition for the Top Bar restore button.
+- **Tactile Shell Interactions**: Added mechanical tactile press feedback (`mechanicalPressConfig.subtleTap` & `mechanicalPressConfig.tap`) across sidebar navigation items, profile trigger, and header controls.
+- **Workspace View Transitions**: Enhanced primary module transitions in the main viewport with responsive fade-and-slide motion, preventing content popping while maintaining instantaneous response for field engineers.
+- **Universal Reduced Motion Support**: Fully honored `prefers-reduced-motion` across all shell transitions, gracefully collapsing spatial displacement into clean, instant or fade-only feedback.
+
+## v2.10.1 — Motion Foundation & Animated Login Experience (2026-09-18)
+
+### M0 Motion System Foundation
+- **Standardized Timing System (`motionTimings`)**: Established calibrated, field-service-safe duration levels (`instant`: 80ms, `quick`: 150ms, `standard`: 250ms, `deliberate`: 400ms, `scan`: 3.0s) avoiding arbitrary scattered magic numbers.
+- **Restrained Easing Vocabulary (`motionEasings`)**: Defined mechanical + smooth easing curves (`responsive`, `smooth`, `deliberate`, `linear`) delivering fast tactile feedback with smooth, controlled deceleration.
+- **Purposeful Motion Distances & Scales**: Standardized micro-displacement tokens (`micro`: 2px, `subtle`: 4px, `component`: 8px, `section`: 16px, `page`: 24px) and subtle tactile scales (`press`: 0.98, `subtlePress`: 0.99, `hover`: 1.015, `dialogEntry`: 0.97) without cartoonish bounce.
+- **Universal Reduced Motion Architecture**: Standardized `prefers-reduced-motion` helpers and variant builders (`getFSOSReducedTransition`, `buildFSOSVariant`) collapsing spatial motion into clean, instantaneous or fade-only transitions without hiding content.
+- **Motion Primitives & Presets**: Created typed reusable motion primitives (`fadeSlideIn`, `fadeInOut`, `scaleFade`, `staggerContainer`, `mechanicalPressConfig`, `slidingIndicatorTransition`) ready for M1–M6 implementation.
+- **Developer Motion Guidance**: Added comprehensive `src/theme/MOTION_GUIDE.md` detailing when to animate, when NOT to animate, and performance constraints.
 
 ### Animated Login Experience & Brand Mark Finalization
 - **FSOS Brand Mark Presence**: Removed the cramped button-like container and elevated the wafer mark to a prominent, unclipped 64px centerpiece framed with a precision optical alignment reticle and mechanical entry alignment sweep.

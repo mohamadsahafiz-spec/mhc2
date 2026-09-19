@@ -1,8 +1,10 @@
 import React, { useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Upload, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-react';
 import { ViaSpecification, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
 import { ImageStore } from '../../utils/imageStore';
+import { motionTimings, motionEasings, mechanicalPressConfig } from '../../theme/motion';
 
 interface ViaQualityInspectionCardProps {
   laser: 1 | 2;
@@ -33,6 +35,7 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
   onImageRemove,
   isDark = true
 }) => {
+  const shouldReduceMotion = Boolean(useReducedMotion());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const topVal = topWidth.trim() !== '' ? parseFloat(topWidth) : null;
@@ -88,7 +91,11 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
         <div className="flex items-center gap-2">
           {/* Live Taper Ratio Pill */}
           {taperVal !== null && (
-            <span
+            <motion.span
+              key={taperPass ? 'taper-pass' : 'taper-warn'}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
               className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
                 taperPass
                   ? 'bg-emerald-950/70 border-emerald-800/80 text-emerald-400'
@@ -97,11 +104,15 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
               title={`Taper Ratio: ${taperVal.toFixed(1)}% (Threshold: ≥${minTaper}%)`}
             >
               Taper: {taperVal.toFixed(1)}% {taperPass ? '✓' : '⚠'}
-            </span>
+            </motion.span>
           )}
 
           {/* Head Overall Verdict Badge */}
-          <span
+          <motion.span
+            key={!hasEntries ? 'pending' : overallPass ? 'pass' : 'fail'}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+            transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
             className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
               !hasEntries
                 ? 'bg-slate-800/80 border-slate-700 text-slate-400'
@@ -111,7 +122,7 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
             }`}
           >
             {!hasEntries ? 'PENDING' : overallPass ? 'HEAD PASS' : 'HEAD FAIL'}
-          </span>
+          </motion.span>
         </div>
       </div>
 
@@ -129,7 +140,12 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
                 ? ImageStore.resolveImage(imageDataUrl) 
                 : imageDataUrl;
               return displaySrc ? (
-                <>
+                <motion.div
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+                  animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                  transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+                  className="w-full h-full relative"
+                >
                   <img
                     src={displaySrc}
                     alt={`${title} Via`}
@@ -154,21 +170,22 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
                       Clear
                     </button>
                   </div>
-                </>
+                </motion.div>
               ) : imageDataUrl?.startsWith('idb:') ? (
                 <div className="w-full h-full flex items-center justify-center text-slate-500 text-[8px] font-mono">
                   Loading
                 </div>
               ) : (
-                <button
+                <motion.button
                   type="button"
+                  whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-cyan-400 transition-colors"
                   title="Upload micro-inspection image"
                 >
                   <ImageIcon className="w-4 h-4 mb-0.5" />
                   <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Add Pic</span>
-                </button>
+                </motion.button>
               );
             })()}
             <input

@@ -34,10 +34,12 @@ import {
   Zap,
   RotateCcw
 } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { APP_VERSION, APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
+import { mechanicalPressConfig, motionTimings, motionEasings } from '../../theme/motion';
 import { StorageService } from '../../utils/persistence';
 import {
   exportFullBackup,
@@ -92,6 +94,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 }) => {
   const { theme, setTheme, effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
@@ -535,7 +538,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
         <div className="flex items-center gap-2 shrink-0">
           {onNavigate && (
-            <button
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => onNavigate('changelog')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
                 isDark 
@@ -545,7 +549,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             >
               <History className="w-3.5 h-3.5 text-slate-400" />
               <span>Release History</span>
-            </button>
+            </motion.button>
           )}
           <div className={`px-3 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 ${
             isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
@@ -564,10 +568,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           const Icon = sec.icon;
           const isActive = activeSection === sec.id;
           return (
-            <button
+            <motion.button
               key={sec.id}
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => setActiveSection(sec.id)}
-              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${
                 isActive
                   ? isDark
                     ? 'bg-[#1F242C] text-slate-100 shadow-sm border border-[#2B323A]'
@@ -577,9 +582,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? (isDark ? 'text-emerald-400' : 'text-emerald-400') : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
               <span>{sec.label}</span>
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -606,10 +611,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               {/* Theme Selector Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {/* Dark Theme */}
-                <button
+                <motion.button
                   type="button"
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => setTheme('dark')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
                     theme === 'dark'
                       ? isDark 
                         ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
@@ -635,13 +641,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       High contrast graphite canvas engineered for cleanrooms and low-glare field environments.
                     </p>
                   </div>
-                </button>
+                </motion.button>
 
                 {/* Light Theme */}
-                <button
+                <motion.button
                   type="button"
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => setTheme('light')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
                     theme === 'light'
                       ? isDark 
                         ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
@@ -667,13 +674,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       Crisp daylight neutral palette with crisp typography for office reports and documentation.
                     </p>
                   </div>
-                </button>
+                </motion.button>
 
                 {/* System Preference */}
-                <button
+                <motion.button
                   type="button"
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => setTheme('system')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
                     theme === 'system'
                       ? isDark 
                         ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
@@ -699,7 +707,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       Automatically matches your operating system display preference ({effectiveTheme}).
                     </p>
                   </div>
-                </button>
+                </motion.button>
               </div>
 
               {/* Design Standards Note */}

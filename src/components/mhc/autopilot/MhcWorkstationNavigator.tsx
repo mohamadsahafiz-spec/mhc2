@@ -1,6 +1,8 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { Trash2 } from 'lucide-react';
 import { MHCAutopilotSessionProgress } from '../../../types';
+import { mechanicalPressConfig } from '../../../theme/motion';
 import { 
   MHC_WORKFLOW_SCHEDULE, 
   getActivityDisplayCode, 
@@ -52,7 +54,8 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
 
             return (
               <div key={dayGroup.code + dayGroup.day} className="space-y-1">
-                <button
+                <motion.button
+                  whileTap={actStatus !== 'LOCKED' ? mechanicalPressConfig.subtleTap : undefined}
                   disabled={actStatus === 'LOCKED'}
                   onClick={() => {
                     if (!isParent) onJumpToActivity(dayGroup.code);
@@ -91,7 +94,7 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                     <span className="truncate font-medium">{dayGroup.title}</span>
                   </div>
                   <span className="text-[9px] font-mono text-[var(--text-muted)] shrink-0">{dayGroup.day}</span>
-                </button>
+                </motion.button>
 
                 {/* Sub items if present */}
                 {isParent && (
@@ -102,8 +105,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                       const isLast = sIdx === (dayGroup.subItems?.length || 0) - 1;
 
                       return (
-                        <button
+                        <motion.button
                           key={sub.code}
+                          whileTap={subStatus !== 'LOCKED' ? mechanicalPressConfig.subtleTap : undefined}
                           disabled={subStatus === 'LOCKED'}
                           onClick={() => onJumpToActivity(sub.code)}
                           className={`w-full text-left px-2 py-1 rounded text-[10px] font-mono flex items-center justify-between border transition-all ${
@@ -131,7 +135,7 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                             {subStatus === 'UPCOMING' && <span className="text-[var(--text-muted)]">○</span>}
                             {subStatus === 'LOCKED' && <span className="text-[var(--text-subtle)]">🔒</span>}
                           </span>
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
@@ -145,8 +149,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
       {/* Bottom Utility */}
       {isDiscardVisible && onDiscardSession && (
         <div className="pt-4 border-t border-[var(--border-default)]">
-          <button
+          <motion.button
             id="mhc-autopilot-rail-discard-btn"
+            whileTap={mechanicalPressConfig.subtleTap}
             onClick={(e) => {
               e.stopPropagation();
               onDiscardSession();
@@ -156,7 +161,7 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-400" />
             <span>Discard Draft Session</span>
-          </button>
+          </motion.button>
         </div>
       )}
     </aside>

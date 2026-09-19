@@ -257,6 +257,8 @@ export const motionPresets = {
   },
 };
 
+export * from './motion';
+
 /**
  * Utility helper to return theme classes matching the active theme mode
  */

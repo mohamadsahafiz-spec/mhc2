@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { 
   Cpu, 
   Zap, 
@@ -12,30 +13,30 @@ import {
   Image as ImageIcon, 
   Wrench, 
   Plus, 
-  Layers,
-  Edit3,
-  Type,
-  Trash2,
-  X,
-  Settings,
-  Building2,
-  ChevronDown,
-  Copy,
-  Archive,
-  MapPin,
-  ShieldCheck,
-  MoreVertical,
-  Upload,
-  Download,
-  FileJson,
-  Check,
-  Camera,
-  Thermometer,
-  Aperture,
-  Crosshair,
-  Package,
-  Share2,
-  Search
+  Layers, 
+  Edit3, 
+  Type, 
+  Trash2, 
+  X, 
+  Settings, 
+  Building2, 
+  ChevronDown, 
+  Copy, 
+  Archive, 
+  MapPin, 
+  ShieldCheck, 
+  MoreVertical, 
+  Upload, 
+  Download, 
+  FileJson, 
+  Check, 
+  Camera, 
+  Thermometer, 
+  Aperture, 
+  Crosshair, 
+  Package, 
+  Share2, 
+  Search 
 } from 'lucide-react';
 import { Machine, MHCRecord, Customer, MachineMhcSpecs } from '../../types';
 import { StorageService } from '../../utils/persistence';
@@ -52,6 +53,14 @@ import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { HealthGauge } from '../common/HealthGauge';
 import { useTheme } from '../../context/ThemeContext';
+import {
+  motionTimings,
+  motionEasings,
+  mechanicalPressConfig,
+  slidingIndicatorTransition,
+  createStaggerContainerVariants,
+  createFadeSlideVariants
+} from '../../theme/motion';
 
 import { 
   LaserEngine, 
@@ -95,6 +104,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const shouldReduceMotion = !!useReducedMotion();
   const sortedMachines = React.useMemo(() => {
     return LaserEngine.normalizeMachines(machines);
   }, [machines]);
@@ -1140,29 +1150,45 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <motion.div 
+      className="space-y-6 pb-12"
+      variants={createStaggerContainerVariants(0.04, shouldReduceMotion)}
+      initial="hidden"
+      animate="visible"
+    >
       {/* System Toast / Alert Banner */}
-      {systemAlert && (
-        <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold shadow-md ${
-          isDark ? 'bg-indigo-950/80 border-[#8B9DFF]/40 text-[#8B9DFF]' : 'bg-indigo-50 border-indigo-200 text-indigo-900'
-        }`}>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>{systemAlert}</span>
-          </div>
-          <button
-            onClick={() => setSystemAlert(null)}
-            className="p-1 hover:opacity-75 transition-opacity"
+      <AnimatePresence>
+        {systemAlert && (
+          <motion.div 
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+            transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+            className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold shadow-md ${
+              isDark ? 'bg-indigo-950/80 border-[#8B9DFF]/40 text-[#8B9DFF]' : 'bg-indigo-50 border-indigo-200 text-indigo-900'
+            }`}
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{systemAlert}</span>
+            </div>
+            <button
+              onClick={() => setSystemAlert(null)}
+              className="p-1 hover:opacity-75 transition-opacity"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fleet Navigator / Context Bar */}
-      <div className={`p-4 rounded-xl border space-y-3.5 ${
-        isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-      }`}>
+      <motion.div 
+        variants={createFadeSlideVariants({ direction: 'down', distance: 'component', prefersReducedMotion: shouldReduceMotion })}
+        className={`p-4 rounded-xl border space-y-3.5 ${
+          isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+        }`}
+      >
         {/* Top Row: Customer Selection + Utility Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Customer Account Switcher */}
@@ -1202,9 +1228,10 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             {/* Customer Action Menu */}
             {activeCustomer && (
               <div className="relative inline-block">
-                <button
+                <motion.button
                   type="button"
                   aria-label="Customer options"
+                  whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => setActiveCustomerMenuId(activeCustomerMenuId === activeCustomer.id ? null : activeCustomer.id)}
                   className={`p-1.5 rounded-md border transition-colors ${
                     isDark
@@ -1214,85 +1241,93 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   title="Customer Actions"
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
-                </button>
+                </motion.button>
 
-                {activeCustomerMenuId === activeCustomer.id && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-20"
-                      onClick={() => setActiveCustomerMenuId(null)}
-                    />
-                    <div
-                      className={`absolute left-0 top-8 w-48 rounded-xl border shadow-xl z-30 py-1 text-xs font-semibold ${
-                        isDark
-                          ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
-                          : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100'
-                      }`}
-                    >
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCustomerMenuId(null);
-                            handleOpenEditCustomer(activeCustomer);
-                          }}
-                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
-                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                          }`}
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                          Edit Customer Info
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCustomerMenuId(null);
-                            handleOpenRenameCustomer(activeCustomer);
-                          }}
-                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
-                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                          }`}
-                        >
-                          <Type className="w-3.5 h-3.5 text-slate-400" />
-                          Rename Customer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCustomerMenuId(null);
-                            handleArchiveCustomer(activeCustomer);
-                          }}
-                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
-                            isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                          }`}
-                        >
-                          <Archive className="w-3.5 h-3.5 text-amber-500" />
-                          Archive Account
-                        </button>
-                      </div>
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCustomerMenuId(null);
-                            handleOpenDeleteCustomer(activeCustomer as any);
-                          }}
-                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 ${
-                            isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                          }`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                          Delete Customer
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <AnimatePresence>
+                  {activeCustomerMenuId === activeCustomer.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setActiveCustomerMenuId(null)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
+                        transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+                        className={`absolute left-0 top-8 w-48 rounded-xl border shadow-xl z-30 py-1 text-xs font-semibold ${
+                          isDark
+                            ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
+                            : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100'
+                        }`}
+                      >
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveCustomerMenuId(null);
+                              handleOpenEditCustomer(activeCustomer);
+                            }}
+                            className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                            Edit Customer Info
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveCustomerMenuId(null);
+                              handleOpenRenameCustomer(activeCustomer);
+                            }}
+                            className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Type className="w-3.5 h-3.5 text-slate-400" />
+                            Rename Customer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveCustomerMenuId(null);
+                              handleArchiveCustomer(activeCustomer);
+                            }}
+                            className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
+                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <Archive className="w-3.5 h-3.5 text-amber-500" />
+                            Archive Account
+                          </button>
+                        </div>
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveCustomerMenuId(null);
+                              handleOpenDeleteCustomer(activeCustomer as any);
+                            }}
+                            className={`w-full px-3 py-1.5 text-left flex items-center gap-2 text-rose-500 ${
+                              isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
+                            }`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                            Delete Customer
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
-            <button
+            <motion.button
               type="button"
+              whileHover={shouldReduceMotion ? undefined : mechanicalPressConfig.hover}
+              whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={handleOpenAddCustomer}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ${
                 isDark
@@ -1302,7 +1337,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             >
               <Plus className="w-3 h-3" />
               New Customer
-            </button>
+            </motion.button>
           </div>
 
           {/* Right utility buttons */}
@@ -1368,11 +1403,13 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                 const isSelected = m.id === selectedMachine?.id;
                 const healthStatus = LaserEngine.getMachineHealthStatus(m);
                 return (
-                  <button
+                  <motion.button
                     key={m.id}
                     type="button"
+                    whileHover={shouldReduceMotion ? undefined : mechanicalPressConfig.hover}
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => onSelectMachine(m.id)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-2 shrink-0 transition-all ${
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-2 shrink-0 transition-colors ${
                       isSelected
                         ? isDark
                           ? 'bg-[#242A32] border-[#3D4754] text-white shadow-xs font-bold'
@@ -1393,13 +1430,13 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                     <span className={`text-[10px] opacity-75 font-sans ${isSelected ? (isDark ? 'text-slate-300' : 'text-slate-700') : ''}`}>
                       {m.model}
                     </span>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Machine Passport Workspace / Empty State */}
       {!selectedMachine ? (
@@ -1448,226 +1485,255 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
       ) : (
         <>
           {/* Selected Machine Identity Surface */}
-          <div className={`p-5 rounded-2xl border transition-all ${
-            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
-          }`}>
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              {/* Identity & Metadata */}
-              <div className="space-y-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded border ${
-                    isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
-                  }`}>
-                    MACHINE PASSPORT
-                  </span>
-                  <Badge
-                    variant={
-                      selectedMachine.status === 'OPERATIONAL'
-                        ? 'emerald'
-                        : selectedMachine.status === 'NEEDS_CALIBRATION'
-                        ? 'amber'
-                        : 'rose'
-                    }
-                    size="sm"
-                  >
-                    {selectedMachine.status}
-                  </Badge>
-                  <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{selectedMachine.serialNumber || selectedMachine.serialNo || 'N/A'}</strong>
-                  </span>
-                </div>
+          <motion.div 
+            variants={createFadeSlideVariants({ direction: 'up', distance: 'component', prefersReducedMotion: shouldReduceMotion })}
+            className={`p-5 rounded-2xl border transition-all relative overflow-hidden ${
+              isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
+            }`}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={selectedMachine.id}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -4 }}
+                transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+              >
+                {!shouldReduceMotion && (
+                  <motion.div
+                    key={`machine-datum-${selectedMachine.id}`}
+                    initial={{ scaleX: 0, opacity: 0.75 }}
+                    animate={{ scaleX: 1, opacity: 0 }}
+                    transition={{ duration: motionTimings.deliberate, ease: motionEasings.smooth }}
+                    className="absolute top-0 left-0 right-0 h-[2px] bg-sky-500 origin-left pointer-events-none"
+                  />
+                )}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                  {/* Identity & Metadata */}
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded border ${
+                        isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
+                        MACHINE PASSPORT
+                      </span>
+                      <Badge
+                        variant={
+                          selectedMachine.status === 'OPERATIONAL'
+                            ? 'emerald'
+                            : selectedMachine.status === 'NEEDS_CALIBRATION'
+                            ? 'amber'
+                            : 'rose'
+                        }
+                        size="sm"
+                      >
+                        {selectedMachine.status}
+                      </Badge>
+                      <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        SN: <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{selectedMachine.serialNumber || selectedMachine.serialNo || 'N/A'}</strong>
+                      </span>
+                    </div>
 
-                <div>
-                  <h1 className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
-                  </h1>
-                  <div className={`flex items-center gap-2 mt-1.5 text-xs font-medium flex-wrap ${
-                    isDark ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      {selectedMachine.model}
-                    </span>
-                    <span className="opacity-40">•</span>
-                    <span>{selectedMachine.customerName}</span>
-                    <span className="opacity-40">•</span>
-                    <span>{selectedMachine.plantName || 'Cleanroom'}</span>
-                    {selectedMachine.productionLineName && (
-                      <>
+                    <div>
+                      <h1 className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {selectedMachine.machineNumber || selectedMachine.machineNo || selectedMachine.id}
+                      </h1>
+                      <div className={`flex items-center gap-2 mt-1.5 text-xs font-medium flex-wrap ${
+                        isDark ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
+                        <span className={`font-bold font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {selectedMachine.model}
+                        </span>
                         <span className="opacity-40">•</span>
-                        <span className="font-mono text-[11px]">{selectedMachine.productionLineName}</span>
-                      </>
-                    )}
-                    {selectedMachine.zone ? (
-                      <>
+                        <span>{selectedMachine.customerName}</span>
                         <span className="opacity-40">•</span>
-                        <span className="font-mono text-[11px]">Zone: {selectedMachine.zone}</span>
-                      </>
-                    ) : null}
+                        <span>{selectedMachine.plantName || 'Cleanroom'}</span>
+                        {selectedMachine.productionLineName && (
+                          <>
+                            <span className="opacity-40">•</span>
+                            <span className="font-mono text-[11px]">{selectedMachine.productionLineName}</span>
+                          </>
+                        )}
+                        {selectedMachine.zone ? (
+                          <>
+                            <span className="opacity-40">•</span>
+                            <span className="font-mono text-[11px]">Zone: {selectedMachine.zone}</span>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary Operational Action & Management Dropdown */}
+                  <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-start lg:justify-end">
+                    {/* Primary Action Button */}
+                    <Button
+                      variant="primary"
+                      size="md"
+                      icon={<Activity className="w-4 h-4" />}
+                      onClick={() => onOpenMhcForMachine(selectedMachine.id)}
+                      className="font-sans font-semibold"
+                    >
+                      {isResumableActive ? 'Continue Health Check' : 'Start Health Check'}
+                    </Button>
+
+                    {/* Machine Management Actions Menu */}
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        size="md"
+                        icon={<Settings className="w-4 h-4" />}
+                        onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                      >
+                        Manage Machine
+                      </Button>
+
+                      <AnimatePresence>
+                        {isActionMenuOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-20"
+                              onClick={() => setIsActionMenuOpen(false)}
+                            />
+                            <motion.div
+                              initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
+                              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+                              className={`absolute right-0 mt-1.5 w-52 rounded-xl border shadow-xl z-30 py-1 text-xs font-medium ${
+                                isDark
+                                  ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
+                                  : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
+                              }`}
+                            >
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsActionMenuOpen(false);
+                                    handleOpenEdit();
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                                    isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                  }`}
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                                  Edit Machine & Specs
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsActionMenuOpen(false);
+                                    handleOpenRename();
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                                    isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                  }`}
+                                >
+                                  <Type className="w-3.5 h-3.5 text-slate-400" />
+                                  Rename Asset
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsActionMenuOpen(false);
+                                    handleOpenFanOut();
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                                    isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                  }`}
+                                >
+                                  <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                                  Fan-Out Specs to Fleet
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsActionMenuOpen(false);
+                                    handleDuplicateMachine();
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
+                                    isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
+                                  }`}
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                  Duplicate Machine
+                                </button>
+                              </div>
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsActionMenuOpen(false);
+                                    setIsDeleteModalOpen(true);
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-center gap-2 text-rose-500 ${
+                                    isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
+                                  }`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                  Delete Machine
+                                </button>
+                              </div>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Primary Operational Action & Management Dropdown */}
-              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-start lg:justify-end">
-                {/* Primary Action Button */}
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon={<Activity className="w-4 h-4" />}
-                  onClick={() => onOpenMhcForMachine(selectedMachine.id)}
-                  className="font-sans font-semibold"
-                >
-                  {isResumableActive ? 'Continue Health Check' : 'Start Health Check'}
-                </Button>
+                {/* Current State Summary Strip */}
+                <div className={`mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono ${
+                  isDark ? 'border-[#2B323A]/80' : 'border-slate-200'
+                }`}>
+                  <div>
+                    <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Health Status</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`w-2 h-2 rounded-full ${
+                        LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
+                          ? 'bg-emerald-500'
+                          : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
+                          ? 'bg-amber-500'
+                          : 'bg-rose-500'
+                      }`} />
+                      <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                        {LaserEngine.getMachineHealthStatus(selectedMachine)} ({selectedMachine.healthScore}%)
+                      </span>
+                    </div>
+                  </div>
 
-                {/* Machine Management Actions Menu */}
-                <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="md"
-                    icon={<Settings className="w-4 h-4" />}
-                    onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
-                  >
-                    Manage Machine
-                  </Button>
+                  <div>
+                    <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Laser Configuration</span>
+                    <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                      {machineMetrics.laserMetricsList.length} Head(s) Active
+                    </span>
+                  </div>
 
-                  {isActionMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setIsActionMenuOpen(false)}
-                      />
-                      <div
-                        className={`absolute right-0 mt-1.5 w-52 rounded-xl border shadow-xl z-30 py-1 text-xs font-medium ${
-                          isDark
-                            ? 'bg-[#1C2026] border-[#2B323A] text-slate-200 divide-y divide-[#2B323A]'
-                            : 'bg-white border-slate-200 text-slate-800 divide-y divide-slate-100 shadow-xl'
-                        }`}
-                      >
-                        <div className="py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsActionMenuOpen(false);
-                              handleOpenEdit();
-                            }}
-                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
-                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                            Edit Machine & Specs
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsActionMenuOpen(false);
-                              handleOpenRename();
-                            }}
-                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
-                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <Type className="w-3.5 h-3.5 text-slate-400" />
-                            Rename Asset
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsActionMenuOpen(false);
-                              handleOpenFanOut();
-                            }}
-                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
-                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <Share2 className="w-3.5 h-3.5 text-slate-400" />
-                            Fan-Out Specs to Fleet
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsActionMenuOpen(false);
-                              handleDuplicateMachine();
-                            }}
-                            className={`w-full px-3 py-2 text-left flex items-center gap-2 ${
-                              isDark ? 'hover:bg-[#242A32] hover:text-white' : 'hover:bg-slate-100 hover:text-slate-900'
-                            }`}
-                          >
-                            <Copy className="w-3.5 h-3.5 text-slate-400" />
-                            Duplicate Machine
-                          </button>
-                        </div>
-                        <div className="py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsActionMenuOpen(false);
-                              setIsDeleteModalOpen(true);
-                            }}
-                            className={`w-full px-3 py-2 text-left flex items-center gap-2 text-rose-500 ${
-                              isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                            }`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                            Delete Machine
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <div>
+                    <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Last MHC Inspection</span>
+                    <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                      {selectedMachine.lastMhcDate || 'None recorded'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Next MHC Target</span>
+                    <span className={`font-bold block mt-0.5 ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>
+                      {selectedMachine.nextMhcDate || 'Unscheduled'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Current State Summary Strip */}
-            <div className={`mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono ${
-              isDark ? 'border-[#2B323A]/80' : 'border-slate-200'
-            }`}>
-              <div>
-                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Health Status</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`w-2 h-2 rounded-full ${
-                    LaserEngine.getMachineHealthStatus(selectedMachine) === 'PASS'
-                      ? 'bg-emerald-500'
-                      : LaserEngine.getMachineHealthStatus(selectedMachine) === 'WARNING'
-                      ? 'bg-amber-500'
-                      : 'bg-rose-500'
-                  }`} />
-                  <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                    {LaserEngine.getMachineHealthStatus(selectedMachine)} ({selectedMachine.healthScore}%)
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Laser Configuration</span>
-                <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                  {machineMetrics.laserMetricsList.length} Head(s) Active
-                </span>
-              </div>
-
-              <div>
-                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Last MHC Inspection</span>
-                <span className={`font-bold block mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                  {selectedMachine.lastMhcDate || 'None recorded'}
-                </span>
-              </div>
-
-              <div>
-                <span className={`text-[10px] uppercase font-bold block ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Next MHC Target</span>
-                <span className={`font-bold block mt-0.5 ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>
-                  {selectedMachine.nextMhcDate || 'Unscheduled'}
-                </span>
-              </div>
-            </div>
-          </div>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
 
           {/* Subsystem Navigation & Active Workspace Layout */}
           <div className="flex flex-col xl:flex-row gap-6 items-start">
             {/* Left Technical Subsystems Navigator */}
-            <nav
+            <motion.nav
               aria-label="Machine Passport Subsystems"
+              variants={createFadeSlideVariants({ direction: 'left', distance: 'component', prefersReducedMotion: shouldReduceMotion })}
               className={`w-full xl:w-60 2xl:w-64 shrink-0 xl:sticky xl:top-4 rounded-2xl border p-3 transition-all ${
                 isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
               }`}
@@ -1684,10 +1750,11 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Health & Lifecycle
                   </div>
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('lifecycle')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'lifecycle'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1702,14 +1769,19 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <span className="truncate">Lifecycle & Health</span>
                     </div>
                     {passportSubTab === 'lifecycle' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <motion.span 
+                        layoutId="passportSubsystemActiveIndicator" 
+                        transition={slidingIndicatorTransition}
+                        className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                      />
                     )}
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('temperature')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'temperature'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1723,14 +1795,23 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <Thermometer className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">Temperature</span>
                     </div>
-                    {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
+                        </span>
+                      )}
+                      {passportSubTab === 'temperature' && (
+                        <motion.span 
+                          layoutId="passportSubsystemActiveIndicator" 
+                          transition={slidingIndicatorTransition}
+                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                        />
+                      )}
+                    </div>
+                  </motion.button>
                 </div>
 
                 {/* Group 2: Optics & Laser */}
@@ -1738,10 +1819,11 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Optics & Laser
                   </div>
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('laser_power')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'laser_power'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1755,19 +1837,29 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <Zap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">Laser Power</span>
                     </div>
-                    {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {selectedMachine.laserPowerRecords?.length}
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {selectedMachine.laserPowerRecords?.length}
+                        </span>
+                      )}
+                      {passportSubTab === 'laser_power' && (
+                        <motion.span 
+                          layoutId="passportSubsystemActiveIndicator" 
+                          transition={slidingIndicatorTransition}
+                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                        />
+                      )}
+                    </div>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('beam_profile')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'beam_profile'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1781,19 +1873,29 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <Aperture className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">Beam Profile</span>
                     </div>
-                    {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {selectedMachine.beamProfileRecords?.length}
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {selectedMachine.beamProfileRecords?.length}
+                        </span>
+                      )}
+                      {passportSubTab === 'beam_profile' && (
+                        <motion.span 
+                          layoutId="passportSubsystemActiveIndicator" 
+                          transition={slidingIndicatorTransition}
+                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                        />
+                      )}
+                    </div>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('focus_optimization')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'focus_optimization'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1807,14 +1909,23 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <Crosshair className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">Focus Optimization</span>
                     </div>
-                    {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {selectedMachine.focusOptimizationRecords?.length}
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {selectedMachine.focusOptimizationRecords?.length}
+                        </span>
+                      )}
+                      {passportSubTab === 'focus_optimization' && (
+                        <motion.span 
+                          layoutId="passportSubsystemActiveIndicator" 
+                          transition={slidingIndicatorTransition}
+                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                        />
+                      )}
+                    </div>
+                  </motion.button>
                 </div>
 
                 {/* Group 3: Operations & Parts */}
@@ -1822,10 +1933,11 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                   <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
                     Operations & Parts
                   </div>
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('product_process')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'product_process'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1839,19 +1951,29 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">Product & Process</span>
                     </div>
-                    {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                        isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {selectedMachine.productProcessRecords?.length}
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {selectedMachine.productProcessRecords?.length}
+                        </span>
+                      )}
+                      {passportSubTab === 'product_process' && (
+                        <motion.span 
+                          layoutId="passportSubsystemActiveIndicator" 
+                          transition={slidingIndicatorTransition}
+                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                        />
+                      )}
+                    </div>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setPassportSubTab('recommended_parts')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left ${
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
                       passportSubTab === 'recommended_parts'
                         ? isDark
                           ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
@@ -1866,16 +1988,28 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                       <span className="truncate">Recommended Items</span>
                     </div>
                     {passportSubTab === 'recommended_parts' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <motion.span 
+                        layoutId="passportSubsystemActiveIndicator" 
+                        transition={slidingIndicatorTransition}
+                        className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
+                      />
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
-            </nav>
+            </motion.nav>
 
             {/* Active Subsystem Workspace Pane */}
-            <div className="flex-1 min-w-0 w-full">
-              {passportSubTab === 'lifecycle' ? (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={passportSubTab}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -6 }}
+                transition={{ duration: motionTimings.standard, ease: motionEasings.responsive }}
+                className="flex-1 min-w-0 w-full"
+              >
+                {passportSubTab === 'lifecycle' ? (
             <div className="space-y-6">
           {/* Hardware & Installation Telemetry */}
           <div className={`grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 rounded-xl border ${
@@ -2243,7 +2377,8 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             onUpdateMachine={(updated) => onEditMachine?.(updated)}
           />
         )}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </>
       )}
@@ -4115,6 +4250,6 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 };

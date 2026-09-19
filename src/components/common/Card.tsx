@@ -1,5 +1,7 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useTheme } from '../../context/ThemeContext';
+import { mechanicalPressConfig } from '../../theme/motion';
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,6 +11,8 @@ interface CardProps {
   action?: React.ReactNode;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   id?: string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  interactive?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -18,10 +22,13 @@ export const Card: React.FC<CardProps> = ({
   subtitle,
   action,
   padding = 'md',
-  id
+  id,
+  onClick,
+  interactive = false
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   const paddingStyles = {
     none: 'p-0',
@@ -30,13 +37,20 @@ export const Card: React.FC<CardProps> = ({
     lg: 'p-6'
   };
 
+  const isClickable = interactive || Boolean(onClick);
+
   return (
-    <div
+    <motion.div
       id={id}
-      className={`border rounded-2xl transition-all duration-200 ${
+      onClick={onClick}
+      whileHover={isClickable && !prefersReducedMotion ? mechanicalPressConfig.hover : undefined}
+      whileTap={isClickable && !prefersReducedMotion ? mechanicalPressConfig.subtleTap : undefined}
+      className={`border rounded-2xl transition-colors duration-150 ${
+        isClickable ? 'cursor-pointer select-none' : ''
+      } ${
         isDark 
           ? 'bg-[#20252B] border-[#2B323A] text-[#F3F4F6]' 
-          : 'bg-white border-slate-300/80 text-slate-900 shadow-sm'
+          : 'bg-white border-slate-300/80 text-slate-900 shadow-xs'
       } ${paddingStyles[padding]} ${className}`}
     >
       {(title || subtitle || action) && (
@@ -57,6 +71,6 @@ export const Card: React.FC<CardProps> = ({
         </div>
       )}
       {children}
-    </div>
+    </motion.div>
   );
 };

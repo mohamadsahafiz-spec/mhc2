@@ -7,10 +7,17 @@ import {
   ScrollText,
   PanelLeft
 } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { NavigationTab, SystemUser } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
+import { 
+  motionTimings, 
+  motionEasings, 
+  mechanicalPressConfig, 
+  createScaleFadeVariants 
+} from '../../theme/motion';
 
 interface HeaderProps {
   activeTab: NavigationTab;
@@ -32,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -89,26 +97,44 @@ export const Header: React.FC<HeaderProps> = ({
     }`}>
       {/* 1. Context Orientation & Restore Sidebar Trigger */}
       <div className="flex items-center gap-2.5 min-w-0">
-        {!isSidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            aria-label="Show navigation sidebar"
-            aria-expanded={false}
-            title="Show sidebar"
-            className={`p-1.5 rounded-md border text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 ${
-              isDark 
-                ? 'bg-[#181B20] border-[#2E3642] hover:bg-[#20252C]' 
-                : 'bg-white border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <PanelLeft className="w-4 h-4" />
-            <span className="text-xs font-medium pr-1">Menu</span>
-          </button>
-        )}
+        <AnimatePresence>
+          {!isSidebarOpen && (
+            <motion.button
+              key="sidebar-restore-trigger"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, x: -6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, x: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, x: -6 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
+              whileHover={prefersReducedMotion ? undefined : mechanicalPressConfig.hover}
+              onClick={onToggleSidebar}
+              aria-label="Show navigation sidebar"
+              aria-expanded={false}
+              title="Show sidebar"
+              className={`p-1.5 rounded-md border text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 ${
+                isDark 
+                  ? 'bg-[#181B20] border-[#2E3642] hover:bg-[#20252C]' 
+                  : 'bg-white border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <PanelLeft className="w-4 h-4" />
+              <span className="text-xs font-medium pr-1">Menu</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
 
-        <h1 className="text-sm font-semibold tracking-tight truncate">
-          {getTabTitle(activeTab)}
-        </h1>
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={activeTab}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+            transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
+            className="text-sm font-semibold tracking-tight truncate"
+          >
+            {getTabTitle(activeTab)}
+          </motion.h1>
+        </AnimatePresence>
       </div>
 
       {/* 2. Minimal Global Actions & Status */}
@@ -118,7 +144,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Account Menu */}
         <div className="relative" ref={userMenuRef}>
-          <button
+          <motion.button
+            whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
             onClick={() => setShowUserMenu(!showUserMenu)}
             title="Account Menu"
             aria-label="Open Account Menu"
@@ -135,72 +162,81 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <UserAvatar user={activeUser} size="sm" showStatus={true} />
             <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180 text-slate-200' : ''}`} />
-          </button>
+          </motion.button>
 
           {/* User Account Popover */}
-          {showUserMenu && (
-            <div className={`absolute right-0 mt-1.5 w-48 rounded-lg border shadow-lg p-1.5 z-50 animate-in fade-in zoom-in-95 ${
-              isDark ? 'bg-[#181B20] border-[#2E3642] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-              <div className="space-y-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('profile');
-                    setShowUserMenu(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  <span>My Profile</span>
-                </button>
+          <AnimatePresence>
+            {showUserMenu && (
+              <motion.div
+                key="user-account-dropdown"
+                variants={createScaleFadeVariants(prefersReducedMotion)}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className={`absolute right-0 mt-1.5 w-48 rounded-lg border shadow-lg p-1.5 z-50 ${
+                  isDark ? 'bg-[#181B20] border-[#2E3642] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                }`}
+              >
+                <div className="space-y-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('profile');
+                      setShowUserMenu(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <span>My Profile</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('settings');
-                    setShowUserMenu(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Settings</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setShowUserMenu(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Settings</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('changelog');
-                    setShowUserMenu(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                    isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <ScrollText className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Release History</span>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('changelog');
+                      setShowUserMenu(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
+                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <ScrollText className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Release History</span>
+                  </button>
+                </div>
 
-              <div className="pt-1 mt-1 border-t border-slate-700/30 dark:border-slate-700/30">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    onLogout();
-                  }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
+                <div className="pt-1 mt-1 border-t border-slate-700/30 dark:border-slate-700/30">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onLogout();
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </header>

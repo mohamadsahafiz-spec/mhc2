@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ChevronRight
 } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { 
   NavigationTab, 
   Machine, 
@@ -26,6 +27,13 @@ import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 import { StorageService } from '../../utils/persistence';
 import { findLatestResumableMhcSession, hasMeaningfulMhcProgress } from '../../utils/mhcAutopilotBrain';
+import { 
+  motionTimings, 
+  motionEasings, 
+  mechanicalPressConfig, 
+  createStaggerContainerVariants, 
+  createFadeSlideVariants 
+} from '../../theme/motion';
 
 interface StartPageModuleProps {
   onNavigate: (tab: NavigationTab) => void;
@@ -65,6 +73,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   // 1. Authoritative date handling
   const now = new Date();
@@ -121,11 +130,29 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
     onNavigate('mhc_autopilot');
   };
 
+  // Motion Variants
+  const containerVariants = createStaggerContainerVariants(0.06, prefersReducedMotion);
+  const sectionVariants = createFadeSlideVariants({
+    direction: 'up',
+    distance: 'subtle',
+    timing: 'quick',
+    easing: 'responsive',
+    prefersReducedMotion
+  });
+
   return (
-    <div className="max-w-5xl mx-auto py-2 md:py-6 space-y-8 animate-in fade-in duration-200">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-5xl mx-auto py-2 md:py-6 space-y-8"
+    >
       
       {/* 1. DAILY WORK HEADER (Restrained, Personal Orientation) */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-theme-subtle pb-4">
+      <motion.div 
+        variants={sectionVariants}
+        className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-theme-subtle pb-4"
+      >
         <div>
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-theme-primary">
             {greetingTimeOfDay}, {greetingName}
@@ -138,10 +165,10 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
         <div className="text-xs font-mono text-theme-muted sm:text-right shrink-0">
           {formattedDate}
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. CURRENT FOCUS (Primary Workspace Section) */}
-      <section className="space-y-3">
+      <motion.section variants={sectionVariants} className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono font-medium tracking-wider text-theme-muted uppercase">
             Current Focus
@@ -161,206 +188,267 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
           )}
         </div>
 
-        {/* State A: Meaningful Ongoing Inspection */}
-        {resumable && hasProgress && (
-          <div className={`p-5 md:p-6 rounded-xl border transition-colors ${
-            isDark 
-              ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-              : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-          }`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="space-y-2 min-w-0">
-                <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
-                  <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                  <span>SN: {resumable.machine.serialNumber}</span>
-                  {resumable.machine.customerName && (
-                    <>
-                      <span>•</span>
-                      <span>{resumable.machine.customerName}</span>
-                    </>
-                  )}
-                  {resumable.machine.plantName && (
-                    <>
-                      <span>•</span>
-                      <span>{resumable.machine.plantName}</span>
-                    </>
-                  )}
-                </div>
+        {/* Dynamic Focus Card with Smooth Operational State Transitions */}
+        <AnimatePresence mode="wait">
+          {/* State A: Meaningful Ongoing Inspection */}
+          {resumable && hasProgress && (
+            <motion.div 
+              key="focus-resumable-progress"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
+              className={`p-5 md:p-6 rounded-xl border transition-colors ${
+                isDark 
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
+                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+              }`}
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="space-y-2 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
+                    <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                    <span>SN: {resumable.machine.serialNumber}</span>
+                    {resumable.machine.customerName && (
+                      <>
+                        <span>•</span>
+                        <span>{resumable.machine.customerName}</span>
+                      </>
+                    )}
+                    {resumable.machine.plantName && (
+                      <>
+                        <span>•</span>
+                        <span>{resumable.machine.plantName}</span>
+                      </>
+                    )}
+                  </div>
 
-                <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
-                  {resumable.machine.machineNumber || resumable.machine.model} Health Check
-                </h2>
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                    {resumable.machine.machineNumber || resumable.machine.model} Health Check
+                  </h2>
 
-                <div className="flex items-center gap-3 text-xs text-theme-muted flex-wrap">
-                  {resumable.session.autopilotProgress?.currentActivityCode && (
-                    <span className="font-mono">
-                      Stage: {resumable.session.autopilotProgress.currentActivityCode} - {ACTIVITY_TITLES[resumable.session.autopilotProgress.currentActivityCode] || 'Inspection'}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-3 text-xs text-theme-muted flex-wrap">
+                    {resumable.session.autopilotProgress?.currentActivityCode && (
+                      <span className="font-mono">
+                        Stage: {resumable.session.autopilotProgress.currentActivityCode} - {ACTIVITY_TITLES[resumable.session.autopilotProgress.currentActivityCode] || 'Inspection'}
+                      </span>
+                    )}
+                    {typeof resumable.session.autopilotProgress?.readinessScore === 'number' && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">{resumable.session.autopilotProgress.readinessScore}% Complete</span>
+                      </>
+                    )}
+                    {resumable.session.lastUpdated && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">Updated {new Date(resumable.session.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Operational Readiness Progress Bar */}
                   {typeof resumable.session.autopilotProgress?.readinessScore === 'number' && (
-                    <>
-                      <span>•</span>
-                      <span className="font-mono">{resumable.session.autopilotProgress.readinessScore}% Complete</span>
-                    </>
-                  )}
-                  {resumable.session.lastUpdated && (
-                    <>
-                      <span>•</span>
-                      <span className="font-mono">Updated {new Date(resumable.session.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </>
+                    <div className="w-full max-w-md bg-slate-200 dark:bg-[#111315] h-1.5 rounded-full overflow-hidden mt-2.5">
+                      <motion.div
+                        className="bg-emerald-500 h-full rounded-full"
+                        initial={prefersReducedMotion ? { width: `${resumable.session.autopilotProgress.readinessScore}%` } : { width: 0 }}
+                        animate={{ width: `${resumable.session.autopilotProgress.readinessScore}%` }}
+                        transition={{ duration: motionTimings.standard, ease: motionEasings.responsive }}
+                      />
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="shrink-0">
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon={<ArrowRight className="w-4 h-4" />}
-                  onClick={() => handleResumeMhc(resumable.machine.id)}
+                <motion.div 
+                  className="shrink-0"
+                  whileHover={prefersReducedMotion ? undefined : mechanicalPressConfig.hover}
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
                 >
-                  Continue Health Check
-                </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon={<ArrowRight className="w-4 h-4" />}
+                    onClick={() => handleResumeMhc(resumable.machine.id)}
+                  >
+                    Continue Health Check
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
 
-        {/* State B: Resumable Zero-Progress Draft */}
-        {resumable && !hasProgress && (
-          <div className={`p-5 md:p-6 rounded-xl border transition-colors ${
-            isDark 
-              ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-              : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-          }`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
-                  <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                  <span>SN: {resumable.machine.serialNumber}</span>
-                  {resumable.machine.customerName && (
-                    <>
-                      <span>•</span>
-                      <span>{resumable.machine.customerName}</span>
-                    </>
-                  )}
+          {/* State B: Resumable Zero-Progress Draft */}
+          {resumable && !hasProgress && (
+            <motion.div 
+              key="focus-resumable-draft"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
+              className={`p-5 md:p-6 rounded-xl border transition-colors ${
+                isDark 
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
+                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+              }`}
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
+                    <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                    <span>SN: {resumable.machine.serialNumber}</span>
+                    {resumable.machine.customerName && (
+                      <>
+                        <span>•</span>
+                        <span>{resumable.machine.customerName}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                    {resumable.machine.machineNumber || resumable.machine.model} Health Check
+                  </h2>
+
+                  <p className="text-xs text-theme-muted">
+                    Draft initialized • Ready to begin inspection workflow.
+                  </p>
                 </div>
 
-                <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
-                  {resumable.machine.machineNumber || resumable.machine.model} Health Check
-                </h2>
-
-                <p className="text-xs text-theme-muted">
-                  Draft initialized • Ready to begin inspection workflow.
-                </p>
-              </div>
-
-              <div className="shrink-0">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  icon={<Play className="w-4 h-4 fill-current" />}
-                  onClick={() => handleResumeMhc(resumable.machine.id)}
+                <motion.div 
+                  className="shrink-0"
+                  whileHover={prefersReducedMotion ? undefined : mechanicalPressConfig.hover}
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
                 >
-                  Open Health Check
-                </Button>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    icon={<Play className="w-4 h-4 fill-current" />}
+                    onClick={() => handleResumeMhc(resumable.machine.id)}
+                  >
+                    Open Health Check
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
 
-        {/* State C: No Resumable Session, but Today's Schedule has an Item */}
-        {!resumable && primaryScheduleItem && (
-          <div className={`p-5 md:p-6 rounded-xl border transition-colors ${
-            isDark 
-              ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-              : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-          }`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{primaryScheduleItem.scheduledDate || 'Today'}</span>
-                  {primaryScheduleItem.customerName && (
-                    <>
-                      <span>•</span>
-                      <span>{primaryScheduleItem.customerName}</span>
-                    </>
-                  )}
-                  {primaryScheduleItem.plantName && (
-                    <>
-                      <span>•</span>
-                      <span>{primaryScheduleItem.plantName}</span>
-                    </>
-                  )}
+          {/* State C: No Resumable Session, but Today's Schedule has an Item */}
+          {!resumable && primaryScheduleItem && (
+            <motion.div 
+              key="focus-scheduled-item"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
+              className={`p-5 md:p-6 rounded-xl border transition-colors ${
+                isDark 
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
+                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+              }`}
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{primaryScheduleItem.scheduledDate || 'Today'}</span>
+                    {primaryScheduleItem.customerName && (
+                      <>
+                        <span>•</span>
+                        <span>{primaryScheduleItem.customerName}</span>
+                      </>
+                    )}
+                    {primaryScheduleItem.plantName && (
+                      <>
+                        <span>•</span>
+                        <span>{primaryScheduleItem.plantName}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                    {primaryScheduleItem.title}
+                  </h2>
+
+                  <div className="flex items-center gap-3 text-xs text-theme-muted">
+                    {primaryScheduleItem.machineName && (
+                      <span className="font-mono">{primaryScheduleItem.machineName}</span>
+                    )}
+                    {primaryScheduleItem.estimatedHours && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">{primaryScheduleItem.estimatedHours}h estimated</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
-                  {primaryScheduleItem.title}
-                </h2>
-
-                <div className="flex items-center gap-3 text-xs text-theme-muted">
-                  {primaryScheduleItem.machineName && (
-                    <span className="font-mono">{primaryScheduleItem.machineName}</span>
-                  )}
-                  {primaryScheduleItem.estimatedHours && (
-                    <>
-                      <span>•</span>
-                      <span className="font-mono">{primaryScheduleItem.estimatedHours}h estimated</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="shrink-0">
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon={<Play className="w-4 h-4 fill-current" />}
-                  onClick={() => {
-                    if (primaryScheduleItem.machineId && onSelectMachine) {
-                      onSelectMachine(primaryScheduleItem.machineId);
-                    }
-                    onNavigate('mhc_autopilot');
-                  }}
+                <motion.div 
+                  className="shrink-0"
+                  whileHover={prefersReducedMotion ? undefined : mechanicalPressConfig.hover}
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
                 >
-                  Start Inspection
-                </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon={<Play className="w-4 h-4 fill-current" />}
+                    onClick={() => {
+                      if (primaryScheduleItem.machineId && onSelectMachine) {
+                        onSelectMachine(primaryScheduleItem.machineId);
+                      }
+                      onNavigate('mhc_autopilot');
+                    }}
+                  >
+                    Start Inspection
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
 
-        {/* State D: Truthful Empty State (Nothing ongoing or scheduled) */}
-        {!resumable && !primaryScheduleItem && (
-          <div className={`p-6 text-center rounded-xl border ${
-            isDark 
-              ? 'bg-[#16191D] border-[#2B323A] text-slate-300' 
-              : 'bg-white border-slate-200 text-slate-700 shadow-2xs'
-          }`}>
-            <p className="text-sm font-medium text-theme-primary">
-              No active inspection or scheduled task in progress.
-            </p>
-            <p className="text-xs text-theme-muted mt-1 max-w-md mx-auto">
-              Select a machine from the fleet to begin a new health check, or check the schedule for planned service.
-            </p>
-            <div className="mt-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Play className="w-3.5 h-3.5 fill-current" />}
-                onClick={handleStartNewMhc}
-              >
-                Start New Health Check
-              </Button>
-            </div>
-          </div>
-        )}
-      </section>
+          {/* State D: Truthful Empty State (Nothing ongoing or scheduled) */}
+          {!resumable && !primaryScheduleItem && (
+            <motion.div 
+              key="focus-empty-state"
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
+              className={`p-6 text-center rounded-xl border ${
+                isDark 
+                  ? 'bg-[#16191D] border-[#2B323A] text-slate-300' 
+                  : 'bg-white border-slate-200 text-slate-700 shadow-2xs'
+              }`}
+            >
+              <p className="text-sm font-medium text-theme-primary">
+                No active inspection or scheduled task in progress.
+              </p>
+              <p className="text-xs text-theme-muted mt-1 max-w-md mx-auto">
+                Select a machine from the fleet to begin a new health check, or check the schedule for planned service.
+              </p>
+              <div className="mt-4">
+                <motion.div 
+                  className="inline-block"
+                  whileHover={prefersReducedMotion ? undefined : mechanicalPressConfig.hover}
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
+                >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Play className="w-3.5 h-3.5 fill-current" />}
+                    onClick={handleStartNewMhc}
+                  >
+                    Start New Health Check
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.section>
 
       {/* 3. NEEDS ATTENTION (Conditional - Only rendered when real items require action) */}
       {hasAttentionItems && (
-        <section className="space-y-3">
+        <motion.section variants={sectionVariants} className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono font-medium tracking-wider text-theme-muted uppercase">
               Needs Attention
@@ -373,8 +461,10 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
           <div className="space-y-2">
             {/* Critical Alerts */}
             {criticalAlerts.map((alert) => (
-              <div
+              <motion.div
                 key={alert.id}
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.008, x: 2, transition: { duration: motionTimings.quick } }}
+                whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={() => {
                   if (alert.machineId && onSelectMachine) onSelectMachine(alert.machineId);
                   onNavigate('machines');
@@ -397,13 +487,15 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-theme-muted shrink-0" />
-              </div>
+              </motion.div>
             ))}
 
             {/* Overdue Tasks */}
             {overdueTasks.map((task) => (
-              <div
+              <motion.div
                 key={task.id}
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.008, x: 2, transition: { duration: motionTimings.quick } }}
+                whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={() => onNavigate('contracts')}
                 className={`p-3.5 rounded-lg border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                   isDark 
@@ -423,14 +515,14 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-theme-muted shrink-0" />
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 4. SCHEDULE (One Coherent Flow: Today & Upcoming) */}
-      <section className="space-y-4">
+      <motion.section variants={sectionVariants} className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono font-medium tracking-wider text-theme-muted uppercase">
             Schedule
@@ -462,8 +554,10 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                 </p>
               ) : (
                 todayScheduleItems.map((item) => (
-                  <div
+                  <motion.div
                     key={item.id}
+                    whileHover={prefersReducedMotion ? undefined : { scale: 1.01, y: -1, transition: { duration: motionTimings.quick } }}
+                    whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => {
                       if (item.machineId && onSelectMachine) {
                         onSelectMachine(item.machineId);
@@ -489,7 +583,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                         {item.status}
                       </Badge>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               )}
             </div>
@@ -515,8 +609,10 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                 </p>
               ) : (
                 upcomingScheduleItems.slice(0, 5).map((item) => (
-                  <div
+                  <motion.div
                     key={item.id}
+                    whileHover={prefersReducedMotion ? undefined : { scale: 1.01, y: -1, transition: { duration: motionTimings.quick } }}
+                    whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => {
                       if (item.machineId && onSelectMachine) {
                         onSelectMachine(item.machineId);
@@ -542,15 +638,16 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               )}
             </div>
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
-    </div>
+    </motion.div>
   );
 };
+

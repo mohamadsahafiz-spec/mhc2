@@ -15,6 +15,7 @@ import {
   ArrowRightLeft,
   Calendar
 } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Customer, Plant, ProductionLine, Machine, Contract, MHCSession } from '../../types';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -24,6 +25,7 @@ import { CustomerModal } from '../customers/CustomerModal';
 import { DeleteCustomerModal } from '../customers/DeleteCustomerModal';
 import { CustomerHierarchyView } from '../customers/CustomerHierarchyView';
 import { CustomerContractsView } from '../customers/CustomerContractsView';
+import { mechanicalPressConfig } from '../../theme/motion';
 
 interface CustomersPlantsProps {
   customers: Customer[];
@@ -69,6 +71,7 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customers[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'infrastructure' | 'contracts'>('infrastructure');
@@ -208,10 +211,11 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
                 const uniquePlants = new Set(custMachines.map((m) => m.plantName).filter(Boolean)).size;
 
                 return (
-                  <div
+                  <motion.div
                     key={cust.id}
+                    whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setSelectedCustomerId(cust.id)}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-colors ${
                       isSelected
                         ? isDark
                           ? 'bg-[#181C20] border-sky-500/50 shadow-md ring-1 ring-sky-500/30'
@@ -242,7 +246,7 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -306,9 +310,10 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
 
                 {/* Sub-view Navigation Tabs */}
                 <div className="flex items-center gap-2 pt-4">
-                  <button
+                  <motion.button
+                    whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setActiveTab('infrastructure')}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeTab === 'infrastructure'
                         ? isDark
                           ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
@@ -320,11 +325,12 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
                   >
                     <Layers className="w-3.5 h-3.5" />
                     <span>Cleanroom Hierarchy & Fleet</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
+                    whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                     onClick={() => setActiveTab('contracts')}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeTab === 'contracts'
                         ? isDark
                           ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
@@ -336,7 +342,7 @@ export const CustomersPlantsModule: React.FC<CustomersPlantsProps> = ({
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     <span>SLA Contracts & Timeline</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 

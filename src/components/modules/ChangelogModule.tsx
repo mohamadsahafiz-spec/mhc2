@@ -14,10 +14,12 @@ import {
   Settings as SettingsIcon,
   ChevronsUpDown
 } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useTheme } from '../../context/ThemeContext';
 import { getAuthoritativeChangelog, ChangelogEntry } from '../../utils/changelogParser';
 import { APP_VERSION } from '../../constants/version';
 import { NavigationTab } from '../../types';
+import { mechanicalPressConfig, motionTimings, motionEasings } from '../../theme/motion';
 
 interface ChangelogModuleProps {
   onNavigate?: (tab: NavigationTab) => void;
@@ -26,6 +28,7 @@ interface ChangelogModuleProps {
 export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
+  const prefersReducedMotion = Boolean(useReducedMotion());
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMilestone, setSelectedMilestone] = useState<string>('all');
@@ -172,7 +175,8 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
 
         <div className="flex items-center gap-2 shrink-0">
           {onNavigate && (
-            <button
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => onNavigate('settings')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
                 isDark 
@@ -182,7 +186,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
             >
               <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
               <span>Settings</span>
-            </button>
+            </motion.button>
           )}
           <div className={`px-3 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 ${
             isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
@@ -215,18 +219,20 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
               }`}
             />
             {searchQuery && (
-              <button
+              <motion.button
+                whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300"
               >
                 Clear
-              </button>
+              </motion.button>
             )}
           </div>
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={expandAll}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 isDark 
@@ -235,8 +241,9 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
               }`}
             >
               Expand All
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={collapseAll}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 isDark 
@@ -245,7 +252,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
               }`}
             >
               Collapse All
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -259,8 +266,9 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
           {milestoneFamilies.map(fam => {
             const isSelected = selectedMilestone === fam.id;
             return (
-              <button
+              <motion.button
                 key={fam.id}
+                whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={() => setSelectedMilestone(fam.id)}
                 className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors border ${
                   isSelected
@@ -273,7 +281,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                 }`}
               >
                 {fam.label}
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -284,12 +292,13 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
             Showing <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>{filteredEntries.length}</strong> of {changelogEntries.length} releases
           </span>
           {selectedMilestone !== 'all' && (
-            <button
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => setSelectedMilestone('all')}
               className="text-emerald-400 hover:underline"
             >
               Reset filter
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
@@ -302,12 +311,13 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
           }`}>
             <History className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-500" />
             <p className="text-sm font-medium">No release notes match your search criteria.</p>
-            <button
+            <motion.button
+              whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => { setSearchQuery(''); setSelectedMilestone('all'); }}
               className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500 text-slate-950 font-semibold"
             >
               Clear Search & Filters
-            </button>
+            </motion.button>
           </div>
         ) : (
           filteredEntries.map((entry) => {
@@ -329,12 +339,13 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                 }`}
               >
                 {/* Release Card Header */}
-                <button
+                <motion.button
+                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                   onClick={() => toggleExpand(entry.version)}
                   className={`w-full p-4 sm:p-5 flex items-center justify-between text-left gap-4 hover:opacity-95 transition-opacity`}
                 >
                   <div className="flex items-start gap-3 min-w-0">
-                    <div className={`mt-0.5 p-1 rounded-md transition-transform ${isExpanded ? 'rotate-90' : ''} ${
+                    <div className={`mt-0.5 p-1 rounded-md transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''} ${
                       isDark ? 'text-slate-400' : 'text-slate-500'
                     }`}>
                       <ChevronRight className="w-4 h-4" />
@@ -386,30 +397,38 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                       {isExpanded ? 'Hide' : 'Details'}
                     </span>
                   </div>
-                </button>
+                </motion.button>
 
                 {/* Release Card Body */}
-                {isExpanded && (
-                  <div className={`px-4 pb-5 pt-1 sm:px-6 sm:pb-6 border-t space-y-4 ${
-                    isDark ? 'border-[#2B323A]/50 bg-[#14171A]/50' : 'border-slate-100 bg-slate-50/50'
-                  }`}>
-                    {entry.sections.map((sec, sIdx) => (
-                      <div key={sIdx} className="space-y-2">
-                        {sec.heading && (
-                          <h4 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 pt-2 ${
-                            isDark ? 'text-emerald-400' : 'text-emerald-700'
-                          }`}>
-                            <Tag className="w-3 h-3" />
-                            {sec.heading}
-                          </h4>
-                        )}
-                        <ul className="space-y-1">
-                          {sec.items.map((line, lIdx) => renderItemLine(line, lIdx))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                      transition={{ duration: motionTimings.standard, ease: motionEasings.smooth }}
+                      className={`overflow-hidden px-4 pb-5 pt-1 sm:px-6 sm:pb-6 border-t space-y-4 ${
+                        isDark ? 'border-[#2B323A]/50 bg-[#14171A]/50' : 'border-slate-100 bg-slate-50/50'
+                      }`}
+                    >
+                      {entry.sections.map((sec, sIdx) => (
+                        <div key={sIdx} className="space-y-2">
+                          {sec.heading && (
+                            <h4 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 pt-2 ${
+                              isDark ? 'text-emerald-400' : 'text-emerald-700'
+                            }`}>
+                              <Tag className="w-3 h-3" />
+                              {sec.heading}
+                            </h4>
+                          )}
+                          <ul className="space-y-1">
+                            {sec.items.map((line, lIdx) => renderItemLine(line, lIdx))}
+                          </ul>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })
