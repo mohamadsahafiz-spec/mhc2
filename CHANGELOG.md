@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.1.6 — Temperature Final Analysis Viewer & Engineering Table Correction (2026-09-20)
+
+### Temperature Final Analysis Viewer & Engineering Table Correction
+- **Removed Duplicate Settings Toolbar from Analysis Viewer**: Removed the partial Y-axis editing toolbar (Auto/Manual bounds, custom min/max inputs, day lines checkbox, MHC spec band checkbox) from the opened Temperature Analysis Viewer modal. The viewer now functions purely as an analytics viewer, leaving all telemetry configuration exclusively in the primary workspace's Unified Engineering Display Settings & Telemetry Controls.
+- **Approved Engineering Table Visual Model**: Redesigned the Per-Channel Engineering Summary with a restrained, dark neutral technical surface, subtle row separators, and clean typography, eliminating decorative channel pill styling.
+- **Subordinate Proportional Magnitude Bars**: Retained four semantic measurement dimensions with data-encoding colors (MIN: Blue, MAX: Red, AVG: Green, RANGE: Purple) displayed as proportional horizontal magnitude bars beneath high-contrast numeric values.
+- **Uncompromised Mathematical Precision**: Strictly preserved all Min, Max, Avg, Range calculations, point aggregations, MHC specifications, resampling, and persistence models.
+
 ## v3.1.5 — Temperature Analysis Workspace UX Correction (2026-09-20)
 
 ### Temperature Analysis Workspace UX Correction

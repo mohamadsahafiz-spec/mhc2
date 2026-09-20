@@ -88,24 +88,24 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
 
   const maxRange = Math.max(...channels.map((ch) => channelStats[ch]?.range ?? 0), 0.1);
 
-  // Helper calculations for magnitude fill (15% to 100%)
+  // Proportional magnitude fill calculations
   const calcMinPct = (val: number) => {
-    if (maxMin === minMin) return 60;
+    if (maxMin === minMin) return 50;
     return Math.max(15, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20));
   };
 
   const calcMaxPct = (val: number) => {
-    if (maxMax === minMax) return 60;
+    if (maxMax === minMax) return 50;
     return Math.max(15, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20));
   };
 
   const calcAvgPct = (val: number) => {
-    if (maxAvg === minAvg) return 60;
+    if (maxAvg === minAvg) return 50;
     return Math.max(15, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20));
   };
 
   const calcRangePct = (val: number) => {
-    return Math.max(12, Math.min(100, (val / maxRange) * 100));
+    return Math.max(10, Math.min(100, (val / maxRange) * 100));
   };
 
   return (
@@ -114,26 +114,26 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
         <h4 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
           Per-Channel Engineering Summary
         </h4>
-        <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-          Visual Magnitude Comparison (Blue: MIN · Red: MAX · Green: AVG · Purple: RANGE)
+        <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+          MIN (Blue) · MAX (Red) · AVG (Green) · RANGE (Purple)
         </span>
       </div>
 
       <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
-        isDark ? 'border-[#2B323A] bg-[#111315]' : 'border-slate-200 bg-slate-50'
+        isDark ? 'border-[#242A32] bg-[#111315]' : 'border-slate-200 bg-white'
       }`}>
         <table className="w-full text-left">
-          <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
+          <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#242A32]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
             <tr>
-              <th className="py-2.5 px-3">CH</th>
-              <th className="py-2.5 px-3 min-w-[110px]">MIN</th>
-              <th className="py-2.5 px-3 min-w-[110px]">MAX</th>
-              <th className="py-2.5 px-3 min-w-[110px]">AVG</th>
-              <th className="py-2.5 px-3 min-w-[120px]">RANGE</th>
-              <th className="py-2.5 px-3 text-right">POINTS</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px]">CH</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">MIN</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">MAX</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">AVG</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">RANGE</th>
+              <th className="py-2.5 px-3 text-right font-mono font-medium text-[11px]">POINTS</th>
             </tr>
           </thead>
-          <tbody className={`divide-y ${isDark ? 'divide-[#2B323A]/50' : 'divide-slate-200'}`}>
+          <tbody className={`divide-y ${isDark ? 'divide-[#1E232B]' : 'divide-slate-100'}`}>
             {channels.map((ch) => {
               const st = channelStats[ch];
               const isActive = !activeChannels || activeChannels.includes(ch);
@@ -147,96 +147,103 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   className={`transition-colors ${
                     isActive
                       ? isDark
-                        ? 'hover:bg-[#1A1D21]'
-                        : 'hover:bg-white'
+                        ? 'hover:bg-[#16191D]'
+                        : 'hover:bg-slate-50/80'
                       : isDark
                       ? 'opacity-35 hover:opacity-60 bg-[#111315]'
-                      : 'opacity-35 hover:opacity-60 bg-slate-100'
+                      : 'opacity-35 hover:opacity-60 bg-slate-50'
                   }`}
                 >
                   {/* CH */}
-                  <td className="py-2.5 px-3">
-                    <button
-                      type="button"
-                      onClick={() => onToggleChannel?.(ch)}
-                      className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono border transition ${
-                        isActive
-                          ? isDark
-                            ? 'bg-[#181B1F] border-[#313842] text-slate-100 hover:border-slate-500 shadow-2xs'
-                            : 'bg-white border-slate-300 text-slate-900 hover:border-slate-400 shadow-2xs'
-                          : isDark
-                          ? 'bg-[#111315] border-[#22272E] text-slate-600 opacity-50'
-                          : 'bg-slate-100 border-slate-200 text-slate-400 opacity-50'
-                      }`}
-                      title={onToggleChannel ? (isActive ? 'Click to hide channel' : 'Click to show channel') : undefined}
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: CHANNEL_COLORS[ch] }}
-                      />
-                      <span>CH{ch}</span>
-                      <span className="text-[10px] text-slate-400 font-normal">({markboxName})</span>
-                    </button>
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    {onToggleChannel ? (
+                      <button
+                        type="button"
+                        onClick={() => onToggleChannel(ch)}
+                        className={`inline-flex items-center gap-1.5 font-mono text-xs transition-opacity ${
+                          isActive
+                            ? isDark ? 'text-slate-200 hover:text-white font-bold' : 'text-slate-900 hover:text-black font-bold'
+                            : isDark ? 'text-slate-500 opacity-40 hover:opacity-70 font-normal' : 'text-slate-400 opacity-40 hover:opacity-70 font-normal'
+                        }`}
+                        title={isActive ? 'Click to hide channel from graph' : 'Click to show channel in graph'}
+                      >
+                        <span>CH{ch}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">({markboxName})</span>
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 font-mono text-xs">
+                        <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>CH{ch}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">({markboxName})</span>
+                      </div>
+                    )}
                   </td>
 
-                  {/* MIN (Blue scale) */}
+                  {/* MIN (Blue magnitude bar) */}
                   <td className="py-2.5 px-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-[130px]">
                       <div className="flex items-baseline gap-1">
-                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.min.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {st.min.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full bg-sky-500 transition-all duration-300"
+                          className="h-full rounded-xs bg-blue-500 transition-all duration-200"
                           style={{ width: `${calcMinPct(st.min)}%` }}
                         />
                       </div>
                     </div>
                   </td>
 
-                  {/* MAX (Red scale) */}
+                  {/* MAX (Red magnitude bar) */}
                   <td className="py-2.5 px-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-[130px]">
                       <div className="flex items-baseline gap-1">
-                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.max.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {st.max.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full bg-rose-500 transition-all duration-300"
+                          className="h-full rounded-xs bg-red-500 transition-all duration-200"
                           style={{ width: `${calcMaxPct(st.max)}%` }}
                         />
                       </div>
                     </div>
                   </td>
 
-                  {/* AVG (Green scale) */}
+                  {/* AVG (Green magnitude bar) */}
                   <td className="py-2.5 px-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-[130px]">
                       <div className="flex items-baseline gap-1">
-                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.avg.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {st.avg.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                          className="h-full rounded-xs bg-emerald-500 transition-all duration-200"
                           style={{ width: `${calcAvgPct(st.avg)}%` }}
                         />
                       </div>
                     </div>
                   </td>
 
-                  {/* RANGE (Purple scale) */}
+                  {/* RANGE (Purple magnitude bar) */}
                   <td className="py-2.5 px-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-[130px]">
                       <div className="flex items-baseline gap-1">
-                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.range.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {st.range.toFixed(1)}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full bg-purple-500 transition-all duration-300"
+                          className="h-full rounded-xs bg-purple-500 transition-all duration-200"
                           style={{ width: `${calcRangePct(st.range)}%` }}
                         />
                       </div>
@@ -245,7 +252,7 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
 
                   {/* POINTS */}
                   <td className="py-2.5 px-3 text-right">
-                    <span className="text-slate-400 text-[11px]">{st.points.toLocaleString()}</span>
+                    <span className="text-slate-400 font-mono text-xs">{st.points.toLocaleString()}</span>
                   </td>
                 </tr>
               );
@@ -1268,108 +1275,30 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               </div>
             </div>
 
-            {/* LEVEL 3: UNIFIED DISPLAY SETTINGS & PRESETS (Above Graph) */}
-            <div className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs font-mono ${
-              isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex items-center gap-4 flex-wrap">
-                {/* Y Axis bounds */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase text-slate-400 font-bold">Y-Axis:</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsAutoY(true)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
-                      isAutoY
-                        ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
-                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
-                    }`}
-                  >
-                    Auto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAutoY(false)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
-                      !isAutoY
-                        ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
-                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
-                    }`}
-                  >
-                    Manual
-                  </button>
-                  {!isAutoY && (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        placeholder="Min"
-                        value={customMinStr}
-                        onChange={(e) => setCustomMinStr(e.target.value)}
-                        className={`w-14 px-1 py-0.5 rounded border text-[10.5px] ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
-                        }`}
-                      />
-                      <span className="text-slate-500">-</span>
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        value={customMaxStr}
-                        onChange={(e) => setCustomMaxStr(e.target.value)}
-                        className={`w-14 px-1 py-0.5 rounded border text-[10.5px] ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
-                        }`}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Day lines & Spec band */}
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={showDayBoundaries}
-                      onChange={(e) => setShowDayBoundaries(e.target.checked)}
-                      className="rounded text-sky-500"
-                    />
-                    <span>Day Lines ({selectedRecordForDetail.dayBoundaries.length})</span>
-                  </label>
-
-                  {hasAuthoritativeSpec && (
-                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-emerald-400">
-                      <input
-                        type="checkbox"
-                        checked={showSpecBand}
-                        onChange={(e) => setShowSpecBand(e.target.checked)}
-                        className="rounded text-emerald-500"
-                      />
-                      <span>MHC Spec Band</span>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Presets */}
-              <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
-                {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setGraphPreset(p)}
-                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
-                      graphPreset === p
-                        ? 'bg-slate-700 text-white font-bold shadow-xs'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* LEVEL 4: LARGE TEMPERATURE TREND GRAPH (460px height) */}
+            {/* LEVEL 3: LARGE TEMPERATURE TREND GRAPH (460px height) */}
             <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-center justify-between pb-3">
+                <span className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Temperature Trend Telemetry
+                </span>
+                <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+                  {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setGraphPreset(p)}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
+                        graphPreset === p
+                          ? 'bg-slate-700 text-white font-bold shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <TemperatureGraph
                 channelData={selectedRecordForDetail.channelData}
                 activeChannels={[1, 2, 3, 4, 5, 6]}
@@ -1390,7 +1319,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               />
             </div>
 
-            {/* LEVEL 5: PER-CHANNEL ENGINEERING SUMMARY */}
+            {/* LEVEL 4: PER-CHANNEL ENGINEERING SUMMARY */}
             {selectedRecordForDetail.channelStats && Object.keys(selectedRecordForDetail.channelStats).length > 0 && (
               <div>
                 <ChannelSummaryTable
