@@ -241,6 +241,38 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
     return lines;
   }, [dayBoundaries, chartData]);
 
+  const autoYMin = Math.max(0, Math.floor(minVal - 2));
+  const autoYMax = Math.ceil(maxVal + 2);
+
+  const parsedCustomMin = parseFloat(customMinStr);
+  const parsedCustomMax = parseFloat(customMaxStr);
+
+  const yMin = yMinOverride !== null && yMinOverride !== undefined
+    ? yMinOverride
+    : (!isAutoY && !isNaN(parsedCustomMin) ? parsedCustomMin : autoYMin);
+
+  const yMax = yMaxOverride !== null && yMaxOverride !== undefined
+    ? yMaxOverride
+    : (!isAutoY && !isNaN(parsedCustomMax) ? parsedCustomMax : autoYMax);
+
+  const activeYStep = yStep !== null && yStep !== undefined ? yStep : selectedYStep;
+
+  // Calculate explicit Y-Axis ticks if activeYStep is active
+  const yTicks = useMemo(() => {
+    if (!activeYStep || activeYStep <= 0) return undefined;
+    const ticks: number[] = [];
+    const start = Math.floor(yMin / activeYStep) * activeYStep;
+    const end = Math.ceil(yMax / activeYStep) * activeYStep;
+    const stepCount = Math.round((end - start) / activeYStep);
+
+    if (stepCount > 60 || stepCount <= 0) return undefined;
+
+    for (let val = start; val <= end + 0.0001; val += activeYStep) {
+      ticks.push(Math.round(val * 100) / 100);
+    }
+    return ticks.length > 1 ? ticks : undefined;
+  }, [yMin, yMax, activeYStep]);
+
   if (activeChannels.length === 0 || !chartData || chartData.length === 0) {
     if (activeChannels.length === 0) {
       return (
@@ -273,38 +305,6 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
       </div>
     );
   }
-
-  const autoYMin = Math.max(0, Math.floor(minVal - 2));
-  const autoYMax = Math.ceil(maxVal + 2);
-
-  const parsedCustomMin = parseFloat(customMinStr);
-  const parsedCustomMax = parseFloat(customMaxStr);
-
-  const yMin = yMinOverride !== null && yMinOverride !== undefined
-    ? yMinOverride
-    : (!isAutoY && !isNaN(parsedCustomMin) ? parsedCustomMin : autoYMin);
-
-  const yMax = yMaxOverride !== null && yMaxOverride !== undefined
-    ? yMaxOverride
-    : (!isAutoY && !isNaN(parsedCustomMax) ? parsedCustomMax : autoYMax);
-
-  const activeYStep = yStep !== null && yStep !== undefined ? yStep : selectedYStep;
-
-  // Calculate explicit Y-Axis ticks if activeYStep is active
-  const yTicks = useMemo(() => {
-    if (!activeYStep || activeYStep <= 0) return undefined;
-    const ticks: number[] = [];
-    const start = Math.floor(yMin / activeYStep) * activeYStep;
-    const end = Math.ceil(yMax / activeYStep) * activeYStep;
-    const stepCount = Math.round((end - start) / activeYStep);
-
-    if (stepCount > 60 || stepCount <= 0) return undefined;
-
-    for (let val = start; val <= end + 0.0001; val += activeYStep) {
-      ticks.push(Math.round(val * 100) / 100);
-    }
-    return ticks.length > 1 ? ticks : undefined;
-  }, [yMin, yMax, activeYStep]);
 
   // Calculate parsed visual threshold line value
   const parsedThreshold = parseFloat(thresholdInput);

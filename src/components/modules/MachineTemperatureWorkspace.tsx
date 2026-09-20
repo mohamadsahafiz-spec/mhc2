@@ -56,7 +56,7 @@ const CHANNEL_COLORS: Record<number, string> = {
 };
 
 // Visual per-channel engineering summary table with proportional cell-background fills
-// Hierarchy: CH | MIN (Blue) | MAX (Red) | AVG (Green) | RANGE (Purple) | POINTS
+// Hierarchy: CH | MIN (Blue) | MAX (Red) | AVG (Green) | RANGE (Purple)
 export interface ChannelSummaryTableProps {
   channelStats: Record<number, ChannelStats>;
   activeChannels?: number[];
@@ -64,17 +64,66 @@ export interface ChannelSummaryTableProps {
   isDark?: boolean;
 }
 
+type TableSortKey = 'ch' | 'min' | 'max' | 'avg' | 'range';
+type TableSortDirection = 'asc' | 'desc';
+
 export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
   channelStats,
   activeChannels,
   onToggleChannel,
   isDark = true
 }) => {
+  const [sortKey, setSortKey] = useState<TableSortKey>('ch');
+  const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
+
   const channels = Object.keys(channelStats)
     .map((k) => parseInt(k, 10))
     .sort((a, b) => a - b);
 
   if (channels.length === 0) return null;
+
+  const handleSort = (key: TableSortKey) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedChannels = useMemo(() => {
+    const list = [...channels];
+    list.sort((a, b) => {
+      const stA = channelStats[a];
+      const stB = channelStats[b];
+      if (!stA && !stB) return 0;
+      if (!stA) return 1;
+      if (!stB) return -1;
+
+      let valA = 0;
+      let valB = 0;
+      if (sortKey === 'ch') {
+        valA = a;
+        valB = b;
+      } else if (sortKey === 'min') {
+        valA = stA.min;
+        valB = stB.min;
+      } else if (sortKey === 'max') {
+        valA = stA.max;
+        valB = stB.max;
+      } else if (sortKey === 'avg') {
+        valA = stA.avg;
+        valB = stB.avg;
+      } else if (sortKey === 'range') {
+        valA = stA.range;
+        valB = stB.range;
+      }
+
+      if (valA === valB) return a - b;
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    });
+    return list;
+  }, [channels, channelStats, sortKey, sortDirection]);
 
   // Extents across channels for relative magnitude comparison
   const minMin = Math.min(...channels.map((ch) => channelStats[ch]?.min ?? 0));
@@ -108,6 +157,37 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
     return Math.max(8, Math.min(100, (val / maxRange) * 100));
   };
 
+  const renderSortHeader = (key: TableSortKey, label: string, minWidth: string = 'min-w-[130px]') => {
+    const isSorted = sortKey === key;
+    return (
+      <th className={`py-2.5 px-3 font-mono font-medium text-[11px] ${minWidth}`}>
+        <button
+          type="button"
+          onClick={() => handleSort(key)}
+          className={`flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none ${
+            isSorted
+              ? isDark ? 'text-sky-400 font-bold' : 'text-sky-600 font-bold'
+              : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+          }`}
+          title={`Sort by ${label} (${isSorted && sortDirection === 'asc' ? 'descending' : 'ascending'})`}
+        >
+          <span>{label}</span>
+          <span className="shrink-0 flex items-center">
+            {isSorted ? (
+              sortDirection === 'asc' ? (
+                <ChevronUp className="w-3 h-3 text-sky-400" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-sky-400" />
+              )
+            ) : (
+              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+            )}
+          </span>
+        </button>
+      </th>
+    );
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -115,7 +195,7 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
           Per-Channel Engineering Summary
         </h4>
         <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-          MIN (Blue) · MAX (Red) · AVG (Green) · RANGE (Purple)
+          MIN (Blue) · MAX (Red) · AVG (Green) · RANGE (Purple) · Click header to sort
         </span>
       </div>
 
@@ -125,16 +205,15 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#242A32]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
             <tr>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px]">CH</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">MIN</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">MAX</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">AVG</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">RANGE</th>
-              <th className="py-2.5 px-3 text-right font-mono font-medium text-[11px]">POINTS</th>
+              {renderSortHeader('ch', 'CH', 'w-24')}
+              {renderSortHeader('min', 'MIN', 'min-w-[130px]')}
+              {renderSortHeader('max', 'MAX', 'min-w-[130px]')}
+              {renderSortHeader('avg', 'AVG', 'min-w-[130px]')}
+              {renderSortHeader('range', 'RANGE', 'min-w-[130px]')}
             </tr>
           </thead>
           <tbody className={`divide-y ${isDark ? 'divide-[#1E232B]' : 'divide-slate-100'}`}>
-            {channels.map((ch) => {
+            {sortedChannels.map((ch) => {
               const st = channelStats[ch];
               const isActive = !activeChannels || activeChannels.includes(ch);
               if (!st) return null;
@@ -178,11 +257,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     )}
                   </td>
 
-                  {/* MIN (Blue proportional cell-background fill) */}
+                  {/* MIN (Muted Blue proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-blue-500/25 border-r border-blue-400/40 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-blue-500/15 border-r border-blue-400/25 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcMinPct(st.min)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -194,11 +273,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* MAX (Red proportional cell-background fill) */}
+                  {/* MAX (Muted Red proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-red-500/25 border-r border-red-400/40 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-red-500/15 border-r border-red-400/25 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcMaxPct(st.max)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -210,11 +289,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* AVG (Green proportional cell-background fill) */}
+                  {/* AVG (Muted Green proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-emerald-500/25 border-r border-emerald-400/40 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-emerald-500/15 border-r border-emerald-400/25 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcAvgPct(st.avg)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -226,11 +305,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* RANGE (Purple proportional cell-background fill) */}
+                  {/* RANGE (Muted Purple proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-purple-500/25 border-r border-purple-400/40 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-purple-500/15 border-r border-purple-400/25 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcRangePct(st.range)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -240,11 +319,6 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                         <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
                     </div>
-                  </td>
-
-                  {/* POINTS */}
-                  <td className="py-2 px-3 text-right font-mono text-xs text-slate-400">
-                    {st.points.toLocaleString()}
                   </td>
                 </tr>
               );
