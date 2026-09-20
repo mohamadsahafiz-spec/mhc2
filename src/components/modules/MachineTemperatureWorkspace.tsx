@@ -296,24 +296,15 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
   const [customMaxStr, setCustomMaxStr] = useState<string>('');
   const [selectedYStep, setSelectedYStep] = useState<number | null>(null);
   const [showDayBoundaries, setShowDayBoundaries] = useState<boolean>(true);
-  const [isThresholdActive, setIsThresholdActive] = useState<boolean>(false);
-  const [thresholdInput, setThresholdInput] = useState<string>('24.0');
+  const [showSpecBand, setShowSpecBand] = useState<boolean>(true);
   const [xTickDensity, setXTickDensity] = useState<'auto' | 'dense' | 'sparse'>('auto');
 
-  // Collapsible control sections
+  // Unified engineering controls toggle
   const [showAdvancedControls, setShowAdvancedControls] = useState<boolean>(false);
-  const [activeControlsTab, setActiveControlsTab] = useState<'axes' | 'filters' | 'preview'>('axes');
 
   // Modal / Detail state
   const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<SavedTemperatureRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<SavedTemperatureRecord | null>(null);
-
-  // Manual Reading Modal
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 16));
-  const [manualTemp, setManualTemp] = useState<string>('24.0');
-  const [manualChannel, setManualChannel] = useState<number>(1);
-  const [manualNote, setManualNote] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -488,38 +479,6 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     setRecordToDelete(null);
   };
 
-  // Manual Reading Handlers
-  const handleSaveManualReading = (e: React.FormEvent) => {
-    e.preventDefault();
-    const tempVal = parseFloat(manualTemp);
-    if (isNaN(tempVal)) return;
-
-    const newReading: ManualTemperatureReading = {
-      id: `MTR-${Date.now()}`,
-      machineId: machine.id,
-      timestamp: new Date(manualDate).toISOString(),
-      temperature: tempVal,
-      channel: manualChannel,
-      note: manualNote,
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedReadings = [newReading, ...(machine.manualTemperatureReadings || [])].sort(
-      (a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime()
-    );
-    const updatedMachine: Machine = {
-      ...machine,
-      manualTemperatureReadings: updatedReadings
-    };
-    onUpdateMachine(updatedMachine);
-    const allMachines = StorageService.getMachines();
-    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
-    StorageService.saveMachines([updatedMachine, ...otherMachines]);
-
-    setIsManualModalOpen(false);
-    setManualNote('');
-  };
-
   const handleDeleteManualReading = (id: string) => {
     const updatedReadings = (machine.manualTemperatureReadings || []).filter((r) => r.id !== id);
     const updatedMachine: Machine = {
@@ -542,10 +501,21 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     return [...list].sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
   }, [machine.manualTemperatureReadings]);
 
+  // Derive Authoritative MHC Temperature Spec Limits (USL & ASL)
+  const mhcCoolingSpec = machine.mhcSpecs?.temperatureCooling;
+  const targetTemp = (mhcCoolingSpec?.targetTempCelsius !== undefined && mhcCoolingSpec?.targetTempCelsius !== null)
+    ? mhcCoolingSpec.targetTempCelsius
+    : null;
+  const tempTolerance = (mhcCoolingSpec?.tempToleranceCelsius !== undefined && mhcCoolingSpec?.tempToleranceCelsius !== null)
+    ? mhcCoolingSpec.tempToleranceCelsius
+    : null;
+  const hasAuthoritativeSpec = targetTemp !== null;
+  const authoritativeUsl = hasAuthoritativeSpec ? targetTemp + (tempTolerance ?? 0) : null;
+  const authoritativeAsl = hasAuthoritativeSpec ? targetTemp - (tempTolerance ?? 0) : null;
+
   // Derived overrides for chart display
   const yMinOverride = !isAutoY && customMinStr !== '' && !isNaN(parseFloat(customMinStr)) ? parseFloat(customMinStr) : null;
   const yMaxOverride = !isAutoY && customMaxStr !== '' && !isNaN(parseFloat(customMaxStr)) ? parseFloat(customMaxStr) : null;
-  const thresholdVal = isThresholdActive && thresholdInput !== '' && !isNaN(parseFloat(thresholdInput)) ? parseFloat(thresholdInput) : null;
 
   return (
     <div className="space-y-6">
@@ -557,7 +527,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${isDark ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600'}`}>
+            <div className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800/80 text-sky-400 border border-slate-700/50' : 'bg-slate-100 text-sky-600 border border-slate-200'}`}>
               <Thermometer className="w-6 h-6" />
             </div>
             <div>
@@ -574,8 +544,13 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                   {machine.model}
                 </span>
               </div>
-              <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Native Temperature Engine · {savedRecords.length} Saved Inspections · {manualReadings.length} Spot Readings
+              <p className={`text-xs mt-0.5 font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Native Temperature Telemetry Engine · {savedRecords.length} Saved Inspections
+                {hasAuthoritativeSpec && (
+                  <span className="ml-2 text-slate-400 font-semibold">
+                    · Spec: {targetTemp}°C ±{(tempTolerance ?? 0)}°C (USL: {authoritativeUsl}°C, ASL: {authoritativeAsl}°C)
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -583,19 +558,10 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant="outline"
-              icon={<Plus className="w-3.5 h-3.5" />}
-              onClick={() => setIsManualModalOpen(true)}
-              className="text-xs"
-            >
-              + Manual Reading
-            </Button>
-            <Button
-              size="sm"
               variant="primary"
               icon={<Upload className="w-3.5 h-3.5" />}
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs"
+              className="text-xs font-mono"
             >
               Import Log Files
             </Button>
@@ -620,11 +586,13 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider bg-rose-500 text-white">
-                  Active Analysis
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider ${
+                  isDark ? 'bg-slate-800 text-sky-400 border border-slate-700' : 'bg-slate-200 text-slate-800 border border-slate-300'
+                }`}>
+                  Active Ingestion Session
                 </span>
                 <h3 className={`text-base font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                  {machine.model} Log Ingestion Session
+                  {machine.model} ({machine.machineNumber})
                 </h3>
                 <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
                   isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
@@ -732,7 +700,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                     onClick={() => setGraphPreset(p)}
                     className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
                       graphPreset === p
-                        ? 'bg-rose-500 text-white font-bold shadow-xs'
+                        ? 'bg-slate-700 text-white font-bold shadow-xs'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -747,9 +715,11 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               activeChannels={activeChannels}
               stats={analysisResult.stats}
               dayBoundaries={analysisResult.dayBoundaries}
-              thresholdTemp={thresholdVal}
-              thresholdLabel="Target Spec"
+              usl={showSpecBand ? authoritativeUsl : null}
+              asl={showSpecBand ? authoritativeAsl : null}
+              showSpecBand={showSpecBand}
               yStep={selectedYStep}
+              xTickDensity={xTickDensity}
               preset={graphPreset}
               height={440}
               showDayBoundaries={showDayBoundaries}
@@ -772,7 +742,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             </div>
           )}
 
-          {/* LEVEL 6: ADVANCED CONTROLS & DETAILED DATA */}
+          {/* LEVEL 6: UNIFIED ENGINEERING SETTINGS & CONTROLS */}
           <div className={`rounded-xl border overflow-hidden ${
             isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
           }`}>
@@ -784,67 +754,32 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               }`}
             >
               <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-rose-400" />
-                <span>Advanced Engineering Controls & Data Details</span>
+                <Sliders className="w-4 h-4 text-sky-400" />
+                <span>Unified Engineering Display Settings & Telemetry Controls</span>
               </div>
               {showAdvancedControls ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
             {showAdvancedControls && (
-              <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                {/* Tabs */}
-                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveControlsTab('axes')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                      activeControlsTab === 'axes'
-                        ? 'bg-rose-500 text-white shadow-xs'
-                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Axes & Display Settings
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveControlsTab('filters')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                      activeControlsTab === 'filters'
-                        ? 'bg-rose-500 text-white shadow-xs'
-                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Data & Parsing Filters
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveControlsTab('preview')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                      activeControlsTab === 'preview'
-                        ? 'bg-rose-500 text-white shadow-xs'
-                        : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Resampled Data Points
-                  </button>
-                </div>
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+                  {/* GROUP 1: Y AXIS */}
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center justify-between border-b border-slate-700/50 pb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Y Axis</span>
+                      <span className="text-[10px] text-slate-500">Scaling</span>
+                    </div>
 
-                {/* Tab Content: Axes & Display */}
-                {activeControlsTab === 'axes' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
-                    {/* Y-Axis Bounds */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Y-Axis Bounds
-                      </label>
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Bounds</span>
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setIsAutoY(true)}
-                          className={`px-2.5 py-1 rounded text-[11px] border ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
                             isAutoY
-                              ? 'bg-rose-500 text-white border-rose-500 font-bold'
-                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+                              ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
+                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
                           }`}
                         >
                           Auto
@@ -852,23 +787,23 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                         <button
                           type="button"
                           onClick={() => setIsAutoY(false)}
-                          className={`px-2.5 py-1 rounded text-[11px] border ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
                             !isAutoY
-                              ? 'bg-rose-500 text-white border-rose-500 font-bold'
-                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-300 text-slate-600'
+                              ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
+                              : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
                           }`}
                         >
                           Manual
                         </button>
                       </div>
                       {!isAutoY && (
-                        <div className="flex items-center gap-1.5 pt-1">
+                        <div className="flex items-center gap-1 pt-1">
                           <input
                             type="number"
                             placeholder="Min °C"
                             value={customMinStr}
                             onChange={(e) => setCustomMinStr(e.target.value)}
-                            className={`w-20 px-2 py-1 rounded border text-xs ${
+                            className={`w-16 px-1.5 py-0.5 rounded border text-[11px] ${
                               isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
                             }`}
                           />
@@ -878,7 +813,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                             placeholder="Max °C"
                             value={customMaxStr}
                             onChange={(e) => setCustomMaxStr(e.target.value)}
-                            className={`w-20 px-2 py-1 rounded border text-xs ${
+                            className={`w-16 px-1.5 py-0.5 rounded border text-[11px] ${
                               isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
                             }`}
                           />
@@ -886,16 +821,16 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                       )}
                     </div>
 
-                    {/* Y-Axis Step */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Y Major Step
-                      </label>
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Major Step</span>
                       <select
                         value={selectedYStep === null ? 'auto' : String(selectedYStep)}
-                        onChange={(e) => setSelectedYStep(e.target.value === 'auto' ? null : parseFloat(e.target.value))}
-                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedYStep(val === 'auto' ? null : parseFloat(val));
+                        }}
+                        className={`w-full px-2 py-1 rounded border text-[11px] font-mono ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
                         }`}
                       >
                         <option value="auto">Auto Steps</option>
@@ -905,86 +840,17 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                         <option value="5.0">5.0 °C</option>
                       </select>
                     </div>
-
-                    {/* Visual Reference Spec Line */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Visual Spec Line
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="active-thresh"
-                          checked={isThresholdActive}
-                          onChange={(e) => setIsThresholdActive(e.target.checked)}
-                          className="rounded text-rose-500"
-                        />
-                        <label htmlFor="active-thresh" className="text-xs text-slate-300">
-                          Show Spec Line
-                        </label>
-                      </div>
-                      {isThresholdActive && (
-                        <div className="flex items-center gap-1 pt-1">
-                          <input
-                            type="number"
-                            step="0.5"
-                            value={thresholdInput}
-                            onChange={(e) => setThresholdInput(e.target.value)}
-                            className={`w-20 px-2 py-1 rounded border text-xs ${
-                              isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
-                            }`}
-                          />
-                          <span className="text-[10px] text-slate-400">°C (visual only)</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Day Boundaries & X-Ticks */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Day Boundaries
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="active-day-lines"
-                          checked={showDayBoundaries}
-                          onChange={(e) => setShowDayBoundaries(e.target.checked)}
-                          className="rounded text-rose-500"
-                        />
-                        <label htmlFor="active-day-lines" className="text-xs text-slate-300">
-                          Show Day Lines ({analysisResult.dayBoundaries.length})
-                        </label>
-                      </div>
-                    </div>
                   </div>
-                )}
 
-                {/* Tab Content: Data & Parsing Filters */}
-                {activeControlsTab === 'filters' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Command No Filter
-                      </label>
-                      <input
-                        type="text"
-                        value={cmdFilter}
-                        onChange={(e) => {
-                          setCmdFilter(e.target.value);
-                          runEngineAnalysis(selectedFiles, e.target.value, intervalSec, filterMin, filterMax);
-                        }}
-                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
-                        }`}
-                        placeholder="e.g. 1"
-                      />
+                  {/* GROUP 2: X AXIS */}
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center justify-between border-b border-slate-700/50 pb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">X Axis</span>
+                      <span className="text-[10px] text-slate-500">Time & Density</span>
                     </div>
 
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Resample Bucket
-                      </label>
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Resample Interval</span>
                       <select
                         value={intervalSec}
                         onChange={(e) => {
@@ -992,8 +858,8 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                           setIntervalSec(val);
                           runEngineAnalysis(selectedFiles, cmdFilter, val, filterMin, filterMax);
                         }}
-                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        className={`w-full px-2 py-1 rounded border text-[11px] font-mono ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
                         }`}
                       >
                         <option value={10}>10 seconds</option>
@@ -1004,78 +870,139 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Raw Min Cutoff
-                      </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="cfg-day-lines"
+                          checked={showDayBoundaries}
+                          onChange={(e) => setShowDayBoundaries(e.target.checked)}
+                          className="rounded text-sky-500"
+                        />
+                        <label htmlFor="cfg-day-lines" className="text-[11px] text-slate-300 cursor-pointer">
+                          Day Lines ({analysisResult.dayBoundaries.length})
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Tick Density</span>
+                        <select
+                          value={xTickDensity}
+                          onChange={(e) => setXTickDensity(e.target.value as any)}
+                          className={`px-1.5 py-0.5 rounded border text-[10px] font-mono ${
+                            isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                          }`}
+                        >
+                          <option value="auto">Auto</option>
+                          <option value="dense">Dense</option>
+                          <option value="sparse">Sparse</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GROUP 3: SPECIFICATION (USL / ASL) */}
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center justify-between border-b border-slate-700/50 pb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Specification</span>
+                      <span className="text-[10px] text-slate-500">MHC Limits</span>
+                    </div>
+
+                    {hasAuthoritativeSpec ? (
+                      <div className="space-y-2">
+                        <div className="text-[10.5px] text-slate-300 font-mono">
+                          <span className="text-slate-400">Target:</span> <strong>{targetTemp?.toFixed(1)}°C</strong> ±{(tempTolerance ?? 0).toFixed(1)}°C
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 text-[10.5px] font-mono">
+                          <div className={`p-1.5 rounded border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <span className="text-[9px] text-rose-400 font-bold block uppercase">USL (Upper)</span>
+                            <span className="font-bold text-rose-400">{authoritativeUsl?.toFixed(1)}°C</span>
+                          </div>
+                          <div className={`p-1.5 rounded border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <span className="text-[9px] text-sky-400 font-bold block uppercase">ASL (Lower)</span>
+                            <span className="font-bold text-sky-400">{authoritativeAsl?.toFixed(1)}°C</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <input
+                            type="checkbox"
+                            id="cfg-spec-band"
+                            checked={showSpecBand}
+                            onChange={(e) => setShowSpecBand(e.target.checked)}
+                            className="rounded text-emerald-500"
+                          />
+                          <label htmlFor="cfg-spec-band" className="text-[10.5px] text-emerald-300 cursor-pointer">
+                            Show Spec Band (ASL–USL)
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1 text-[10px] text-slate-400">
+                        <p className="text-amber-400 font-semibold">No MHC cooling spec configured.</p>
+                        <p className="text-[9.5px] text-slate-500">
+                          Configure target temp & tolerance in Machine Passport to display authoritative USL & ASL boundaries.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GROUP 4: DATA / FILTERING */}
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center justify-between border-b border-slate-700/50 pb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">Data Filters</span>
+                      <span className="text-[10px] text-slate-500">Parsing</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Command No</span>
                       <input
-                        type="number"
-                        value={filterMin}
+                        type="text"
+                        value={cmdFilter}
                         onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setFilterMin(val);
-                          runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, val, filterMax);
+                          setCmdFilter(e.target.value);
+                          runEngineAnalysis(selectedFiles, e.target.value, intervalSec, filterMin, filterMax);
                         }}
-                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
+                        className={`w-full px-2 py-1 rounded border text-[11px] font-mono ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
                         }`}
+                        placeholder="e.g. 1"
                       />
                     </div>
 
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Raw Max Cutoff
-                      </label>
-                      <input
-                        type="number"
-                        value={filterMax}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 9999;
-                          setFilterMax(val);
-                          runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, filterMin, val);
-                        }}
-                        className={`w-full mt-1 px-2.5 py-1.5 rounded-lg border ${
-                          isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300'
-                        }`}
-                      />
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Min Cutoff</span>
+                        <input
+                          type="number"
+                          value={filterMin}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setFilterMin(val);
+                            runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, val, filterMax);
+                          }}
+                          className={`w-full px-1.5 py-1 rounded border text-[11px] font-mono ${
+                            isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Max Cutoff</span>
+                        <input
+                          type="number"
+                          value={filterMax}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 9999;
+                            setFilterMax(val);
+                            runEngineAnalysis(selectedFiles, cmdFilter, intervalSec, filterMin, val);
+                          }}
+                          className={`w-full px-1.5 py-1 rounded border text-[11px] font-mono ${
+                            isDark ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                          }`}
+                        />
+                      </div>
                     </div>
                   </div>
-                )}
-
-                {/* Tab Content: Resampled Data Points */}
-                {activeControlsTab === 'preview' && (
-                  <div className="max-h-60 overflow-y-auto rounded-xl border font-mono text-xs">
-                    <table className="w-full text-left">
-                      <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
-                        <tr>
-                          <th className="p-2">Timestamp</th>
-                          <th className="p-2">Channel</th>
-                          <th className="p-2">Temperature (°C)</th>
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y ${isDark ? 'divide-[#2B323A]/50' : 'divide-slate-200'}`}>
-                        {Object.entries(analysisResult.resampledChannels)
-                          .flatMap(([chStr, pts]) => (pts as Array<{ ts: Date; val: number }>).map((p) => ({ ch: parseInt(chStr, 10), ts: p.ts, val: p.val })))
-                          .filter((p) => activeChannels.includes(p.ch))
-                          .slice(0, 100)
-                          .map((p, idx) => (
-                            <tr key={idx} className={isDark ? 'hover:bg-[#1A1D21]' : 'hover:bg-slate-50'}>
-                              <td className="p-2 text-slate-300">{p.ts.toISOString().replace('T', ' ').slice(0, 19)}</td>
-                              <td className="p-2">
-                                <span
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
-                                  style={{ backgroundColor: CHANNEL_COLORS[p.ch] }}
-                                >
-                                  CH{p.ch}
-                                </span>
-                              </td>
-                              <td className="p-2 font-bold text-slate-100">{p.val.toFixed(1)} °C</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -1088,12 +1015,12 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
           onClick={() => fileInputRef.current?.click()}
           className={`p-6 rounded-2xl border-2 border-dashed text-center cursor-pointer transition-all ${
             isDark
-              ? 'border-[#2B323A] hover:border-rose-500/60 bg-[#14171A]/60 hover:bg-[#1A1D21]'
-              : 'border-slate-300 hover:border-rose-500 bg-slate-50 hover:bg-rose-50/20'
+              ? 'border-[#2B323A] hover:border-slate-500 bg-[#14171A]/60 hover:bg-[#1A1D21]'
+              : 'border-slate-300 hover:border-slate-500 bg-slate-50 hover:bg-slate-100'
           }`}
         >
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Upload className="w-6 h-6 text-rose-500 opacity-80 shrink-0" />
+            <Upload className="w-6 h-6 text-sky-400 opacity-80 shrink-0" />
             <div className="text-center sm:text-left">
               <p className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                 Import Machine Temperature Log Files (.log / .txt)
@@ -1273,92 +1200,6 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
         )}
       </Card>
 
-      {/* MANUAL READING MODAL */}
-      <Modal
-        isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-        title="Add Manual Spot Temperature Reading"
-        size="md"
-      >
-        <form onSubmit={handleSaveManualReading} className="space-y-4">
-          <div>
-            <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              required
-              value={manualDate}
-              onChange={(e) => setManualDate(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-xs border font-mono ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300'
-              }`}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Temperature (°C)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                required
-                value={manualTemp}
-                onChange={(e) => setManualTemp(e.target.value)}
-                className={`w-full px-3 py-2 rounded-xl text-xs border font-mono ${
-                  isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300'
-                }`}
-              />
-            </div>
-
-            <div>
-              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Station / Channel
-              </label>
-              <select
-                value={manualChannel}
-                onChange={(e) => setManualChannel(parseInt(e.target.value, 10))}
-                className={`w-full px-3 py-2 rounded-xl text-xs border font-mono ${
-                  isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300'
-                }`}
-              >
-                {[1, 2, 3, 4, 5, 6].map((ch) => (
-                  <option key={ch} value={ch}>
-                    Channel {ch}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              Inspection Note (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Verified with calibrated thermal probe"
-              value={manualNote}
-              onChange={(e) => setManualNote(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-xs border ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300'
-              }`}
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-            <Button variant="ghost" size="sm" onClick={() => setIsManualModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" type="submit">
-              Save Spot Reading
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
       {/* SAVED RECORD FULL ENGINEERING ANALYSIS MODAL */}
       {selectedRecordForDetail && (
         <Modal
@@ -1415,9 +1256,11 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                 activeChannels={[1, 2, 3, 4, 5, 6]}
                 stats={selectedRecordForDetail.stats}
                 dayBoundaries={selectedRecordForDetail.dayBoundaries}
-                thresholdTemp={thresholdVal}
-                thresholdLabel="Target Spec"
+                usl={showSpecBand ? authoritativeUsl : null}
+                asl={showSpecBand ? authoritativeAsl : null}
+                showSpecBand={showSpecBand}
                 yStep={selectedYStep}
+                xTickDensity={xTickDensity}
                 preset={graphPreset}
                 height={400}
                 showDayBoundaries={showDayBoundaries}

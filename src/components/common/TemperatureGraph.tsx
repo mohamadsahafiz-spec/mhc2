@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -8,7 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ReferenceLine
+  ReferenceLine,
+  ReferenceArea
 } from 'recharts';
 import { ChannelDataMap, ChannelStats, DayBoundary } from '../../types/temperature';
 
@@ -19,9 +20,13 @@ interface TemperatureGraphProps {
   activeChannels?: number[];
   stats?: ChannelStats | null;
   dayBoundaries?: DayBoundary[] | null;
+  usl?: number | null;
+  asl?: number | null;
+  showSpecBand?: boolean;
   thresholdTemp?: number | null;
   thresholdLabel?: string;
   yStep?: number | null;
+  xTickDensity?: 'auto' | 'dense' | 'sparse';
   preset?: GraphPreset;
   height?: number | string;
   showGrid?: boolean;
@@ -34,6 +39,8 @@ interface TemperatureGraphProps {
   yMinOverride?: number | null;
   yMaxOverride?: number | null;
 }
+
+const SpecReferenceArea = ReferenceArea as any;
 
 const CHANNEL_COLORS: Record<number, string> = {
   1: '#E63946',
@@ -49,9 +56,13 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
   activeChannels = [1, 2, 3, 4, 5, 6],
   stats,
   dayBoundaries = null,
+  usl = null,
+  asl = null,
+  showSpecBand = true,
   thresholdTemp = null,
   thresholdLabel = 'Target Spec',
   yStep = null,
+  xTickDensity: propXTickDensity,
   preset = 'engineering',
   height = 360,
   showGrid = true,
@@ -71,14 +82,27 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
   // Explicit Y-Axis Step state
   const [selectedYStep, setSelectedYStep] = useState<number | null>(yStep ?? null);
 
+  useEffect(() => {
+    if (yStep !== undefined) {
+      setSelectedYStep(yStep);
+    }
+  }, [yStep]);
+
   // X-Axis Tick Density state
-  const [xTickDensity, setXTickDensity] = useState<'auto' | 'dense' | 'sparse'>('auto');
+  const [xTickDensity, setXTickDensity] = useState<'auto' | 'dense' | 'sparse'>(propXTickDensity || 'auto');
+
+  useEffect(() => {
+    if (propXTickDensity) {
+      setXTickDensity(propXTickDensity);
+    }
+  }, [propXTickDensity]);
+
   const minTickGap = xTickDensity === 'dense' ? 15 : xTickDensity === 'sparse' ? 50 : 25;
 
   // Day boundaries toggle state
   const [isDayLinesVisible, setIsDayLinesVisible] = useState<boolean>(showDayBoundaries);
 
-  // Threshold visual reference line state
+  // Threshold visual reference line state (legacy fallback if USL/ASL not supplied)
   const [isThresholdActive, setIsThresholdActive] = useState<boolean>(thresholdTemp !== null && thresholdTemp !== undefined);
   const [thresholdInput, setThresholdInput] = useState<string>(
     thresholdTemp !== null && thresholdTemp !== undefined ? String(thresholdTemp) : '24.0'
@@ -292,6 +316,36 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
               {showLegend && (
                 <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'monospace', paddingTop: '4px' }} />
               )}
+              {/* Acceptable Spec Region & Limits (ASL & USL) */}
+              {showSpecBand && usl !== null && asl !== null && asl < usl && (
+                <SpecReferenceArea
+                  y1={asl}
+                  y2={usl}
+                  fill="#10b981"
+                  fillOpacity={0.08}
+                  stroke="#10b981"
+                  strokeOpacity={0.3}
+                  strokeDasharray="2 2"
+                />
+              )}
+              {usl !== null && (
+                <ReferenceLine
+                  y={usl}
+                  stroke="#ef4444"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{ value: `USL (${usl.toFixed(1)}°C)`, position: 'right', fill: '#ef4444', fontSize: 9, fontFamily: 'monospace' }}
+                />
+              )}
+              {asl !== null && (
+                <ReferenceLine
+                  y={asl}
+                  stroke="#3b82f6"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{ value: `ASL (${asl.toFixed(1)}°C)`, position: 'right', fill: '#3b82f6', fontSize: 9, fontFamily: 'monospace' }}
+                />
+              )}
               {/* Day boundaries */}
               {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
                 <ReferenceLine
@@ -303,7 +357,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                   label={{ value: b.date, position: 'insideTopLeft', fill: '#64748b', fontSize: 8 }}
                 />
               ))}
-              {/* Visual threshold line */}
+              {/* Visual threshold line fallback */}
               {effectiveThreshold !== null && (
                 <ReferenceLine
                   y={effectiveThreshold}
@@ -347,6 +401,36 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
               <XAxis dataKey="timeStr" tick={{ fontSize: 10, fill: '#94a3b8' }} minTickGap={minTickGap} />
               <YAxis domain={[yMin, yMax]} ticks={yTicks} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
+              {/* Acceptable Spec Region & Limits (ASL & USL) */}
+              {showSpecBand && usl !== null && asl !== null && asl < usl && (
+                <SpecReferenceArea
+                  y1={asl}
+                  y2={usl}
+                  fill="#10b981"
+                  fillOpacity={0.08}
+                  stroke="#10b981"
+                  strokeOpacity={0.25}
+                  strokeDasharray="2 2"
+                />
+              )}
+              {usl !== null && (
+                <ReferenceLine
+                  y={usl}
+                  stroke="#ef4444"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{ value: `USL (${usl.toFixed(1)}°C)`, position: 'right', fill: '#ef4444', fontSize: 10, fontFamily: 'monospace' }}
+                />
+              )}
+              {asl !== null && (
+                <ReferenceLine
+                  y={asl}
+                  stroke="#3b82f6"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{ value: `ASL (${asl.toFixed(1)}°C)`, position: 'right', fill: '#3b82f6', fontSize: 10, fontFamily: 'monospace' }}
+                />
+              )}
               {/* Day boundaries */}
               {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
                 <ReferenceLine
@@ -357,7 +441,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                   label={{ value: b.date, position: 'insideTopLeft', fill: '#94a3b8', fontSize: 9 }}
                 />
               ))}
-              {/* Visual threshold line */}
+              {/* Visual threshold line fallback */}
               {effectiveThreshold !== null && (
                 <ReferenceLine
                   y={effectiveThreshold}
@@ -588,6 +672,48 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                 wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace', paddingTop: '8px' }}
               />
             )}
+            {/* Acceptable Spec Region & Limits (ASL & USL) */}
+            {showSpecBand && usl !== null && asl !== null && asl < usl && (
+              <SpecReferenceArea
+                y1={asl}
+                y2={usl}
+                fill="#10b981"
+                fillOpacity={0.08}
+                stroke="#10b981"
+                strokeOpacity={0.25}
+                strokeDasharray="2 2"
+              />
+            )}
+            {usl !== null && (
+              <ReferenceLine
+                y={usl}
+                stroke="#ef4444"
+                strokeDasharray="4 4"
+                strokeWidth={1.5}
+                label={{
+                  value: `USL (${usl.toFixed(1)}°C)`,
+                  position: 'right',
+                  fill: '#ef4444',
+                  fontSize: 10,
+                  fontFamily: 'monospace'
+                }}
+              />
+            )}
+            {asl !== null && (
+              <ReferenceLine
+                y={asl}
+                stroke="#3b82f6"
+                strokeDasharray="4 4"
+                strokeWidth={1.5}
+                label={{
+                  value: `ASL (${asl.toFixed(1)}°C)`,
+                  position: 'right',
+                  fill: '#3b82f6',
+                  fontSize: 10,
+                  fontFamily: 'monospace'
+                }}
+              />
+            )}
             {/* Day Boundaries Reference Lines */}
             {effectiveShowDayLines && boundaryReferenceLines.map((b) => (
               <ReferenceLine
@@ -605,7 +731,7 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
                 }}
               />
             ))}
-            {/* Visual Threshold Reference Line */}
+            {/* Visual Threshold Reference Line (Fallback) */}
             {effectiveThreshold !== null && (
               <ReferenceLine
                 y={effectiveThreshold}
