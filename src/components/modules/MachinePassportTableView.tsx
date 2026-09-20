@@ -46,9 +46,8 @@ interface SubjectCardDef {
   name: string;
   categoryTag: string;
   icon: React.ComponentType<{ className?: string }>;
-  accentColor: string;
   badgeText?: string;
-  badgeVariant?: 'emerald' | 'amber' | 'rose' | 'cyan' | 'blue';
+  badgeVariant?: 'emerald' | 'amber' | 'rose' | 'gray';
 }
 
 export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> = ({
@@ -67,14 +66,13 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
     setFlippedCards((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Define the seven flat subject cards
+  // Define the seven flat subject cards with restrained industrial styling
   const subjects: SubjectCardDef[] = [
     {
       id: 'lifecycle',
       name: 'Lifecycle & Health',
       categoryTag: 'LMS v2 Core',
       icon: Zap,
-      accentColor: 'indigo',
       badgeText: machineMetrics.status === 'BASELINE_REQUIRED' ? 'Baseline Required' : machineMetrics.status,
       badgeVariant:
         machineMetrics.status === 'SAFE'
@@ -83,61 +81,55 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
           ? 'amber'
           : machineMetrics.status === 'ALARM'
           ? 'rose'
-          : 'amber'
+          : 'gray'
     },
     {
       id: 'temperature',
       name: 'Temperature',
       categoryTag: 'Thermal Spec',
       icon: Thermometer,
-      accentColor: 'sky',
       badgeText: `${(machine.temperatureRecords?.length || 0) + (machine.manualTemperatureReadings?.length || 0)} Logs`,
-      badgeVariant: 'cyan'
+      badgeVariant: 'gray'
     },
     {
       id: 'laser_power',
       name: 'Laser Power',
       categoryTag: 'Optical Power',
       icon: Zap,
-      accentColor: 'amber',
       badgeText: `${machine.laserPowerRecords?.length || 0} Records`,
-      badgeVariant: 'amber'
+      badgeVariant: 'gray'
     },
     {
       id: 'beam_profile',
       name: 'Beam Profile',
       categoryTag: 'Spatial Mode',
       icon: Aperture,
-      accentColor: 'emerald',
       badgeText: `${machine.beamProfileRecords?.length || 0} Records`,
-      badgeVariant: 'emerald'
+      badgeVariant: 'gray'
     },
     {
       id: 'focus_optimization',
       name: 'Focus Optimization',
       categoryTag: 'Focal Alignment',
       icon: Crosshair,
-      accentColor: 'purple',
       badgeText: `${machine.focusOptimizationRecords?.length || 0} Scans`,
-      badgeVariant: 'blue'
+      badgeVariant: 'gray'
     },
     {
       id: 'product_process',
       name: 'Product & Process',
       categoryTag: 'Process Verification',
       icon: Layers,
-      accentColor: 'indigo',
       badgeText: `${machine.productProcessRecords?.length || 0} Records`,
-      badgeVariant: 'blue'
+      badgeVariant: 'gray'
     },
     {
       id: 'recommended_parts',
       name: 'Recommended Items',
       categoryTag: 'Parts & Consumables',
       icon: Package,
-      accentColor: 'emerald',
-      badgeText: `${machine.consumables?.length || 0} Consumables`,
-      badgeVariant: 'emerald'
+      badgeText: `${machine.consumables?.length || 0} Items`,
+      badgeVariant: 'gray'
     }
   ];
 
@@ -206,7 +198,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 MHC Cooling Target
               </span>
-              <span className={`text-base font-bold font-mono ${isDark ? 'text-sky-400' : 'text-sky-700'}`}>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {hasCoolingSpec ? `${coolingSpec.targetTempCelsius}°C` : '—'}
               </span>
             </div>
@@ -246,7 +238,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Target Laser Power
               </span>
-              <span className={`text-base font-bold font-mono ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {hasPowerSpec ? `${powerSpec.targetPowerWatts} W` : '—'}
               </span>
             </div>
@@ -285,7 +277,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Spatial Mode
               </span>
-              <span className={`text-xs font-bold font-mono truncate max-w-[140px] ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              <span className={`text-xs font-bold font-mono truncate max-w-[140px] ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {beamMode || 'Gaussian (TEM00)'}
               </span>
             </div>
@@ -325,7 +317,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Stage Tolerance
               </span>
-              <span className={`text-base font-bold font-mono ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {stageTol !== undefined && stageTol !== null ? `±${stageTol} µm` : '—'}
               </span>
             </div>
@@ -364,7 +356,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Active Process
               </span>
-              <span className={`text-xs font-bold font-mono truncate max-w-[140px] ${isDark ? 'text-indigo-400' : 'text-indigo-700'}`}>
+              <span className={`text-xs font-bold font-mono truncate max-w-[140px] ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {latestRec?.productName || latestRec?.recipeName || 'Production Job'}
               </span>
             </div>
@@ -411,7 +403,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               <span className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Machine Family
               </span>
-              <span className={`text-xs font-bold font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              <span className={`text-xs font-bold font-mono ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                 {familyName}
               </span>
             </div>
@@ -447,12 +439,29 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
       <div className="flex flex-col justify-between h-full space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between border-b pb-1.5 border-slate-200 dark:border-slate-800">
-            <span className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Technical Inspection Card
-            </span>
-            <span className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {subject.categoryTag}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Technical Specs
+              </span>
+              <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                • {subject.categoryTag}
+              </span>
+            </div>
+
+            {/* Flip back to front button */}
+            <button
+              type="button"
+              aria-label={`Flip back to ${subject.name} overview`}
+              onClick={(e) => toggleFlip(subject.id, e)}
+              title="Flip back to front"
+              className={`p-1.5 rounded-lg border transition-colors ${
+                isDark
+                  ? 'bg-[#1C2026] border-[#2B323A] text-slate-400 hover:text-white hover:bg-[#242A32]'
+                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           <div className={`text-xs space-y-1.5 font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -535,19 +544,30 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
           </div>
         </div>
 
-        {/* Action button on back of card */}
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<ArrowRight className="w-3.5 h-3.5" />}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectSubject(subject.id);
-          }}
-          className="w-full text-xs font-sans font-semibold justify-center"
-        >
-          Open {subject.name} Workspace
-        </Button>
+        {/* Actions on back of card */}
+        <div className="space-y-1.5">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<ArrowRight className="w-3.5 h-3.5" />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectSubject(subject.id);
+            }}
+            className="w-full text-xs font-sans font-semibold justify-center"
+          >
+            Open {subject.name} Workspace
+          </Button>
+          <button
+            type="button"
+            onClick={(e) => toggleFlip(subject.id, e)}
+            className={`w-full py-1 text-[10px] font-mono text-center transition-colors ${
+              isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            ← Return to Overview
+          </button>
+        </div>
       </div>
     );
   };
@@ -558,7 +578,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-[#2B323A]">
         <div>
           <h2 className={`text-base font-bold font-mono tracking-tight flex items-center gap-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-            <Activity className="w-4 h-4 text-indigo-500" />
+            <Activity className="w-4 h-4 text-slate-400" />
             Engineering Inspection Table
           </h2>
           <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -616,7 +636,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
-                            isDark ? 'bg-[#1C2026] border-[#2B323A] text-indigo-400' : 'bg-slate-100 border-slate-200 text-indigo-600'
+                            isDark ? 'bg-[#1C2026] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
                           }`}>
                             <Icon className="w-4 h-4" />
                           </div>
@@ -653,7 +673,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
                       {/* Badge / Status Indicator */}
                       {subject.badgeText && (
                         <div className="mt-2.5 flex items-center gap-1.5">
-                          <Badge variant={subject.badgeVariant || 'blue'} size="sm">
+                          <Badge variant={subject.badgeVariant || 'gray'} size="sm">
                             {subject.badgeText}
                           </Badge>
                         </div>
@@ -669,10 +689,14 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
                     <div className={`pt-3 border-t flex items-center justify-between text-xs font-mono font-medium ${
                       isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'
                     }`}>
-                      <span className="text-[11px] group-hover:text-indigo-400 transition-colors">
-                        Click to inspect →
+                      <span className={`text-[11px] transition-colors ${
+                        isDark ? 'group-hover:text-slate-200' : 'group-hover:text-slate-900'
+                      }`}>
+                        Open workspace →
                       </span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-indigo-400" />
+                      <ArrowRight className={`w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all ${
+                        isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-900'
+                      }`} />
                     </div>
                   </div>
                 ) : (

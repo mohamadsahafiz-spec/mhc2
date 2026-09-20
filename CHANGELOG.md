@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.1.4 — Machine Passport Table Interaction & Visual Refinement (2026-09-20)
+
+### Machine Passport Visual & Interaction Refinement
+- **Restrained Industrial Color System**: Replaced multicolored rainbow accents across subject cards with calm, neutral dark surfaces, monochrome icons, neutral badges for counts/records, and high-contrast neutral data typography while strictly preserving semantic status indicators (SAFE, WARNING, ALARM, Established, Verified, PASS).
+- **Removed Duplicate Horizontal Navigation**: Removed duplicate horizontal subject-navigation pills from the subject workspace header, strictly adhering to the linear `Machine Table → Select Card → Subject Workspace → Back to Machine Table` model.
+- **Deterministic Bidirectional Flip Interaction**: Added explicit flip toggle controls and a dedicated return action to the technical inspection back-face, ensuring reliable `FRONT ↔ BACK` card reversibility.
+- **Clarified Interaction Hierarchy**: Separated the technical card flip action from the workspace inspection action (`Open workspace →`) to eliminate competing or ambiguous navigation behaviors.
+
 ## v3.1.3 — Machine Passport Table View (2026-09-20)
 
 ### Machine Passport Table View
