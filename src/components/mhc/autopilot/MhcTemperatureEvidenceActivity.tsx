@@ -9,7 +9,9 @@ import {
   ArrowRight, 
   RefreshCw, 
   Cpu,
-  LineChart as LineChartIcon
+  LineChart as LineChartIcon,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { 
   Machine, 
@@ -238,6 +240,65 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
   const stats = tempEvidenceData?.stats;
   const channelStats = tempEvidenceData?.channelStats;
 
+  // Authoritative MHC Temperature Spec Limits (USL & ASL)
+  const mhcCoolingSpec = session.mhcSpecs?.temperatureCooling || machine?.mhcSpecs?.temperatureCooling;
+  const targetTemp = (mhcCoolingSpec?.targetTempCelsius !== undefined && mhcCoolingSpec?.targetTempCelsius !== null)
+    ? mhcCoolingSpec.targetTempCelsius
+    : undefined;
+  const tempTolerance = (mhcCoolingSpec?.tempToleranceCelsius !== undefined && mhcCoolingSpec?.tempToleranceCelsius !== null)
+    ? mhcCoolingSpec.tempToleranceCelsius
+    : undefined;
+  const hasSpecLimits = targetTemp !== undefined && tempTolerance !== undefined;
+  const usl = hasSpecLimits ? targetTemp + tempTolerance : undefined;
+  const asl = hasSpecLimits ? targetTemp - tempTolerance : undefined;
+
+  // Table sorting state for 5-column Engineering Table
+  type TableSortKey = 'ch' | 'min' | 'max' | 'avg' | 'range';
+  const [tableSortKey, setTableSortKey] = useState<TableSortKey>('ch');
+  const [tableSortDir, setTableSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleTableSort = (key: TableSortKey) => {
+    if (tableSortKey === key) {
+      setTableSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setTableSortKey(key);
+      setTableSortDir(key === 'ch' ? 'asc' : 'desc');
+    }
+  };
+
+  const channelEntries = useMemo(() => {
+    if (!channelStats) return [];
+    return Object.entries(channelStats).map(([chStr, s]) => ({
+      ch: parseInt(chStr, 10),
+      stat: s as ChannelStats
+    }));
+  }, [channelStats]);
+
+  const sortedChannelEntries = useMemo(() => {
+    return [...channelEntries].sort((a, b) => {
+      let comparison = 0;
+      if (tableSortKey === 'ch') comparison = a.ch - b.ch;
+      else if (tableSortKey === 'min') comparison = a.stat.min - b.stat.min;
+      else if (tableSortKey === 'max') comparison = a.stat.max - b.stat.max;
+      else if (tableSortKey === 'avg') comparison = a.stat.avg - b.stat.avg;
+      else if (tableSortKey === 'range') comparison = a.stat.range - b.stat.range;
+      return tableSortDir === 'asc' ? comparison : -comparison;
+    });
+  }, [channelEntries, tableSortKey, tableSortDir]);
+
+  const minMin = useMemo(() => channelEntries.length > 0 ? Math.min(...channelEntries.map(e => e.stat.min)) : 0, [channelEntries]);
+  const maxMin = useMemo(() => channelEntries.length > 0 ? Math.max(...channelEntries.map(e => e.stat.min)) : 0, [channelEntries]);
+  const minMax = useMemo(() => channelEntries.length > 0 ? Math.min(...channelEntries.map(e => e.stat.max)) : 0, [channelEntries]);
+  const maxMax = useMemo(() => channelEntries.length > 0 ? Math.max(...channelEntries.map(e => e.stat.max)) : 0, [channelEntries]);
+  const minAvg = useMemo(() => channelEntries.length > 0 ? Math.min(...channelEntries.map(e => e.stat.avg)) : 0, [channelEntries]);
+  const maxAvg = useMemo(() => channelEntries.length > 0 ? Math.max(...channelEntries.map(e => e.stat.avg)) : 0, [channelEntries]);
+  const maxRange = useMemo(() => channelEntries.length > 0 ? Math.max(...channelEntries.map(e => e.stat.range), 0.1) : 0.1, [channelEntries]);
+
+  const calcMinPct = (val: number) => (maxMin === minMin ? 50 : Math.max(12, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20)));
+  const calcMaxPct = (val: number) => (maxMax === minMax ? 50 : Math.max(12, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20)));
+  const calcAvgPct = (val: number) => (maxAvg === minAvg ? 50 : Math.max(12, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20)));
+  const calcRangePct = (val: number) => Math.max(8, Math.min(100, (val / maxRange) * 100));
+
   return (
     <div className={`p-4 sm:p-6 rounded-2xl border space-y-6 ${
       isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
@@ -462,41 +523,186 @@ export const MhcTemperatureEvidenceActivity: React.FC<MhcTemperatureEvidenceActi
                     showGrid={true}
                     showLegend={true}
                     showStatsBanner={false}
-                    showYAxisControls={true}
+                    showYAxisControls={false}
+                    usl={usl}
+                    asl={asl}
+                    showSpecBand={true}
                   />
                 </div>
               </div>
             )}
 
-            {/* Channel Station Breakdown Table */}
+            {/* 5-Column Engineering Summary Table: CH | MIN | MAX | AVG | RANGE */}
             {channelStats && Object.keys(channelStats).length > 0 && (
               <div className="space-y-2 pt-1">
-                <div className="text-xs font-bold text-slate-300 font-mono uppercase">
-                  Station Channel Breakdown
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-slate-300 font-mono uppercase">
+                    Per-Channel Engineering Summary
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    MIN (Blue) · MAX (Red) · AVG (Green) · RANGE (Purple) · Click header to sort
+                  </span>
                 </div>
-                <div className="overflow-x-auto rounded-xl border border-slate-700/60">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-700/60 uppercase text-[10px]">
-                        <th className="py-2 px-3">Station / Channel</th>
-                        <th className="py-2 px-3">Min (°C)</th>
-                        <th className="py-2 px-3">Max (°C)</th>
-                        <th className="py-2 px-3">Avg (°C)</th>
-                        <th className="py-2 px-3">Range (°C)</th>
-                        <th className="py-2 px-3">Points</th>
+
+                <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
+                  isDark ? 'border-[#242A32] bg-[#111315]' : 'border-slate-300 bg-white'
+                }`}>
+                  <table className="w-full text-left border-collapse">
+                    <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#242A32]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
+                      <tr>
+                        <th className="py-2.5 px-3 font-mono font-medium text-[11px] w-28">
+                          <button
+                            type="button"
+                            onClick={() => handleTableSort('ch')}
+                            className="flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none text-slate-300 hover:text-white"
+                            title="Sort by Channel"
+                          >
+                            <span>CH</span>
+                            {tableSortKey === 'ch' ? (
+                              tableSortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">
+                          <button
+                            type="button"
+                            onClick={() => handleTableSort('min')}
+                            className="flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none text-slate-300 hover:text-white"
+                            title="Sort by Min Temperature"
+                          >
+                            <span>MIN</span>
+                            {tableSortKey === 'min' ? (
+                              tableSortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">
+                          <button
+                            type="button"
+                            onClick={() => handleTableSort('max')}
+                            className="flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none text-slate-300 hover:text-white"
+                            title="Sort by Max Temperature"
+                          >
+                            <span>MAX</span>
+                            {tableSortKey === 'max' ? (
+                              tableSortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">
+                          <button
+                            type="button"
+                            onClick={() => handleTableSort('avg')}
+                            className="flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none text-slate-300 hover:text-white"
+                            title="Sort by Average Temperature"
+                          >
+                            <span>AVG</span>
+                            {tableSortKey === 'avg' ? (
+                              tableSortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">
+                          <button
+                            type="button"
+                            onClick={() => handleTableSort('range')}
+                            className="flex items-center gap-1.5 uppercase font-mono tracking-wider transition-colors select-none text-slate-300 hover:text-white"
+                            title="Sort by Thermal Delta / Range"
+                          >
+                            <span>RANGE</span>
+                            {tableSortKey === 'range' ? (
+                              tableSortDir === 'asc' ? <ChevronUp className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />
+                            ) : (
+                              <span className="text-[10px] text-slate-500 opacity-40">↕</span>
+                            )}
+                          </button>
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
-                      {Object.entries(channelStats).map(([chStr, rawStat]) => {
-                        const chStat = rawStat as ChannelStats;
+                    <tbody className={`divide-y ${isDark ? 'divide-[#1E232B]' : 'divide-slate-200'}`}>
+                      {sortedChannelEntries.map(({ ch, stat: chStat }) => {
+                        const markboxName = ch === 1 || ch === 4 ? 'MB1' : ch === 2 || ch === 5 ? 'MB2' : 'MB3';
                         return (
-                          <tr key={chStr} className="hover:bg-slate-800/40 font-mono">
-                            <td className="py-2 px-3 font-bold text-cyan-300">Station {chStr}</td>
-                            <td className="py-2 px-3 text-slate-300">{chStat.min.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-slate-300">{chStat.max.toFixed(2)}</td>
-                            <td className="py-2 px-3 font-semibold text-emerald-400">{chStat.avg.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-slate-400">{chStat.range.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-slate-500">{chStat.points.toLocaleString()}</td>
+                          <tr key={ch} className={isDark ? 'hover:bg-[#16191D]' : 'hover:bg-slate-50'}>
+                            {/* CH */}
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              <div className="inline-flex items-center gap-1.5 font-mono text-xs">
+                                <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>CH{ch}</span>
+                                <span className="text-[10px] text-slate-400 font-normal">({markboxName})</span>
+                              </div>
+                            </td>
+
+                            {/* MIN (Subdued Blue proportional cell-background fill) */}
+                            <td className="p-0 relative">
+                              <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                                <div
+                                  className="absolute inset-y-0 left-0 bg-sky-500/[0.04] dark:bg-sky-500/[0.045] border-r border-sky-400/10 pointer-events-none transition-all duration-200"
+                                  style={{ width: `${calcMinPct(chStat.min)}%` }}
+                                />
+                                <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                                  <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {chStat.min.toFixed(1)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* MAX (Subdued Red proportional cell-background fill) */}
+                            <td className="p-0 relative">
+                              <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                                <div
+                                  className="absolute inset-y-0 left-0 bg-rose-500/[0.04] dark:bg-rose-500/[0.045] border-r border-rose-400/10 pointer-events-none transition-all duration-200"
+                                  style={{ width: `${calcMaxPct(chStat.max)}%` }}
+                                />
+                                <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                                  <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {chStat.max.toFixed(1)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* AVG (Subdued Green proportional cell-background fill) */}
+                            <td className="p-0 relative">
+                              <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                                <div
+                                  className="absolute inset-y-0 left-0 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.045] border-r border-emerald-400/10 pointer-events-none transition-all duration-200"
+                                  style={{ width: `${calcAvgPct(chStat.avg)}%` }}
+                                />
+                                <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                                  <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {chStat.avg.toFixed(1)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* RANGE (Subdued Purple proportional cell-background fill) */}
+                            <td className="p-0 relative">
+                              <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                                <div
+                                  className="absolute inset-y-0 left-0 bg-purple-500/[0.04] dark:bg-purple-500/[0.045] border-r border-purple-400/10 pointer-events-none transition-all duration-200"
+                                  style={{ width: `${calcRangePct(chStat.range)}%` }}
+                                />
+                                <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                                  <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {chStat.range.toFixed(1)}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-normal">°C</span>
+                                </div>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}

@@ -1,5 +1,57 @@
 # FSOS CHANGELOG
 
+## v3.2.2 — Machine Passport Flip Card Hero Previews (2026-09-20)
+
+### Machine Passport Flip Card Hero Previews
+- **Transformed Card Backs into Bold Visual Heroes**: Replaced multi-metric "mini-dashboard" layouts across all 7 Machine Passport card backs with clean, high-contrast subsystem hero visuals.
+- **Lifecycle & Health Circular Arc**: Centered high-contrast radial gauge arc visual with primary health percentage and minimal LMS runtime laser hour metadata.
+- **Temperature Thermal Waveform**: Dedicated 60-minute cooling loop telemetry waveform graph dominating the card back with target reference guides and current readout.
+- **Laser Power & Head Hours**: High-impact dual digital hour meters (`HEAD A`, `HEAD B`) paired with optical power calibration and 50kHz emission verification.
+- **Beam Profile Viewport**: Large CCD camera sensor viewport displaying the high-resolution beam profile capture with optical reticle crosshair overlay and spatial mode verification.
+- **Focus Optimization Rayleigh Curve**: Parabolic optical focal waist beam envelope visualization highlighting the calibrated optimal focal plane (`Pos 0`).
+- **Product & Process Micro-Via SEM**: Substrate cross-section diagram showing laser-machined trapezoidal micro-via geometry with top/bottom diameter callouts.
+- **Recommended Parts Blueprint**: Circular optical window CAD schematic with integrated wear meter and remaining service days.
+- **Strict Visual Discipline**: Minimalist typography, restrained contrast, zero rainbow palettes, and no artificial cards or synthetic dashboards.
+
+## v3.2.1 — Machine Passport Flip Card Workspace Preview Enhancement (2026-09-20)
+
+### Machine Passport Flip Card Workspace Preview Enhancement
+- **Replaced Text-Heavy Back Faces with Compact Workspace Previews**: Upgraded the back faces of all 7 Machine Passport cards from static specification text into authentic, compact visual/data previews ("glimpses inside") derived strictly from authoritative machine records and telemetry models.
+- **Lifecycle & Health Preview**: Displays overall operating health score alongside multi-head running hours vs. rated life metrics (`hoursUsed / ratedHours`) and compact lifecycle bars with last MHC inspection verification.
+- **Temperature Thermal Telemetry Preview**: Displays target/cooling specifications (`targetTempCelsius ± tempToleranceCelsius`), multi-channel stability status, and a crisp miniature SVG trend sparkline with Min/Avg/Max temperature readouts.
+- **Laser Power & Hours Preview**: Directly displays multi-head laser running hours (`HEAD A: 642 h`, `HEAD B: 642 h`) paired with external power meter readings (`15.2 W`, `15.0 W @ 50kHz`), target tolerances, and calibration pass verdicts.
+- **Beam Profile Evidence Preview**: Renders paired beam capture thumbnails (Source vs. Flat Top) with measured beam diameters (`Ø 3.50 mm`, `Ø 4.15 mm`) utilizing resolved images and authoritative spatial mode verification.
+- **Focus Optimization Sweep Preview**: Visualizes the 7-step focal depth sweep array (`[-3] to [+3]`) with the active calibrated optimal focus position (`Pos 0`) highlighted alongside stage and galvo tolerances.
+- **Product & Process Preview**: Shows active production recipe and lot parameters (`RCP-VIA-50UM-V2`), phase 1 laser drilling parameters (`2.2W / 50kHz / 2 shots`), and substrate via hole geometry verification (Top/Bottom via µm) with PASS verdicts.
+- **Recommended Items Preview**: Shows tracked machine consumable items (e.g. Optical Protection Glass, Deionizer Filter) with real wear percentages, remaining service days, and BMD family catalog readiness.
+- **Founder-Approved Restrained Aesthetics**: Enforced neutral dark/light FSOS surfaces, restrained typography, and purposeful semantic accents only (no rainbow colors, extraneous cards, or synthetic mock dashboards).
+
+## v3.2.0 — Machine Passport 3D Flip Card Enhancement (2026-09-20)
+
+### Machine Passport 3D Flip Card Enhancement
+- **Precision 3D FlipCard Component**: Implemented a modular, accessible `FlipCard` component utilizing `motion/react` with restrained Y-axis 3D rotation (`axis="y"`), subtle interactive mouse tilt (~3.5°), restrained hover scale (1.01), soft shadows, and clean border radii matching FSOS Calm Industrial specifications without glare, neon, or extraneous gradients.
+- **Machine Passport Table Grid Integration**: Upgraded the 7 spatial engineering cards in `MachinePassportTableView` (`Lifecycle & Health`, `Temperature`, `Laser Power`, `Beam Profile`, `Focus Optimization`, `Product & Process`, `Recommended Items`) with physical 3D card-flip interaction while preserving the layout, data flow, and responsive grid.
+- **Clear Flip vs. Navigation Affordances**: Separated card flip interaction (clicking card body or flip rotate button) from explicit workspace entry (`Open` action button), preventing ambiguous interaction states.
+- **Accessibility & Reduced Motion**: Enforced complete keyboard accessibility (Space/Enter toggle on card container, Tab navigation to inner interactive elements) and instant zero-duration fallbacks for `prefers-reduced-motion` settings.
+- **Preserved Core Subsystems**: Preserved all 7 subject workspaces, Temperature analysis view, MHC Autopilot, Full PDF generation, and laser calculation engines.
+
+## v3.1.9 — MHC Autopilot & Report Temperature Engineering UX Alignment (2026-09-20)
+
+### MHC Autopilot & Report Temperature Engineering UX Alignment
+- **MHC Autopilot Temperature Engineering Table**: Applied the Founder-approved 5-column engineering table (`CH | MIN | MAX | AVG | RANGE`) with subdued proportional cell-background fills (MIN: Blue, MAX: Red, AVG: Green, RANGE: Purple), removing the legacy 6-column layout and the redundant POINTS column while preserving crisp numeric typography.
+- **MHC Autopilot Graph Inspection Cleanliness**: Removed Y-axis editing controls from the Autopilot telemetry chart to establish a dedicated inspection view, and enabled the visual USL/ASL specification band derived from authoritative MHC Cooling specs (`session.mhcSpecs?.temperatureCooling` / `machine.mhcSpecs?.temperatureCooling`).
+- **MHC Full PDF Section 11 Engineering Matrix**: Replaced the Section 11 telemetry table with the approved 5-column engineering table featuring subdued proportional cell fills (`CH | MIN | MAX | AVG | RANGE`), removed POINTS and STATUS columns, preserved Markbox 1/2/3 subsystem assignments (`MB1`/`MB2`/`MB3`), and enabled the visual USL/ASL spec tolerance band on the report graph within strict Page 8 A4 budget.
+- **Preserved Core Data & Workflow Authority**: Maintained all underlying data models, TemperatureEngine calculations, TempRawStore raw telemetry persistence, session sync, and Activity 06 completion logic.
+
+## v3.1.8 — Temperature Final Cleanup and Release Correction (2026-09-20)
+
+### Temperature Final Cleanup and Release Correction
+- **Completely Removed Manual Spot Readings**: Removed the obsolete "Manual Spot Readings" user-facing presentation section, empty-state container, and handlers from the Temperature workspace while strictly preserving all automated telemetry, imported logs, saved records, and MHC reporting.
+- **Subdued & Softened Engineering Table Color Intensity**: Refined the proportional cell-background fill visualization in the Per-Channel Engineering Summary table (MIN: Blue, MAX: Red, AVG: Green, RANGE: Purple) with subdued, technical wash layers and subtle vertical trailing indicators, ensuring numeric measurements remain high contrast, crisp, and dominant.
+- **Interactive Engineering Table Sorting**: Added table-only sorting across CH, MIN, MAX, AVG, and RANGE columns with directional indicators without modifying graph channel selections, chart order, or underlying telemetry data.
+- **Removed Points Column**: Removed the redundant POINTS column from the engineering summary table for a streamlined 5-column inspection view.
+- **Zero-Channel Hook Stability**: Resolved React hook lifecycle ordering to ensure the chart renders the "NO CHANNELS SELECTED" guidance state gracefully without application blanking when all channels are deselected.
+
 ## v3.1.7 — Temperature Final Engineering Table & Channel State Correction (2026-09-20)
 
 ### Temperature Final Engineering Table & Channel State Correction

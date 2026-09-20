@@ -2761,58 +2761,107 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                               </div>
                             </div>
 
-                            {/* 6-Channel Telemetry Matrix Table */}
-                            {sections['11'].data.channelStats && Object.keys(sections['11'].data.channelStats).length > 0 && (
-                              <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                                <div className="flex items-center justify-between text-[9.5px] text-slate-600 font-bold uppercase">
-                                  <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
-                                  <span className="text-cyan-800 font-bold">{tableSpecText}</span>
+                            {/* 6-Channel Telemetry Matrix Table (Approved Engineering Table: CH | MIN | MAX | AVG | RANGE) */}
+                            {sections['11'].data.channelStats && Object.keys(sections['11'].data.channelStats).length > 0 && (() => {
+                              const chEntries = Object.entries(sections['11'].data.channelStats).sort(
+                                (a, b) => parseInt(a[0], 10) - parseInt(b[0], 10)
+                              );
+                              const minMin = Math.min(...chEntries.map(([_, s]) => (s as any).min ?? 0));
+                              const maxMin = Math.max(...chEntries.map(([_, s]) => (s as any).min ?? 0));
+                              const minMax = Math.min(...chEntries.map(([_, s]) => (s as any).max ?? 0));
+                              const maxMax = Math.max(...chEntries.map(([_, s]) => (s as any).max ?? 0));
+                              const minAvg = Math.min(...chEntries.map(([_, s]) => (s as any).avg ?? 0));
+                              const maxAvg = Math.max(...chEntries.map(([_, s]) => (s as any).avg ?? 0));
+                              const maxRange = Math.max(...chEntries.map(([_, s]) => ((s as any).range ?? ((s as any).max - (s as any).min)) || 0), 0.1);
+
+                              const calcMinPct = (val: number) => (maxMin === minMin ? 50 : Math.max(12, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20)));
+                              const calcMaxPct = (val: number) => (maxMax === minMax ? 50 : Math.max(12, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20)));
+                              const calcAvgPct = (val: number) => (maxAvg === minAvg ? 50 : Math.max(12, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20)));
+                              const calcRangePct = (val: number) => Math.max(8, Math.min(100, (val / maxRange) * 100));
+
+                              return (
+                                <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                                  <div className="flex items-center justify-between text-[9.5px] text-slate-600 font-bold uppercase">
+                                    <span>6-CHANNEL OPTICS MARKBOX AIR-COOLING MATRIX</span>
+                                    <span className="text-cyan-800 font-bold">{tableSpecText}</span>
+                                  </div>
+                                  <table className="w-full text-left text-[10px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden font-mono">
+                                    <thead>
+                                      <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50 text-[9px]">
+                                        <th className="py-1 px-2.5 w-24">CH</th>
+                                        <th className="py-1 px-2.5">MIN (°C)</th>
+                                        <th className="py-1 px-2.5">MAX (°C)</th>
+                                        <th className="py-1 px-2.5">AVG (°C)</th>
+                                        <th className="py-1 px-2.5">RANGE (°C)</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {chEntries.map(([chNum, rawStat]) => {
+                                        const cStat = rawStat as { min: number; max: number; avg: number; range?: number };
+                                        const rangeVal = cStat.range ?? (cStat.max - cStat.min);
+                                        const mbTag = chNum === '1' || chNum === '4' ? 'MB1' : chNum === '2' || chNum === '5' ? 'MB2' : 'MB3';
+                                        return (
+                                          <tr key={chNum}>
+                                            <td className="py-1 px-2.5 whitespace-nowrap">
+                                              <span className="font-bold text-slate-900">CH{chNum}</span>
+                                              <span className="text-[8.5px] text-slate-400 font-normal ml-1">({mbTag})</span>
+                                            </td>
+                                            {/* MIN (Subdued Blue) */}
+                                            <td className="p-0 relative">
+                                              <div className="relative h-6 px-2.5 flex items-center overflow-hidden">
+                                                <div
+                                                  className="absolute inset-y-0 left-0 bg-sky-500/[0.04] border-r border-sky-400/10 pointer-events-none"
+                                                  style={{ width: `${calcMinPct(cStat.min)}%` }}
+                                                />
+                                                <span className="relative z-10 font-bold text-slate-800 text-[10px]">
+                                                  {cStat.min.toFixed(1)}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            {/* MAX (Subdued Red) */}
+                                            <td className="p-0 relative">
+                                              <div className="relative h-6 px-2.5 flex items-center overflow-hidden">
+                                                <div
+                                                  className="absolute inset-y-0 left-0 bg-rose-500/[0.04] border-r border-rose-400/10 pointer-events-none"
+                                                  style={{ width: `${calcMaxPct(cStat.max)}%` }}
+                                                />
+                                                <span className="relative z-10 font-bold text-slate-800 text-[10px]">
+                                                  {cStat.max.toFixed(1)}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            {/* AVG (Subdued Green) */}
+                                            <td className="p-0 relative">
+                                              <div className="relative h-6 px-2.5 flex items-center overflow-hidden">
+                                                <div
+                                                  className="absolute inset-y-0 left-0 bg-emerald-500/[0.04] border-r border-emerald-400/10 pointer-events-none"
+                                                  style={{ width: `${calcAvgPct(cStat.avg)}%` }}
+                                                />
+                                                <span className="relative z-10 font-bold text-slate-900 text-[10px]">
+                                                  {cStat.avg.toFixed(1)}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            {/* RANGE (Subdued Purple) */}
+                                            <td className="p-0 relative">
+                                              <div className="relative h-6 px-2.5 flex items-center overflow-hidden">
+                                                <div
+                                                  className="absolute inset-y-0 left-0 bg-purple-500/[0.04] border-r border-purple-400/10 pointer-events-none"
+                                                  style={{ width: `${calcRangePct(rangeVal)}%` }}
+                                                />
+                                                <span className="relative z-10 font-bold text-slate-800 text-[10px]">
+                                                  {rangeVal.toFixed(1)}
+                                                </span>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
                                 </div>
-                                <table className="w-full text-left text-[10.5px] border-collapse bg-white rounded-lg border border-slate-200 overflow-hidden">
-                                  <thead>
-                                    <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50 font-mono text-[9.5px]">
-                                      <th className="py-1.5 px-2.5">CHANNEL</th>
-                                      <th className="py-1.5 px-2.5">ASSIGNED OPTICS MARKBOX</th>
-                                      <th className="py-1.5 px-2.5">MIN (°C)</th>
-                                      <th className="py-1.5 px-2.5">MAX (°C)</th>
-                                      <th className="py-1.5 px-2.5">AVG (°C)</th>
-                                      <th className="py-1.5 px-2.5 text-right font-sans">STATUS</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {Object.entries(sections['11'].data.channelStats).map(([chNum, rawStat]) => {
-                                      const cStat = rawStat as { min: number; max: number; avg: number };
-                                      const chMapping: Record<string, string> = {
-                                        '1': 'Markbox 1',
-                                        '2': 'Markbox 2',
-                                        '3': 'Markbox 3',
-                                        '4': 'Markbox 1',
-                                        '5': 'Markbox 2',
-                                        '6': 'Markbox 3'
-                                      };
-                                      const markboxName = chMapping[chNum] || `Markbox ${chNum}`;
-                                      const isPass = minSpec !== undefined && maxSpec !== undefined
-                                        ? (cStat.avg >= minSpec && cStat.avg <= maxSpec)
-                                        : true;
-                                      return (
-                                        <tr key={chNum}>
-                                          <td className="py-1.5 px-2.5 font-bold text-slate-800 font-mono">CH{chNum}</td>
-                                          <td className="py-1.5 px-2.5 font-bold text-slate-800 font-sans">{markboxName}</td>
-                                          <td className="py-1.5 px-2.5 text-slate-600 font-mono">{cStat.min.toFixed(2)}</td>
-                                          <td className="py-1.5 px-2.5 text-slate-600 font-mono">{cStat.max.toFixed(2)}</td>
-                                          <td className="py-1.5 px-2.5 font-bold text-cyan-900 font-mono">{cStat.avg.toFixed(2)}</td>
-                                          <td className="py-1.5 px-2.5 text-right">
-                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                              {isPass ? 'PASS' : 'WARN'}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Authoritative Multi-Channel Thermal Profile Graph */}
                             {sections['11'].data.channelData && Object.keys(sections['11'].data.channelData).length > 0 && (
@@ -2829,6 +2878,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                                     height={180}
                                     showLegend={true}
                                     showGrid={true}
+                                    usl={maxSpec}
+                                    asl={minSpec}
+                                    showSpecBand={true}
                                   />
                                 </div>
                               </div>

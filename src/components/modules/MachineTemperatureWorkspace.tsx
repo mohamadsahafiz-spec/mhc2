@@ -25,7 +25,6 @@ import {
 import { Machine } from '../../types';
 import {
   SavedTemperatureRecord,
-  ManualTemperatureReading,
   ParsedTempPoint,
   ChannelDataMap,
   DayBoundary,
@@ -257,11 +256,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     )}
                   </td>
 
-                  {/* MIN (Muted Blue proportional cell-background fill) */}
+                  {/* MIN (Subdued Blue proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-blue-500/15 border-r border-blue-400/25 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-sky-500/[0.04] dark:bg-sky-500/[0.045] border-r border-sky-400/10 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcMinPct(st.min)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -273,11 +272,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* MAX (Muted Red proportional cell-background fill) */}
+                  {/* MAX (Subdued Red proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-red-500/15 border-r border-red-400/25 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-rose-500/[0.04] dark:bg-rose-500/[0.045] border-r border-rose-400/10 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcMaxPct(st.max)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -289,11 +288,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* AVG (Muted Green proportional cell-background fill) */}
+                  {/* AVG (Subdued Green proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-emerald-500/15 border-r border-emerald-400/25 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.045] border-r border-emerald-400/10 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcAvgPct(st.avg)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -305,11 +304,11 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     </div>
                   </td>
 
-                  {/* RANGE (Muted Purple proportional cell-background fill) */}
+                  {/* RANGE (Subdued Purple proportional cell-background fill) */}
                   <td className="p-0 relative">
                     <div className="relative h-9 px-3 flex items-center overflow-hidden">
                       <div
-                        className="absolute inset-y-0 left-0 bg-purple-500/15 border-r border-purple-400/25 pointer-events-none transition-all duration-200"
+                        className="absolute inset-y-0 left-0 bg-purple-500/[0.04] dark:bg-purple-500/[0.045] border-r border-purple-400/10 pointer-events-none transition-all duration-200"
                         style={{ width: `${calcRangePct(st.range)}%` }}
                       />
                       <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
@@ -554,27 +553,10 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
     setRecordToDelete(null);
   };
 
-  const handleDeleteManualReading = (id: string) => {
-    const updatedReadings = (machine.manualTemperatureReadings || []).filter((r) => r.id !== id);
-    const updatedMachine: Machine = {
-      ...machine,
-      manualTemperatureReadings: updatedReadings
-    };
-    onUpdateMachine(updatedMachine);
-    const allMachines = StorageService.getMachines();
-    const otherMachines = allMachines.filter((m) => m.id !== machine.id);
-    StorageService.saveMachines([updatedMachine, ...otherMachines]);
-  };
-
   const savedRecords = useMemo(() => {
     const list = machine.temperatureRecords || [];
     return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [machine.temperatureRecords]);
-
-  const manualReadings = useMemo(() => {
-    const list = machine.manualTemperatureReadings || [];
-    return [...list].sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
-  }, [machine.manualTemperatureReadings]);
 
   // Derive Authoritative MHC Temperature Spec Limits (USL & ASL)
   const mhcCoolingSpec = machine.mhcSpecs?.temperatureCooling;
@@ -1234,54 +1216,6 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* 4. MANUAL SPOT READINGS */}
-      <Card title={`Manual Spot Readings (${manualReadings.length})`}>
-        {manualReadings.length === 0 ? (
-          <p className={`text-xs py-4 text-center ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-            No manual spot readings recorded.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {manualReadings.map((r) => (
-              <div
-                key={r.id}
-                className={`p-3.5 rounded-xl border space-y-2 ${
-                  isDark ? 'bg-[#14171A] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${
-                      isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-300 text-slate-800'
-                    }`}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: CHANNEL_COLORS[r.channel] || '#888' }}
-                    />
-                    CH{r.channel}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-emerald-400">{r.temperature}°C</span>
-                </div>
-                <div className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {new Date(r.timestamp).toLocaleString()}
-                </div>
-                {r.note && <p className={`text-[11px] italic ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.note}</p>}
-                <div className="flex justify-end pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteManualReading(r.id)}
-                    className="text-[10px] text-rose-400 hover:underline"
-                  >
-                    Delete
-                  </button>
                 </div>
               </div>
             ))}
