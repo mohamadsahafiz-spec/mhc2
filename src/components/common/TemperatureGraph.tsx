@@ -241,9 +241,34 @@ export const TemperatureGraph: React.FC<TemperatureGraphProps> = ({
     return lines;
   }, [dayBoundaries, chartData]);
 
-  if (!chartData || chartData.length === 0) {
+  if (activeChannels.length === 0 || !chartData || chartData.length === 0) {
+    if (activeChannels.length === 0) {
+      return (
+        <div
+          className={`flex flex-col items-center justify-center rounded-xl border border-dashed text-center font-mono ${
+            preset === 'report'
+              ? 'border-slate-300 bg-slate-50 text-slate-600'
+              : 'border-slate-800 bg-[#111315]/50 text-slate-400'
+          } ${className}`}
+          style={{ minHeight: typeof height === 'number' ? `${height}px` : height }}
+        >
+          <div className="space-y-1.5 p-6 max-w-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              NO CHANNELS SELECTED
+            </p>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Select at least one channel to display temperature data.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className={`flex flex-col items-center justify-center p-8 rounded-xl border border-dashed text-slate-400 font-mono text-xs ${className}`}>
+      <div
+        className={`flex flex-col items-center justify-center p-8 rounded-xl border border-dashed text-slate-400 font-mono text-xs ${className}`}
+        style={{ minHeight: typeof height === 'number' ? `${height}px` : height }}
+      >
         <span>No temperature data recorded.</span>
       </div>
     );

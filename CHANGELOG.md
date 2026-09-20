@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.1.7 — Temperature Final Engineering Table & Channel State Correction (2026-09-20)
+
+### Temperature Final Engineering Table & Channel State Correction
+- **Restored Approved Channel Selector UI**: Restored the channel filter row to the previously approved visual presentation, retaining channel-specific colors, active/inactive states, and average temperature sub-labels while leaving the engineering summary table independently styled.
+- **Proportional Cell-Background Fill Engineering Matrix**: Implemented the Founder-approved measurement matrix visualization where proportional magnitude fills (MIN: Blue, MAX: Red, AVG: Green, RANGE: Purple) are rendered directly as integrated cell backgrounds with high-contrast typography displayed cleanly on top, eliminating separate progress bar tracks.
+- **Fixed Zero-Selected-Channel Empty State**: Fixed the blank-screen bug when all channels are deselected from the chart. The workspace now remains fully rendered with surrounding UI, settings, and table intact, while the chart display renders a clear "NO CHANNELS SELECTED" empty-state guide that recovers immediately upon channel selection.
+- **Uncompromised Mathematical Precision**: Strictly preserved all Min/Max/Avg/Range calculations, point aggregations, MHC specifications, downsampling, and persistence models.
+
 ## v3.1.6 — Temperature Final Analysis Viewer & Engineering Table Correction (2026-09-20)
 
 ### Temperature Final Analysis Viewer & Engineering Table Correction

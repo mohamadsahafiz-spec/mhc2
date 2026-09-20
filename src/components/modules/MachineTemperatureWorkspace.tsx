@@ -55,7 +55,7 @@ const CHANNEL_COLORS: Record<number, string> = {
   6: '#6A4C93'
 };
 
-// Visual per-channel engineering summary table with magnitude bars
+// Visual per-channel engineering summary table with proportional cell-background fills
 // Hierarchy: CH | MIN (Blue) | MAX (Red) | AVG (Green) | RANGE (Purple) | POINTS
 export interface ChannelSummaryTableProps {
   channelStats: Record<number, ChannelStats>;
@@ -88,24 +88,24 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
 
   const maxRange = Math.max(...channels.map((ch) => channelStats[ch]?.range ?? 0), 0.1);
 
-  // Proportional magnitude fill calculations
+  // Proportional magnitude fill calculations (relative extent within matrix)
   const calcMinPct = (val: number) => {
     if (maxMin === minMin) return 50;
-    return Math.max(15, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20));
+    return Math.max(12, Math.min(100, ((val - minMin) / (maxMin - minMin)) * 80 + 20));
   };
 
   const calcMaxPct = (val: number) => {
     if (maxMax === minMax) return 50;
-    return Math.max(15, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20));
+    return Math.max(12, Math.min(100, ((val - minMax) / (maxMax - minMax)) * 80 + 20));
   };
 
   const calcAvgPct = (val: number) => {
     if (maxAvg === minAvg) return 50;
-    return Math.max(15, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20));
+    return Math.max(12, Math.min(100, ((val - minAvg) / (maxAvg - minAvg)) * 80 + 20));
   };
 
   const calcRangePct = (val: number) => {
-    return Math.max(10, Math.min(100, (val / maxRange) * 100));
+    return Math.max(8, Math.min(100, (val / maxRange) * 100));
   };
 
   return (
@@ -122,14 +122,14 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
       <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
         isDark ? 'border-[#242A32] bg-[#111315]' : 'border-slate-200 bg-white'
       }`}>
-        <table className="w-full text-left">
+        <table className="w-full text-left border-collapse">
           <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#242A32]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
             <tr>
               <th className="py-2.5 px-3 font-mono font-medium text-[11px]">CH</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">MIN</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">MAX</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">AVG</th>
-              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[120px]">RANGE</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">MIN</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">MAX</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">AVG</th>
+              <th className="py-2.5 px-3 font-mono font-medium text-[11px] min-w-[130px]">RANGE</th>
               <th className="py-2.5 px-3 text-right font-mono font-medium text-[11px]">POINTS</th>
             </tr>
           </thead>
@@ -155,7 +155,7 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   }`}
                 >
                   {/* CH */}
-                  <td className="py-2.5 px-3 whitespace-nowrap">
+                  <td className="py-2 px-3 whitespace-nowrap">
                     {onToggleChannel ? (
                       <button
                         type="button"
@@ -178,81 +178,73 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     )}
                   </td>
 
-                  {/* MIN (Blue magnitude bar) */}
-                  <td className="py-2.5 px-3">
-                    <div className="space-y-1 max-w-[130px]">
-                      <div className="flex items-baseline gap-1">
-                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {/* MIN (Blue proportional cell-background fill) */}
+                  <td className="p-0 relative">
+                    <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-blue-500/25 border-r border-blue-400/40 pointer-events-none transition-all duration-200"
+                        style={{ width: `${calcMinPct(st.min)}%` }}
+                      />
+                      <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                        <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {st.min.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
-                      </div>
-                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
-                        <div
-                          className="h-full rounded-xs bg-blue-500 transition-all duration-200"
-                          style={{ width: `${calcMinPct(st.min)}%` }}
-                        />
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
                     </div>
                   </td>
 
-                  {/* MAX (Red magnitude bar) */}
-                  <td className="py-2.5 px-3">
-                    <div className="space-y-1 max-w-[130px]">
-                      <div className="flex items-baseline gap-1">
-                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {/* MAX (Red proportional cell-background fill) */}
+                  <td className="p-0 relative">
+                    <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-red-500/25 border-r border-red-400/40 pointer-events-none transition-all duration-200"
+                        style={{ width: `${calcMaxPct(st.max)}%` }}
+                      />
+                      <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                        <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {st.max.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
-                      </div>
-                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
-                        <div
-                          className="h-full rounded-xs bg-red-500 transition-all duration-200"
-                          style={{ width: `${calcMaxPct(st.max)}%` }}
-                        />
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
                     </div>
                   </td>
 
-                  {/* AVG (Green magnitude bar) */}
-                  <td className="py-2.5 px-3">
-                    <div className="space-y-1 max-w-[130px]">
-                      <div className="flex items-baseline gap-1">
-                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {/* AVG (Green proportional cell-background fill) */}
+                  <td className="p-0 relative">
+                    <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-emerald-500/25 border-r border-emerald-400/40 pointer-events-none transition-all duration-200"
+                        style={{ width: `${calcAvgPct(st.avg)}%` }}
+                      />
+                      <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                        <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {st.avg.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
-                      </div>
-                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
-                        <div
-                          className="h-full rounded-xs bg-emerald-500 transition-all duration-200"
-                          style={{ width: `${calcAvgPct(st.avg)}%` }}
-                        />
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
                     </div>
                   </td>
 
-                  {/* RANGE (Purple magnitude bar) */}
-                  <td className="py-2.5 px-3">
-                    <div className="space-y-1 max-w-[130px]">
-                      <div className="flex items-baseline gap-1">
-                        <span className={`font-mono text-xs font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  {/* RANGE (Purple proportional cell-background fill) */}
+                  <td className="p-0 relative">
+                    <div className="relative h-9 px-3 flex items-center overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-purple-500/25 border-r border-purple-400/40 pointer-events-none transition-all duration-200"
+                        style={{ width: `${calcRangePct(st.range)}%` }}
+                      />
+                      <div className="relative z-10 flex items-baseline gap-1 font-mono text-xs">
+                        <span className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {st.range.toFixed(1)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 font-normal">°C</span>
-                      </div>
-                      <div className={`h-1.5 w-full rounded-xs overflow-hidden ${isDark ? 'bg-[#1D2127]' : 'bg-slate-200'}`}>
-                        <div
-                          className="h-full rounded-xs bg-purple-500 transition-all duration-200"
-                          style={{ width: `${calcRangePct(st.range)}%` }}
-                        />
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
                     </div>
                   </td>
 
                   {/* POINTS */}
-                  <td className="py-2.5 px-3 text-right">
-                    <span className="text-slate-400 font-mono text-xs">{st.points.toLocaleString()}</span>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-slate-400">
+                    {st.points.toLocaleString()}
                   </td>
                 </tr>
               );
@@ -935,7 +927,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
           {/* LEVEL 4: CHANNEL FILTER BUTTONS & LARGE TEMPERATURE TREND */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              {/* Restrained channel filter buttons */}
+              {/* Restored channel filter buttons */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs font-mono font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   Channels:
@@ -948,22 +940,19 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                       key={ch}
                       type="button"
                       onClick={() => toggleChannel(ch)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-2 border ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 border ${
                         isActive
-                          ? isDark
-                            ? 'bg-[#181B1F] border-[#38414D] text-slate-100 shadow-2xs'
-                            : 'bg-white border-slate-300 text-slate-900 shadow-2xs'
+                          ? 'border-transparent text-white shadow-xs'
                           : isDark
-                          ? 'bg-[#111315] border-[#22272E] text-slate-500 opacity-40'
-                          : 'bg-slate-100 border-slate-200 text-slate-400 opacity-40'
+                          ? 'bg-[#1A1D21] border-[#2B323A] text-slate-500 opacity-50'
+                          : 'bg-slate-100 border-slate-200 text-slate-400'
                       }`}
+                      style={{
+                        backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined
+                      }}
                     >
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: CHANNEL_COLORS[ch] }}
-                      />
                       <span>CH{ch}</span>
-                      {st && <span className="text-[10px] text-slate-400 font-normal">({st.avg.toFixed(1)}°C)</span>}
+                      {st && <span className="text-[10.5px] opacity-90 font-normal">({st.avg.toFixed(1)}°C)</span>}
                     </button>
                   );
                 })}
