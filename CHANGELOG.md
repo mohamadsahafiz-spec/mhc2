@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v3.2.4 — Machine Passport Laser Power Hero Correction (2026-09-20)
+
+### Machine Passport Laser Power Hero Correction
+- **Laser Power Visual Semantics Corrected**: Replaced the laser-hour counter hero on the Laser Power flip-card back with a dedicated optical laser power visualization in Watts (W).
+- **Dual Head Optical Power & Pulse Waveform Display**: Prominently highlights measured power in Watts (`HEAD A`, `HEAD B`) paired with high-frequency 50kHz optical pulse train waveforms, calibrated target power reference (`15.0 W NOM`), and calibration status.
+- **Authoritative Data Binding**: Directly bound to actual `machine.laserPowerRecords` and `machine.mhcSpecs.laserPower` data sources without synthetic data generation.
+- **Preserved System Architecture**: Retained the approved card back layout, bottom-anchored "→ Open" button, all other 6 card heroes, front faces, and workspace routing without changes.
+
+## v3.2.3 — Machine Passport Flip Card Final UI Polish (2026-09-20)
+
+### Machine Passport Flip Card Final UI Polish
+- **Anchored All Open Buttons to Exact Bottom Position**: Structured card back layout with strict flex column distribution (`flex-shrink-0` header, `flex-1` centered hero visual area, `flex-shrink-0` fixed action bottom) ensuring all 7 card Open buttons align to the identical vertical position across both grid rows.
+- **Shortened Action Label to Concise Universal Treatment**: Standardized action button on all 7 cards to "→ Open" with primary styling and monospaced typography, removing verbose subject-specific titles.
+- **Cleaned Back-Face Header & Text**: Removed "WORKSPACE PREVIEW" and redundant "Return to Overview" link, using clean direct subject identities in the header for optimal spatial clarity.
+- **Preserved Approved Hero Visuals**: Retained all approved visual hero previews, front faces, Machine Table layout, and subsystem workspace routing without regressions.
+
 ## v3.2.2 — Machine Passport Flip Card Hero Previews (2026-09-20)
 
 ### Machine Passport Flip Card Hero Previews

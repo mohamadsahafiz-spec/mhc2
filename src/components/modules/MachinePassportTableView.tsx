@@ -434,37 +434,33 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
   // Helper renderers for Back Content (Engineering Preview & Actions)
   const renderCardBackContent = (subject: SubjectCardDef) => {
     return (
-      <div className="flex flex-col justify-between h-full space-y-2.5">
-        <div className="space-y-2">
-          {/* Card Back Header */}
-          <div className="flex items-center justify-between border-b pb-1.5 border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Workspace Preview
-              </span>
-              <span className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                • {subject.categoryTag}
-              </span>
-            </div>
-
-            {/* Flip back to front button */}
-            <button
-              type="button"
-              aria-label={`Flip back to ${subject.name} overview`}
-              onClick={(e) => toggleFlip(subject.id, e)}
-              title="Flip back to front"
-              className={`p-1.5 rounded-lg border transition-colors ${
-                isDark
-                  ? 'bg-[#1C2026] border-[#2B323A] text-slate-400 hover:text-white hover:bg-[#242A32]'
-                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
+      <div className="flex flex-col justify-between h-full">
+        {/* Card Back Header */}
+        <div className="flex items-center justify-between border-b pb-1.5 border-slate-200 dark:border-slate-800 flex-shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`text-xs font-mono font-bold tracking-tight truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              {subject.name}
+            </span>
           </div>
 
-          {/* Subsystem Bold Visual Hero Preview */}
-          <div className="flex-1 flex flex-col justify-center py-1">
+          {/* Flip back to front button */}
+          <button
+            type="button"
+            aria-label={`Flip back to ${subject.name} overview`}
+            onClick={(e) => toggleFlip(subject.id, e)}
+            title="Flip back to front"
+            className={`p-1.5 rounded-lg border transition-colors shrink-0 ${
+              isDark
+                ? 'bg-[#1C2026] border-[#2B323A] text-slate-400 hover:text-white hover:bg-[#242A32]'
+                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Subsystem Bold Visual Hero Preview */}
+        <div className="flex-1 flex flex-col justify-center py-1 min-h-0">
             {subject.id === 'lifecycle' && (() => {
               const healthScore = machine.healthScore ?? Math.round(machineMetrics.healthPercent) ?? 95;
               const lasers = machineMetrics.laserMetricsList || [];
@@ -611,51 +607,83 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
             })()}
 
             {subject.id === 'laser_power' && (() => {
-              const lasers = machineMetrics.laserMetricsList || [];
-              const headAHours = lasers[0]?.currentHour ?? lasers[0]?.estimatedCurrentHour ?? lasers[0]?.baseLaserHour ?? 642;
-              const headBHours = lasers[1]?.currentHour ?? lasers[1]?.estimatedCurrentHour ?? lasers[1]?.baseLaserHour ?? 642;
-              const latestRec = machine.laserPowerRecords?.[0];
-              const powerA = latestRec?.laserSource?.headA ?? 15.2;
-              const powerB = latestRec?.laserSource?.headB ?? 15.0;
+              const records = [...(machine.laserPowerRecords || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              const latestRec = records[0];
+              const target = machine.mhcSpecs?.laserPower?.targetPowerWatts ?? 15.0;
+              const powerA = latestRec?.laserSource?.headA ?? target;
+              const powerB = latestRec?.laserSource?.headB ?? target;
+              const freq = latestRec?.frequencyKhz ?? 50;
 
               return (
                 <div className="space-y-2 py-0.5">
-                  {/* Dual Head Hour & Power Display */}
+                  {/* Dual Head Laser Power Display Hero */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className={`p-2 rounded-lg border space-y-1 ${isDark ? 'bg-[#0E1114] border-[#222830]' : 'bg-slate-50 border-slate-200'}`}>
+                    {/* Head A Power Block */}
+                    <div className={`p-2 rounded-lg border flex flex-col justify-between ${isDark ? 'bg-[#0E1114] border-[#222830]' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="text-[9px] font-mono text-slate-400 font-semibold flex items-center justify-between">
                         <span>HEAD A</span>
-                        <span className="text-emerald-500">PASS</span>
+                        <span className="text-emerald-500 font-bold">PASS</span>
                       </div>
-                      <div className={`text-lg font-bold font-mono tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                        {headAHours.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">h</span>
+                      <div className="py-0.5">
+                        <div className={`text-xl font-bold font-mono tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {powerA.toFixed(1)} <span className="text-[11px] font-normal text-slate-400">W</span>
+                        </div>
                       </div>
-                      <div className="text-[10px] font-mono font-medium text-slate-400">
-                        {powerA.toFixed(1)} W @ 50kHz
+                      {/* Optical Pulse Waveform */}
+                      <svg viewBox="0 0 100 18" className="w-full h-4 overflow-visible">
+                        <line x1="0" y1="14" x2="100" y2="14" stroke={isDark ? '#2B323A' : '#CBD5E1'} strokeWidth="1" />
+                        <polyline
+                          fill="none"
+                          stroke={isDark ? '#38BDF8' : '#0284C7'}
+                          strokeWidth="1.25"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          points="0,14 8,14 12,3 16,14 26,14 30,3 34,14 44,14 48,3 52,14 62,14 66,3 70,14 80,14 84,3 88,14 100,14"
+                        />
+                      </svg>
+                      <div className="text-[8px] font-mono text-slate-500 pt-0.5 flex justify-between">
+                        <span>SOURCE</span>
+                        <span>{freq} kHz</span>
                       </div>
                     </div>
 
-                    <div className={`p-2 rounded-lg border space-y-1 ${isDark ? 'bg-[#0E1114] border-[#222830]' : 'bg-slate-50 border-slate-200'}`}>
+                    {/* Head B Power Block */}
+                    <div className={`p-2 rounded-lg border flex flex-col justify-between ${isDark ? 'bg-[#0E1114] border-[#222830]' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="text-[9px] font-mono text-slate-400 font-semibold flex items-center justify-between">
                         <span>HEAD B</span>
-                        <span className="text-emerald-500">PASS</span>
+                        <span className="text-emerald-500 font-bold">PASS</span>
                       </div>
-                      <div className={`text-lg font-bold font-mono tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                        {headBHours.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">h</span>
+                      <div className="py-0.5">
+                        <div className={`text-xl font-bold font-mono tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {powerB.toFixed(1)} <span className="text-[11px] font-normal text-slate-400">W</span>
+                        </div>
                       </div>
-                      <div className="text-[10px] font-mono font-medium text-slate-400">
-                        {powerB.toFixed(1)} W @ 50kHz
+                      {/* Optical Pulse Waveform */}
+                      <svg viewBox="0 0 100 18" className="w-full h-4 overflow-visible">
+                        <line x1="0" y1="14" x2="100" y2="14" stroke={isDark ? '#2B323A' : '#CBD5E1'} strokeWidth="1" />
+                        <polyline
+                          fill="none"
+                          stroke={isDark ? '#38BDF8' : '#0284C7'}
+                          strokeWidth="1.25"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          points="0,14 8,14 12,3 16,14 26,14 30,3 34,14 44,14 48,3 52,14 62,14 66,3 70,14 80,14 84,3 88,14 100,14"
+                        />
+                      </svg>
+                      <div className="text-[8px] font-mono text-slate-500 pt-0.5 flex justify-between">
+                        <span>SOURCE</span>
+                        <span>{freq} kHz</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Optical Beam Emitter Diagram Hero */}
+                  {/* Optical Calibration Status Footer */}
                   <div className={`px-2 py-1.5 rounded border flex items-center justify-between text-[9px] font-mono ${isDark ? 'bg-[#111418] border-[#222830] text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
                     <div className="flex items-center gap-1.5">
                       <Zap className="w-3 h-3 text-amber-500 shrink-0" />
-                      <span>OPTICAL CALIBRATION VERIFIED</span>
+                      <span>TARGET: {target.toFixed(1)} W</span>
                     </div>
-                    <span className="text-emerald-500 font-bold">15.0W NOM</span>
+                    <span className="text-emerald-500 font-bold">CALIBRATED</span>
                   </div>
                 </div>
               );
@@ -858,31 +886,20 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
               );
             })()}
           </div>
-        </div>
 
-        {/* Actions on back of card */}
-        <div className="space-y-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
+        {/* Actions on back of card — fixed-height action area anchored to bottom */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
           <Button
             variant="primary"
             size="sm"
-            icon={<ArrowRight className="w-3.5 h-3.5" />}
             onClick={(e) => {
               e.stopPropagation();
               onSelectSubject(subject.id);
             }}
-            className="w-full text-xs font-sans font-semibold justify-center"
+            className="w-full text-xs font-mono font-semibold justify-center"
           >
-            Open {subject.name} Workspace
+            → Open
           </Button>
-          <button
-            type="button"
-            onClick={(e) => toggleFlip(subject.id, e)}
-            className={`w-full py-0.5 text-[10px] font-mono text-center transition-colors ${
-              isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            ← Return to Overview
-          </button>
         </div>
       </div>
     );
