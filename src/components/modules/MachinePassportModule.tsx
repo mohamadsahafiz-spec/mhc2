@@ -38,8 +38,10 @@ import {
   Package, 
   Share2, 
   Search,
-  RefreshCw 
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
+import { MachinePassportTableView, PassportSubjectId } from './MachinePassportTableView';
 import { Machine, MHCRecord, Customer, MachineMhcSpecs } from '../../types';
 import { StorageService } from '../../utils/persistence';
 import { hasMeaningfulMhcProgress } from '../../utils/mhcAutopilotBrain';
@@ -114,7 +116,9 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
   const selectedMachine = sortedMachines.find((m) => m.id === selectedMachineId) || sortedMachines[0] || machines[0];
 
   // Machine Passport Sub-Category Active Tab State
-  const [passportSubTab, setPassportSubTab] = useState<'lifecycle' | 'temperature' | 'laser_power' | 'beam_profile' | 'focus_optimization' | 'product_process' | 'recommended_parts'>('lifecycle');
+  const [passportSubTab, setPassportSubTab] = useState<PassportSubjectId>('lifecycle');
+  // Machine Passport View Mode: 'table' (Machine Inspection Table) or 'workspace' (Individual Subject Workspace)
+  const [passportViewMode, setPassportViewMode] = useState<'table' | 'workspace'>('table');
 
   // Authoritative Machine Laser Lifecycle Metrics derived via LaserEngine
   const machineMetrics: MachineMetrics = React.useMemo(() => {
@@ -1736,288 +1740,103 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             </AnimatePresence>
           </motion.div>
 
-          {/* Subsystem Navigation & Active Workspace Layout */}
-          <div className="flex flex-col xl:flex-row gap-6 items-start">
-            {/* Left Technical Subsystems Navigator */}
-            <motion.nav
-              aria-label="Machine Passport Subsystems"
-              variants={createFadeSlideVariants({ direction: 'left', distance: 'component', prefersReducedMotion: shouldReduceMotion })}
-              className={`w-full xl:w-60 2xl:w-64 shrink-0 xl:sticky xl:top-4 rounded-2xl border p-3 transition-all ${
-                isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
-              }`}
-            >
-              <div className="pb-2.5 mb-2.5 border-b border-slate-200 dark:border-[#2B323A]">
-                <div className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">
-                  Engineering Systems
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {/* Group 1: Health & Lifecycle */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
-                    Health & Lifecycle
-                  </div>
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('lifecycle')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'lifecycle'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Zap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Lifecycle & Health</span>
-                    </div>
-                    {passportSubTab === 'lifecycle' && (
-                      <motion.span 
-                        layoutId="passportSubsystemActiveIndicator" 
-                        transition={slidingIndicatorTransition}
-                        className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                      />
-                    )}
-                  </motion.button>
-
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('temperature')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'temperature'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Thermometer className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Temperature</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {((selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)) > 0 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {(selectedMachine?.temperatureRecords?.length || 0) + (selectedMachine?.manualTemperatureReadings?.length || 0)}
-                        </span>
-                      )}
-                      {passportSubTab === 'temperature' && (
-                        <motion.span 
-                          layoutId="passportSubsystemActiveIndicator" 
-                          transition={slidingIndicatorTransition}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                        />
-                      )}
-                    </div>
-                  </motion.button>
-                </div>
-
-                {/* Group 2: Optics & Laser */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
-                    Optics & Laser
-                  </div>
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('laser_power')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'laser_power'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Zap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Laser Power</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(selectedMachine?.laserPowerRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {selectedMachine.laserPowerRecords?.length}
-                        </span>
-                      )}
-                      {passportSubTab === 'laser_power' && (
-                        <motion.span 
-                          layoutId="passportSubsystemActiveIndicator" 
-                          transition={slidingIndicatorTransition}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                        />
-                      )}
-                    </div>
-                  </motion.button>
-
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('beam_profile')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'beam_profile'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Aperture className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Beam Profile</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(selectedMachine?.beamProfileRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {selectedMachine.beamProfileRecords?.length}
-                        </span>
-                      )}
-                      {passportSubTab === 'beam_profile' && (
-                        <motion.span 
-                          layoutId="passportSubsystemActiveIndicator" 
-                          transition={slidingIndicatorTransition}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                        />
-                      )}
-                    </div>
-                  </motion.button>
-
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('focus_optimization')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'focus_optimization'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Crosshair className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Focus Optimization</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(selectedMachine?.focusOptimizationRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {selectedMachine.focusOptimizationRecords?.length}
-                        </span>
-                      )}
-                      {passportSubTab === 'focus_optimization' && (
-                        <motion.span 
-                          layoutId="passportSubsystemActiveIndicator" 
-                          transition={slidingIndicatorTransition}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                        />
-                      )}
-                    </div>
-                  </motion.button>
-                </div>
-
-                {/* Group 3: Operations & Parts */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 py-0.5 font-bold">
-                    Operations & Parts
-                  </div>
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('product_process')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'product_process'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Product & Process</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(selectedMachine?.productProcessRecords?.length || 0) > 0 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {selectedMachine.productProcessRecords?.length}
-                        </span>
-                      )}
-                      {passportSubTab === 'product_process' && (
-                        <motion.span 
-                          layoutId="passportSubsystemActiveIndicator" 
-                          transition={slidingIndicatorTransition}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                        />
-                      )}
-                    </div>
-                  </motion.button>
-
-                  <motion.button
-                    type="button"
-                    whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                    onClick={() => setPassportSubTab('recommended_parts')}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between text-left relative ${
-                      passportSubTab === 'recommended_parts'
-                        ? isDark
-                          ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
-                          : 'bg-slate-100 text-slate-900 font-bold border border-slate-300'
-                        : isDark
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026] border border-transparent'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">Recommended Items</span>
-                    </div>
-                    {passportSubTab === 'recommended_parts' && (
-                      <motion.span 
-                        layoutId="passportSubsystemActiveIndicator" 
-                        transition={slidingIndicatorTransition}
-                        className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" 
-                      />
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </motion.nav>
-
-            {/* Active Subsystem Workspace Pane */}
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={passportSubTab}
-                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -6 }}
-                transition={{ duration: motionTimings.standard, ease: motionEasings.responsive }}
-                className="flex-1 min-w-0 w-full"
+          {/* Spatial Machine Table or Active Subsystem Workspace */}
+          {passportViewMode === 'table' ? (
+            <MachinePassportTableView
+              machine={selectedMachine}
+              machineMetrics={machineMetrics}
+              machineMhcs={machineMhcs}
+              onSelectSubject={(sub) => {
+                setPassportSubTab(sub);
+                setPassportViewMode('workspace');
+              }}
+              isDark={isDark}
+              onOpenMhc={() => onOpenMhcForMachine(selectedMachine.id)}
+            />
+          ) : (
+            <div className="space-y-6">
+              {/* Workspace Navigation & Return Header */}
+              <div
+                className={`p-3 sm:p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                  isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
+                }`}
               >
-                {passportSubTab === 'lifecycle' ? (
+                <div className="flex items-center gap-3 min-w-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<ArrowLeft className="w-4 h-4" />}
+                    onClick={() => setPassportViewMode('table')}
+                    className="font-sans font-bold text-xs h-8 px-3"
+                  >
+                    ← Back to Machine Table
+                  </Button>
+                  <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                  <div className="hidden sm:flex items-center gap-2 min-w-0 font-mono text-xs">
+                    <span className="font-bold text-slate-400">
+                      {selectedMachine.machineNumber || selectedMachine.id}
+                    </span>
+                    <span className="text-slate-400">•</span>
+                    <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {passportSubTab === 'lifecycle'
+                        ? 'Lifecycle & Health'
+                        : passportSubTab === 'temperature'
+                        ? 'Temperature'
+                        : passportSubTab === 'laser_power'
+                        ? 'Laser Power'
+                        : passportSubTab === 'beam_profile'
+                        ? 'Beam Profile'
+                        : passportSubTab === 'focus_optimization'
+                        ? 'Focus Optimization'
+                        : passportSubTab === 'product_process'
+                        ? 'Product & Process'
+                        : 'Recommended Items'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Flat Subject Switcher Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-none">
+                  {[
+                    { id: 'lifecycle', label: 'Lifecycle' },
+                    { id: 'temperature', label: 'Temperature' },
+                    { id: 'laser_power', label: 'Laser Power' },
+                    { id: 'beam_profile', label: 'Beam Profile' },
+                    { id: 'focus_optimization', label: 'Focus' },
+                    { id: 'product_process', label: 'Product & Process' },
+                    { id: 'recommended_parts', label: 'Recommended Items' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setPassportSubTab(s.id as any)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium whitespace-nowrap transition-colors ${
+                        passportSubTab === s.id
+                          ? isDark
+                            ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                            : 'bg-slate-200 text-slate-900 font-bold border border-slate-300'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026]'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Subsystem Workspace Pane */}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={passportSubTab}
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -6 }}
+                  transition={{ duration: motionTimings.standard, ease: motionEasings.responsive }}
+                  className="w-full"
+                >
+                  {passportSubTab === 'lifecycle' ? (
                   <div className="space-y-6">
                     {/* SECTION 1: PRIMARY MACHINE-LEVEL LIFECYCLE (LMS v2 Hierarchy) */}
                     <div className={`p-6 rounded-2xl border transition-all space-y-6 ${
@@ -2848,8 +2667,9 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
               </motion.div>
             </AnimatePresence>
           </div>
-        </>
-      )}
+        )}
+      </>
+    )}
 
       {/* 1. Add Machine Modal */}
       <Modal

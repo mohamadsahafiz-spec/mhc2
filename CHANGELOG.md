@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.1.3 — Machine Passport Table View (2026-09-20)
+
+### Machine Passport Table View
+- **LOOK → UNDERSTAND → DRILL DOWN Spatial Layout**: Replaced the secondary nested sidebar navigation with an engineering inspection table view featuring physical engineering subject cards for all seven subsystems.
+- **Dedicated Physical Subject Cards**: Implemented responsive, high-precision inspection cards for Lifecycle & Health, Temperature, Laser Power, Beam Profile, Focus Optimization, Product & Process, and Recommended Items with live telemetry badges, specification thresholds, and flip-card hardware spec references.
+- **Seamless Subject Drilldown & Return**: Added one-click drilldown into full subsystem workspaces with a calm top workbench return strip and flat subject switcher pills.
+- **Uncompromised Core Logic & Modals**: Retained all machine identity headers, customer/fleet filters, machine CRUD modals, and inline Lifecycle architecture without mock data or synthetic placeholders.
+
 ## v3.1.2 — Temperature UX Restructure (2026-09-19)
 
 ### Temperature UX Restructure
