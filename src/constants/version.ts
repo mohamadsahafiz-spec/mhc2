@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v3.2.4';
-export const APP_VERSION_RAW = '3.2.4';
-export const APP_BUILD_ID = 'CFW-20260920-0155';
-export const APP_CODENAME = 'Machine Passport Laser Power Hero Correction';
+export const APP_VERSION = 'v3.3.1';
+export const APP_VERSION_RAW = '3.3.1';
+export const APP_BUILD_ID = 'CFW-20260920-0735';
+export const APP_CODENAME = 'FSOS Theme Visual Palettes';

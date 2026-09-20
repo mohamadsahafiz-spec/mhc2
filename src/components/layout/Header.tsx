@@ -90,11 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [activeTab]);
 
   return (
-    <header className={`h-14 px-4 sm:px-6 border-b sticky top-0 z-20 transition-colors duration-150 flex items-center justify-between gap-3 ${
-      isDark 
-        ? 'bg-[#121518] border-[#262C34] text-slate-100' 
-        : 'bg-white border-slate-200 text-slate-900'
-    }`}>
+    <header className="h-14 px-4 sm:px-6 border-b sticky top-0 z-20 backdrop-theme-surface transition-colors duration-150 flex items-center justify-between gap-3 bg-surface border-theme-default text-theme-primary">
       {/* 1. Context Orientation & Restore Sidebar Trigger */}
       <div className="flex items-center gap-2.5 min-w-0">
         <AnimatePresence>
@@ -111,11 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label="Show navigation sidebar"
               aria-expanded={false}
               title="Show sidebar"
-              className={`p-1.5 rounded-md border text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 ${
-                isDark 
-                  ? 'bg-[#181B20] border-[#2E3642] hover:bg-[#20252C]' 
-                  : 'bg-white border-slate-200 hover:bg-slate-50'
-              }`}
+              className="p-1.5 rounded-button border text-theme-secondary hover:text-theme-primary flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 bg-raised border-theme-default hover:bg-surface font-theme-label"
             >
               <PanelLeft className="w-4 h-4" />
               <span className="text-xs font-medium pr-1">Menu</span>
@@ -130,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
             animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
             transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
-            className="text-sm font-semibold tracking-tight truncate"
+            className="text-sm font-theme-heading tracking-tight truncate text-theme-primary"
           >
             {getTabTitle(activeTab)}
           </motion.h1>
@@ -150,18 +142,14 @@ export const Header: React.FC<HeaderProps> = ({
             title="Account Menu"
             aria-label="Open Account Menu"
             aria-expanded={showUserMenu}
-            className={`flex items-center gap-1.5 p-1 pl-1.5 pr-2 rounded-md border transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 ${
+            className={`flex items-center gap-1.5 p-1 pl-1.5 pr-2 rounded-button border transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500 ${
               showUserMenu
-                ? isDark 
-                  ? 'bg-[#22272E] border-slate-500 text-white' 
-                  : 'bg-slate-100 border-slate-300 text-slate-900'
-                : isDark 
-                  ? 'bg-[#181B20] border-[#2E3642] text-slate-300 hover:bg-[#20252C]' 
-                  : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                ? 'bg-raised border-theme-strong text-theme-primary'
+                : 'bg-raised border-theme-default text-theme-secondary hover:bg-surface hover:text-theme-primary'
             }`}
           >
             <UserAvatar user={activeUser} size="sm" showStatus={true} />
-            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180 text-slate-200' : ''}`} />
+            <ChevronDown className={`w-3 h-3 text-theme-muted transition-transform ${showUserMenu ? 'rotate-180 text-theme-primary' : ''}`} />
           </motion.button>
 
           {/* User Account Popover */}
@@ -173,9 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className={`absolute right-0 mt-1.5 w-48 rounded-lg border shadow-lg p-1.5 z-50 ${
-                  isDark ? 'bg-[#181B20] border-[#2E3642] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-                }`}
+                className="absolute right-0 mt-1.5 w-48 rounded-modal border shadow-theme-popover backdrop-theme-surface p-1.5 z-50 bg-raised border-theme-default text-theme-primary"
               >
                 <div className="space-y-0.5 text-xs">
                   <button
@@ -184,11 +170,9 @@ export const Header: React.FC<HeaderProps> = ({
                       setActiveTab('profile');
                       setShowUserMenu(false);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className="w-full text-left px-2.5 py-1.5 rounded-button flex items-center gap-2 font-theme-label transition-colors hover:bg-surface text-theme-secondary hover:text-theme-primary"
                   >
-                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <User className="w-3.5 h-3.5 text-theme-muted" />
                     <span>My Profile</span>
                   </button>
 
@@ -198,11 +182,9 @@ export const Header: React.FC<HeaderProps> = ({
                       setActiveTab('settings');
                       setShowUserMenu(false);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className="w-full text-left px-2.5 py-1.5 rounded-button flex items-center gap-2 font-theme-label transition-colors hover:bg-surface text-theme-secondary hover:text-theme-primary"
                   >
-                    <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                    <SettingsIcon className="w-3.5 h-3.5 text-theme-muted" />
                     <span>Settings</span>
                   </button>
 
@@ -212,23 +194,21 @@ export const Header: React.FC<HeaderProps> = ({
                       setActiveTab('changelog');
                       setShowUserMenu(false);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium transition-colors ${
-                      isDark ? 'hover:bg-[#22272E] text-slate-200' : 'hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className="w-full text-left px-2.5 py-1.5 rounded-button flex items-center gap-2 font-theme-label transition-colors hover:bg-surface text-theme-secondary hover:text-theme-primary"
                   >
-                    <ScrollText className="w-3.5 h-3.5 text-slate-400" />
+                    <ScrollText className="w-3.5 h-3.5 text-theme-muted" />
                     <span>Release History</span>
                   </button>
                 </div>
 
-                <div className="pt-1 mt-1 border-t border-slate-700/30 dark:border-slate-700/30">
+                <div className="pt-1 mt-1 border-t border-theme-subtle">
                   <button
                     type="button"
                     onClick={() => {
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md flex items-center gap-2 font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 rounded-button flex items-center gap-2 font-theme-label text-rose-400 hover:bg-rose-500/10 transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Logout</span>

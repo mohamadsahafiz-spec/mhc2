@@ -92,9 +92,61 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   onNavigate,
   initialSection = 'appearance' 
 }) => {
-  const { theme, setTheme, effectiveTheme } = useTheme();
+  const { theme, setTheme, activeTheme, effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = Boolean(useReducedMotion());
+
+  const THEME_OPTIONS = useMemo(() => [
+    {
+      id: 'precision' as const,
+      name: 'Precision',
+      category: 'Dark',
+      description: 'Calm industrial graphite canvas with restrained technical accents.',
+      iconColor: 'text-indigo-400',
+    },
+    {
+      id: 'lumen' as const,
+      name: 'Lumen',
+      category: 'Dark',
+      description: 'Deep obsidian charcoal with subtle luminous depth and cyan edges.',
+      iconColor: 'text-sky-400',
+    },
+    {
+      id: 'aether' as const,
+      name: 'Aether',
+      category: 'Light',
+      description: 'Soft pearl frosted surfaces with subtle glass depth and charcoal text.',
+      iconColor: 'text-indigo-600',
+    },
+    {
+      id: 'prism' as const,
+      name: 'Prism',
+      category: 'Light',
+      description: 'Light editorial alabaster canvas with crisp geometry and sapphire accents.',
+      iconColor: 'text-cyan-600',
+    },
+    {
+      id: 'forge' as const,
+      name: 'Forge',
+      category: 'Dark',
+      description: 'Deep industrial graphite canvas with warm amber telemetry accents.',
+      iconColor: 'text-amber-400',
+    },
+    {
+      id: 'cairn' as const,
+      name: 'Cairn',
+      category: 'Dark',
+      description: 'Basalt mineral canvas paired with quiet emerald verification accents.',
+      iconColor: 'text-emerald-400',
+    },
+    {
+      id: 'system' as const,
+      name: 'System Sync',
+      category: 'OS Adaptive',
+      description: `Synchronizes with OS display preference (${effectiveTheme}).`,
+      iconColor: 'text-blue-400',
+    },
+  ], [effectiveTheme]);
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
@@ -515,21 +567,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Module Header */}
-      <div className={`p-5 sm:p-6 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
-        isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-      }`}>
+      <div className="p-5 sm:p-6 rounded-card border shadow-theme-card flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors bg-surface border-theme-default text-theme-primary">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-lg border ${
-              isDark ? 'bg-[#1F242C] border-[#2B323A] text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-700'
-            }`}>
-              <Database className="w-5 h-5 text-emerald-400" />
+            <div className="p-2 rounded-badge border bg-raised border-theme-default text-theme-primary">
+              <Database className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
-              <h1 className={`text-xl font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              <h1 className="text-xl font-theme-heading tracking-tight text-theme-primary">
                 System Settings & Storage
               </h1>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <p className="text-xs text-theme-muted font-theme-label">
                 Precision configuration, offline persistence, portable backup archive, and workspace maintenance
               </p>
             </div>
@@ -541,19 +589,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             <motion.button
               whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => onNavigate('changelog')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors ${
-                isDark 
-                  ? 'bg-[#1F242C] border-[#2B323A] text-slate-300 hover:bg-[#262C36]' 
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
+              className="px-3 py-1.5 rounded-button text-xs font-theme-label border flex items-center gap-1.5 transition-colors bg-raised border-theme-default text-theme-secondary hover:bg-surface hover:text-theme-primary"
             >
-              <History className="w-3.5 h-3.5 text-slate-400" />
+              <History className="w-3.5 h-3.5 text-theme-muted" />
               <span>Release History</span>
             </motion.button>
           )}
-          <div className={`px-3 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 ${
-            isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-          }`}>
+          <div className="px-3 py-1.5 rounded-badge border font-mono text-xs flex items-center gap-2 bg-raised border-theme-default text-theme-muted">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>{APP_VERSION}</span>
           </div>
@@ -561,9 +603,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       </div>
 
       {/* 2. Navigation Tab Bar */}
-      <div className={`p-1.5 rounded-xl border flex items-center gap-1 overflow-x-auto transition-colors ${
-        isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-      }`}>
+      <div className="p-1.5 rounded-card border flex items-center gap-1 overflow-x-auto transition-colors bg-surface border-theme-default text-theme-primary">
         {sections.map((sec) => {
           const Icon = sec.icon;
           const isActive = activeSection === sec.id;
@@ -572,17 +612,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               key={sec.id}
               whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => setActiveSection(sec.id)}
-              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${
+              className={`px-3.5 py-2 rounded-button text-xs sm:text-sm font-theme-label whitespace-nowrap flex items-center gap-2 transition-colors ${
                 isActive
-                  ? isDark
-                    ? 'bg-[#1F242C] text-slate-100 shadow-sm border border-[#2B323A]'
-                    : 'bg-slate-900 text-white shadow-sm'
-                  : isDark
-                    ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-raised text-theme-primary shadow-xs border border-theme-strong font-semibold'
+                  : 'text-theme-secondary hover:text-theme-primary hover:bg-raised'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--color-primary)]' : 'text-theme-muted'}`} />
               <span>{sec.label}</span>
             </motion.button>
           );
@@ -596,129 +632,71 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         {/* ========================================================================= */}
         {activeSection === 'appearance' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-xl border space-y-6 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card shadow-theme-card border space-y-6 bg-surface border-theme-default text-theme-primary">
               <div>
-                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                <h2 className="text-base font-theme-heading text-theme-primary">
                   Theme & Visual Identity
                 </h2>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Configure the interface palette for your operating environment. Cleanroom and field operations typically utilize Precision Dark.
+                <p className="text-xs mt-1 text-theme-muted font-theme-label">
+                  Configure the interface palette and visual language for your operating environment.
                 </p>
               </div>
 
               {/* Theme Selector Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                {/* Dark Theme */}
-                <motion.button
-                  type="button"
-                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
-                  onClick={() => setTheme('dark')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
-                    theme === 'dark'
-                      ? isDark 
-                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
-                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
-                      : isDark
-                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
-                        : 'border-slate-200 bg-white hover:border-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
-                      <Moon className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    {theme === 'dark' && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                      Precision Dark
-                    </h3>
-                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      High contrast graphite canvas engineered for cleanrooms and low-glare field environments.
-                    </p>
-                  </div>
-                </motion.button>
-
-                {/* Light Theme */}
-                <motion.button
-                  type="button"
-                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
-                  onClick={() => setTheme('light')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
-                    theme === 'light'
-                      ? isDark 
-                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
-                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
-                      : isDark
-                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
-                        : 'border-slate-200 bg-white hover:border-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
-                      <Sun className="w-4 h-4 text-amber-500" />
-                    </div>
-                    {theme === 'light' && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                      Refined Light
-                    </h3>
-                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      Crisp daylight neutral palette with crisp typography for office reports and documentation.
-                    </p>
-                  </div>
-                </motion.button>
-
-                {/* System Preference */}
-                <motion.button
-                  type="button"
-                  whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
-                  onClick={() => setTheme('system')}
-                  className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-colors ${
-                    theme === 'system'
-                      ? isDark 
-                        ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
-                        : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
-                      : isDark
-                        ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
-                        : 'border-slate-200 bg-white hover:border-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-lg bg-slate-800/40 text-slate-300 border border-slate-700">
-                      <Monitor className="w-4 h-4 text-blue-400" />
-                    </div>
-                    {theme === 'system' && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                      System Sync
-                    </h3>
-                    <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      Automatically matches your operating system display preference ({effectiveTheme}).
-                    </p>
-                  </div>
-                </motion.button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                {THEME_OPTIONS.map((opt) => {
+                  const isSelected = theme === opt.id || (theme === 'dark' && opt.id === 'precision') || (theme === 'light' && opt.id === 'lumen');
+                  return (
+                    <motion.button
+                      key={opt.id}
+                      type="button"
+                      whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
+                      onClick={() => setTheme(opt.id)}
+                      className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-colors ${
+                        isSelected
+                          ? 'border-[var(--color-primary)] bg-raised ring-1 ring-[var(--color-primary)]/40 shadow-xs'
+                          : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-badge border bg-surface border-theme-default">
+                            {opt.id === 'system' ? (
+                              <Monitor className={`w-3.5 h-3.5 ${opt.iconColor}`} />
+                            ) : opt.category === 'Light' ? (
+                              <Sun className={`w-3.5 h-3.5 ${opt.iconColor}`} />
+                            ) : (
+                              <Moon className={`w-3.5 h-3.5 ${opt.iconColor}`} />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-badge bg-surface border border-theme-default text-theme-muted">
+                            {opt.category}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-theme-heading flex items-center gap-1.5 text-theme-primary">
+                          {opt.name}
+                        </h3>
+                        <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
+                          {opt.description}
+                        </p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
 
               {/* Design Standards Note */}
-              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-1.5 ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}>
-                <div className="flex items-center gap-2 font-semibold text-emerald-400">
+              <div className="p-4 rounded-card border text-xs leading-relaxed space-y-1.5 bg-canvas border-theme-default text-theme-secondary">
+                <div className="flex items-center gap-2 font-semibold text-[var(--color-primary)] font-theme-heading">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>Calm Industrial & Precision Operations Standard</span>
                 </div>
-                <p>
+                <p className="font-theme-label">
                   FSOS enforces strict neutral-first typography and optical contrast. High-contrast Monospace is standard for machine metrics, calibration readings, and audit timestamps. Color accents are strictly reserved for genuine operational states (Pass / Warning / Defect).
                 </p>
               </div>

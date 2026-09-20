@@ -10,7 +10,430 @@
  * R1-B — Typography and Spacing
  * R1-C — Surfaces, Borders and Geometry
  * R1-D — Motion and Interaction
+ * Multi-Theme Foundation — Named themes: Precision, Lumen, Aether, Prism, Forge, Cairn
  */
+
+export type NamedTheme = 'precision' | 'lumen' | 'aether' | 'prism' | 'forge' | 'cairn';
+
+export interface ThemeVisualGeometry {
+  radiusCard: string;
+  radiusButton: string;
+  radiusModal: string;
+  radiusBadge: string;
+  radiusInput: string;
+  radiusSm: string;
+  radiusMd: string;
+  radiusLg: string;
+}
+
+export interface ThemeVisualTypography {
+  headingWeight: string;
+  headingTracking: string;
+  labelWeight: string;
+  labelTracking: string;
+  labelTransform?: 'none' | 'uppercase';
+}
+
+export interface ThemeVisualAtmosphere {
+  canvasBg: string;
+  backdrop: string;
+  shadowCard: string;
+  shadowModal: string;
+  shadowPopover: string;
+  glowAccent: string;
+  borderWidth: string;
+}
+
+export interface ThemeColorPalette {
+  name: string;
+  baseMode: 'dark' | 'light';
+  canvas: string;
+  workspace: string;
+  surface: string;
+  raised: string;
+  overlay: string;
+  borderSubtle: string;
+  borderDefault: string;
+  borderStrong: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textSubtle: string;
+  accent: string;
+  accentHover: string;
+  accentMuted: string;
+  focus: string;
+  status: {
+    success: string;
+    successMuted: string;
+    warning: string;
+    warningMuted: string;
+    danger: string;
+    dangerMuted: string;
+    info: string;
+    infoMuted: string;
+  };
+  shadow: string;
+  glow: string;
+  geometry: ThemeVisualGeometry;
+  typography: ThemeVisualTypography;
+  atmosphere: ThemeVisualAtmosphere;
+}
+
+/**
+ * Multi-Theme Foundation Palettes (Semantic Token Sets)
+ * Visual identities for Precision, Lumen, Aether, Prism, Forge, and Cairn.
+ */
+export const themePalettes: Record<NamedTheme, ThemeColorPalette> = {
+  precision: {
+    name: 'Precision',
+    baseMode: 'dark',
+    canvas: '#111315',
+    workspace: '#16191D',
+    surface: '#1C2026',
+    raised: '#242A32',
+    overlay: '#2C333D',
+    borderSubtle: 'rgba(43, 50, 58, 0.45)',
+    borderDefault: '#2B323A',
+    borderStrong: '#3D4754',
+    textPrimary: '#F3F4F6',
+    textSecondary: '#94A3B8',
+    textMuted: '#64748B',
+    textSubtle: '#475569',
+    accent: '#8B9DFF',
+    accentHover: '#A3B2FF',
+    accentMuted: 'rgba(139, 157, 255, 0.15)',
+    focus: '#8B9DFF',
+    status: {
+      success: '#7FD4A6',
+      successMuted: 'rgba(127, 212, 166, 0.15)',
+      warning: '#EFCB7A',
+      warningMuted: 'rgba(239, 203, 122, 0.15)',
+      danger: '#E98A8A',
+      dangerMuted: 'rgba(233, 138, 138, 0.15)',
+      info: '#8ECDF7',
+      infoMuted: 'rgba(142, 205, 247, 0.15)',
+    },
+    shadow: '0 4px 20px -2px rgba(0, 0, 0, 0.5)',
+    glow: 'none',
+    geometry: {
+      radiusCard: '0.75rem',     // 12px
+      radiusButton: '0.5rem',     // 8px
+      radiusModal: '1rem',        // 16px
+      radiusBadge: '0.25rem',     // 4px
+      radiusInput: '0.5rem',      // 8px
+      radiusSm: '0.375rem',
+      radiusMd: '0.5rem',
+      radiusLg: '0.75rem',
+    },
+    typography: {
+      headingWeight: '600',
+      headingTracking: '-0.015em',
+      labelWeight: '500',
+      labelTracking: '0.02em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: '#111315',
+      backdrop: 'none',
+      shadowCard: '0 4px 20px -2px rgba(0, 0, 0, 0.5)',
+      shadowModal: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)',
+      shadowPopover: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+      glowAccent: 'none',
+      borderWidth: '1px',
+    },
+  },
+  lumen: {
+    name: 'Lumen',
+    baseMode: 'dark',
+    canvas: '#0A0D12',
+    workspace: '#0F141C',
+    surface: '#141C27',
+    raised: '#1C2636',
+    overlay: '#253347',
+    borderSubtle: 'rgba(56, 189, 248, 0.12)',
+    borderDefault: 'rgba(56, 189, 248, 0.18)',
+    borderStrong: 'rgba(56, 189, 248, 0.35)',
+    textPrimary: '#F8FAFC',
+    textSecondary: '#94A3B8',
+    textMuted: '#64748B',
+    textSubtle: '#475569',
+    accent: '#38BDF8',
+    accentHover: '#7DD3FC',
+    accentMuted: 'rgba(56, 189, 248, 0.15)',
+    focus: '#38BDF8',
+    status: {
+      success: '#34D399',
+      successMuted: 'rgba(52, 211, 153, 0.15)',
+      warning: '#FBBF24',
+      warningMuted: 'rgba(251, 191, 36, 0.15)',
+      danger: '#F87171',
+      dangerMuted: 'rgba(248, 113, 113, 0.15)',
+      info: '#38BDF8',
+      infoMuted: 'rgba(56, 189, 248, 0.15)',
+    },
+    shadow: '0 0 25px -5px rgba(56, 189, 248, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.6)',
+    glow: '0 0 15px rgba(56, 189, 248, 0.25)',
+    geometry: {
+      radiusCard: '0.875rem',    // 14px
+      radiusButton: '0.625rem',   // 10px
+      radiusModal: '1.125rem',    // 18px
+      radiusBadge: '0.375rem',    // 6px
+      radiusInput: '0.625rem',    // 10px
+      radiusSm: '0.375rem',
+      radiusMd: '0.625rem',
+      radiusLg: '0.875rem',
+    },
+    typography: {
+      headingWeight: '600',
+      headingTracking: '-0.02em',
+      labelWeight: '500',
+      labelTracking: '0.03em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: 'radial-gradient(120% 120% at 50% -10%, #152233 0%, #0A0D12 60%, #06080B 100%)',
+      backdrop: 'blur(8px)',
+      shadowCard: '0 0 25px -4px rgba(56, 189, 248, 0.12), 0 8px 28px -4px rgba(0, 0, 0, 0.7)',
+      shadowModal: '0 0 35px -5px rgba(56, 189, 248, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+      shadowPopover: '0 0 20px -3px rgba(56, 189, 248, 0.15), 0 12px 24px -4px rgba(0, 0, 0, 0.6)',
+      glowAccent: '0 0 16px rgba(56, 189, 248, 0.35)',
+      borderWidth: '1px',
+    },
+  },
+  aether: {
+    name: 'Aether',
+    baseMode: 'light',
+    canvas: '#EEF2F6',
+    workspace: '#E3E8EF',
+    surface: 'rgba(255, 255, 255, 0.88)',
+    raised: 'rgba(248, 250, 252, 0.95)',
+    overlay: '#FFFFFF',
+    borderSubtle: 'rgba(148, 163, 184, 0.28)',
+    borderDefault: 'rgba(203, 213, 225, 0.85)',
+    borderStrong: '#94A3B8',
+    textPrimary: '#1E293B',
+    textSecondary: '#475569',
+    textMuted: '#64748B',
+    textSubtle: '#94A3B8',
+    accent: '#6366F1',
+    accentHover: '#4F46E5',
+    accentMuted: 'rgba(99, 102, 241, 0.12)',
+    focus: '#6366F1',
+    status: {
+      success: '#059669',
+      successMuted: 'rgba(5, 150, 105, 0.12)',
+      warning: '#D97706',
+      warningMuted: 'rgba(217, 119, 6, 0.12)',
+      danger: '#DC2626',
+      dangerMuted: 'rgba(220, 38, 38, 0.12)',
+      info: '#2563EB',
+      infoMuted: 'rgba(37, 99, 235, 0.12)',
+    },
+    shadow: '0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 0 1px rgba(148, 163, 184, 0.3)',
+    glow: '0 0 12px rgba(99, 102, 241, 0.18)',
+    geometry: {
+      radiusCard: '1.125rem',    // 18px
+      radiusButton: '0.75rem',    // 12px
+      radiusModal: '1.375rem',    // 22px
+      radiusBadge: '0.5rem',      // 8px
+      radiusInput: '0.75rem',     // 12px
+      radiusSm: '0.5rem',
+      radiusMd: '0.75rem',
+      radiusLg: '1.125rem',
+    },
+    typography: {
+      headingWeight: '600',
+      headingTracking: '-0.01em',
+      labelWeight: '500',
+      labelTracking: '0.01em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: 'radial-gradient(130% 100% at 50% 0%, #FFFFFF 0%, #EEF2F6 60%, #E2E8F0 100%)',
+      backdrop: 'blur(12px)',
+      shadowCard: '0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 0 1px rgba(99, 102, 241, 0.15)',
+      shadowModal: '0 25px 50px -12px rgba(15, 23, 42, 0.15), 0 0 1px rgba(99, 102, 241, 0.2)',
+      shadowPopover: '0 12px 28px -4px rgba(15, 23, 42, 0.10)',
+      glowAccent: '0 0 14px rgba(99, 102, 241, 0.22)',
+      borderWidth: '1px',
+    },
+  },
+  prism: {
+    name: 'Prism',
+    baseMode: 'light',
+    canvas: '#FAF9F6',
+    workspace: '#F4F1EB',
+    surface: '#FFFFFF',
+    raised: '#FFFFFF',
+    overlay: '#FFFFFF',
+    borderSubtle: '#ECE7DF',
+    borderDefault: '#DDD7CD',
+    borderStrong: '#BDB5A6',
+    textPrimary: '#111827',
+    textSecondary: '#374151',
+    textMuted: '#6B7280',
+    textSubtle: '#9CA3AF',
+    accent: '#0284C7',
+    accentHover: '#0369A1',
+    accentMuted: 'rgba(2, 132, 199, 0.10)',
+    focus: '#0284C7',
+    status: {
+      success: '#16A34A',
+      successMuted: 'rgba(22, 163, 74, 0.10)',
+      warning: '#D97706',
+      warningMuted: 'rgba(217, 119, 6, 0.10)',
+      danger: '#DC2626',
+      dangerMuted: 'rgba(220, 38, 38, 0.10)',
+      info: '#0284C7',
+      infoMuted: 'rgba(2, 132, 199, 0.10)',
+    },
+    shadow: '0 2px 8px -1px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+    glow: 'none',
+    geometry: {
+      radiusCard: '0.5rem',      // 8px
+      radiusButton: '0.375rem',   // 6px
+      radiusModal: '0.625rem',    // 10px
+      radiusBadge: '0.25rem',     // 4px
+      radiusInput: '0.375rem',    // 6px
+      radiusSm: '0.25rem',
+      radiusMd: '0.375rem',
+      radiusLg: '0.5rem',
+    },
+    typography: {
+      headingWeight: '700',
+      headingTracking: '-0.025em',
+      labelWeight: '600',
+      labelTracking: '0.04em',
+      labelTransform: 'uppercase',
+    },
+    atmosphere: {
+      canvasBg: '#FAF9F6',
+      backdrop: 'none',
+      shadowCard: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+      shadowModal: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+      shadowPopover: '0 4px 12px -2px rgba(0, 0, 0, 0.08)',
+      glowAccent: 'none',
+      borderWidth: '1px',
+    },
+  },
+  forge: {
+    name: 'Forge',
+    baseMode: 'dark',
+    canvas: '#100F0E',
+    workspace: '#181614',
+    surface: '#211D19',
+    raised: '#2C2621',
+    overlay: '#38312A',
+    borderSubtle: 'rgba(245, 158, 11, 0.16)',
+    borderDefault: '#3D352D',
+    borderStrong: '#5A4E42',
+    textPrimary: '#F5F2ED',
+    textSecondary: '#A8A199',
+    textMuted: '#78726A',
+    textSubtle: '#524D46',
+    accent: '#F59E0B',
+    accentHover: '#FBBF24',
+    accentMuted: 'rgba(245, 158, 11, 0.15)',
+    focus: '#F59E0B',
+    status: {
+      success: '#34D399',
+      successMuted: 'rgba(52, 211, 153, 0.15)',
+      warning: '#F59E0B',
+      warningMuted: 'rgba(245, 158, 11, 0.15)',
+      danger: '#F87171',
+      dangerMuted: 'rgba(248, 113, 113, 0.15)',
+      info: '#60A5FA',
+      infoMuted: 'rgba(96, 165, 250, 0.15)',
+    },
+    shadow: '0 6px 24px -4px rgba(0, 0, 0, 0.65), 0 0 1px rgba(245, 158, 11, 0.2)',
+    glow: '0 0 16px rgba(245, 158, 11, 0.20)',
+    geometry: {
+      radiusCard: '0.375rem',    // 6px
+      radiusButton: '0.25rem',    // 4px
+      radiusModal: '0.5rem',      // 8px
+      radiusBadge: '0.1875rem',   // 3px
+      radiusInput: '0.25rem',     // 4px
+      radiusSm: '0.1875rem',
+      radiusMd: '0.25rem',
+      radiusLg: '0.375rem',
+    },
+    typography: {
+      headingWeight: '600',
+      headingTracking: '-0.01em',
+      labelWeight: '600',
+      labelTracking: '0.05em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: 'linear-gradient(180deg, #181512 0%, #100F0E 40%, #0D0C0B 100%)',
+      backdrop: 'none',
+      shadowCard: '0 4px 16px -2px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+      shadowModal: '0 20px 30px -8px rgba(0, 0, 0, 0.85), 0 0 1px rgba(245, 158, 11, 0.3)',
+      shadowPopover: '0 8px 20px -3px rgba(0, 0, 0, 0.7)',
+      glowAccent: '0 0 14px rgba(245, 158, 11, 0.25)',
+      borderWidth: '1px',
+    },
+  },
+  cairn: {
+    name: 'Cairn',
+    baseMode: 'dark',
+    canvas: '#0D1011',
+    workspace: '#121617',
+    surface: '#192021',
+    raised: '#212A2C',
+    overlay: '#2A3638',
+    borderSubtle: 'rgba(16, 185, 129, 0.12)',
+    borderDefault: '#283435',
+    borderStrong: '#3D4E50',
+    textPrimary: '#ECF2F1',
+    textSecondary: '#93A2A1',
+    textMuted: '#637271',
+    textSubtle: '#44504F',
+    accent: '#10B981',
+    accentHover: '#34D399',
+    accentMuted: 'rgba(16, 185, 129, 0.15)',
+    focus: '#10B981',
+    status: {
+      success: '#10B981',
+      successMuted: 'rgba(16, 185, 129, 0.15)',
+      warning: '#FBBF24',
+      warningMuted: 'rgba(251, 191, 36, 0.15)',
+      danger: '#F87171',
+      dangerMuted: 'rgba(248, 113, 113, 0.15)',
+      info: '#38BDF8',
+      infoMuted: 'rgba(56, 189, 248, 0.15)',
+    },
+    shadow: '0 6px 20px -3px rgba(0, 0, 0, 0.6), 0 0 1px rgba(16, 185, 129, 0.15)',
+    glow: '0 0 14px rgba(16, 185, 129, 0.18)',
+    geometry: {
+      radiusCard: '0.75rem',     // 12px
+      radiusButton: '0.5rem',     // 8px
+      radiusModal: '0.875rem',    // 14px
+      radiusBadge: '0.25rem',     // 4px
+      radiusInput: '0.5rem',      // 8px
+      radiusSm: '0.25rem',
+      radiusMd: '0.5rem',
+      radiusLg: '0.75rem',
+    },
+    typography: {
+      headingWeight: '500',
+      headingTracking: '0',
+      labelWeight: '500',
+      labelTracking: '0.02em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: 'radial-gradient(140% 100% at 50% -20%, #141C1D 0%, #0D1011 50%, #080A0A 100%)',
+      backdrop: 'none',
+      shadowCard: '0 6px 20px -3px rgba(0, 0, 0, 0.65), 0 0 1px rgba(16, 185, 129, 0.15)',
+      shadowModal: '0 24px 40px -10px rgba(0, 0, 0, 0.8), 0 0 1px rgba(16, 185, 129, 0.25)',
+      shadowPopover: '0 10px 22px -4px rgba(0, 0, 0, 0.65)',
+      glowAccent: '0 0 12px rgba(16, 185, 129, 0.22)',
+      borderWidth: '1px',
+    },
+  },
+};
 
 /**
  * R1-A & R1-C Semantic Design Tokens

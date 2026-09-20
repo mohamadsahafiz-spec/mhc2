@@ -24,24 +24,14 @@ export const Button: React.FC<ButtonProps> = ({
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = Boolean(useReducedMotion());
 
-  const base = 'inline-flex items-center justify-center font-medium rounded-xl transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
+  const base = 'inline-flex items-center justify-center font-theme-label rounded-button transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
   const variants = {
-    primary: isDark 
-      ? 'bg-[#8B9DFF] hover:bg-[#A3B2FF] text-slate-950 font-bold shadow-xs' 
-      : 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm',
-    secondary: isDark
-      ? 'bg-[#1A1D21] hover:bg-[#20252B] text-slate-100 border border-[#2B323A]'
-      : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300/80 font-semibold',
-    danger: isDark
-      ? 'bg-[#E98A8A]/20 hover:bg-[#E98A8A]/30 text-[#E98A8A] border border-[#E98A8A]/40 font-semibold'
-      : 'bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm',
-    outline: isDark
-      ? 'border border-[#2B323A] hover:border-[#8B9DFF]/50 text-slate-200 hover:bg-[#1A1D21]'
-      : 'border border-slate-300 hover:border-slate-400 text-slate-800 hover:bg-slate-100/90 font-medium',
-    ghost: isDark
-      ? 'text-slate-400 hover:text-slate-100 hover:bg-[#1A1D21]'
-      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium'
+    primary: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-slate-950 font-bold shadow-theme-glow',
+    secondary: 'bg-surface hover:bg-raised text-theme-primary border border-theme-default',
+    danger: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/40 font-semibold',
+    outline: 'border border-theme-default hover:border-theme-strong text-theme-primary hover:bg-surface',
+    ghost: 'text-theme-secondary hover:text-theme-primary hover:bg-surface'
   };
 
   const sizes = {

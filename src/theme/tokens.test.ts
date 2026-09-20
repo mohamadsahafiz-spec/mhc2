@@ -1,7 +1,117 @@
 import { describe, it, expect } from 'vitest';
-import { semanticTokens, designTokens, getThemeClasses, motionPresets } from './tokens';
+import { semanticTokens, designTokens, getThemeClasses, motionPresets, themePalettes, NamedTheme } from './tokens';
 
 describe('FSOS R1 Visual Foundation Tokens', () => {
+  describe('Multi-Theme Foundation: Named Themes', () => {
+    const requiredThemes: NamedTheme[] = ['precision', 'lumen', 'aether', 'prism', 'forge', 'cairn'];
+
+    it('defines complete palettes for all 6 target named themes', () => {
+      for (const theme of requiredThemes) {
+        const palette = themePalettes[theme];
+        expect(palette, `Palette for ${theme} should exist`).toBeDefined();
+        expect(palette.name).toBeDefined();
+        expect(palette.canvas).toBeDefined();
+        expect(palette.workspace).toBeDefined();
+        expect(palette.surface).toBeDefined();
+        expect(palette.raised).toBeDefined();
+        expect(palette.overlay).toBeDefined();
+        expect(palette.borderSubtle).toBeDefined();
+        expect(palette.borderDefault).toBeDefined();
+        expect(palette.borderStrong).toBeDefined();
+        expect(palette.textPrimary).toBeDefined();
+        expect(palette.textSecondary).toBeDefined();
+        expect(palette.textMuted).toBeDefined();
+        expect(palette.textSubtle).toBeDefined();
+        expect(palette.accent).toBeDefined();
+        expect(palette.accentHover).toBeDefined();
+        expect(palette.accentMuted).toBeDefined();
+        expect(palette.focus).toBeDefined();
+        expect(palette.shadow).toBeDefined();
+        expect(palette.glow).toBeDefined();
+        expect(palette.status.success).toBeDefined();
+        expect(palette.status.warning).toBeDefined();
+        expect(palette.status.danger).toBeDefined();
+        expect(palette.status.info).toBeDefined();
+        expect(['dark', 'light']).toContain(palette.baseMode);
+      }
+    });
+
+    it('keeps Precision mapped to baseline industrial dark palette', () => {
+      expect(themePalettes.precision.baseMode).toBe('dark');
+      expect(themePalettes.precision.canvas).toBe('#111315');
+      expect(themePalettes.precision.surface).toBe('#1C2026');
+      expect(themePalettes.precision.textPrimary).toBe('#F3F4F6');
+    });
+
+    it('configures Lumen with deep obsidian charcoal and luminous cyan depth', () => {
+      expect(themePalettes.lumen.baseMode).toBe('dark');
+      expect(themePalettes.lumen.canvas).toBe('#0A0D12');
+      expect(themePalettes.lumen.accent).toBe('#38BDF8');
+    });
+
+    it('configures Aether with soft pearl frosted surfaces and refracted violet-indigo', () => {
+      expect(themePalettes.aether.baseMode).toBe('light');
+      expect(themePalettes.aether.canvas).toBe('#EEF2F6');
+      expect(themePalettes.aether.accent).toBe('#6366F1');
+    });
+
+    it('configures Prism with light editorial alabaster and sapphire accents', () => {
+      expect(themePalettes.prism.baseMode).toBe('light');
+      expect(themePalettes.prism.canvas).toBe('#FAF9F6');
+      expect(themePalettes.prism.accent).toBe('#0284C7');
+    });
+
+    it('configures Forge with deep industrial graphite and warm amber accents', () => {
+      expect(themePalettes.forge.baseMode).toBe('dark');
+      expect(themePalettes.forge.canvas).toBe('#100F0E');
+      expect(themePalettes.forge.accent).toBe('#F59E0B');
+    });
+
+    it('configures Cairn with basalt mineral canvas and emerald accents', () => {
+      expect(themePalettes.cairn.baseMode).toBe('dark');
+      expect(themePalettes.cairn.canvas).toBe('#0D1011');
+      expect(themePalettes.cairn.accent).toBe('#10B981');
+    });
+
+    it('defines distinct visual geometry, typography, and atmosphere across all 6 named themes', () => {
+      for (const theme of requiredThemes) {
+        const palette = themePalettes[theme];
+        expect(palette.geometry, `Geometry for ${theme} should exist`).toBeDefined();
+        expect(palette.geometry.radiusCard).toBeDefined();
+        expect(palette.geometry.radiusButton).toBeDefined();
+        expect(palette.geometry.radiusModal).toBeDefined();
+        expect(palette.geometry.radiusBadge).toBeDefined();
+        expect(palette.geometry.radiusInput).toBeDefined();
+
+        expect(palette.typography, `Typography for ${theme} should exist`).toBeDefined();
+        expect(palette.typography.headingWeight).toBeDefined();
+        expect(palette.typography.headingTracking).toBeDefined();
+        expect(palette.typography.labelWeight).toBeDefined();
+        expect(palette.typography.labelTracking).toBeDefined();
+
+        expect(palette.atmosphere, `Atmosphere for ${theme} should exist`).toBeDefined();
+        expect(palette.atmosphere.canvasBg).toBeDefined();
+        expect(palette.atmosphere.backdrop).toBeDefined();
+        expect(palette.atmosphere.shadowCard).toBeDefined();
+        expect(palette.atmosphere.shadowModal).toBeDefined();
+        expect(palette.atmosphere.shadowPopover).toBeDefined();
+        expect(palette.atmosphere.glowAccent).toBeDefined();
+        expect(palette.atmosphere.borderWidth).toBeDefined();
+      }
+    });
+
+    it('enforces distinct geometry language between themes (e.g. Forge is compact/angular, Aether is refined/soft)', () => {
+      expect(themePalettes.forge.geometry.radiusCard).toBe('8px');
+      expect(themePalettes.forge.geometry.radiusButton).toBe('6px');
+
+      expect(themePalettes.aether.geometry.radiusCard).toBe('16px');
+      expect(themePalettes.aether.geometry.radiusButton).toBe('12px');
+
+      expect(themePalettes.prism.geometry.radiusCard).toBe('6px');
+      expect(themePalettes.prism.typography.headingWeight).toBe('700');
+    });
+  });
+
   describe('R1-A & R1-C: Surfaces', () => {
     it('defines complete semantic surfaces for both dark and light themes', () => {
       const surfaceKeys = ['canvas', 'workspace', 'surface', 'raised', 'overlay'] as const;

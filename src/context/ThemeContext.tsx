@@ -1,11 +1,28 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { NamedTheme, themePalettes } from '../theme/tokens';
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type { NamedTheme } from '../theme/tokens';
+export type ThemeMode = NamedTheme | 'system' | 'dark' | 'light';
+
+export const VALID_NAMED_THEMES: readonly NamedTheme[] = [
+  'precision',
+  'lumen',
+  'aether',
+  'prism',
+  'forge',
+  'cairn',
+] as const;
+
+export function isNamedTheme(value: unknown): value is NamedTheme {
+  return typeof value === 'string' && VALID_NAMED_THEMES.includes(value as NamedTheme);
+}
 
 interface ThemeContextType {
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
+  activeTheme: NamedTheme;
   effectiveTheme: 'dark' | 'light';
+  isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -13,10 +30,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('fso_theme_mode') : null;
-    if (saved === 'dark' || saved === 'light' || saved === 'system') {
+    if (saved && (isNamedTheme(saved) || saved === 'system' || saved === 'dark' || saved === 'light')) {
       return saved;
     }
-    return 'dark';
+    return 'precision';
   });
 
   const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
@@ -26,9 +43,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return true;
   });
 
-  const effectiveTheme: 'dark' | 'light' = theme === 'system' 
-    ? (systemIsDark ? 'dark' : 'light') 
-    : theme;
+  // Resolve active visual named theme
+  const activeTheme: NamedTheme = (() => {
+    if (theme === 'system') {
+      return systemIsDark ? 'precision' : 'lumen';
+    }
+    if (theme === 'dark') return 'precision';
+    if (theme === 'light') return 'lumen';
+    if (isNamedTheme(theme)) return theme;
+    return 'precision';
+  })();
+
+  // Backward compatibility: determine binary dark/light base mode
+  const effectiveTheme: 'dark' | 'light' = themePalettes[activeTheme]?.baseMode || 'dark';
+  const isDark = effectiveTheme === 'dark';
 
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
@@ -43,9 +71,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [theme]);
 
+  // Synchronize document.documentElement attributes and classes
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
+
+      // Authoritative data-theme attribute
+      root.setAttribute('data-theme', activeTheme);
+
+      // Backward compatible class toggles for legacy Tailwind dark: variant
       if (effectiveTheme === 'dark') {
         root.classList.add('dark');
         root.classList.remove('light');
@@ -54,10 +88,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         root.classList.remove('dark');
       }
     }
-  }, [effectiveTheme]);
+  }, [activeTheme, effectiveTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme: setThemeState, effectiveTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme: setThemeState, activeTheme, effectiveTheme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -70,3 +104,4 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+

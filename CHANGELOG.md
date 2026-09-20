@@ -1,5 +1,30 @@
 # FSOS CHANGELOG
 
+## v3.3.1 — FSOS Theme Visual Palettes (2026-09-20)
+
+### FSOS Theme Visual Palettes
+- **Six Distinct Visual Identities**: Implemented full theme token specifications and CSS custom variables for Precision, Lumen, Aether, Prism, Forge, and Cairn.
+  - **Precision**: Calm industrial graphite baseline with restrained cyan/teal accents and high-readability cleanroom dark surfaces (`#111315` canvas).
+  - **Lumen**: Deep obsidian charcoal with subtle luminous depth, restrained cyan edge hints, and ambient luminescence (`#0A0D12` canvas, `#38BDF8` accent).
+  - **Aether**: Soft pearl frosted translucent canvas with subtle glass depth, refracted violet-indigo highlights, and charcoal typography (`#EEF2F6` canvas, `#6366F1` accent).
+  - **Prism**: Light editorial alabaster canvas with crisp geometry, controlled visual contrast, and chromatic sapphire highlights (`#FAF9F6` canvas, `#0284C7` accent).
+  - **Forge**: Deep smoldered industrial graphite with warm amber telemetry accents and high engineering hierarchy (`#100F0E` canvas, `#F59E0B` accent).
+  - **Cairn**: Basalt mineral canvas with quiet emerald verification accents and atmospheric depth (`#0D1011` canvas, `#10B981` accent).
+- **Depth & Atmosphere Tokens**: Added semantic `shadow` and `glow` properties to `ThemeColorPalette` and exposed `--shadow-card` and `--glow-accent` CSS custom variables for each theme.
+- **Strict Semantic Protection**: Preserved universal engineering status colors (Pass/Warning/Defect/Info) across all themes.
+- **Protected Systems Intact**: Retained immutable PDF renderer (`MhcFullPdfRenderer.tsx`), Machine Passport cards, temperature telemetry, laser diagnostics, and autopilot systems untouched.
+
+## v3.3.0 — FSOS Multi-Theme Foundation (2026-09-20)
+
+### FSOS Multi-Theme Foundation
+- **Named Multi-Theme Model**: Refactored `ThemeContext` and design tokens to support 6 named visual identities (`precision`, `lumen`, `aether`, `prism`, `forge`, `cairn`) alongside OS-adaptive `system` sync.
+- **Authoritative Root Data Attribute**: Configured global synchronization via single authoritative `data-theme` attribute on `document.documentElement` (`data-theme="precision"`, etc.).
+- **Semantic Token Architecture**: Extended `src/theme/tokens.ts` with `themePalettes` providing canvas, workspace, surface, elevated raised, overlay, borders, typography, accent, focus, and operational status tokens for all named themes.
+- **Scoped CSS Custom Variables**: Defined comprehensive semantic CSS custom variables for `[data-theme="precision"]`, `[data-theme="lumen"]`, `[data-theme="aether"]`, `[data-theme="prism"]`, `[data-theme="forge"]`, and `[data-theme="cairn"]` in `src/index.css`.
+- **Backward Compatibility Preserved**: Maintained `effectiveTheme` (`'dark' | 'light'`), `isDark` boolean state, and root `.dark`/`.light` classes for seamless compatibility across existing modules.
+- **Settings Selection Integration**: Integrated clean theme picker in `SettingsModule` enabling instant switching across all named visual themes with `localStorage` persistence.
+- **Protected Systems Intact**: Left MHC PDF generator (`MhcFullPdfRenderer.tsx`), Machine Passport visual system, Temperature telemetry, and MHC Autopilot completely untouched.
+
 ## v3.2.4 — Machine Passport Laser Power Hero Correction (2026-09-20)
 
 ### Machine Passport Laser Power Hero Correction

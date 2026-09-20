@@ -76,26 +76,18 @@ export const Modal: React.FC<ModalProps> = ({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`w-full ${resolvedMaxWidth} border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${
-              isDark ? 'bg-[#1A1D21] border-[#2B323A] text-slate-100' : 'bg-white border-slate-300 text-slate-900'
-            }`}
+            className={`w-full ${resolvedMaxWidth} border rounded-modal shadow-theme-modal backdrop-theme-surface overflow-hidden flex flex-col max-h-[90vh] bg-raised border-theme-default text-theme-primary`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${
-              isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className="flex items-center justify-between px-6 py-4 border-b bg-surface border-theme-default">
               <div>
-                <h2 className={`text-lg font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{title}</h2>
-                {subtitle && <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>{subtitle}</p>}
+                <h2 className="text-lg font-theme-heading text-theme-primary">{title}</h2>
+                {subtitle && <p className="text-xs mt-0.5 font-theme-label text-theme-muted">{subtitle}</p>}
               </div>
               <motion.button
                 whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={onClose}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isDark 
-                    ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' 
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/80'
-                }`}
+                className="p-1.5 rounded-button transition-colors text-theme-secondary hover:text-theme-primary hover:bg-surface"
               >
                 <X className="w-5 h-5" />
               </motion.button>

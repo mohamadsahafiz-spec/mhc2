@@ -45,26 +45,20 @@ export const Card: React.FC<CardProps> = ({
       onClick={onClick}
       whileHover={isClickable && !prefersReducedMotion ? mechanicalPressConfig.hover : undefined}
       whileTap={isClickable && !prefersReducedMotion ? mechanicalPressConfig.subtleTap : undefined}
-      className={`border rounded-2xl transition-colors duration-150 ${
-        isClickable ? 'cursor-pointer select-none' : ''
-      } ${
-        isDark 
-          ? 'bg-[#20252B] border-[#2B323A] text-[#F3F4F6]' 
-          : 'bg-white border-slate-300/80 text-slate-900 shadow-xs'
+      className={`border rounded-card shadow-theme-card backdrop-theme-surface transition-all duration-200 bg-surface border-theme-default text-theme-primary ${
+        isClickable ? 'cursor-pointer select-none hover:border-theme-strong' : ''
       } ${paddingStyles[padding]} ${className}`}
     >
       {(title || subtitle || action) && (
-        <div className={`flex items-center justify-between pb-3 mb-4 border-b ${
-          isDark ? 'border-[#2B323A]/60' : 'border-slate-200'
-        }`}>
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-theme-subtle">
           <div>
             {title && typeof title === 'string' ? (
-              <h3 className={`text-base font-semibold tracking-tight ${isDark ? 'text-[#F3F4F6]' : 'text-slate-900'}`}>{title}</h3>
+              <h3 className="text-base font-theme-heading text-theme-primary">{title}</h3>
             ) : (
               title
             )}
             {subtitle && (
-              <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>{subtitle}</p>
+              <p className="text-xs mt-0.5 font-theme-label text-theme-muted">{subtitle}</p>
             )}
           </div>
           {action && <div>{action}</div>}
