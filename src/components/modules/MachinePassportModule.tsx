@@ -1757,7 +1757,7 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
             <div className="space-y-6">
               {/* Workspace Navigation & Return Header */}
               <div
-                className={`p-3 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+                className={`p-3 sm:p-4 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
                   isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-xs'
                 }`}
               >
@@ -1769,10 +1769,10 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                     onClick={() => setPassportViewMode('table')}
                     className="font-sans font-bold text-xs h-8 px-3"
                   >
-                    ← Back to Machine Table
+                    Back to Machine Table
                   </Button>
-                  <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700" />
-                  <div className="flex items-center gap-2 min-w-0 font-mono text-xs">
+                  <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                  <div className="hidden sm:flex items-center gap-2 min-w-0 font-mono text-xs">
                     <span className="font-bold text-slate-400">
                       {selectedMachine.machineNumber || selectedMachine.id}
                     </span>
@@ -1793,6 +1793,36 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                         : 'Recommended Items'}
                     </span>
                   </div>
+                </div>
+
+                {/* Restored Flat Subject Navigation Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1 md:pb-0 scrollbar-none">
+                  {[
+                    { id: 'lifecycle', label: 'Lifecycle' },
+                    { id: 'temperature', label: 'Temperature' },
+                    { id: 'laser_power', label: 'Laser Power' },
+                    { id: 'beam_profile', label: 'Beam Profile' },
+                    { id: 'focus_optimization', label: 'Focus' },
+                    { id: 'product_process', label: 'Product & Process' },
+                    { id: 'recommended_parts', label: 'Recommended Items' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setPassportSubTab(s.id as any)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium whitespace-nowrap transition-colors ${
+                        passportSubTab === s.id
+                          ? isDark
+                            ? 'bg-[#242A32] text-white font-bold border border-[#3D4754]'
+                            : 'bg-slate-200 text-slate-900 font-bold border border-slate-300'
+                          : isDark
+                          ? 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2026]'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

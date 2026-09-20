@@ -120,7 +120,7 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
       </div>
 
       <div className={`overflow-x-auto rounded-xl border font-mono text-xs ${
-        isDark ? 'border-[#2B323A] bg-[#111315]/90' : 'border-slate-200 bg-slate-50'
+        isDark ? 'border-[#2B323A] bg-[#111315]' : 'border-slate-200 bg-slate-50'
       }`}>
         <table className="w-full text-left">
           <thead className={isDark ? 'bg-[#14171A] text-slate-400 border-b border-[#2B323A]' : 'bg-slate-100 text-slate-600 border-b border-slate-200'}>
@@ -159,21 +159,23 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                     <button
                       type="button"
                       onClick={() => onToggleChannel?.(ch)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
+                      className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono border transition ${
                         isActive
-                          ? 'text-white shadow-xs'
+                          ? isDark
+                            ? 'bg-[#181B1F] border-[#313842] text-slate-100 hover:border-slate-500 shadow-2xs'
+                            : 'bg-white border-slate-300 text-slate-900 hover:border-slate-400 shadow-2xs'
                           : isDark
-                          ? 'bg-slate-800 border-slate-700 text-slate-500'
-                          : 'bg-slate-200 border-slate-300 text-slate-500'
+                          ? 'bg-[#111315] border-[#22272E] text-slate-600 opacity-50'
+                          : 'bg-slate-100 border-slate-200 text-slate-400 opacity-50'
                       }`}
-                      style={{
-                        backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined,
-                        borderColor: isActive ? CHANNEL_COLORS[ch] : undefined
-                      }}
                       title={onToggleChannel ? (isActive ? 'Click to hide channel' : 'Click to show channel') : undefined}
                     >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: CHANNEL_COLORS[ch] }}
+                      />
                       <span>CH{ch}</span>
-                      <span className="text-[9px] opacity-75 font-normal">({markboxName})</span>
+                      <span className="text-[10px] text-slate-400 font-normal">({markboxName})</span>
                     </button>
                   </td>
 
@@ -181,10 +183,10 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   <td className="py-2.5 px-3">
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-sky-500 dark:text-sky-400 font-bold">{st.min.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400">°C</span>
+                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.min.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-sky-950/50' : 'bg-sky-100'}`}>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
                           className="h-full rounded-full bg-sky-500 transition-all duration-300"
                           style={{ width: `${calcMinPct(st.min)}%` }}
@@ -197,10 +199,10 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   <td className="py-2.5 px-3">
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-rose-500 dark:text-rose-400 font-bold">{st.max.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400">°C</span>
+                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.max.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-rose-950/50' : 'bg-rose-100'}`}>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
                           className="h-full rounded-full bg-rose-500 transition-all duration-300"
                           style={{ width: `${calcMaxPct(st.max)}%` }}
@@ -213,10 +215,10 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   <td className="py-2.5 px-3">
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{st.avg.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400">°C</span>
+                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.avg.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-emerald-950/50' : 'bg-emerald-100'}`}>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
                           className="h-full rounded-full bg-emerald-500 transition-all duration-300"
                           style={{ width: `${calcAvgPct(st.avg)}%` }}
@@ -229,10 +231,10 @@ export const ChannelSummaryTable: React.FC<ChannelSummaryTableProps> = ({
                   <td className="py-2.5 px-3">
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-purple-600 dark:text-purple-400 font-bold">{st.range.toFixed(1)}</span>
-                        <span className="text-[10px] text-slate-400">°C</span>
+                        <span className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{st.range.toFixed(1)}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">°C</span>
                       </div>
-                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-purple-950/50' : 'bg-purple-100'}`}>
+                      <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
                           className="h-full rounded-full bg-purple-500 transition-all duration-300"
                           style={{ width: `${calcRangePct(st.range)}%` }}
@@ -655,101 +657,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
             </div>
           )}
 
-          {/* LEVEL 3: CHANNEL FILTER PILLS */}
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className={`text-xs font-mono font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Channels:
-            </span>
-            {[1, 2, 3, 4, 5, 6].map((ch) => {
-              const isActive = activeChannels.includes(ch);
-              const st = analysisResult.channelStats[ch];
-              return (
-                <button
-                  key={ch}
-                  type="button"
-                  onClick={() => toggleChannel(ch)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 border ${
-                    isActive
-                      ? 'border-transparent text-white shadow-xs'
-                      : isDark
-                      ? 'bg-[#1A1D21] border-[#2B323A] text-slate-500 opacity-50'
-                      : 'bg-slate-100 border-slate-200 text-slate-400'
-                  }`}
-                  style={{
-                    backgroundColor: isActive ? CHANNEL_COLORS[ch] : undefined
-                  }}
-                >
-                  <span>CH{ch}</span>
-                  {st && <span className="text-[10.5px] opacity-90 font-normal">({st.avg.toFixed(1)}°C)</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* LEVEL 4: LARGE TEMPERATURE TREND (DOMINANT ANALYTICAL GRAPH) */}
-          <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="flex items-center justify-between pb-3">
-              <span className={`text-xs font-bold font-mono uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Multi-Channel Temperature Trend
-              </span>
-              <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
-                {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setGraphPreset(p)}
-                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
-                      graphPreset === p
-                        ? 'bg-slate-700 text-white font-bold shadow-xs'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <TemperatureGraph
-              channelData={analysisResult.resampledChannels}
-              activeChannels={activeChannels}
-              stats={analysisResult.stats}
-              dayBoundaries={analysisResult.dayBoundaries}
-              usl={showSpecBand ? authoritativeUsl : null}
-              asl={showSpecBand ? authoritativeAsl : null}
-              showSpecBand={showSpecBand}
-              yStep={selectedYStep}
-              xTickDensity={xTickDensity}
-              preset={graphPreset}
-              height={440}
-              showDayBoundaries={showDayBoundaries}
-              yMinOverride={yMinOverride}
-              yMaxOverride={yMaxOverride}
-              showYAxisControls={false}
-              showStatsBanner={false}
-            />
-          </div>
-
-          {/* LEVEL 5: PER-CHANNEL ENGINEERING SUMMARY (Magnitude bars) */}
-          {analysisResult.channelStats && Object.keys(analysisResult.channelStats).length > 0 && (
-            <div>
-              <ChannelSummaryTable
-                channelStats={analysisResult.channelStats}
-                activeChannels={activeChannels}
-                onToggleChannel={toggleChannel}
-                isDark={isDark}
-              />
-            </div>
-          )}
-
-          {/* LEVEL 6: UNIFIED ENGINEERING SETTINGS & CONTROLS */}
+          {/* LEVEL 3: UNIFIED ENGINEERING SETTINGS & CONTROLS (Moved above graph) */}
           <div className={`rounded-xl border overflow-hidden ${
             isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
           }`}>
             <button
               type="button"
               onClick={() => setShowAdvancedControls(!showAdvancedControls)}
-              className={`w-full p-3.5 flex items-center justify-between text-xs font-bold font-mono transition-colors ${
+              className={`w-full p-3 flex items-center justify-between text-xs font-bold font-mono transition-colors ${
                 isDark ? 'hover:bg-[#1A1D21] text-slate-300' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >
@@ -757,7 +672,10 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                 <Sliders className="w-4 h-4 text-sky-400" />
                 <span>Unified Engineering Display Settings & Telemetry Controls</span>
               </div>
-              {showAdvancedControls ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <div className="flex items-center gap-2 text-slate-400 font-normal text-[11px]">
+                <span>{showAdvancedControls ? 'Hide Settings' : 'Expand Settings'}</span>
+                {showAdvancedControls ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
             </button>
 
             {showAdvancedControls && (
@@ -1006,6 +924,97 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               </div>
             )}
           </div>
+
+          {/* LEVEL 4: CHANNEL FILTER BUTTONS & LARGE TEMPERATURE TREND */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* Restrained channel filter buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-xs font-mono font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Channels:
+                </span>
+                {[1, 2, 3, 4, 5, 6].map((ch) => {
+                  const isActive = activeChannels.includes(ch);
+                  const st = analysisResult.channelStats[ch];
+                  return (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => toggleChannel(ch)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-2 border ${
+                        isActive
+                          ? isDark
+                            ? 'bg-[#181B1F] border-[#38414D] text-slate-100 shadow-2xs'
+                            : 'bg-white border-slate-300 text-slate-900 shadow-2xs'
+                          : isDark
+                          ? 'bg-[#111315] border-[#22272E] text-slate-500 opacity-40'
+                          : 'bg-slate-100 border-slate-200 text-slate-400 opacity-40'
+                      }`}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: CHANNEL_COLORS[ch] }}
+                      />
+                      <span>CH{ch}</span>
+                      {st && <span className="text-[10px] text-slate-400 font-normal">({st.avg.toFixed(1)}°C)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Graph presets */}
+              <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+                {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setGraphPreset(p)}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
+                      graphPreset === p
+                        ? 'bg-slate-700 text-white font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* DOMINANT ANALYTICAL GRAPH (Expansive view) */}
+            <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
+              <TemperatureGraph
+                channelData={analysisResult.resampledChannels}
+                activeChannels={activeChannels}
+                stats={analysisResult.stats}
+                dayBoundaries={analysisResult.dayBoundaries}
+                usl={showSpecBand ? authoritativeUsl : null}
+                asl={showSpecBand ? authoritativeAsl : null}
+                showSpecBand={showSpecBand}
+                yStep={selectedYStep}
+                xTickDensity={xTickDensity}
+                preset={graphPreset}
+                height={460}
+                showDayBoundaries={showDayBoundaries}
+                yMinOverride={yMinOverride}
+                yMaxOverride={yMaxOverride}
+                showYAxisControls={false}
+                showStatsBanner={false}
+              />
+            </div>
+          </div>
+
+          {/* LEVEL 5: PER-CHANNEL ENGINEERING SUMMARY (Magnitude bars) */}
+          {analysisResult.channelStats && Object.keys(analysisResult.channelStats).length > 0 && (
+            <div>
+              <ChannelSummaryTable
+                channelStats={analysisResult.channelStats}
+                activeChannels={activeChannels}
+                onToggleChannel={toggleChannel}
+                isDark={isDark}
+              />
+            </div>
+          )}
         </div>
       ) : (
         /* Log Import Dropzone if no active session */
@@ -1087,10 +1096,15 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                           return (
                             <span
                               key={ch}
-                              className="px-2 py-0.5 rounded text-[10px] font-mono font-bold text-white shadow-2xs"
-                              style={{ backgroundColor: CHANNEL_COLORS[ch] }}
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
+                                isDark ? 'bg-[#181B1F] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+                              }`}
                             >
-                              CH{ch}: {st.avg.toFixed(1)}°C
+                              <span
+                                className="w-1.5 h-1.5 rounded-full shrink-0"
+                                style={{ backgroundColor: CHANNEL_COLORS[ch] }}
+                              />
+                              <span>CH{ch}: {st.avg.toFixed(1)}°C</span>
                             </span>
                           );
                         })}
@@ -1174,9 +1188,14 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className="px-2 py-0.5 rounded text-[10px] font-bold text-white font-mono"
-                    style={{ backgroundColor: CHANNEL_COLORS[r.channel] || '#888' }}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${
+                      isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-300 text-slate-800'
+                    }`}
                   >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: CHANNEL_COLORS[r.channel] || '#888' }}
+                    />
                     CH{r.channel}
                   </span>
                   <span className="text-xs font-mono font-bold text-emerald-400">{r.temperature}°C</span>
@@ -1200,13 +1219,13 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
         )}
       </Card>
 
-      {/* SAVED RECORD FULL ENGINEERING ANALYSIS MODAL */}
+      {/* SAVED RECORD FULL ENGINEERING ANALYSIS MODAL (Expanded 7xl) */}
       {selectedRecordForDetail && (
         <Modal
           isOpen={!!selectedRecordForDetail}
           onClose={() => setSelectedRecordForDetail(null)}
           title={selectedRecordForDetail.title}
-          size="lg"
+          maxWidth="7xl"
         >
           <div className="space-y-5">
             {/* LEVEL 1: RECORD IDENTITY */}
@@ -1249,7 +1268,107 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               </div>
             </div>
 
-            {/* LEVEL 3: LARGE TEMPERATURE TREND GRAPH */}
+            {/* LEVEL 3: UNIFIED DISPLAY SETTINGS & PRESETS (Above Graph) */}
+            <div className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs font-mono ${
+              isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Y Axis bounds */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase text-slate-400 font-bold">Y-Axis:</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoY(true)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                      isAutoY
+                        ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
+                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    Auto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoY(false)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                      !isAutoY
+                        ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
+                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    Manual
+                  </button>
+                  {!isAutoY && (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={customMinStr}
+                        onChange={(e) => setCustomMinStr(e.target.value)}
+                        className={`w-14 px-1 py-0.5 rounded border text-[10.5px] ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
+                        }`}
+                      />
+                      <span className="text-slate-500">-</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={customMaxStr}
+                        onChange={(e) => setCustomMaxStr(e.target.value)}
+                        className={`w-14 px-1 py-0.5 rounded border text-[10.5px] ${
+                          isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'
+                        }`}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Day lines & Spec band */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={showDayBoundaries}
+                      onChange={(e) => setShowDayBoundaries(e.target.checked)}
+                      className="rounded text-sky-500"
+                    />
+                    <span>Day Lines ({selectedRecordForDetail.dayBoundaries.length})</span>
+                  </label>
+
+                  {hasAuthoritativeSpec && (
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-emerald-400">
+                      <input
+                        type="checkbox"
+                        checked={showSpecBand}
+                        onChange={(e) => setShowSpecBand(e.target.checked)}
+                        className="rounded text-emerald-500"
+                      />
+                      <span>MHC Spec Band</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Presets */}
+              <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+                {(['engineering', 'clean', 'report'] as GraphPreset[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setGraphPreset(p)}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono capitalize transition-all ${
+                      graphPreset === p
+                        ? 'bg-slate-700 text-white font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* LEVEL 4: LARGE TEMPERATURE TREND GRAPH (460px height) */}
             <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'}`}>
               <TemperatureGraph
                 channelData={selectedRecordForDetail.channelData}
@@ -1262,7 +1381,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
                 yStep={selectedYStep}
                 xTickDensity={xTickDensity}
                 preset={graphPreset}
-                height={400}
+                height={460}
                 showDayBoundaries={showDayBoundaries}
                 yMinOverride={yMinOverride}
                 yMaxOverride={yMaxOverride}
@@ -1271,7 +1390,7 @@ export const MachineTemperatureWorkspace: React.FC<MachineTemperatureWorkspacePr
               />
             </div>
 
-            {/* LEVEL 4: PER-CHANNEL ENGINEERING SUMMARY */}
+            {/* LEVEL 5: PER-CHANNEL ENGINEERING SUMMARY */}
             {selectedRecordForDetail.channelStats && Object.keys(selectedRecordForDetail.channelStats).length > 0 && (
               <div>
                 <ChannelSummaryTable

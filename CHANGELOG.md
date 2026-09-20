@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.1.5 — Temperature Analysis Workspace UX Correction (2026-09-20)
+
+### Temperature Analysis Workspace UX Correction
+- **Expansive Analysis Canvas**: Expanded the analysis workspace and saved inspection modal width to utilize full screen real estate (`maxWidth="7xl"` and responsive fluid flex) for engineering inspection.
+- **Workflow-Optimized Settings Placement**: Moved Unified Engineering Display Settings & Telemetry Controls directly above the trend graph and summary table, enabling effortless adjustment of Y-axis scaling, X-axis density, and MHC specification bands.
+- **Professional Restrained Data Table**: Restyled the Per-Channel Engineering Summary and channel filter buttons with clean industrial surfaces, neutral typography, and compact color indicators while maintaining clear magnitude comparison bars.
+- **Unified Horizontal Navigation**: Restored the horizontal subject navigation strip in the subject workspace header for quick subsystem switching alongside the direct return to Machine Table.
+
 ## v3.1.4 — Machine Passport Table Interaction & Visual Refinement (2026-09-20)
 
 ### Machine Passport Visual & Interaction Refinement

@@ -692,7 +692,7 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
                       <span className={`text-[11px] transition-colors ${
                         isDark ? 'group-hover:text-slate-200' : 'group-hover:text-slate-900'
                       }`}>
-                        Open workspace →
+                        Open workspace
                       </span>
                       <ArrowRight className={`w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all ${
                         isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-900'
