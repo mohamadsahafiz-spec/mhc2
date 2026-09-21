@@ -132,11 +132,12 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* 2. Minimal Global Actions & Status */}
       <div className="flex items-center gap-2.5 shrink-0">
-        {/* Compact Theme Pilot Switcher (Precision | Lumen) */}
+        {/* Compact Theme Pilot Switcher (Precision | Lumen | Aero) */}
         <RubberSegment
           options={[
             { value: 'precision', label: 'Precision' },
-            { value: 'lumen', label: 'Lumen' }
+            { value: 'lumen', label: 'Lumen' },
+            { value: 'aero', label: 'Aero' }
           ]}
           value={activeTheme}
           onChange={(val) => setTheme(val as NamedTheme)}
