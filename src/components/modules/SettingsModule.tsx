@@ -111,6 +111,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       description: 'Deep obsidian dusk with atmospheric radial depth, cyan hairlines, and luminous edge highlights.',
       iconColor: 'text-sky-400',
     },
+    {
+      id: 'aero' as const,
+      name: 'Frutiger Aero',
+      category: 'Aero Glass',
+      description: 'Radiant atmospheric azure sky, organic translucent glass surfaces, and glossy specular reflections.',
+      iconColor: 'text-cyan-400',
+    },
   ], []);
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);

@@ -13,7 +13,7 @@
  * Multi-Theme Foundation — Named themes: Precision, Lumen, Aether, Prism, Forge, Cairn
  */
 
-export type NamedTheme = 'precision' | 'lumen' | 'aether' | 'prism' | 'forge' | 'cairn';
+export type NamedTheme = 'precision' | 'lumen' | 'aero' | 'aether' | 'prism' | 'forge' | 'cairn';
 
 export interface ThemeVisualGeometry {
   radiusCard: string;
@@ -198,6 +198,64 @@ export const themePalettes: Record<NamedTheme, ThemeColorPalette> = {
       shadowModal: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 0 50px -5px rgba(56, 189, 248, 0.2), 0 30px 60px -10px rgba(0, 0, 0, 0.9)',
       shadowPopover: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.16), 0 0 24px -3px rgba(56, 189, 248, 0.15), 0 14px 28px -4px rgba(0, 0, 0, 0.75)',
       glowAccent: '0 0 20px rgba(56, 189, 248, 0.35)',
+      borderWidth: '1px',
+    },
+  },
+  aero: {
+    name: 'Frutiger Aero',
+    baseMode: 'light',
+    canvas: '#9FD0EB',
+    workspace: 'rgba(255, 255, 255, 0.60)',
+    surface: 'rgba(255, 255, 255, 0.82)',
+    raised: 'rgba(255, 255, 255, 0.92)',
+    overlay: 'rgba(255, 255, 255, 0.98)',
+    borderSubtle: 'rgba(255, 255, 255, 0.55)',
+    borderDefault: 'rgba(255, 255, 255, 0.75)',
+    borderStrong: 'rgba(255, 255, 255, 0.95)',
+    textPrimary: '#0F2942',
+    textSecondary: '#2C5270',
+    textMuted: '#587A96',
+    textSubtle: '#819EB5',
+    accent: '#0085DF',
+    accentHover: '#1FA4FA',
+    accentMuted: 'rgba(0, 133, 223, 0.15)',
+    focus: '#0085DF',
+    status: {
+      success: '#10B258',
+      successMuted: 'rgba(16, 178, 88, 0.15)',
+      warning: '#F59E0B',
+      warningMuted: 'rgba(245, 158, 11, 0.15)',
+      danger: '#E53E3E',
+      dangerMuted: 'rgba(229, 62, 62, 0.15)',
+      info: '#0085DF',
+      infoMuted: 'rgba(0, 133, 223, 0.15)',
+    },
+    shadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 8px 30px -4px rgba(31, 78, 121, 0.18)',
+    glow: '0 0 18px rgba(0, 133, 223, 0.35)',
+    geometry: {
+      radiusCard: '1rem',        // 16px
+      radiusButton: '0.75rem',    // 12px
+      radiusModal: '1.25rem',     // 20px
+      radiusBadge: '0.5rem',      // 8px
+      radiusInput: '0.75rem',     // 12px
+      radiusSm: '0.5rem',
+      radiusMd: '0.75rem',
+      radiusLg: '1rem',
+    },
+    typography: {
+      headingWeight: '600',
+      headingTracking: '-0.015em',
+      labelWeight: '500',
+      labelTracking: '0.01em',
+      labelTransform: 'none',
+    },
+    atmosphere: {
+      canvasBg: 'radial-gradient(120% 80% at 50% -10%, #E6F6FD 0%, #BFE5F8 40%, #87C6EB 75%, #62ADD9 100%)',
+      backdrop: 'blur(16px)',
+      shadowCard: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 8px 30px -4px rgba(31, 78, 121, 0.18), 0 2px 6px rgba(31, 78, 121, 0.08)',
+      shadowModal: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 24px 60px -8px rgba(20, 60, 95, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.8)',
+      shadowPopover: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 12px 32px -4px rgba(20, 60, 95, 0.2)',
+      glowAccent: '0 0 20px rgba(0, 133, 223, 0.35)',
       borderWidth: '1px',
     },
   },

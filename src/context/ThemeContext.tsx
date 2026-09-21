@@ -6,6 +6,7 @@ export type { NamedTheme };
 export const VALID_NAMED_THEMES: readonly NamedTheme[] = [
   'precision',
   'lumen',
+  'aero',
   'aether',
   'prism',
   'forge',
@@ -31,16 +32,16 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('fso_theme_mode') : null;
-    if (saved === 'lumen') {
-      return 'lumen';
+    if (saved && isNamedTheme(saved)) {
+      return saved;
     }
     return 'precision';
   });
 
-  // Active theme is directly the selected pilot theme
-  const activeTheme: NamedTheme = theme === 'lumen' ? 'lumen' : 'precision';
+  // Active theme is directly the selected theme
+  const activeTheme: NamedTheme = isNamedTheme(theme) ? theme : 'precision';
 
-  // Both Precision and Lumen operate on dark base mode with distinct visual systems
+  // Effective mode (dark/light) from theme palette definition
   const effectiveTheme: 'dark' | 'light' = themePalettes[activeTheme]?.baseMode || 'dark';
   const isDark = effectiveTheme === 'dark';
 

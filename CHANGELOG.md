@@ -1,5 +1,16 @@
 # FSOS CHANGELOG
 
+## v3.4.0 — FSOS Frutiger Aero Theme System (2026-09-21)
+
+### Frutiger Aero Visual Theme Implementation
+- **First-Class Atmospheric Sky Canvas**: Implemented the signature Frutiger Aero fixed daylight sky atmospheric gradient (`radial-gradient(130% 90% at 50% -10%, #FFFFFF 0%, #E3F5FD 30%, #A2D8F6 65%, #6EB9E5 100%)`) with clean ambient lighting and organic depth.
+- **Translucent Aero Glass Surfaces**: Created high-clarity translucent glass panels, header, sidebar, cards, and modal dialogs with specular top highlights (`inset 0 1px 0 0 rgba(255, 255, 255, 0.95)`), backdrop blur (`blur(16px)`), and organic soft rounded geometry (`rounded-card`, `rounded-modal`).
+- **Glossy Skeuomorphic Buttons**: Designed high-gloss specular primary buttons featuring Aqua/Azure gradients, crisp inset highlights, and tactile `active:scale-95` press micro-interactions.
+- **Form & Input Aero Refinement**: Added glassy input, select, and textarea styling with subtle inset drop-shadows and luminous aqua focus rings.
+- **Unified Luminous Bar Integration**: Added dedicated Frutiger Aero styling to the unified `ProgressBar` system with translucent tracks and 3D specular capsule gradient fills.
+- **Theme Registration & Management**: Fully registered `aero` (`Frutiger Aero`) in `NamedTheme`, `themePalettes`, `ThemeContext`, and the Settings Theme Selector.
+- **Strict Logic & Domain UX Preservation**: Guaranteed 100% preservation of all semiconductor inspection algorithms, laser physics models, MHC Autopilot workflows, Machine Passport data, and official PDF generation pipelines.
+
 ## v3.3.5 — FSOS Lumen Accent Cleanup & Unified Luminous Bar System (2026-09-21)
 
 ### Lumen Accent Cleanup & Unified Luminous Bar System
