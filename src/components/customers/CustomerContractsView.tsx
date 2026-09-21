@@ -22,6 +22,7 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
+import { ProgressBar } from '../common/ProgressBar';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   getContractMetrics, 
@@ -236,20 +237,20 @@ export const CustomerContractsView: React.FC<CustomerContractsViewProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-400 font-medium">SLA MHC Service-Day Consumption</span>
-            <span className="font-mono font-bold text-sky-400">{metrics.utilizationPercent}% Consumed</span>
+            <span className="font-mono font-bold text-cyan-400">{metrics.utilizationPercent}% Consumed</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-700/30 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                metrics.utilizationPercent >= 90
-                  ? 'bg-rose-500'
-                  : metrics.utilizationPercent >= 75
-                  ? 'bg-amber-500'
-                  : 'bg-sky-500'
-              }`}
-              style={{ width: `${metrics.utilizationPercent}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={metrics.utilizationPercent}
+            variant={
+              metrics.utilizationPercent >= 90
+                ? 'danger'
+                : metrics.utilizationPercent >= 75
+                ? 'warning'
+                : 'primary'
+            }
+            size="sm"
+            animated={true}
+          />
         </div>
 
         {/* Covered Machine Chips & Filter Bar */}

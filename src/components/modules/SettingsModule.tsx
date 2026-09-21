@@ -674,71 +674,63 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         {/* ========================================================================= */}
         {activeSection === 'regional' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-xl border space-y-6 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-6 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div>
-                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                <h2 className="text-base font-theme-heading text-theme-primary">
                   Regional & Engineering Measurement Standards
                 </h2>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="text-xs mt-1 text-theme-muted font-theme-label">
                   FSOS enforces international precision standards across all inspection logs, machine passports, and executive export reports.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date & Time Standard */}
-                <div className={`p-4 rounded-xl border space-y-3 ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="flex items-center gap-2 font-semibold text-xs text-slate-200">
+                <div className="p-4 rounded-card border space-y-3 bg-canvas border-theme-default text-theme-primary">
+                  <div className="flex items-center gap-2 font-semibold text-xs text-theme-primary font-theme-heading">
                     <Clock className="w-4 h-4 text-emerald-400" />
                     <span>Date & Timestamp Standard</span>
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
-                      <span className="text-slate-400">Date Format</span>
-                      <span className="font-mono font-medium text-slate-200">ISO 8601 (YYYY-MM-DD)</span>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-theme-subtle">
+                      <span className="text-theme-muted">Date Format</span>
+                      <span className="font-mono font-medium text-theme-primary">ISO 8601 (YYYY-MM-DD)</span>
                     </div>
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
-                      <span className="text-slate-400">Time Standard</span>
-                      <span className="font-mono font-medium text-slate-200">24-Hour Military Time</span>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-theme-subtle">
+                      <span className="text-theme-muted">Time Standard</span>
+                      <span className="font-mono font-medium text-theme-primary">24-Hour Military Time</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Manifest Timestamps</span>
-                      <span className="font-mono font-medium text-slate-200">UTC / ISO 8601</span>
+                      <span className="text-theme-muted">Manifest Timestamps</span>
+                      <span className="font-mono font-medium text-theme-primary">UTC / ISO 8601</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Units of Measurement */}
-                <div className={`p-4 rounded-xl border space-y-3 ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="flex items-center gap-2 font-semibold text-xs text-slate-200">
+                <div className="p-4 rounded-card border space-y-3 bg-canvas border-theme-default text-theme-primary">
+                  <div className="flex items-center gap-2 font-semibold text-xs text-theme-primary font-theme-heading">
                     <Cpu className="w-4 h-4 text-emerald-400" />
                     <span>Industrial Units of Measurement (SI)</span>
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
-                      <span className="text-slate-400">Laser Power</span>
-                      <span className="font-mono font-medium text-slate-200">Watts (W) / Joules (J)</span>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-theme-subtle">
+                      <span className="text-theme-muted">Laser Power</span>
+                      <span className="font-mono font-medium text-theme-primary">Watts (W) / Joules (J)</span>
                     </div>
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-700/30">
-                      <span className="text-slate-400">Optical Dimensions</span>
-                      <span className="font-mono font-medium text-slate-200">Micrometers (μm) / mm</span>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-theme-subtle">
+                      <span className="text-theme-muted">Optical Dimensions</span>
+                      <span className="font-mono font-medium text-theme-primary">Micrometers (μm) / mm</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Thermal / Pressure</span>
-                      <span className="font-mono font-medium text-slate-200">Celsius (°C) / bar</span>
+                      <span className="text-theme-muted">Thermal / Pressure</span>
+                      <span className="font-mono font-medium text-theme-primary">Celsius (°C) / bar</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className={`p-4 rounded-lg border text-xs leading-relaxed ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
-              }`}>
+              <div className="p-4 rounded-card border text-xs leading-relaxed bg-canvas border-theme-default text-theme-muted">
                 All engineering exports and machine passport records strictly adhere to UTF-8 character encoding and international metrology conventions to guarantee deterministic parsing across automated equipment analyzers.
               </div>
             </div>
@@ -750,37 +742,29 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         {/* ========================================================================= */}
         {activeSection === 'application' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-xl border space-y-6 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-6 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div>
-                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                <h2 className="text-base font-theme-heading text-theme-primary">
                   Application & Workspace Configuration
                 </h2>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="text-xs mt-1 text-theme-muted font-theme-label">
                   Configure default operational behavior and active workspace modes.
                 </p>
               </div>
 
               {/* Workspace Mode Setting */}
               <div className="space-y-3">
-                <label className={`text-xs font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-slate-400' : 'text-slate-600'
-                }`}>
+                <label className="text-xs font-semibold uppercase tracking-wider text-theme-muted font-theme-label">
                   Default Workspace Mode
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <button
                     type="button"
                     onClick={() => handleWorkspaceModeChange('MHC_MODE')}
-                    className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                    className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-all ${
                       workspaceMode === 'MHC_MODE'
-                        ? isDark 
-                          ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
-                          : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
-                        : isDark
-                          ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
-                          : 'border-slate-200 bg-white hover:border-slate-400'
+                        ? 'border-emerald-500/50 bg-raised ring-1 ring-emerald-500/30'
+                        : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -788,10 +772,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       {workspaceMode === 'MHC_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
                     </div>
                     <div>
-                      <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">
                         Machine Health Check Focused
                       </h4>
-                      <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
                         Streamlined layout optimized for field technicians performing cleanroom diagnostics, calibration logs, and MHC inspection sessions.
                       </p>
                     </div>
@@ -800,14 +784,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <button
                     type="button"
                     onClick={() => handleWorkspaceModeChange('FOUNDER_MODE')}
-                    className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all ${
+                    className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-all ${
                       workspaceMode === 'FOUNDER_MODE'
-                        ? isDark 
-                          ? 'border-emerald-500/50 bg-[#1F242C] ring-1 ring-emerald-500/30' 
-                          : 'border-emerald-600 bg-slate-50 ring-1 ring-emerald-600'
-                        : isDark
-                          ? 'border-[#2B323A] bg-[#111315] hover:border-slate-600'
-                          : 'border-slate-200 bg-white hover:border-slate-400'
+                        ? 'border-emerald-500/50 bg-raised ring-1 ring-emerald-500/30'
+                        : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -815,10 +795,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       {workspaceMode === 'FOUNDER_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
                     </div>
                     <div>
-                      <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">
                         Complete Operations Suite
                       </h4>
-                      <p className={`text-xs mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
                         Unlocks complete fleet hierarchies, customer and contract databases, engineer directory, and multi-facility operational analytics.
                       </p>
                     </div>
@@ -827,27 +807,23 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Sidebar Display Preference */}
-              <div className="pt-4 border-t border-slate-700/30 space-y-3">
+              <div className="pt-4 border-t border-theme-subtle space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">
                       Sidebar Default State
                     </h4>
-                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className="text-xs mt-0.5 text-theme-muted font-theme-label">
                       Choose whether the navigation sidebar starts in compact icon mode or expanded label mode.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={handleSidebarPrefToggle}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1.5 rounded-button text-xs font-medium border transition-colors ${
                       sidebarCollapsedDefault
-                        ? isDark
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
-                          : 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold'
-                        : isDark
-                          ? 'bg-[#1F242C] text-slate-300 border-[#2B323A]'
-                          : 'bg-slate-100 text-slate-700 border-slate-300'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
+                        : 'bg-raised text-theme-secondary border-theme-default hover:text-theme-primary'
                     }`}
                   >
                     {sidebarCollapsedDefault ? 'Compact / Collapsed' : 'Expanded Default'}
@@ -856,36 +832,28 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Engine Status Summary */}
-              <div className="pt-4 border-t border-slate-700/30 space-y-3">
-                <h4 className={`text-xs font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-slate-400' : 'text-slate-600'
-                }`}>
+              <div className="pt-4 border-t border-theme-subtle space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-theme-muted font-theme-label">
                   Core Engine & Persistence Architecture
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className={`p-3 rounded-lg border ${
-                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <div className="text-slate-400 font-medium">Local Web Storage</div>
-                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                  <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                    <div className="text-theme-muted font-medium">Local Web Storage</div>
+                    <div className="text-theme-primary font-mono font-bold mt-1 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Active & Persistent
                     </div>
                   </div>
-                  <div className={`p-3 rounded-lg border ${
-                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <div className="text-slate-400 font-medium">IndexedDB Media Store</div>
-                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                  <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                    <div className="text-theme-muted font-medium">IndexedDB Media Store</div>
+                    <div className="text-theme-primary font-mono font-bold mt-1 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Binary Chunk Storage
                     </div>
                   </div>
-                  <div className={`p-3 rounded-lg border ${
-                    isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <div className="text-slate-400 font-medium">Sync Engine</div>
-                    <div className="text-slate-200 font-mono font-bold mt-1 flex items-center gap-1.5">
+                  <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                    <div className="text-theme-muted font-medium">Sync Engine</div>
+                    <div className="text-theme-primary font-mono font-bold mt-1 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Offline-First Replicating
                     </div>
@@ -903,27 +871,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           <div className="space-y-6">
             {/* Feedback alert */}
             {exportSuccess && (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2">
+              <div className="p-4 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{exportSuccess}</span>
               </div>
             )}
 
             {/* 1. Primary Hero: Export Portable Backup */}
-            <div className={`p-6 rounded-xl border space-y-5 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-5 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       RECOMMENDED
                     </span>
-                    <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    <h2 className="text-base font-semibold text-theme-primary font-theme-heading">
                       Portable Complete Backup (.fsosbackup)
                     </h2>
                   </div>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <p className="text-xs text-theme-muted font-theme-label">
                     Exports all core operational databases, machine passports, contracts, MHC sessions, and high-resolution binary media into a self-contained archive.
                   </p>
                 </div>
@@ -948,10 +914,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Sizing & Integrity Explanation */}
-              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-2 ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}>
-                <div className="flex items-center gap-2 font-semibold text-slate-200">
+              <div className="p-4 rounded-card border text-xs leading-relaxed space-y-2 bg-canvas border-theme-default text-theme-secondary">
+                <div className="flex items-center gap-2 font-semibold text-theme-primary font-theme-heading">
                   <Info className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Backup Storage Characteristics</span>
                 </div>
@@ -967,19 +931,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Subordinated Legacy Multi-File JSON Option */}
-              <div className="pt-3 border-t border-slate-700/30">
+              <div className="pt-3 border-t border-theme-subtle">
                 <button
                   type="button"
                   onClick={() => setShowLegacyExport(!showLegacyExport)}
-                  className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 font-medium transition-colors"
+                  className="text-xs text-theme-muted hover:text-theme-primary flex items-center gap-1.5 font-medium transition-colors"
                 >
                   <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showLegacyExport ? 'rotate-90' : ''}`} />
                   <span>Legacy Multi-File JSON Export (Subordinated)</span>
                 </button>
 
                 {showLegacyExport && (
-                  <div className="mt-3 p-3.5 rounded-lg border bg-slate-950/40 border-slate-700/40 space-y-2.5">
-                    <p className="text-xs text-slate-400">
+                  <div className="mt-3 p-3.5 rounded-card border bg-canvas border-theme-default space-y-2.5">
+                    <p className="text-xs text-theme-muted">
                       Legacy exports generate standalone raw JSON files without binary packaging. Used primarily for specialized script parsing.
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1010,14 +974,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             </div>
 
             {/* 2. Restore Backup Archive */}
-            <div className={`p-6 rounded-xl border space-y-5 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-5 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div>
-                <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                <h2 className="text-base font-semibold text-theme-primary font-theme-heading">
                   Restore Workspace Archive
                 </h2>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="text-xs mt-1 text-theme-muted font-theme-label">
                   Load an authoritative backup archive into this workstation. Supports modern portable archives (<span className="font-mono">.fsosbackup</span>) and legacy JSON backups.
                 </p>
               </div>
@@ -1025,17 +987,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               {/* Upload Dropzones / Selectors */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Portable Archive File Picker */}
-                <div className={`p-5 rounded-xl border border-dashed text-center flex flex-col items-center justify-center gap-3 transition-colors ${
-                  isDark ? 'bg-[#111315] border-[#2B323A] hover:border-emerald-500/50' : 'bg-slate-50 border-slate-300 hover:border-emerald-500'
-                }`}>
+                <div className="p-5 rounded-card border border-dashed text-center flex flex-col items-center justify-center gap-3 transition-colors bg-canvas border-theme-default hover:border-emerald-500/50">
                   <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400">
                     <Package className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <h3 className="text-sm font-semibold text-theme-primary font-theme-heading">
                       Select .fsosbackup Archive
                     </h3>
-                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className="text-xs mt-0.5 text-theme-muted font-theme-label">
                       All-in-one archive containing both operational data and media
                     </p>
                   </div>
@@ -1061,17 +1021,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </div>
 
                 {/* Legacy Secondary Media File Picker (Optional) */}
-                <div className={`p-5 rounded-xl border border-dashed text-center flex flex-col items-center justify-center gap-3 opacity-80 transition-colors ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-300'
-                }`}>
-                  <div className="p-3 rounded-full bg-slate-800 text-slate-400">
+                <div className="p-5 rounded-card border border-dashed text-center flex flex-col items-center justify-center gap-3 opacity-80 transition-colors bg-canvas border-theme-default">
+                  <div className="p-3 rounded-full bg-surface text-theme-muted">
                     <FileJson className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <h3 className="text-sm font-semibold text-theme-primary font-theme-heading">
                       Legacy Media JSON (Optional)
                     </h3>
-                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className="text-xs mt-0.5 text-theme-muted font-theme-label">
                       Only required if restoring split legacy multi-file backups
                     </p>
                   </div>
@@ -1098,9 +1056,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Safety Pre-Restore Banner */}
-              <div className={`p-3.5 rounded-lg border text-xs flex items-center gap-2.5 ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}>
+              <div className="p-3.5 rounded-card border text-xs flex items-center gap-2.5 bg-canvas border-theme-default text-theme-secondary">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
                   <strong>Automatic Safety Snapshot:</strong> Before applying any restore, FSOS automatically generates and downloads an immutable safety snapshot of your current local state.
@@ -1116,24 +1072,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         {activeSection === 'maintenance' && (
           <div className="space-y-6">
             {/* 1. Factory Reset Action */}
-            <div className={`p-6 rounded-xl border space-y-5 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-5 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-rose-400">
                   <AlertTriangle className="w-5 h-5" />
-                  <h2 className="text-base font-semibold">
+                  <h2 className="text-base font-semibold font-theme-heading">
                     Reset Local Workspace State
                   </h2>
                 </div>
-                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="text-xs text-theme-muted font-theme-label">
                   Clears all locally stored records and returns the workstation to a clean factory zero-state.
                 </p>
               </div>
 
-              <div className={`p-4 rounded-lg border text-xs leading-relaxed space-y-2.5 ${
-                isDark ? 'bg-rose-950/20 border-rose-900/40 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-900'
-              }`}>
+              <div className="p-4 rounded-card border text-xs leading-relaxed space-y-2.5 bg-rose-950/20 border-rose-900/40 text-rose-200">
                 <div className="font-semibold text-rose-400">
                   Detailed Scope of Factory Reset:
                 </div>
@@ -1147,7 +1099,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-theme-muted">
                   This action is permanent. Export a Portable Backup before proceeding if you wish to preserve your data.
                 </span>
                 <Button
@@ -1164,42 +1116,36 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             </div>
 
             {/* 2. Advanced Storage Diagnostics & Optimization (Collapsible Boundary) */}
-            <div className={`rounded-xl border transition-all ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="rounded-card border transition-all bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <button
                 type="button"
                 onClick={() => setShowAdvancedDiagnostics(!showAdvancedDiagnostics)}
                 className="w-full p-5 flex items-center justify-between text-left gap-4 hover:opacity-95"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg border ${
-                    isDark ? 'bg-[#1F242C] border-[#2B323A] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
-                  }`}>
+                  <div className="p-2 rounded-badge border bg-raised border-theme-default text-theme-primary">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    <h3 className="text-sm font-semibold text-theme-primary font-theme-heading">
                       Advanced Storage Diagnostics & Optimization
                     </h3>
-                    <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className="text-xs mt-0.5 text-theme-muted font-theme-label">
                       Read-only forensic media audits, duplicate payload consolidation, and safe orphaned media cleanup
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-mono px-2 py-1 rounded ${
-                    isDark ? 'bg-[#111315] text-slate-400' : 'bg-slate-100 text-slate-600'
-                  }`}>
+                  <span className="text-xs font-mono px-2 py-1 rounded bg-raised text-theme-muted border border-theme-default">
                     {showAdvancedDiagnostics ? 'Collapse' : 'Expand Tools'}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showAdvancedDiagnostics ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform ${showAdvancedDiagnostics ? 'rotate-180' : ''}`} />
                 </div>
               </button>
 
               {showAdvancedDiagnostics && (
-                <div className="p-6 pt-0 space-y-6 border-t border-slate-700/30">
+                <div className="p-6 pt-0 space-y-6 border-t border-theme-subtle">
                   {/* Action Bar */}
                   <div className="flex flex-wrap items-center gap-2.5 pt-4">
                     <Button
@@ -1289,13 +1235,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
                   {/* Feedback Status */}
                   {cleanupStatus && (
-                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                    <div className="p-3 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
                       {cleanupStatus}
                     </div>
                   )}
 
                   {deduplicationResult && (
-                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono">
+                    <div className="p-3 rounded-card bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono">
                       Deduplication complete: {deduplicationResult.consolidatedAliasesCount} alias pointers consolidated. Reclaimed {formatBytes(deduplicationResult.reclaimedBytes)}.
                     </div>
                   )}
@@ -1305,39 +1251,31 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     <div className="space-y-4">
                       {/* Summary Metrics */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div className={`p-3 rounded-lg border ${
-                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <div className="text-slate-400 font-medium">Total Media Entries</div>
-                          <div className="text-slate-100 font-mono font-bold text-sm mt-1">
+                        <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                          <div className="text-theme-muted font-medium">Total Media Entries</div>
+                          <div className="text-theme-primary font-mono font-bold text-sm mt-1">
                             {forensicReport.summary.totalRecords} ({formatBytes(forensicReport.summary.totalBytes)})
                           </div>
                         </div>
 
-                        <div className={`p-3 rounded-lg border ${
-                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <div className="text-slate-400 font-medium">Active References</div>
+                        <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                          <div className="text-theme-muted font-medium">Active References</div>
                           <div className="text-emerald-400 font-mono font-bold text-sm mt-1">
                             {forensicReport.summary.referencedRecords} entries
                           </div>
                         </div>
 
-                        <div className={`p-3 rounded-lg border ${
-                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <div className="text-slate-400 font-medium">Orphaned Records</div>
+                        <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                          <div className="text-theme-muted font-medium">Orphaned Records</div>
                           <div className={`font-mono font-bold text-sm mt-1 ${
-                            forensicReport.summary.orphanedRecords > 0 ? 'text-amber-400' : 'text-slate-400'
+                            forensicReport.summary.orphanedRecords > 0 ? 'text-amber-400' : 'text-theme-muted'
                           }`}>
                             {forensicReport.summary.orphanedRecords} entries
                           </div>
                         </div>
 
-                        <div className={`p-3 rounded-lg border ${
-                          isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <div className="text-slate-400 font-medium">Duplicate Payloads</div>
+                        <div className="p-3 rounded-card border bg-canvas border-theme-default">
+                          <div className="text-theme-muted font-medium">Duplicate Payloads</div>
                           <div className="text-blue-400 font-mono font-bold text-sm mt-1">
                             {forensicReport.summary.duplicateGroupsCount} groups
                           </div>
@@ -1345,13 +1283,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       </div>
 
                       {/* Diagnostic Tab Filter Bar */}
-                      <div className="flex items-center gap-1.5 border-b border-slate-700/30 pb-2 text-xs">
+                      <div className="flex items-center gap-1.5 border-b border-theme-subtle pb-2 text-xs">
                         <button
                           onClick={() => setActiveForensicTab('summary')}
                           className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                             activeForensicTab === 'summary'
                               ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
-                              : 'text-slate-400 hover:text-slate-200'
+                              : 'text-theme-muted hover:text-theme-primary'
                           }`}
                         >
                           Overview
@@ -1361,7 +1299,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                             activeForensicTab === 'categories'
                               ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
-                              : 'text-slate-400 hover:text-slate-200'
+                              : 'text-theme-muted hover:text-theme-primary'
                           }`}
                         >
                           Category Breakdown
@@ -1371,7 +1309,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                             activeForensicTab === 'references'
                               ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
-                              : 'text-slate-400 hover:text-slate-200'
+                              : 'text-theme-muted hover:text-theme-primary'
                           }`}
                         >
                           All Key References ({forensicReport.entries.length})
@@ -1381,7 +1319,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                             activeForensicTab === 'duplicates'
                               ? 'bg-emerald-500/20 text-emerald-400 font-semibold'
-                              : 'text-slate-400 hover:text-slate-200'
+                              : 'text-theme-muted hover:text-theme-primary'
                           }`}
                         >
                           Duplicates ({forensicReport.duplicates.length})
@@ -1391,11 +1329,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       {/* Tab 1: Summary Overview */}
                       {activeForensicTab === 'summary' && (
                         <div className="space-y-3 text-xs">
-                          <div className={`p-4 rounded-lg border ${
-                            isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                          }`}>
-                            <h4 className="font-semibold text-slate-200 mb-2">Media Store Provenance</h4>
-                            <p className="text-slate-400 leading-relaxed">
+                          <div className="p-4 rounded-card border bg-canvas border-theme-default">
+                            <h4 className="font-semibold text-theme-primary mb-2 font-theme-heading">Media Store Provenance</h4>
+                            <p className="text-theme-muted leading-relaxed font-theme-label">
                               Media evidence is isolated in the local IndexedDB Object Store (<span className="font-mono">fsos_media_store</span>). Each image is indexed by canonical content keys to prevent bloating main operational local storage.
                             </p>
                           </div>
@@ -1408,14 +1344,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           {forensicReport.categories.map((cat) => (
                             <div
                               key={cat.category}
-                              className={`p-3 rounded-lg border flex items-center justify-between text-xs ${
-                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                              }`}
+                              className="p-3 rounded-card border flex items-center justify-between text-xs bg-canvas border-theme-default"
                             >
-                              <span className="font-medium text-slate-200">{cat.category}</span>
+                              <span className="font-medium text-theme-primary">{cat.category}</span>
                               <div className="flex items-center gap-3 font-mono">
-                                <span className="text-slate-400">{cat.count} files</span>
-                                <span className="text-slate-200 font-semibold">{formatBytes(cat.totalBytes)}</span>
+                                <span className="text-theme-muted">{cat.count} files</span>
+                                <span className="text-theme-primary font-semibold">{formatBytes(cat.totalBytes)}</span>
                                 <span className="text-emerald-400">{cat.percentageOfTotal.toFixed(1)}%</span>
                               </div>
                             </div>
@@ -1429,19 +1363,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           {forensicReport.entries.map((entry) => (
                             <div
                               key={entry.key}
-                              className={`p-2 rounded border flex items-center justify-between gap-2 ${
-                                isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                              }`}
+                              className="p-2 rounded border flex items-center justify-between gap-2 bg-canvas border-theme-default"
                             >
                               <div className="truncate flex items-center gap-1.5">
                                 <button
                                   onClick={() => handleCopyKey(entry.key)}
-                                  className="text-slate-500 hover:text-slate-300"
+                                  className="text-theme-muted hover:text-theme-primary"
                                   title="Copy key"
                                 >
                                   {copiedKey === entry.key ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                 </button>
-                                <span className="text-slate-300 truncate">{entry.key}</span>
+                                <span className="text-theme-secondary truncate">{entry.key}</span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <span className={`px-1.5 py-0.2 rounded text-[10px] ${
@@ -1451,7 +1383,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                                 }`}>
                                   {entry.isOrphaned ? 'ORPHAN' : 'ACTIVE'}
                                 </span>
-                                <span className="text-slate-400">{formatBytes(entry.byteSize)}</span>
+                                <span className="text-theme-muted">{formatBytes(entry.byteSize)}</span>
                               </div>
                             </div>
                           ))}
@@ -1462,19 +1394,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       {activeForensicTab === 'duplicates' && (
                         <div className="space-y-2 text-xs">
                           {forensicReport.duplicates.length === 0 ? (
-                            <div className="p-4 text-center text-slate-500 font-mono">
+                            <div className="p-4 text-center text-theme-muted font-mono">
                               Zero un-consolidated duplicate payloads detected.
                             </div>
                           ) : (
                             forensicReport.duplicates.map((dup) => (
                               <div
                                 key={dup.groupId}
-                                className={`p-3 rounded-lg border space-y-1.5 ${
-                                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                                }`}
+                                className="p-3 rounded-card border space-y-1.5 bg-canvas border-theme-default"
                               >
                                 <div className="flex items-center justify-between font-mono text-[11px]">
-                                  <span className="text-slate-300 truncate max-w-xs">{dup.sampleKey}</span>
+                                  <span className="text-theme-secondary truncate max-w-xs">{dup.sampleKey}</span>
                                   <span className="text-blue-400">{dup.count} instances ({formatBytes(dup.totalBytes)})</span>
                                 </div>
                               </div>
@@ -1484,7 +1414,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       )}
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-700/40 rounded-lg">
+                    <div className="p-4 text-center text-xs text-theme-muted border border-dashed border-theme-default rounded-card">
                       Click "Run Forensic Audit" to inspect the live IndexedDB media evidence store.
                     </div>
                   )}
@@ -1499,15 +1429,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         {/* ========================================================================= */}
         {activeSection === 'about' && (
           <div className="space-y-6">
-            <div className={`p-6 rounded-xl border space-y-6 ${
-              isDark ? 'bg-[#16191D] border-[#2B323A]/80' : 'bg-white border-slate-200'
-            }`}>
+            <div className="p-6 rounded-card border space-y-6 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className={`text-base font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                  <h2 className="text-base font-semibold text-theme-primary font-theme-heading">
                     Field Service Operations System (FSOS)
                   </h2>
-                  <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <p className="text-xs mt-1 text-theme-muted font-theme-label">
                     Precision Engineering & Optical Alignment Platform
                   </p>
                 </div>
@@ -1518,7 +1446,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     size="sm"
                     className="text-xs flex items-center gap-1.5"
                   >
-                    <History className="w-3.5 h-3.5 text-slate-400" />
+                    <History className="w-3.5 h-3.5 text-theme-muted" />
                     <span>View Release History</span>
                   </Button>
                 )}
@@ -1526,29 +1454,23 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
               {/* Version & Build Matrix */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
-                <div className={`p-3.5 rounded-lg border ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="text-slate-400 font-medium">Version Release</div>
-                  <div className="text-slate-100 font-mono font-bold text-sm mt-1 flex items-center gap-1.5">
+                <div className="p-3.5 rounded-card border bg-canvas border-theme-default">
+                  <div className="text-theme-muted font-medium">Version Release</div>
+                  <div className="text-theme-primary font-mono font-bold text-sm mt-1 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     {APP_VERSION}
                   </div>
                 </div>
 
-                <div className={`p-3.5 rounded-lg border ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="text-slate-400 font-medium">Build Identifier</div>
-                  <div className="text-slate-300 font-mono text-xs mt-1">
+                <div className="p-3.5 rounded-card border bg-canvas border-theme-default">
+                  <div className="text-theme-muted font-medium">Build Identifier</div>
+                  <div className="text-theme-secondary font-mono text-xs mt-1">
                     {APP_BUILD_ID}
                   </div>
                 </div>
 
-                <div className={`p-3.5 rounded-lg border ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  <div className="text-slate-400 font-medium">Milestone Architecture</div>
+                <div className="p-3.5 rounded-card border bg-canvas border-theme-default">
+                  <div className="text-theme-muted font-medium">Milestone Architecture</div>
                   <div className="text-emerald-400 font-medium text-xs mt-1 truncate" title={APP_CODENAME}>
                     {APP_CODENAME}
                   </div>
@@ -1556,10 +1478,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
 
               {/* Architecture Details */}
-              <div className={`p-4 rounded-lg border space-y-2 text-xs leading-relaxed ${
-                isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}>
-                <h4 className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <div className="p-4 rounded-card border space-y-2 text-xs leading-relaxed bg-canvas border-theme-default text-theme-secondary">
+                <h4 className="font-semibold text-theme-primary flex items-center gap-1.5 font-theme-heading">
                   <Cpu className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Offline-First Field Operations Architecture</span>
                 </h4>
@@ -1577,19 +1497,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       {/* ========================================================================= */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className={`w-full max-w-lg rounded-xl border p-6 space-y-5 shadow-2xl transition-all ${
-            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200'
-          }`}>
+          <div className="w-full max-w-lg rounded-card border p-6 space-y-5 shadow-2xl transition-all bg-surface border-theme-default text-theme-primary">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-emerald-400" />
-                <h3 className={`text-base font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                <h3 className="text-base font-bold font-theme-heading text-theme-primary">
                   {selectedArchiveType === 'portable' ? 'Validate & Restore Portable Backup' : 'Validate & Restore Legacy Backup'}
                 </h3>
               </div>
               <button
                 onClick={() => setShowPreviewModal(false)}
-                className="text-slate-500 hover:text-slate-300"
+                className="text-theme-muted hover:text-theme-primary"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1599,55 +1517,53 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {selectedArchiveType === 'portable' && portableValidation ? (
               <div className="space-y-3 text-xs">
                 {portableValidation.valid ? (
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
+                  <div className="p-3 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Archive valid! Ready for safe restoration.</span>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
+                  <div className="p-3 rounded-card bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
                     <XCircle className="w-4 h-4 shrink-0" />
                     <span>Archive validation errors detected.</span>
                   </div>
                 )}
 
-                <div className={`p-4 rounded-lg border space-y-2 font-mono ${
-                  isDark ? 'bg-[#111315] border-[#2B323A]' : 'bg-slate-50 border-slate-200'
-                }`}>
+                <div className="p-4 rounded-card border space-y-2 font-mono bg-canvas border-theme-default">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Archive Version:</span>
-                    <span className="text-slate-200 font-bold">{portableValidation.manifest.backupVersion}</span>
+                    <span className="text-theme-muted">Archive Version:</span>
+                    <span className="text-theme-primary font-bold">{portableValidation.manifest.backupVersion}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Total Size:</span>
-                    <span className="text-slate-200">{formatBytes(portableValidation.totalArchiveBytes)}</span>
+                    <span className="text-theme-muted">Total Size:</span>
+                    <span className="text-theme-primary">{formatBytes(portableValidation.totalArchiveBytes)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Canonical Media Files:</span>
+                    <span className="text-theme-muted">Canonical Media Files:</span>
                     <span className="text-emerald-400">{portableValidation.manifest.mediaSummary.canonicalMediaFiles}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Alias References:</span>
-                    <span className="text-slate-300">{portableValidation.manifest.mediaSummary.aliasReferences}</span>
+                    <span className="text-theme-muted">Alias References:</span>
+                    <span className="text-theme-secondary">{portableValidation.manifest.mediaSummary.aliasReferences}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Machine Passports:</span>
-                    <span className="text-slate-200">{portableValidation.manifest.domainCounts.machines || 0}</span>
+                    <span className="text-theme-muted">Machine Passports:</span>
+                    <span className="text-theme-primary">{portableValidation.manifest.domainCounts.machines || 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">MHC Sessions:</span>
-                    <span className="text-slate-200">{portableValidation.manifest.domainCounts.mhc_sessions || 0}</span>
+                    <span className="text-theme-muted">MHC Sessions:</span>
+                    <span className="text-theme-primary">{portableValidation.manifest.domainCounts.mhc_sessions || 0}</span>
                   </div>
                 </div>
               </div>
             ) : completeValidation ? (
               <div className="space-y-3 text-xs">
                 {completeValidation.valid ? (
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
+                  <div className="p-3 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Legacy JSON valid!</span>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
+                  <div className="p-3 rounded-card bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2">
                     <XCircle className="w-4 h-4 shrink-0" />
                     <span>Errors: {completeValidation.errors.join(', ')}</span>
                   </div>
@@ -1656,12 +1572,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             ) : null}
 
             {restoreError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+              <div className="p-3 rounded-card bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
                 {restoreError}
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/30">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-theme-subtle">
               <Button
                 onClick={() => setShowPreviewModal(false)}
                 variant="secondary"
@@ -1687,17 +1603,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       {/* ========================================================================= */}
       {showResetConfirmModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className={`w-full max-w-md rounded-xl border p-6 space-y-5 shadow-2xl ${
-            isDark ? 'bg-[#16191D] border-rose-900/40' : 'bg-white border-rose-300'
-          }`}>
+          <div className="w-full max-w-md rounded-card border p-6 space-y-5 shadow-2xl bg-surface border-rose-900/40 text-theme-primary">
             <div className="flex items-center gap-2.5 text-rose-400">
               <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-base font-bold">
+              <h3 className="text-base font-bold font-theme-heading">
                 Confirm Factory Workspace Reset
               </h3>
             </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-slate-300">
+            <div className="space-y-3 text-xs leading-relaxed text-theme-secondary">
               <p>
                 You are about to permanently purge all operational customer data, machine passports, inspection sessions, reports, and IndexedDB media evidence.
               </p>
@@ -1710,15 +1624,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 placeholder="Type RESET to confirm"
                 value={resetConfirmInput}
                 onChange={(e) => setResetConfirmInput(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg text-xs font-mono border outline-none ${
-                  isDark
-                    ? 'bg-[#111315] border-rose-900/60 text-rose-200 placeholder-slate-600 focus:ring-1 focus:ring-rose-500'
-                    : 'bg-rose-50 border-rose-200 text-rose-900 placeholder-rose-400 focus:ring-1 focus:ring-rose-500'
-                }`}
+                className="w-full px-3 py-2 rounded-button text-xs font-mono border outline-none bg-canvas border-rose-900/60 text-rose-200 placeholder-slate-600 focus:ring-1 focus:ring-rose-500"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/30">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-theme-subtle">
               <Button
                 onClick={() => setShowResetConfirmModal(false)}
                 variant="secondary"

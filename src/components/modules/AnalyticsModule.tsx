@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Machine, MHCSession, Contract, Customer, NavigationTab } from '../../types';
 import { Button } from '../common/Button';
+import { ProgressBar } from '../common/ProgressBar';
 
 export interface AnalyticsProps {
   machines: Machine[];
@@ -1600,10 +1601,10 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                           {/* Verdict Breakdown Bar */}
                           {hasData && (
                             <div className="mt-3 space-y-1.5">
-                              <div className="h-1.5 w-full bg-slate-100 dark:bg-[#20252B] rounded-full overflow-hidden flex">
-                                <div style={{ width: `${(item.pass / item.total) * 100}%` }} className="bg-emerald-600" />
-                                <div style={{ width: `${(item.warn / item.total) * 100}%` }} className="bg-amber-500" />
-                                <div style={{ width: `${(item.fail / item.total) * 100}%` }} className="bg-rose-600" />
+                              <div className="h-2 w-full lumen-bar-track rounded-full overflow-hidden flex">
+                                <div style={{ width: `${(item.pass / item.total) * 100}%` }} className="h-full lumen-bar-fill-success" />
+                                <div style={{ width: `${(item.warn / item.total) * 100}%` }} className="h-full lumen-bar-fill-warning" />
+                                <div style={{ width: `${(item.fail / item.total) * 100}%` }} className="h-full lumen-bar-fill-danger" />
                               </div>
 
                               <div className="flex items-center justify-between text-[10.5px] font-mono text-slate-500">
@@ -1827,9 +1828,12 @@ export const AnalyticsModule: React.FC<AnalyticsProps> = ({
                                 {m.sessionCount} sessions ({m.machineIds.size} machines, {m.findingsCount} findings)
                               </span>
                             </div>
-                            <div className="h-2 w-full bg-slate-100 dark:bg-[#20252B] rounded-full overflow-hidden">
-                              <div style={{ width: `${pct}%` }} className="h-full bg-slate-700 dark:bg-slate-300 rounded-full" />
-                            </div>
+                            <ProgressBar
+                              value={pct}
+                              variant="primary"
+                              size="sm"
+                              animated={false}
+                            />
                           </div>
                         );
                       })}

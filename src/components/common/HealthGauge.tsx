@@ -1,25 +1,30 @@
 import React from 'react';
+import { ProgressBar, ProgressBarVariant } from './ProgressBar';
 
 interface HealthGaugeProps {
   score: number; // 0 - 100
   label?: string;
+  showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showBar?: boolean;
+  className?: string;
 }
 
 export const HealthGauge: React.FC<HealthGaugeProps> = ({
   score,
   label,
+  showLabel = true,
   size = 'md',
-  showBar = true
+  showBar = true,
+  className = ''
 }) => {
-  const getScoreColor = (val: number) => {
-    if (val >= 90) return { text: 'text-emerald-400', bg: 'bg-emerald-500', border: 'border-emerald-500/30' };
-    if (val >= 75) return { text: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500/30' };
-    return { text: 'text-rose-400', bg: 'bg-rose-500', border: 'border-rose-500/30' };
+  const getScoreVariant = (val: number): { variant: ProgressBarVariant; text: string } => {
+    if (val >= 90) return { variant: 'success', text: 'text-emerald-400' };
+    if (val >= 75) return { variant: 'warning', text: 'text-amber-400' };
+    return { variant: 'danger', text: 'text-rose-400' };
   };
 
-  const colors = getScoreColor(score);
+  const { variant, text } = getScoreVariant(score);
 
   const sizeClasses = {
     sm: 'text-xs',
@@ -27,21 +32,29 @@ export const HealthGauge: React.FC<HealthGaugeProps> = ({
     lg: 'text-lg font-bold'
   };
 
+  const barSizes = {
+    sm: 'xs' as const,
+    md: 'sm' as const,
+    lg: 'md' as const
+  };
+
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <div className="flex items-center justify-between">
-        {label && <span className="text-xs font-medium text-slate-400">{label}</span>}
-        <span className={`font-mono font-semibold ${colors.text} ${sizeClasses[size]}`}>
-          {score}%
-        </span>
-      </div>
-      {showBar && (
-        <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
-            style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
-          />
+    <div className={`flex flex-col gap-1 w-full ${className}`}>
+      {showLabel && (
+        <div className="flex items-center justify-between">
+          {label && <span className="text-xs font-medium text-slate-400">{label}</span>}
+          <span className={`font-mono font-semibold ${text} ${sizeClasses[size]}`}>
+            {score}%
+          </span>
         </div>
+      )}
+      {showBar && (
+        <ProgressBar
+          value={score}
+          variant={variant}
+          size={barSizes[size]}
+          animated={true}
+        />
       )}
     </div>
   );

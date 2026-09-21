@@ -92,15 +92,13 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
     return (
       <div
         id="mhc-history-findings-empty"
-        className={`p-8 text-center rounded-md border ${
-          isDark ? 'bg-[#15181C] border-[#242930] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-        }`}
+        className="p-8 text-center rounded-card border bg-surface border-theme-default text-theme-muted"
       >
-        <FileSearch className="w-8 h-8 text-slate-500 mx-auto mb-2 opacity-50" />
-        <h3 className="text-sm font-semibold text-slate-200 dark:text-slate-100">
+        <FileSearch className="w-8 h-8 text-theme-muted mx-auto mb-2 opacity-50" />
+        <h3 className="text-sm font-semibold font-theme-heading text-theme-primary">
           No Inspection Findings Recorded
         </h3>
-        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+        <p className="text-xs text-theme-muted mt-1 max-w-sm mx-auto">
           No optical, mechanical, or stage calibration findings were logged during this service session.
         </p>
       </div>
@@ -118,27 +116,21 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
           <div
             key={headKey}
             id={`mhc-history-head-finding-${headKey}`}
-            className={`p-4 rounded-md border space-y-3 ${
-              isDark ? 'bg-[#15181C] border-[#242930]' : 'bg-white border-slate-200 shadow-xs'
-            }`}
+            className="p-4 rounded-card border space-y-3 bg-surface border-theme-default text-theme-primary shadow-theme-card"
           >
             {/* Head Header */}
-            <div className="flex items-center justify-between border-b pb-2.5">
+            <div className="flex items-center justify-between border-b border-theme-subtle pb-2.5">
               <div className="flex items-center gap-2">
-                <Eye className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-mono font-bold text-slate-200 uppercase">
+                <Eye className="w-3.5 h-3.5 text-theme-muted" />
+                <span className="text-xs font-mono font-bold text-theme-primary uppercase">
                   {headState.headName || headKey} Optical Path Inspection
                 </span>
               </div>
 
-              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-badge text-[10px] font-mono font-semibold border ${
                 hasIssue
-                  ? isDark
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                  : isDark
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
               }`}>
                 {hasIssue ? (
                   <>
@@ -163,13 +155,11 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                   return (
                     <div
                       key={item.id || idx}
-                      className={`p-3 rounded border flex flex-col md:flex-row items-start justify-between gap-3 ${
-                        isDark ? 'bg-[#191D22] border-[#29303A]' : 'bg-slate-50 border-slate-200'
-                      }`}
+                      className="p-3 rounded-card border flex flex-col md:flex-row items-start justify-between gap-3 bg-canvas border-theme-subtle"
                     >
                       <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-slate-200 dark:text-slate-100">
+                          <span className="text-xs font-bold font-theme-heading text-theme-primary">
                             {item.component}
                           </span>
                           {getActionBadge(item.actionRecommendation)}
@@ -180,9 +170,7 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                             {item.conditions.map((c, i) => (
                               <span
                                 key={i}
-                                className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
-                                  isDark ? 'bg-[#13161A] text-slate-400 border-[#262B33]' : 'bg-white text-slate-600 border-slate-300'
-                                }`}
+                                className="text-[10px] font-mono px-1.5 py-0.2 rounded-badge border bg-surface text-theme-secondary border-theme-subtle"
                               >
                                 {c}
                               </span>
@@ -191,14 +179,14 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                         )}
 
                         {item.customConditionDetail && (
-                          <p className="text-xs text-slate-300">
+                          <p className="text-xs text-theme-secondary">
                             {item.customConditionDetail}
                           </p>
                         )}
 
                         {item.engineerNote && (
-                          <div className="text-xs text-slate-400 font-mono bg-black/20 p-2 rounded border border-white/5 mt-1">
-                            <span className="text-[10px] text-slate-500 uppercase block">Engineer Note:</span>
+                          <div className="text-xs text-theme-muted font-mono bg-black/20 p-2 rounded-card border border-white/5 mt-1">
+                            <span className="text-[10px] text-theme-muted uppercase block">Engineer Note:</span>
                             {item.engineerNote}
                           </div>
                         )}
@@ -209,7 +197,7 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                         <div className="shrink-0">
                           <div
                             onClick={() => setSelectedImage({ src: resolvedImg, caption: `${item.component} - ${item.actionRecommendation}` })}
-                            className="relative w-20 h-20 rounded border border-slate-700 overflow-hidden cursor-pointer group bg-black/40"
+                            className="relative w-20 h-20 rounded-card border border-theme-default overflow-hidden cursor-pointer group bg-black/40"
                           >
                             <img
                               src={resolvedImg}
@@ -220,7 +208,7 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                               <Eye className="w-4 h-4 text-white" />
                             </div>
                           </div>
-                          <span className="text-[9px] font-mono text-slate-500 block text-center mt-1">
+                          <span className="text-[9px] font-mono text-theme-muted block text-center mt-1">
                             Evidence photo
                           </span>
                         </div>
@@ -230,7 +218,7 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 italic py-1">
+              <p className="text-xs text-theme-muted italic py-1">
                 Visual inspection completed. Optical elements verified clean with no corrective actions required.
               </p>
             )}
@@ -240,15 +228,13 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
 
       {/* Stage Calibration Results */}
       {stageResults.length > 0 && (
-        <div className={`p-4 rounded-md border space-y-3 ${
-          isDark ? 'bg-[#15181C] border-[#242930]' : 'bg-white border-slate-200 shadow-xs'
-        }`}>
-          <div className="flex items-center justify-between border-b pb-2 text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+        <div className="p-4 rounded-card border space-y-3 bg-surface border-theme-default text-theme-primary shadow-theme-card">
+          <div className="flex items-center justify-between border-b border-theme-subtle pb-2 text-xs font-mono font-bold text-theme-secondary uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
+              <Sliders className="w-3.5 h-3.5 text-theme-muted" />
               <span>X/Y Stage Calibration Deviations</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-normal">Audit Record</span>
+            <span className="text-[10px] text-theme-muted font-normal">Audit Record</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -261,31 +247,29 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
               return (
                 <div
                   key={stg.stageId}
-                  className={`p-3 rounded border text-xs font-mono space-y-2 ${
-                    isDark ? 'bg-[#191D22] border-[#29303A]' : 'bg-slate-50 border-slate-200'
-                  }`}
+                  className="p-3 rounded-card border text-xs font-mono space-y-2 bg-canvas border-theme-subtle"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-200">{stg.stageName || stg.stageId}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                    <span className="font-bold text-theme-primary">{stg.stageName || stg.stageId}</span>
+                    <span className={`px-2 py-0.5 rounded-badge text-[10px] font-semibold border ${
                       isPass
-                        ? isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                     }`}>
                       {stg.verdict || 'RECORDED'}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-400">
-                    <div>X Dev: <span className="text-slate-200 font-bold">{stg.xMinUm ?? '—'} / {stg.xMaxUm ?? '—'} µm</span></div>
-                    <div>Y Dev: <span className="text-slate-200 font-bold">{stg.yMinUm ?? '—'} / {stg.yMaxUm ?? '—'} µm</span></div>
-                    <div>Overall Max: <span className="text-slate-200 font-bold">{maxDev.toFixed(2)} µm</span></div>
-                    <div>Spec Tol: <span className="text-slate-200 font-bold">±{stg.specToleranceUm} µm</span></div>
+                  <div className="grid grid-cols-2 gap-1 text-[11px] text-theme-muted">
+                    <div>X Dev: <span className="text-theme-primary font-bold">{stg.xMinUm ?? '—'} / {stg.xMaxUm ?? '—'} µm</span></div>
+                    <div>Y Dev: <span className="text-theme-primary font-bold">{stg.yMinUm ?? '—'} / {stg.yMaxUm ?? '—'} µm</span></div>
+                    <div>Overall Max: <span className="text-theme-primary font-bold">{maxDev.toFixed(2)} µm</span></div>
+                    <div>Spec Tol: <span className="text-theme-primary font-bold">±{stg.specToleranceUm} µm</span></div>
                   </div>
 
                   {stg.engineerNote && (
-                    <div className="text-[11px] text-slate-400 pt-1 border-t border-white/5">
-                      <span className="text-[10px] text-slate-500 block uppercase">Notes:</span>
+                    <div className="text-[11px] text-theme-muted pt-1 border-t border-theme-subtle">
+                      <span className="text-[10px] text-theme-muted block uppercase">Notes:</span>
                       {stg.engineerNote}
                     </div>
                   )}
@@ -298,44 +282,40 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
 
       {/* AGC Calibration Results */}
       {agcResults.length > 0 && (
-        <div className={`p-4 rounded-md border space-y-3 ${
-          isDark ? 'bg-[#15181C] border-[#242930]' : 'bg-white border-slate-200 shadow-xs'
-        }`}>
-          <div className="flex items-center justify-between border-b pb-2 text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+        <div className="p-4 rounded-card border space-y-3 bg-surface border-theme-default text-theme-primary shadow-theme-card">
+          <div className="flex items-center justify-between border-b border-theme-subtle pb-2 text-xs font-mono font-bold text-theme-secondary uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-slate-400" />
+              <Compass className="w-3.5 h-3.5 text-theme-muted" />
               <span>AGC Dynamic Index Alignment</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-normal">Audit Record</span>
+            <span className="text-[10px] text-theme-muted font-normal">Audit Record</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agcResults.map((agc) => (
               <div
                 key={agc.agcId}
-                className={`p-3 rounded border text-xs font-mono space-y-2 ${
-                  isDark ? 'bg-[#191D22] border-[#29303A]' : 'bg-slate-50 border-slate-200'
-                }`}
+                className="p-3 rounded-card border text-xs font-mono space-y-2 bg-canvas border-theme-subtle"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-200">{agc.agcName || agc.agcId}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                  <span className="font-bold text-theme-primary">{agc.agcName || agc.agcId}</span>
+                  <span className={`px-2 py-0.5 rounded-badge text-[10px] font-semibold border ${
                     agc.verdict === 'PASS'
-                      ? isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-200'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                   }`}>
                     {agc.verdict || 'RECORDED'}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-theme-muted">
                   <span>Tested Index Points: </span>
-                  <strong className="text-slate-200">{agc.indices?.length || 0} locations</strong>
+                  <strong className="text-theme-primary">{agc.indices?.length || 0} locations</strong>
                 </div>
 
                 {agc.engineerNote && (
-                  <div className="text-[11px] text-slate-400 pt-1 border-t border-white/5">
-                    <span className="text-[10px] text-slate-500 block uppercase">Notes:</span>
+                  <div className="text-[11px] text-theme-muted pt-1 border-t border-theme-subtle">
+                    <span className="text-[10px] text-theme-muted block uppercase">Notes:</span>
                     {agc.engineerNote}
                   </div>
                 )}
@@ -348,27 +328,25 @@ export const MhcHistoryFindingsTab: React.FC<MhcHistoryFindingsTabProps> = ({
       {/* Evidence Image Zoom Modal */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
         >
           <div 
-            className={`max-w-2xl w-full rounded-md border p-4 space-y-3 ${
-              isDark ? 'bg-[#15181C] border-[#2D333D]' : 'bg-white border-slate-300 shadow-xl'
-            }`}
+            className="max-w-2xl w-full rounded-card border p-4 space-y-3 bg-surface border-theme-default text-theme-primary shadow-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-xs font-mono font-bold text-slate-200 truncate">
+            <div className="flex items-center justify-between border-b border-theme-subtle pb-2">
+              <span className="text-xs font-mono font-bold text-theme-primary truncate">
                 {selectedImage.caption}
               </span>
               <button
                 onClick={() => setSelectedImage(null)}
-                className="text-slate-400 hover:text-slate-200 cursor-pointer p-1"
+                className="text-theme-muted hover:text-theme-primary cursor-pointer p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="max-h-[70vh] overflow-hidden rounded flex items-center justify-center bg-black/60">
+            <div className="max-h-[70vh] overflow-hidden rounded-card flex items-center justify-center bg-black/60">
               <img
                 src={selectedImage.src}
                 alt={selectedImage.caption}

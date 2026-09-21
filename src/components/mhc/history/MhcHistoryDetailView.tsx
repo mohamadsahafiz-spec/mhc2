@@ -65,9 +65,7 @@ export const MhcHistoryDetailView: React.FC<MhcHistoryDetailViewProps> = ({
         <div className="lg:hidden">
           <button
             onClick={onBackToList}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-medium border cursor-pointer ${
-              isDark ? 'bg-[#181C21] border-[#2A303A] text-slate-300' : 'bg-white border-slate-300 text-slate-700 shadow-xs'
-            }`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-button text-xs font-mono font-medium border cursor-pointer bg-canvas border-theme-default text-theme-secondary hover:text-theme-primary shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Inspection Records</span>
@@ -76,24 +74,22 @@ export const MhcHistoryDetailView: React.FC<MhcHistoryDetailViewProps> = ({
       )}
 
       {/* Selected Session Header Strip */}
-      <div className={`p-4 rounded-md border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-        isDark ? 'bg-[#15181C] border-[#242930]' : 'bg-white border-slate-200 shadow-xs'
-      }`}>
+      <div className="p-4 rounded-card border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface border-theme-default text-theme-primary shadow-theme-card">
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-mono font-bold text-slate-100 dark:text-slate-100">
+            <span className="text-sm font-mono font-bold font-theme-heading text-theme-primary">
               {session.id}
             </span>
-            <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+            <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-badge border ${
               session.completionStatus === 'COMPLETED'
-                ? isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
             }`}>
               {session.completionStatus}
             </span>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-3 flex-wrap font-mono">
+          <div className="text-xs text-theme-muted flex items-center gap-3 flex-wrap font-mono">
             <span>{session.machineModel} ({session.machineSerialNumber || '—'})</span>
             <span>•</span>
             <span>{session.customerName}</span>
@@ -113,23 +109,19 @@ export const MhcHistoryDetailView: React.FC<MhcHistoryDetailViewProps> = ({
                 key={t.id}
                 id={`tab-mhc-detail-${t.id}`}
                 onClick={() => setActiveTab(t.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all cursor-pointer whitespace-nowrap border ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-button text-xs font-mono font-medium transition-all cursor-pointer whitespace-nowrap border ${
                   isActive
-                    ? isDark
-                      ? 'bg-[#222730] text-slate-100 border-slate-500 shadow-2xs'
-                      : 'bg-slate-100 text-slate-900 border-slate-400 shadow-2xs'
-                    : isDark
-                    ? 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-[#1A1E24]'
-                    : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-surface-active text-theme-primary border-cyan-500/40 ring-1 ring-cyan-500/30 shadow-2xs'
+                    : 'text-theme-muted border-transparent hover:text-theme-primary hover:bg-surface-hover'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-slate-200' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-theme-primary' : 'text-theme-muted'}`} />
                 <span>{t.label}</span>
                 {t.badge !== undefined && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                     isActive
-                      ? isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-300 text-slate-800'
-                      : isDark ? 'bg-[#262C36] text-slate-400' : 'bg-slate-200 text-slate-600'
+                      ? 'bg-canvas text-theme-primary border border-cyan-500/30'
+                      : 'bg-canvas text-theme-muted border border-theme-subtle'
                   }`}>
                     {t.badge}
                   </span>

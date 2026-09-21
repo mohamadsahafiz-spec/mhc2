@@ -56,6 +56,7 @@ import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { HealthGauge } from '../common/HealthGauge';
+import { ProgressBar } from '../common/ProgressBar';
 import { useTheme } from '../../context/ThemeContext';
 import {
   motionTimings,
@@ -2040,16 +2041,16 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                                 : 0;
                               return (
                                 <div className="space-y-1.5">
-                                  <div className={`w-full h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                                    <div 
-                                      className={`h-full rounded-full transition-all duration-300 ${
-                                        machineMetrics.status === 'ALARM' ? 'bg-rose-500' :
-                                        machineMetrics.status === 'WARNING' ? 'bg-amber-500' :
-                                        isDark ? 'bg-sky-500' : 'bg-sky-600'
-                                      }`}
-                                      style={{ width: `${usedPct}%` }}
-                                    />
-                                  </div>
+                                  <ProgressBar
+                                    value={usedPct}
+                                    variant={
+                                      machineMetrics.status === 'ALARM' ? 'danger' :
+                                      machineMetrics.status === 'WARNING' ? 'warning' :
+                                      'primary'
+                                    }
+                                    size="lg"
+                                    animated={true}
+                                  />
                                   <div className="flex justify-between items-center text-[11px] font-mono text-slate-500 dark:text-slate-400">
                                     <span>0 hrs</span>
                                     <span>{usedPct.toFixed(1)}% Consumed</span>
@@ -2160,16 +2161,16 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                                         {lm.formattedLifeRemaining}
                                       </strong>
                                     </div>
-                                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-300 ${
-                                          lm.status === 'ALARM' ? 'bg-rose-500' :
-                                          lm.status === 'WARNING' ? 'bg-amber-500' :
-                                          isDark ? 'bg-sky-500' : 'bg-sky-600'
-                                        }`}
-                                        style={{ width: `${percentUsed}%` }}
-                                      />
-                                    </div>
+                                    <ProgressBar
+                                      value={percentUsed}
+                                      variant={
+                                        lm.status === 'ALARM' ? 'danger' :
+                                        lm.status === 'WARNING' ? 'warning' :
+                                        'primary'
+                                      }
+                                      size="sm"
+                                      animated={true}
+                                    />
                                   </div>
 
                                   {/* Action Controls & Progressive Toggle */}

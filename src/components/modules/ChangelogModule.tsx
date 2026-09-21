@@ -143,7 +143,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
         }`}
       >
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
-          isSubBullet ? 'bg-slate-500' : 'bg-emerald-400'
+          isSubBullet ? 'bg-slate-500' : 'bg-cyan-400 shadow-[0_0_6px_rgba(56,189,248,0.5)]'
         }`} />
         <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
           {parts.length > 0 ? parts : cleanLine}
@@ -161,7 +161,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5">
             <div className={`p-2 rounded-lg border ${
-              isDark ? 'bg-[#1F242C] border-[#2B323A] text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+              isDark ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400' : 'bg-cyan-50 border-cyan-200 text-cyan-600'
             }`}>
               <History className="w-5 h-5" />
             </div>
@@ -194,7 +194,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
           <div className={`px-3 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 ${
             isDark ? 'bg-[#111315] border-[#2B323A] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
           }`}>
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
             <span>Active {APP_VERSION}</span>
           </div>
         </div>
@@ -215,7 +215,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
               placeholder="Search version, feature, milestone, or component..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-9 pr-4 py-2 rounded-lg text-xs sm:text-sm border transition-colors outline-none focus:ring-1 focus:ring-emerald-500 ${
+              className={`w-full pl-9 pr-4 py-2 rounded-lg text-xs sm:text-sm border transition-colors outline-none focus:ring-1 focus:ring-cyan-500 ${
                 isDark 
                   ? 'bg-[#111315] border-[#2B323A] text-slate-200 placeholder-slate-500' 
                   : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
@@ -276,8 +276,8 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                 className={`px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors border ${
                   isSelected
                     ? isDark 
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold' 
-                      : 'bg-emerald-50 border-emerald-300 text-emerald-800 font-semibold'
+                      ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 font-semibold shadow-[0_0_10px_rgba(56,189,248,0.15)]' 
+                      : 'bg-cyan-50 border-cyan-300 text-cyan-800 font-semibold'
                     : isDark 
                       ? 'bg-[#1F242C] border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#262C36]' 
                       : 'bg-slate-100 border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'
@@ -298,7 +298,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
             <motion.button
               whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => setSelectedMilestone('all')}
-              className="text-emerald-400 hover:underline"
+              className="text-cyan-400 hover:underline"
             >
               Reset filter
             </motion.button>
@@ -317,7 +317,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
             <motion.button
               whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
               onClick={() => { setSearchQuery(''); setSelectedMilestone('all'); }}
-              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500 text-slate-950 font-semibold"
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-500 text-slate-950 font-semibold shadow-[0_0_12px_rgba(56,189,248,0.35)]"
             >
               Clear Search & Filters
             </motion.button>
@@ -334,8 +334,8 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                 className={`rounded-xl border transition-all ${
                   isCurrent
                     ? isDark 
-                      ? 'bg-[#16191D] border-emerald-500/40 shadow-sm' 
-                      : 'bg-white border-emerald-500/50 shadow-sm'
+                      ? 'bg-[#16191D] border-cyan-500/40 shadow-[0_0_24px_-4px_rgba(56,189,248,0.2)]' 
+                      : 'bg-white border-cyan-500/50 shadow-sm'
                     : isDark 
                       ? 'bg-[#16191D] border-[#2B323A]/80' 
                       : 'bg-white border-slate-200'
@@ -358,7 +358,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`font-mono text-xs sm:text-sm font-bold px-2 py-0.5 rounded border ${
                           isCurrent
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                             : isDark 
                               ? 'bg-[#1F242C] text-slate-200 border-[#2B323A]' 
                               : 'bg-slate-100 text-slate-800 border-slate-200'
@@ -367,7 +367,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                         </span>
 
                         {isCurrent && (
-                          <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950">
+                          <span className="text-[10px] font-mono uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 shadow-[0_0_8px_rgba(56,189,248,0.4)]">
                             Current Active
                           </span>
                         )}
@@ -418,7 +418,7 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
                         <div key={sIdx} className="space-y-2">
                           {sec.heading && (
                             <h4 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 pt-2 ${
-                              isDark ? 'text-emerald-400' : 'text-emerald-700'
+                              isDark ? 'text-cyan-400' : 'text-cyan-700'
                             }`}>
                               <Tag className="w-3 h-3" />
                               {sec.heading}

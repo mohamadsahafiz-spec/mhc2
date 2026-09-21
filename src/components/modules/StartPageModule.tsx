@@ -25,6 +25,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { ProgressBar } from '../common/ProgressBar';
 import { StorageService } from '../../utils/persistence';
 import { findLatestResumableMhcSession, hasMeaningfulMhcProgress } from '../../utils/mhcAutopilotBrain';
 import { 
@@ -245,12 +246,12 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
 
                   {/* Operational Readiness Progress Bar */}
                   {typeof resumable.session.autopilotProgress?.readinessScore === 'number' && (
-                    <div className="w-full max-w-md bg-raised h-1.5 rounded-full overflow-hidden mt-2.5 border border-theme-subtle">
-                      <motion.div
-                        className="bg-emerald-500 h-full rounded-full"
-                        initial={prefersReducedMotion ? { width: `${resumable.session.autopilotProgress.readinessScore}%` } : { width: 0 }}
-                        animate={{ width: `${resumable.session.autopilotProgress.readinessScore}%` }}
-                        transition={{ duration: motionTimings.standard, ease: motionEasings.responsive }}
+                    <div className="w-full max-w-md mt-2.5">
+                      <ProgressBar
+                        value={resumable.session.autopilotProgress.readinessScore}
+                        variant={resumable.session.autopilotProgress.readinessScore >= 100 ? 'success' : 'primary'}
+                        size="xs"
+                        animated={true}
                       />
                     </div>
                   )}

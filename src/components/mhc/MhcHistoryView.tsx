@@ -182,15 +182,13 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
       {sessions.length === 0 ? (
         <div
           id="mhc-history-no-records"
-          className={`p-12 text-center rounded-md border ${
-            isDark ? 'bg-[#15181C] border-[#242930] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-          }`}
+          className="p-12 text-center rounded-card border bg-surface border-theme-default text-theme-muted shadow-theme-card"
         >
-          <Inbox className="w-10 h-10 text-slate-500 mx-auto mb-3 opacity-60" />
-          <h3 className="text-base font-bold text-slate-200 dark:text-slate-100">
+          <Inbox className="w-10 h-10 text-theme-muted mx-auto mb-3 opacity-60" />
+          <h3 className="text-base font-bold font-theme-heading text-theme-primary">
             No MHC Inspection Records Available
           </h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-theme-muted mt-1 max-w-md mx-auto leading-relaxed">
             No historical or in-progress inspection records were found. You can launch a new Machine Health Check protocol from MHC Autopilot.
           </p>
         </div>
@@ -200,7 +198,7 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
           <div className="hidden lg:grid lg:grid-cols-12 lg:gap-5 items-start">
             {/* Left Rail: Chronological List */}
             <div className="lg:col-span-4 xl:col-span-4 space-y-2 sticky top-4 max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
-              <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-mono text-slate-400 border-b border-white/5">
+              <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-mono text-theme-muted border-b border-theme-subtle">
                 <span>INSPECTION CHRONOLOGY</span>
                 <span>{filteredSessions.length} RECORDS</span>
               </div>
@@ -226,11 +224,9 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
                 />
               ) : (
                 <div
-                  className={`p-12 text-center rounded-md border ${
-                    isDark ? 'bg-[#15181C] border-[#242930] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-                  }`}
+                  className="p-12 text-center rounded-card border bg-surface border-theme-default text-theme-muted shadow-theme-card"
                 >
-                  <p className="text-xs font-mono text-slate-500">
+                  <p className="text-xs font-mono text-theme-muted">
                     Select an inspection record from the chronological log to inspect details.
                   </p>
                 </div>
@@ -252,7 +248,7 @@ export const MhcHistoryView: React.FC<MhcHistoryViewProps> = ({
               />
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-mono text-slate-400 border-b border-white/5">
+                <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-mono text-theme-muted border-b border-theme-subtle">
                   <span>INSPECTION LOG</span>
                   <span>{filteredSessions.length} RECORDS</span>
                 </div>

@@ -18,6 +18,7 @@ import {
 import { Contract, Machine, MHCSession } from '../../types';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
+import { ProgressBar } from '../common/ProgressBar';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   getContractMetrics, 
@@ -248,14 +249,12 @@ export const TwoYearServicePlanner: React.FC<TwoYearServicePlannerProps> = ({
 
             {/* Mini visual capacity bar */}
             <div className="w-full sm:w-28 space-y-1">
-              <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden border border-slate-700/30">
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    utilizationPercent > 90 ? 'bg-amber-400' : 'bg-sky-400'
-                  }`}
-                  style={{ width: `${utilizationPercent}%` }}
-                />
-              </div>
+              <ProgressBar
+                value={utilizationPercent}
+                variant={utilizationPercent > 90 ? 'warning' : 'primary'}
+                size="xs"
+                animated={true}
+              />
               <div className="text-[10px] text-slate-500 flex justify-between">
                 <span>{utilizationPercent}% SLA</span>
                 <span>{metrics.timelineEvents.length} MHCs</span>

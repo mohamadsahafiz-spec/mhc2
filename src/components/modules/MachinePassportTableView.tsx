@@ -20,6 +20,7 @@ import { BeamProfileEngine } from '../../utils/beamProfileEngine';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { FlipCard } from '../common/FlipCard';
+import { ProgressBar } from '../common/ProgressBar';
 
 export type PassportSubjectId =
   | 'lifecycle'
@@ -158,14 +159,12 @@ export const MachinePassportTableView: React.FC<MachinePassportTableViewProps> =
                   {minLifePct.toFixed(1)}% remaining
                 </span>
               </div>
-              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    minLifePct < 20 ? 'bg-rose-500' : minLifePct < 40 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(0, minLifePct))}%` }}
-                />
-              </div>
+              <ProgressBar
+                value={Math.min(100, Math.max(0, minLifePct))}
+                variant={minLifePct < 20 ? 'danger' : minLifePct < 40 ? 'warning' : 'success'}
+                size="xs"
+                animated={true}
+              />
             </div>
 
             <div className={`pt-2 border-t grid grid-cols-2 gap-2 text-[10px] font-mono ${isDark ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-600'}`}>

@@ -1,5 +1,44 @@
 # FSOS CHANGELOG
 
+## v3.3.5 — FSOS Lumen Accent Cleanup & Unified Luminous Bar System (2026-09-21)
+
+### Lumen Accent Cleanup & Unified Luminous Bar System
+- **Release History Accent Cleanup**: Replaced all decorative green accents in Release History (`ChangelogModule.tsx`) with the authoritative Lumen cool cyan/ice brand palette (`text-cyan-400`, `bg-cyan-500/15`, cyan border highlights, and specular search focus). Preserved semantic status distinction where green strictly represents operational success.
+- **Unified Luminous Bar System (`ProgressBar.tsx`)**: Created a standardized, theme-aware progress bar component with recessed dark-groove tracks, subtle inset bevels, and luminous gradient fills across all semantic variants (`primary` cyan, `success` emerald, `warning` amber, `danger` rose, `neutral` slate).
+- **Comprehensive Bar System Migration**:
+  - **HealthGauge**: Standardized gauge bar track and fill to use the unified `ProgressBar` component.
+  - **Start Page**: Refactored Daily Work focus card operational readiness progress bar to use the unified luminous bar.
+  - **Machine Passport**: Converted both the primary laser rated-life consumed bar and secondary laser head life margin bars to the unified luminous bar system with full status-aware threshold coloring.
+  - **Machine Passport Table View**: Upgraded operating hours life remaining bar to the unified component.
+  - **Customer Contracts**: Standardized SLA MHC service-day consumption progress bar.
+  - **Two-Year Service Planner**: Unified mini capacity SLA utilization bars.
+  - **Operational Analytics**: Upgraded both the multi-segment verdict breakdown bar and monthly activity session timeline bars to use the unified luminous bar architecture.
+- **CSS Architecture**: Added global `.lumen-bar-track` and `.lumen-bar-fill-*` utility classes in `src/index.css` with dedicated Lumen dusk theme styling.
+- **Strict Logic & Calculation Preservation**: Zero modifications made to laser physics models, Recharts chart geometry, PDF rendering pipeline, MHC Autopilot engines, or database structures.
+
+## v3.3.4 — FSOS MHC History & Reports Lumen Coverage Pass (2026-09-21)
+
+### MHC History & Reports Lumen Alignment
+- **MHC History Visual Coverage**: Brought MHC History & Reports and all inspection detail sub-tabs into the established Lumen "Engineered Glass at Dusk" visual language.
+- **Deep Obsidian Surfaces & Hairlines**: Refactored session list cards, search/filter toolbars, header controls, telemetry chips, and detail sub-tabs to use semantic theme tokens (`bg-surface`, `bg-canvas`, `border-theme-default`, `shadow-theme-card`).
+- **Sub-Tab Visual System Consistency**:
+  - **Overview Tab**: Restyled execution matrix, lifecycle metadata cards, laser hours telemetry tiles, and machine passport link chips with specular hairlines and high-contrast typography.
+  - **Findings Tab**: Updated head inspection cards, condition tags, action recommendation badges, stage calibration metrics, AGC dynamic index alignment cards, and photo zoom modals to Lumen material specs.
+  - **Evidence Tab**: Aligned media attachment cards, thumbnail hover states, and enlarged modal viewports to deep graphite obsidian depth.
+  - **Recommendations Tab**: Upgraded engineer observations panel, customer feedback callouts, next inspection date banner, and spare parts inventory data table.
+  - **Report & Buyoff Tabs**: Maintained full PDF rendering engine isolation while styling surrounding document action bars, buyoff status ribbons, and signature audit panels.
+- **Strict Architecture & Data Preservation**: No changes made to MHC calculation logic, filtering/sorting routines, session selection, PDF generation, or Autopilot workflows.
+
+## v3.3.3 — FSOS Lumen Visual Coverage Alignment Pass (2026-09-21)
+
+### FSOS Lumen Visual Coverage Alignment Pass
+- **Closed Remaining Lumen Visual Coverage Gaps**: Audited and closed remaining visual discrepancies in Machine Passport, Customers & Plants, My Profile, Settings (Regional, Application, Backup & Restore, Workspace Maintenance, About FSOS), and customer hierarchy views.
+- **Machine Passport & Flip Cards**: Integrated theme semantic tokens and luminous specular borders across all 7 inspection cards, machine identity headers, and engineering inspection sub-views in Lumen mode.
+- **Customers & Plants Hierarchy**: Refactored customer master-detail lists, site hierarchy panels, plant and line cards, and asset transfer flows to fully inherit the deep graphite obsidian glass aesthetics with cyan indicators.
+- **My Profile & Service Coverage**: Upgraded operator identity banner, contact details cards, cleanroom certifications, and interactive service coverage plant pins to utilize Lumen specular depth and luminous accents.
+- **Settings Sub-Panels Restyled**: Aligned Regional standards, Application modes, Backup & Restore dropzones, and Workspace Maintenance diagnostics to native Lumen glass surfaces and semantic border tokens.
+- **Protected Engineering Architecture**: Kept all MHC calculation algorithms, laser power records, beam profile mathematics, temperature telemetry, PDF generation engines, and customer fleet data logic strictly intact.
+
 ## v3.3.2 — FSOS Lumen Application-Wide Coverage Pass (2026-09-21)
 
 ### FSOS Lumen Application-Wide Coverage Pass

@@ -165,10 +165,10 @@ export const FlipCard: React.FC<FlipCardProps> = ({
         >
           {/* FRONT FACE */}
           <div
-            className={`w-full h-full p-5 rounded-2xl border transition-colors flex flex-col justify-between ${
+            className={`w-full h-full p-5 rounded-card border transition-all flex flex-col justify-between ${
               isDark
-                ? 'bg-[#16191D] border-[#2B323A] group-hover:border-[#3D4754] shadow-xs'
-                : 'bg-white border-slate-200 group-hover:border-slate-300 shadow-xs'
+                ? 'bg-surface border-theme-default hover:border-theme-strong shadow-theme-card'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
             }`}
             style={{
               backfaceVisibility: 'hidden',
@@ -182,10 +182,10 @@ export const FlipCard: React.FC<FlipCardProps> = ({
 
           {/* BACK FACE */}
           <div
-            className={`absolute inset-0 w-full h-full p-5 rounded-2xl border transition-colors flex flex-col justify-between ${
+            className={`absolute inset-0 w-full h-full p-5 rounded-card border transition-all flex flex-col justify-between ${
               isDark
-                ? 'bg-[#16191D] border-[#2B323A] group-hover:border-[#3D4754] shadow-xs'
-                : 'bg-white border-slate-200 group-hover:border-slate-300 shadow-xs'
+                ? 'bg-surface border-theme-default hover:border-theme-strong shadow-theme-card'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
             }`}
             style={{
               backfaceVisibility: 'hidden',

@@ -123,15 +123,13 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
     return (
       <div
         id="mhc-history-evidence-empty"
-        className={`p-8 text-center rounded-md border ${
-          isDark ? 'bg-[#15181C] border-[#242930] text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-        }`}
+        className="p-8 text-center rounded-card border bg-surface border-theme-default text-theme-muted"
       >
-        <ImageIcon className="w-8 h-8 text-slate-500 mx-auto mb-2 opacity-50" />
-        <h3 className="text-sm font-semibold text-slate-200 dark:text-slate-100">
+        <ImageIcon className="w-8 h-8 text-theme-muted mx-auto mb-2 opacity-50" />
+        <h3 className="text-sm font-semibold font-theme-heading text-theme-primary">
           No Media Evidence Attached
         </h3>
-        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+        <p className="text-xs text-theme-muted mt-1 max-w-sm mx-auto">
           No photo attachments or media logs were recorded during this inspection session.
         </p>
       </div>
@@ -141,11 +139,11 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
   return (
     <div id="mhc-history-evidence-tab" className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-          <Camera className="w-3.5 h-3.5 text-slate-400" />
-          <span>Recorded Evidence Sheets: <strong className="text-slate-200">{evidenceItems.length} attachments</strong></span>
+        <div className="flex items-center gap-2 text-xs font-mono text-theme-muted">
+          <Camera className="w-3.5 h-3.5 text-theme-muted" />
+          <span>Recorded Evidence Sheets: <strong className="text-theme-primary">{evidenceItems.length} attachments</strong></span>
         </div>
-        <span className="text-[11px] font-mono text-slate-500">
+        <span className="text-[11px] font-mono text-theme-muted">
           Click any thumbnail to inspect high-resolution capture
         </span>
       </div>
@@ -158,11 +156,7 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
             <div
               key={item.id}
               onClick={() => setActivePreview(item)}
-              className={`rounded-md border overflow-hidden cursor-pointer transition-all flex flex-col ${
-                isDark 
-                  ? 'bg-[#15181C] border-[#242930] hover:border-slate-500 hover:bg-[#181C21]' 
-                  : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs'
-              }`}
+              className="rounded-card border overflow-hidden cursor-pointer transition-all flex flex-col bg-surface border-theme-default hover:border-theme-hover hover:bg-surface-hover text-theme-primary shadow-theme-card"
             >
               {/* Image Thumbnail Container */}
               <div className="relative aspect-4/3 bg-black/60 overflow-hidden group">
@@ -182,16 +176,16 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
               {/* Caption & Metadata */}
               <div className="p-3 space-y-1 flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-mono text-theme-muted uppercase tracking-wider block">
                     {item.source}
                   </span>
-                  <h4 className="text-xs font-bold text-slate-200 dark:text-slate-100 truncate">
+                  <h4 className="text-xs font-bold font-theme-heading text-theme-primary truncate">
                     {item.title}
                   </h4>
                 </div>
 
                 {item.description && (
-                  <p className="text-[11px] text-slate-400 line-clamp-2 pt-1 border-t border-white/5">
+                  <p className="text-[11px] text-theme-muted line-clamp-2 pt-1 border-t border-theme-subtle">
                     {item.description}
                   </p>
                 )}
@@ -204,33 +198,31 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
       {/* Enlarged Inspection Modal */}
       {activePreview && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setActivePreview(null)}
         >
           <div
-            className={`max-w-3xl w-full rounded-md border p-4 space-y-3 ${
-              isDark ? 'bg-[#15181C] border-[#2D333D]' : 'bg-white border-slate-300 shadow-xl'
-            }`}
+            className="max-w-3xl w-full rounded-card border p-4 space-y-3 bg-surface border-theme-default text-theme-primary shadow-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b pb-2">
+            <div className="flex items-center justify-between border-b border-theme-subtle pb-2">
               <div>
-                <span className="text-[10px] font-mono text-slate-400 uppercase block">
+                <span className="text-[10px] font-mono text-theme-muted uppercase block">
                   {activePreview.source}
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-200">
+                <span className="text-xs font-mono font-bold text-theme-primary">
                   {activePreview.title}
                 </span>
               </div>
               <button
                 onClick={() => setActivePreview(null)}
-                className="text-slate-400 hover:text-slate-200 cursor-pointer p-1"
+                className="text-theme-muted hover:text-theme-primary cursor-pointer p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="max-h-[72vh] overflow-hidden rounded flex items-center justify-center bg-black/80">
+            <div className="max-h-[72vh] overflow-hidden rounded-card flex items-center justify-center bg-black/80">
               <img
                 src={ImageStore.resolveImage(activePreview.rawImage) || activePreview.rawImage}
                 alt={activePreview.title}
@@ -239,7 +231,7 @@ export const MhcHistoryEvidenceTab: React.FC<MhcHistoryEvidenceTabProps> = ({
             </div>
 
             {activePreview.description && (
-              <p className="text-xs text-slate-300 font-mono pt-1">
+              <p className="text-xs text-theme-secondary font-mono pt-1">
                 {activePreview.description}
               </p>
             )}

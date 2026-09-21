@@ -740,7 +740,7 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 0 50px -5px rgba(56, 189, 248, 0.2), 0 30px 60px -10px rgba(0, 0, 0, 0.9) !important;
 }
 
-/* 9. Full Application Coverage — Legacy Dark Utility Overrides in Lumen Mode */
+/* 9. Full Application Coverage — Direct and Dark Utility Overrides in Lumen Mode */
 [data-theme="lumen"] .dark\:bg-\[\#16191D\],
 [data-theme="lumen"] .dark\:bg-\[\#14171A\],
 [data-theme="lumen"] .dark\:bg-\[\#1C2026\],
@@ -750,20 +750,39 @@
 [data-theme="lumen"] .dark\:bg-\[\#1A1D23\],
 [data-theme="lumen"] .dark\:bg-\[\#20252B\],
 [data-theme="lumen"] .dark\:bg-\[\#242A32\],
-[data-theme="lumen"] .dark\:bg-slate-900 {
+[data-theme="lumen"] .dark\:bg-slate-900,
+[data-theme="lumen"] .dark\:bg-slate-800,
+[data-theme="lumen"] .bg-\[\#16191D\],
+[data-theme="lumen"] .bg-\[\#14171A\],
+[data-theme="lumen"] .bg-\[\#1C2026\],
+[data-theme="lumen"] .bg-\[\#181C20\],
+[data-theme="lumen"] .bg-\[\#181B1E\],
+[data-theme="lumen"] .bg-\[\#1A1D21\],
+[data-theme="lumen"] .bg-\[\#1A1D23\],
+[data-theme="lumen"] .bg-\[\#20252B\],
+[data-theme="lumen"] .bg-\[\#242A32\],
+[data-theme="lumen"] .bg-slate-900,
+[data-theme="lumen"] .bg-slate-800 {
   background: radial-gradient(130% 120% at 50% 100%, rgba(28, 38, 54, 0.55) 0%, rgba(13, 17, 24, 0.96) 75%), #0D1117 !important;
 }
 
 [data-theme="lumen"] .dark\:bg-\[\#111315\],
 [data-theme="lumen"] .dark\:bg-\[\#121418\],
 [data-theme="lumen"] .dark\:bg-\[\#141618\],
-[data-theme="lumen"] .dark\:bg-slate-950 {
+[data-theme="lumen"] .dark\:bg-slate-950,
+[data-theme="lumen"] .bg-\[\#111315\],
+[data-theme="lumen"] .bg-\[\#121418\],
+[data-theme="lumen"] .bg-\[\#141618\],
+[data-theme="lumen"] .bg-slate-950 {
   background: rgba(10, 13, 19, 0.94) !important;
 }
 
 [data-theme="lumen"] .dark\:bg-\[\#1F242C\],
 [data-theme="lumen"] .dark\:bg-\[\#262C36\],
-[data-theme="lumen"] .dark\:bg-\[\#2C333D\] {
+[data-theme="lumen"] .dark\:bg-\[\#2C333D\],
+[data-theme="lumen"] .bg-\[\#1F242C\],
+[data-theme="lumen"] .bg-\[\#262C36\],
+[data-theme="lumen"] .bg-\[\#2C333D\] {
   background: linear-gradient(180deg, rgba(25, 33, 46, 0.85) 0%, rgba(16, 21, 30, 0.92) 100%) !important;
 }
 
@@ -775,34 +794,117 @@
 [data-theme="lumen"] .dark\:border-\[\#2C323B\],
 [data-theme="lumen"] .dark\:border-\[\#3D4754\],
 [data-theme="lumen"] .dark\:border-slate-800,
-[data-theme="lumen"] .dark\:border-slate-700 {
+[data-theme="lumen"] .dark\:border-slate-700,
+[data-theme="lumen"] .border-\[\#2B323A\],
+[data-theme="lumen"] .border-\[\#2B323A\]\/80,
+[data-theme="lumen"] .border-\[\#2B323A\]\/50,
+[data-theme="lumen"] .border-\[\#262B33\],
+[data-theme="lumen"] .border-\[\#252A31\],
+[data-theme="lumen"] .border-\[\#2C323B\],
+[data-theme="lumen"] .border-\[\#3D4754\],
+[data-theme="lumen"] .border-slate-800,
+[data-theme="lumen"] .border-slate-700 {
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 [data-theme="lumen"] .dark\:divide-\[\#252A31\] > :not([hidden]) ~ :not([hidden]),
 [data-theme="lumen"] .dark\:divide-\[\#2B323A\] > :not([hidden]) ~ :not([hidden]),
-[data-theme="lumen"] .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+[data-theme="lumen"] .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+[data-theme="lumen"] .divide-\[\#252A31\] > :not([hidden]) ~ :not([hidden]),
+[data-theme="lumen"] .divide-\[\#2B323A\] > :not([hidden]) ~ :not([hidden]),
+[data-theme="lumen"] .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-theme="lumen"] .dark\:text-slate-100 {
+[data-theme="lumen"] .dark\:text-slate-100,
+[data-theme="lumen"] .text-slate-100 {
   color: #F8FAFC !important;
 }
 
-[data-theme="lumen"] .dark\:text-slate-200 {
+[data-theme="lumen"] .dark\:text-slate-200,
+[data-theme="lumen"] .text-slate-200 {
   color: #E2E8F0 !important;
 }
 
-[data-theme="lumen"] .dark\:text-slate-300 {
+[data-theme="lumen"] .dark\:text-slate-300,
+[data-theme="lumen"] .text-slate-300 {
   color: #CBD5E1 !important;
 }
 
-[data-theme="lumen"] .dark\:text-slate-400 {
+[data-theme="lumen"] .dark\:text-slate-400,
+[data-theme="lumen"] .text-slate-400 {
   color: #94A3B8 !important;
 }
 
-[data-theme="lumen"] .dark\:text-slate-500 {
+[data-theme="lumen"] .dark\:text-slate-500,
+[data-theme="lumen"] .text-slate-500 {
   color: #64748B !important;
+}
+
+/* ========================================================================= */
+/* UNIFIED LUMEN BAR SYSTEM (Material & Semantic Variants)                   */
+/* ========================================================================= */
+.lumen-bar-track {
+  background-color: var(--surface-workspace, #16191D);
+  border: 1px solid var(--border-subtle, #2B323A);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.lumen-bar-fill-primary {
+  background: linear-gradient(90deg, #0284C7 0%, #38BDF8 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.lumen-bar-fill-success {
+  background: linear-gradient(90deg, #059669 0%, #34D399 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.lumen-bar-fill-warning {
+  background: linear-gradient(90deg, #D97706 0%, #FBBF24 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.lumen-bar-fill-danger {
+  background: linear-gradient(90deg, #DC2626 0%, #F87171 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.lumen-bar-fill-neutral {
+  background: linear-gradient(90deg, #475569 0%, #64748B 100%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Lumen Design System Enhanced Material Treatment */
+[data-theme="lumen"] .lumen-bar-track {
+  background: #06090E !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1.5px 3.5px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="lumen"] .lumen-bar-fill-primary {
+  background: linear-gradient(90deg, #0369A1 0%, #0284C7 45%, #38BDF8 100%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55), 0 0 12px -1px rgba(56, 189, 248, 0.45) !important;
+}
+
+[data-theme="lumen"] .lumen-bar-fill-success {
+  background: linear-gradient(90deg, #047857 0%, #059669 45%, #34D399 100%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55), 0 0 12px -1px rgba(52, 211, 153, 0.45) !important;
+}
+
+[data-theme="lumen"] .lumen-bar-fill-warning {
+  background: linear-gradient(90deg, #B45309 0%, #D97706 45%, #FBBF24 100%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55), 0 0 12px -1px rgba(251, 191, 36, 0.45) !important;
+}
+
+[data-theme="lumen"] .lumen-bar-fill-danger {
+  background: linear-gradient(90deg, #B91C1C 0%, #DC2626 45%, #F87171 100%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55), 0 0 12px -1px rgba(248, 113, 113, 0.45) !important;
+}
+
+[data-theme="lumen"] .lumen-bar-fill-neutral {
+  background: linear-gradient(90deg, #334155 0%, #475569 50%, #64748B 100%) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 0 8px -1px rgba(100, 116, 139, 0.3) !important;
 }
 
 
