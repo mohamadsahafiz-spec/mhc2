@@ -24,13 +24,10 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
   readiness,
   onJumpToActivity,
   onDiscardSession,
-  isDiscardVisible,
-  isDark
+  isDiscardVisible
 }) => {
   return (
-    <aside className={`w-full md:w-64 lg:w-72 shrink-0 p-4 border-t md:border-t-0 md:border-l flex flex-col justify-between overflow-y-auto ${
-      isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-[var(--border-default)]'
-    }`}>
+    <aside className="w-full md:w-64 lg:w-72 shrink-0 p-4 border-t md:border-t-0 md:border-l flex flex-col justify-between overflow-y-auto bg-[var(--surface-workspace)] border-[var(--border-default)]">
       <div className="space-y-4">
         {/* Header & Overall Status */}
         <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
@@ -62,29 +59,21 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                   }}
                   className={`w-full text-left p-1.5 rounded-lg text-[11px] border flex items-center justify-between transition-all ${
                     isCurrentActive
-                      ? isDark
-                        ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] ring-1 ring-slate-600'
-                        : 'bg-white border-slate-300 text-slate-900 shadow-xs ring-1 ring-slate-400'
+                      ? 'bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] ring-1 ring-[var(--border-active)] shadow-xs font-semibold'
                       : actStatus === 'COMPLETED'
-                      ? isDark
-                        ? 'bg-[var(--surface-surface)]/40 border-[var(--border-subtle)] text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
-                        : 'bg-white border-slate-200 text-emerald-700 hover:bg-slate-50 cursor-pointer'
+                      ? 'bg-[var(--surface-surface)]/60 border-[var(--border-subtle)] text-emerald-600 dark:text-emerald-400 hover:bg-[var(--surface-surface)] hover:text-[var(--text-primary)] cursor-pointer'
                       : actStatus === 'NEEDS_REVIEW'
-                      ? isDark
-                        ? 'bg-amber-950/20 border-amber-500/30 text-amber-300 hover:bg-amber-950/40 cursor-pointer'
-                        : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100/60 cursor-pointer'
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-300 hover:bg-amber-500/25 cursor-pointer'
                       : actStatus === 'IN_PROGRESS'
-                      ? isDark
-                        ? 'bg-[var(--surface-raised)]/60 border-[var(--border-strong)] text-cyan-300 hover:bg-[var(--surface-raised)] cursor-pointer'
-                        : 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/60 cursor-pointer'
+                      ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-600 dark:text-cyan-300 hover:bg-cyan-500/25 cursor-pointer'
                       : 'bg-transparent border-transparent text-[var(--text-subtle)] cursor-not-allowed opacity-50'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 truncate">
                     <span className="font-mono text-[10px] font-bold">
-                      {actStatus === 'COMPLETED' && <span className="text-emerald-400">✓</span>}
-                      {actStatus === 'IN_PROGRESS' && <span className="text-cyan-400">●</span>}
-                      {actStatus === 'NEEDS_REVIEW' && <span className="text-amber-400 font-bold">⚠</span>}
+                      {actStatus === 'COMPLETED' && <span className="text-emerald-500 dark:text-emerald-400">✓</span>}
+                      {actStatus === 'IN_PROGRESS' && <span className="text-cyan-500 dark:text-cyan-400">●</span>}
+                      {actStatus === 'NEEDS_REVIEW' && <span className="text-amber-500 dark:text-amber-400 font-bold">⚠</span>}
                       {actStatus === 'UPCOMING' && <span className="text-[var(--text-muted)]">○</span>}
                       {actStatus === 'LOCKED' && <span className="text-[var(--text-subtle)]">🔒</span>}
                     </span>
@@ -112,15 +101,13 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                           onClick={() => onJumpToActivity(sub.code)}
                           className={`w-full text-left px-2 py-1 rounded text-[10px] font-mono flex items-center justify-between border transition-all ${
                             isSubActive
-                              ? isDark
-                                ? 'bg-[var(--surface-raised)] border-[var(--border-strong)] text-[var(--text-primary)] font-bold'
-                                : 'bg-white border-slate-300 text-slate-900 font-bold shadow-xs'
+                              ? 'bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] font-bold shadow-xs'
                               : subStatus === 'COMPLETED'
-                              ? 'bg-transparent border-transparent text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
+                              ? 'bg-transparent border-transparent text-emerald-600 dark:text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                               : subStatus === 'NEEDS_REVIEW'
-                              ? 'bg-transparent border-transparent text-amber-400 hover:bg-[var(--surface-surface)] cursor-pointer'
+                              ? 'bg-transparent border-transparent text-amber-600 dark:text-amber-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                               : subStatus === 'IN_PROGRESS'
-                              ? 'bg-transparent border-transparent text-cyan-400 hover:bg-[var(--surface-surface)] cursor-pointer'
+                              ? 'bg-transparent border-transparent text-cyan-600 dark:text-cyan-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                               : 'bg-transparent border-transparent text-[var(--text-subtle)] cursor-not-allowed opacity-50'
                           }`}
                         >
@@ -129,9 +116,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                             <span className="truncate">{sub.title}</span>
                           </div>
                           <span className="shrink-0 font-bold">
-                            {subStatus === 'COMPLETED' && <span className="text-emerald-400">✓</span>}
-                            {subStatus === 'IN_PROGRESS' && <span className="text-cyan-400">●</span>}
-                            {subStatus === 'NEEDS_REVIEW' && <span className="text-amber-400">⚠</span>}
+                            {subStatus === 'COMPLETED' && <span className="text-emerald-500 dark:text-emerald-400">✓</span>}
+                            {subStatus === 'IN_PROGRESS' && <span className="text-cyan-500 dark:text-cyan-400">●</span>}
+                            {subStatus === 'NEEDS_REVIEW' && <span className="text-amber-500 dark:text-amber-400">⚠</span>}
                             {subStatus === 'UPCOMING' && <span className="text-[var(--text-muted)]">○</span>}
                             {subStatus === 'LOCKED' && <span className="text-[var(--text-subtle)]">🔒</span>}
                           </span>
@@ -157,9 +144,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
               onDiscardSession();
             }}
             title="Discard this unwanted draft session"
-            className="w-full py-2 px-3 rounded-lg border border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[11px] font-mono font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            className="w-full py-2 px-3 rounded-lg border border-rose-500/30 hover:border-rose-500/50 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 text-[11px] font-mono font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
             <span>Discard Draft Session</span>
           </motion.button>
         </div>

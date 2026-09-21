@@ -176,23 +176,21 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
   return (
     <div className="space-y-6">
       {/* HEADER & PASSPORT BINDING BANNER */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-900'
-      }`}>
+      <div className="p-4 rounded-2xl border space-y-2 bg-[var(--surface-raised)] border-[var(--border-default)] text-[var(--text-primary)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-cyan-400 shrink-0" />
-            <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
+            <Cpu className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
+            <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-[var(--text-primary)]">
               Day 1 • Activity 01: Laser Hours Verification
             </h3>
           </div>
-          <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+          <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
             ENGINEERING WORKFLOW ACTIVE
           </span>
         </div>
 
-        <p className="text-xs text-slate-300 leading-relaxed">
-          FSOS Machine Passport & LaserEngine have pre-retrieved current operating hours and historical baselines for {laserHeads.length} laser head(s). Review and confirm each reading below.
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+          FSOS Machine Passport &amp; LaserEngine have pre-retrieved current operating hours and historical baselines for {laserHeads.length} laser head(s). Review and confirm each reading below.
         </p>
       </div>
 
@@ -216,90 +214,84 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
               key={lh.id || `lh-card-${idx}`}
               className={`p-5 rounded-2xl border space-y-4 transition-all ${
                 currentVerified
-                  ? isDark 
-                    ? 'bg-emerald-950/20 border-emerald-500/40 ring-1 ring-emerald-500/20' 
-                    : 'bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-400/30'
-                  : isDark 
-                    ? 'bg-slate-900/60 border-slate-800' 
-                    : 'bg-white border-slate-200'
+                  ? 'bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/20' 
+                  : 'bg-[var(--surface-surface)] border-[var(--border-default)]'
               }`}
             >
               {/* CARD TITLE & VERIFIED BADGE */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
                     currentVerified 
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                      : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30' 
+                      : 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
                   }`}>
                     LH{idx + 1}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-slate-100">
+                    <h4 className="font-bold text-sm text-[var(--text-primary)]">
                       {lh.name || `Laser Head ${idx + 1}`}
                     </h4>
-                    <div className="text-[10px] font-mono text-slate-400">
+                    <div className="text-[10px] font-mono text-[var(--text-muted)]">
                       SN: {lh.serialNo || lh.serialNumber || `${machine.serialNumber}-L${idx + 1}`} • Model: {lh.model || machine.model}
                     </div>
                   </div>
                 </div>
 
                 {currentVerified ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                     <span>VERIFIED</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-bold font-mono">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--border-default)] text-[10px] font-bold font-mono">
+                    <Clock className="w-3.5 h-3.5" />
                     <span>UNVERIFIED</span>
                   </span>
                 )}
               </div>
 
               {/* AUTOMATED DATA RETRIEVAL TRAY (MACHINE PASSPORT + LASER ENGINE) */}
-              <div className={`p-3.5 rounded-xl border space-y-2.5 ${
-                isDark ? 'bg-slate-950/60 border-slate-800/80' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center justify-between">
+              <div className="p-3.5 rounded-xl border space-y-2.5 bg-[var(--surface-workspace)] border-[var(--border-subtle)]">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--color-primary)] font-bold flex items-center justify-between">
                   <span>RETRIEVED SOURCE DATA</span>
-                  <span className="text-[9px] text-slate-400">PASSPORT & LASER ENGINE</span>
+                  <span className="text-[9px] text-[var(--text-muted)]">PASSPORT &amp; LASER ENGINE</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <div className="text-[10px] text-slate-400">Passport Baseline</div>
-                    <div className="font-mono font-bold text-slate-200">{passportBaseHour.toLocaleString()} hrs</div>
-                    <div className="text-[9px] text-slate-500">Rec: {passportBaseDate}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Passport Baseline</div>
+                    <div className="font-mono font-bold text-[var(--text-primary)]">{passportBaseHour.toLocaleString()} hrs</div>
+                    <div className="text-[9px] text-[var(--text-subtle)]">Rec: {passportBaseDate}</div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-slate-400">Retrieved Reading</div>
-                    <div className="font-mono font-bold text-cyan-300">{retrievedHour.toLocaleString()} hrs</div>
-                    <div className="text-[9px] text-emerald-400 font-mono font-semibold">
+                    <div className="text-[10px] text-[var(--text-muted)]">Retrieved Reading</div>
+                    <div className="font-mono font-bold text-[var(--color-primary)]">{retrievedHour.toLocaleString()} hrs</div>
+                    <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
                       {deltaHours > 0 ? `+${deltaHours} hrs logged` : 'At Baseline'}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-slate-400">Lifecycle Health</div>
-                    <div className="font-semibold text-slate-200 flex items-center gap-1">
+                    <div className="text-[10px] text-[var(--text-muted)]">Lifecycle Health</div>
+                    <div className="font-semibold text-[var(--text-primary)] flex items-center gap-1">
                       <span className={`w-2 h-2 rounded-full ${
-                        metrics?.status === 'SAFE' ? 'bg-emerald-400' : metrics?.status === 'WARNING' ? 'bg-amber-400' : 'bg-rose-400'
+                        metrics?.status === 'SAFE' ? 'bg-emerald-500' : metrics?.status === 'WARNING' ? 'bg-amber-500' : 'bg-rose-500'
                       }`} />
                       <span>{metrics?.status || 'SAFE'}</span>
                     </div>
-                    <div className="text-[9px] text-slate-400 font-mono">
+                    <div className="text-[9px] text-[var(--text-muted)] font-mono">
                       {metrics?.formattedLifeRemaining || '95%'} ({metrics?.ratedLife?.toLocaleString() || '25,000'} hrs rated)
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-slate-400">Calibration Baseline</div>
-                    <div className="font-mono text-[11px] text-slate-300 truncate">
+                    <div className="text-[10px] text-[var(--text-muted)]">Calibration Baseline</div>
+                    <div className="font-mono text-[11px] text-[var(--text-secondary)] truncate">
                       {metrics?.lastRecalibrationDate ? metrics.lastRecalibrationDate : 'Initial Baseline Active'}
                     </div>
-                    <div className="text-[9px] text-slate-500 font-mono">
+                    <div className="text-[9px] text-[var(--text-subtle)] font-mono">
                       {lh.calibrationHistory?.length || 0} historical record(s)
                     </div>
                   </div>
@@ -309,11 +301,11 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
               {/* VERIFICATION & RECALIBRATION CONTROLS */}
               <div className="space-y-3 pt-1">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-slate-300 font-bold flex items-center justify-between">
+                  <label className="text-[11px] font-mono text-[var(--text-secondary)] font-bold flex items-center justify-between">
                     <span>VERIFIED OPERATING HOURS (HRS)</span>
                     {isRecalibrated && (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-amber-400" />
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-amber-500" />
                         <span>RECALIBRATED / ADJUSTED</span>
                       </span>
                     )}
@@ -328,19 +320,15 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
                         const val = parseFloat(e.target.value) || 0;
                         setLocalHours(prev => ({ ...prev, [matchedItem?.laserId || lh.id]: val }));
                       }}
-                      className={`w-full pl-3 pr-16 py-2 rounded-xl border text-xs font-mono font-bold outline-none transition-all ${
-                        isDark 
-                          ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                          : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-                      }`}
+                      className="w-full pl-3 pr-16 py-2 rounded-xl border text-xs font-mono font-bold outline-none transition-all bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[var(--text-muted)]">
                       HOURS
                     </span>
                   </div>
 
                   {isRecalibrated && (
-                    <p className="text-[10px] text-amber-300/90 leading-tight pt-0.5 font-mono">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-300/90 leading-tight pt-0.5 font-mono">
                       Original source: <strong>{retrievedHour.toLocaleString()} hrs</strong>. Value adjusted for offline/shutdown operation without destroying original source info.
                     </p>
                   )}
@@ -348,7 +336,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
 
                 {/* VERIFICATION NOTES */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-mono text-slate-400 font-semibold">
+                  <label className="text-[10px] font-mono text-[var(--text-muted)] font-semibold">
                     VERIFICATION / CALIBRATION NOTES
                   </label>
                   <input
@@ -360,11 +348,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
                       setLocalNotes(prev => ({ ...prev, [matchedItem?.laserId || lh.id]: txt }));
                     }}
                     placeholder={isReadOnly ? "Read-only mode" : "e.g., Cabinet physical hour meter verified. Offline operation recorded."}
-                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none transition-all ${
-                      isDark 
-                        ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-                    }`}
+                    className="w-full px-3 py-2 rounded-xl border text-xs outline-none transition-all bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]"
                   />
                 </div>
 
@@ -382,10 +366,10 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
                       criticalThreshold: 25000,
                       runtimeStatus: 'NORMAL'
                     })}
-                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all ${
+                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       currentVerified
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                        : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                        ? 'bg-[var(--surface-raised)] hover:bg-[var(--surface-surface)] text-[var(--text-primary)] border border-[var(--border-default)]'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
                     }`}
                   >
                     <CheckCircle2 className="w-4 h-4" />
@@ -401,27 +385,27 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
       {/* VERIFICATION PROGRESS & COMPLETION GATE */}
       <div className={`p-5 rounded-2xl border space-y-4 ${
         isAllVerified
-          ? isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
-          : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+          ? 'bg-emerald-500/10 border-emerald-500/40'
+          : 'bg-[var(--surface-raised)] border-[var(--border-default)]'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className={`w-5 h-5 ${isAllVerified ? 'text-emerald-400' : 'text-slate-400'}`} />
-              <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
+              <ShieldCheck className={`w-5 h-5 ${isAllVerified ? 'text-emerald-500' : 'text-[var(--text-muted)]'}`} />
+              <h4 className="font-extrabold text-sm sm:text-base text-[var(--text-primary)]">
                 Activity 01 Completion Readiness
               </h4>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               {isAllVerified 
                 ? 'All laser heads verified. Ready to record authoritative session data and advance Journey Rail.' 
                 : `Verification required for all ${laserHeads.length} laser head(s) before completing Activity 01.`}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-default)] text-[var(--text-primary)]">
             <span>VERIFIED:</span>
-            <span className={isAllVerified ? 'text-emerald-400 font-extrabold' : 'text-amber-400'}>
+            <span className={isAllVerified ? 'text-emerald-500 dark:text-emerald-400 font-extrabold' : 'text-amber-500 font-bold'}>
               {verifiedCount} / {laserHeads.length} HEADS
             </span>
           </div>
@@ -433,14 +417,14 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
             <button
               disabled={!isAllVerified}
               onClick={() => onCompleteActivity()}
-              className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-xs shadow-md flex items-center gap-2 transition-all ${
                 isAllVerified
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                  : 'bg-[var(--surface-surface)] text-[var(--text-subtle)] border border-[var(--border-default)] cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Complete Activity 01: Laser Hours & Advance Journey Rail</span>
+              <span>Complete Activity 01: Laser Hours &amp; Advance Journey Rail</span>
             </button>
           </div>
         )}

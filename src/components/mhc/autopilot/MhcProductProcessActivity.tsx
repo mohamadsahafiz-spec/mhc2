@@ -403,18 +403,16 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
   const activeReading = activeHead === 'lh1' ? evaluatedRecord.laser1Via : evaluatedRecord.laser2Via;
 
   return (
-    <div className={`p-4 sm:p-6 rounded-2xl border space-y-6 ${
-      isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-    }`}>
+    <div className="p-4 sm:p-6 rounded-2xl border space-y-6 bg-[var(--surface-surface)] border-[var(--border-default)] shadow-xs">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-[var(--border-subtle)]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
               DAY 3 • 07
             </span>
-            <Badge variant="outline" className="text-xs font-mono">
-              PROCESS & DRILL VERIFICATION
+            <Badge variant="outline" className="text-xs font-mono border-[var(--border-default)] text-[var(--text-secondary)]">
+              PROCESS &amp; DRILL VERIFICATION
             </Badge>
             {isCurrentCompleted && (
               <Badge variant="success" className="text-xs flex items-center gap-1">
@@ -427,24 +425,24 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               </Badge>
             )}
           </div>
-          <h2 className="text-xl font-bold tracking-tight mt-1 text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight mt-1 text-[var(--text-primary)] flex items-center gap-2">
             <FileCheck className="w-5 h-5 text-emerald-500" />
-            Product & Process / Via
+            Product &amp; Process / Via
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             Machining parameters, power offsets, and via drill cross-section geometry check for Laser 1 and Laser 2.
           </p>
         </div>
 
         {/* Laser Head Selector */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 self-start md:self-auto">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-default)] self-start md:self-auto">
           <button
             type="button"
             onClick={() => setActiveHead('lh1')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeHead === 'lh1'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[var(--surface-surface)] text-[var(--color-primary)] shadow-xs border border-[var(--border-subtle)] font-bold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
@@ -452,8 +450,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             {evaluatedRecord.laser1Via && (
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full border ${
                 evaluatedRecord.laser1Via.overallPass
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30'
               }`}>
                 {evaluatedRecord.laser1Via.overallPass ? 'PASS' : 'FAIL'}
               </span>
@@ -462,10 +460,10 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           <button
             type="button"
             onClick={() => setActiveHead('lh2')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeHead === 'lh2'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[var(--surface-surface)] text-[var(--color-primary)] shadow-xs border border-[var(--border-subtle)] font-bold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
@@ -473,8 +471,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             {evaluatedRecord.laser2Via && (
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full border ${
                 evaluatedRecord.laser2Via.overallPass
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30'
               }`}>
                 {evaluatedRecord.laser2Via.overallPass ? 'PASS' : 'FAIL'}
               </span>
@@ -486,43 +484,43 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
       {/* Production Identification & Power Offsets */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Product Name</label>
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Product Name</label>
           <input
             type="text"
             value={record.productName}
             onChange={(e) => setRecord(prev => ({ ...prev, productName: e.target.value }))}
             disabled={isReadOnly}
             placeholder="e.g. Standard Dummy Wafer"
-            className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+            className="w-full text-xs font-mono p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)]"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Recipe Program</label>
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Recipe Program</label>
           <input
             type="text"
             value={record.recipeName}
             onChange={(e) => setRecord(prev => ({ ...prev, recipeName: e.target.value }))}
             disabled={isReadOnly}
             placeholder="e.g. MHC-VIA-01"
-            className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+            className="w-full text-xs font-mono p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)]"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Lot / Panel ID</label>
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Lot / Panel ID</label>
           <input
             type="text"
             value={record.lotPanel}
             onChange={(e) => setRecord(prev => ({ ...prev, lotPanel: e.target.value }))}
             disabled={isReadOnly}
             placeholder="e.g. LOT-A01"
-            className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+            className="w-full text-xs font-mono p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)]"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Laser 1 Power Offset (%)</label>
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Laser 1 Power Offset (%)</label>
           <div className="flex items-center gap-1">
             <input
               type="number"
@@ -531,14 +529,14 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               onChange={(e) => setRecord(prev => ({ ...prev, laser1PowerOffsetPercent: e.target.value === '' ? null : (parseFloat(e.target.value) || 0) }))}
               disabled={isReadOnly}
               placeholder="e.g. 0.0"
-              className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+              className="w-full text-xs font-mono p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)]"
             />
-            <span className="text-xs text-slate-400">%</span>
+            <span className="text-xs text-[var(--text-muted)]">%</span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Laser 2 Power Offset (%)</label>
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Laser 2 Power Offset (%)</label>
           <div className="flex items-center gap-1">
             <input
               type="number"
@@ -547,32 +545,30 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               onChange={(e) => setRecord(prev => ({ ...prev, laser2PowerOffsetPercent: e.target.value === '' ? null : (parseFloat(e.target.value) || 0) }))}
               disabled={isReadOnly}
               placeholder="e.g. 0.0"
-              className="w-full text-xs font-mono p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+              className="w-full text-xs font-mono p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)]"
             />
-            <span className="text-xs text-slate-400">%</span>
+            <span className="text-xs text-[var(--text-muted)]">%</span>
           </div>
         </div>
       </div>
 
       {/* Authoritative Via Specification Bar */}
-      <div className={`p-4 rounded-xl border space-y-3 ${
-        isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 border-slate-200 dark:border-slate-800">
+      <div className="p-4 rounded-xl border space-y-3 bg-[var(--surface-workspace)] border-[var(--border-subtle)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <span className="text-xs font-semibold text-[var(--text-primary)]">
               Via Geometry Acceptance Specification
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 mr-1">Presets:</span>
+            <span className="text-[11px] text-[var(--text-muted)] mr-1">Presets:</span>
             <button
               type="button"
               onClick={() => handleApplyPreset('std50')}
               disabled={isReadOnly}
-              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               STD 50µm
             </button>
@@ -580,7 +576,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               type="button"
               onClick={() => handleApplyPreset('hdi35')}
               disabled={isReadOnly}
-              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               HDI 35µm
             </button>
@@ -588,7 +584,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               type="button"
               onClick={() => handleApplyPreset('fine25')}
               disabled={isReadOnly}
-              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               Fine 25µm
             </button>
@@ -597,32 +593,32 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
           <div>
-            <span className="text-slate-400 block text-[10px]">Top Target</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="text-[var(--text-muted)] block text-[10px]">Top Target</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
               {record.viaSpec?.topTargetUm ?? 51} µm
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Top Tolerance</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="text-[var(--text-muted)] block text-[10px]">Top Tolerance</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
               ±{record.viaSpec?.topToleranceUm ?? 10} µm
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Bottom Target</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="text-[var(--text-muted)] block text-[10px]">Bottom Target</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
               {record.viaSpec?.bottomTargetUm ?? 23} µm
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Bottom Tolerance</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="text-[var(--text-muted)] block text-[10px]">Bottom Tolerance</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
               ±{record.viaSpec?.bottomToleranceUm ?? 10} µm
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[10px]">Min Taper Ratio</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="text-[var(--text-muted)] block text-[10px]">Min Taper Ratio</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
               ≥ {record.viaSpec?.minTaperPercent ?? 40} %
             </span>
           </div>
@@ -634,7 +630,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         {/* Left: Input Measurements & Verdicts */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <Layers className="w-4 h-4 text-emerald-500" />
               {activeHead === 'lh1' ? 'Laser Head 1' : 'Laser Head 2'} Via Dimensions
             </h3>
@@ -649,13 +645,13 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             {/* Top Hole Input */}
             <div className={`p-3.5 rounded-xl border space-y-2 ${
               activeReading?.topPass
-                ? 'border-emerald-500/30 bg-emerald-500/5'
+                ? 'border-emerald-500/30 bg-emerald-500/10'
                 : activeReading?.topWidthUm !== null
-                ? 'border-rose-500/30 bg-rose-500/5'
-                : 'border-slate-200 dark:border-slate-700'
+                ? 'border-rose-500/30 bg-rose-500/10'
+                : 'border-[var(--border-default)] bg-[var(--surface-workspace)]'
             }`}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                <span className="text-xs font-semibold text-[var(--text-primary)]">
                   Top Hole Width (D_top)
                 </span>
                 {activeReading?.topWidthUm !== null && (
@@ -674,11 +670,11 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
                   onChange={(e) => handleUpdateMeasurement(activeHead, 'topWidthUm', e.target.value)}
                   disabled={isReadOnly}
                   placeholder="e.g. 51.0"
-                  className="w-full text-base font-mono font-bold p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full text-base font-mono font-bold p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-primary)]"
                 />
-                <span className="text-xs text-slate-400 font-mono">µm</span>
+                <span className="text-xs text-[var(--text-muted)] font-mono">µm</span>
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">
+              <div className="text-[10px] text-[var(--text-secondary)]">
                 Target: {record.viaSpec?.topTargetUm ?? 51} ± {record.viaSpec?.topToleranceUm ?? 10} µm
               </div>
             </div>
@@ -686,13 +682,13 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             {/* Bottom Hole Input */}
             <div className={`p-3.5 rounded-xl border space-y-2 ${
               activeReading?.bottomPass
-                ? 'border-emerald-500/30 bg-emerald-500/5'
+                ? 'border-emerald-500/30 bg-emerald-500/10'
                 : activeReading?.bottomWidthUm !== null
-                ? 'border-rose-500/30 bg-rose-500/5'
-                : 'border-slate-200 dark:border-slate-700'
+                ? 'border-rose-500/30 bg-rose-500/10'
+                : 'border-[var(--border-default)] bg-[var(--surface-workspace)]'
             }`}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                <span className="text-xs font-semibold text-[var(--text-primary)]">
                   Bottom Hole Width (D_bot)
                 </span>
                 {activeReading?.bottomWidthUm !== null && (
@@ -711,25 +707,23 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
                   onChange={(e) => handleUpdateMeasurement(activeHead, 'bottomWidthUm', e.target.value)}
                   disabled={isReadOnly}
                   placeholder="e.g. 23.0"
-                  className="w-full text-base font-mono font-bold p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full text-base font-mono font-bold p-2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-primary)]"
                 />
-                <span className="text-xs text-slate-400 font-mono">µm</span>
+                <span className="text-xs text-[var(--text-muted)] font-mono">µm</span>
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">
+              <div className="text-[10px] text-[var(--text-secondary)]">
                 Target: {record.viaSpec?.bottomTargetUm ?? 23} ± {record.viaSpec?.bottomToleranceUm ?? 10} µm
               </div>
             </div>
           </div>
 
           {/* Calculated Taper Ratio */}
-          <div className={`p-3 rounded-xl border flex items-center justify-between ${
-            isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-          }`}>
+          <div className="p-3 rounded-xl border flex items-center justify-between bg-[var(--surface-workspace)] border-[var(--border-default)]">
             <div>
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <span className="text-xs font-semibold text-[var(--text-primary)]">
                 Calculated Taper Ratio:
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1.5">
+              <span className="text-[11px] text-[var(--text-secondary)] ml-1.5">
                 (D_bot / D_top) × 100
               </span>
             </div>
@@ -739,7 +733,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
                   {((activeReading.bottomWidthUm / activeReading.topWidthUm) * 100).toFixed(1)} %
                 </span>
               ) : (
-                <span className="text-xs text-slate-400">—</span>
+                <span className="text-xs text-[var(--text-muted)]">—</span>
               )}
             </div>
           </div>
@@ -748,7 +742,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         {/* Right: Micrograph / SEM Cross-Section */}
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <h4 className="text-xs font-semibold text-[var(--text-primary)]">
               Via Micrograph / SEM Profile
             </h4>
             <Button
@@ -756,14 +750,14 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
               size="sm"
               onClick={() => handleGenerateSyntheticViaImage(activeHead)}
               disabled={isReadOnly}
-              className="text-[11px] h-7 px-2 border-dashed border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              className="text-[11px] h-7 px-2 border-dashed border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
             >
               <Sparkles className="w-3 h-3 mr-1" />
               Generate SEM
             </Button>
           </div>
 
-          <div className="w-full aspect-video rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 overflow-hidden relative group flex items-center justify-center">
+          <div className="w-full aspect-video rounded-xl border border-[var(--border-default)] bg-slate-900 overflow-hidden relative group flex items-center justify-center">
             {activeReading?.viaImageDataUrl ? (
               <img
                 src={ImageStore.resolveImage(activeReading.viaImageDataUrl)}
@@ -792,8 +786,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             )}
           </div>
 
-          <label className="block w-full text-center py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 cursor-pointer transition-colors">
-            <Upload className="w-3 h-3 inline mr-1.5" />
+          <label className="block w-full text-center py-1.5 px-3 rounded-lg border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors">
+            <Upload className="w-3 h-3 inline mr-1.5 text-[var(--color-primary)]" />
             Upload Micrograph Image
             <input
               type="file"
@@ -808,8 +802,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
 
       {/* Engineer Remarks */}
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-          Process & Via Inspection Remarks
+        <label className="text-xs font-semibold text-[var(--text-secondary)]">
+          Process &amp; Via Inspection Remarks
         </label>
         <textarea
           rows={2}
@@ -817,13 +811,13 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           onChange={(e) => setRecord(prev => ({ ...prev, engineerRemarks: e.target.value }))}
           disabled={isReadOnly}
           placeholder="Note any copper landing pad damage, taper deviation, or recipe adjustments..."
-          className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="w-full text-xs p-3 rounded-xl border border-[var(--border-default)] bg-[var(--surface-workspace)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)]"
         />
       </div>
 
       {/* Action Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>
             Overall Status: <strong className={`font-mono ${
@@ -840,7 +834,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             size="sm"
             onClick={handleSaveDraft}
             disabled={isReadOnly}
-            className="flex-1 sm:flex-none text-xs flex items-center justify-center gap-1.5"
+            className="flex-1 sm:flex-none text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             Save Draft
@@ -851,7 +845,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             size="sm"
             onClick={handleComplete}
             disabled={isReadOnly}
-            className="flex-1 sm:flex-none text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5"
+            className="flex-1 sm:flex-none text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             Complete Process Activity
@@ -870,7 +864,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
             <img
               src={previewImage.url}
               alt={previewImage.title}
-              className="max-h-[70vh] rounded-lg shadow-lg object-contain border border-slate-200 dark:border-slate-700"
+              className="max-h-[70vh] rounded-lg shadow-lg object-contain border border-[var(--border-default)]"
               referrerPolicy="no-referrer"
             />
           </div>

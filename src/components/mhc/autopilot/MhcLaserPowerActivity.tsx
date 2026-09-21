@@ -519,41 +519,39 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
   return (
     <div className="space-y-6">
       {/* HEADER BANNER */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-900'
-      }`}>
+      <div className="p-4 rounded-2xl border space-y-2 bg-[var(--surface-raised)] border-[var(--border-default)] text-[var(--text-primary)]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-cyan-400 shrink-0" />
-            <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
-              Day 1 • Activity 02: Laser Power Measurement Workspace (Laser 1 & 2)
+            <Zap className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
+            <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-[var(--text-primary)]">
+              Day 1 • Activity 02: Laser Power Measurement Workspace (Laser 1 &amp; 2)
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
               SIDE-BY-SIDE MATRIX ACTIVE
             </span>
             {!isReadOnly && (
               <button
                 onClick={handlePreFillNominal}
-                className="px-2.5 py-1 rounded-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1"
+                className="px-2.5 py-1 rounded-full bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--color-primary)] border border-[var(--border-default)] text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs"
                 title="Fill nominal passing values for fast field testing"
               >
-                <Sparkles className="w-3 h-3 text-indigo-400" />
+                <Sparkles className="w-3 h-3 text-[var(--color-primary)]" />
                 <span>Pre-fill Nominal Specs</span>
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+        <div className="flex flex-wrap items-center justify-between text-xs text-[var(--text-secondary)] gap-2">
           <p className="leading-relaxed">
-            Record power readings across Source, Optics, and Index Masks 0–5 for both laser heads simultaneously using native <strong className="text-cyan-300 font-mono">LaserPowerEngine</strong> specifications.
+            Record power readings across Source, Optics, and Index Masks 0–5 for both laser heads simultaneously using native <strong className="text-[var(--color-primary)] font-mono">LaserPowerEngine</strong> specifications.
           </p>
           <div className="flex items-center gap-2 font-mono text-[11px]">
-            <History className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-slate-400">Baseline:</span>
-            <span className={previousRecord ? 'text-amber-300 font-bold' : 'text-slate-500 font-semibold'}>
+            <History className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="text-[var(--text-muted)]">Baseline:</span>
+            <span className={previousRecord ? 'text-amber-600 dark:text-amber-300 font-bold' : 'text-[var(--text-subtle)] font-semibold'}>
               {previousRecord ? `Record ${previousRecord.id} (${previousRecord.date})` : 'No previous baseline'}
             </span>
           </div>
@@ -561,57 +559,55 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       </div>
 
       {/* OVERALL STATUS SUMMARY BAR */}
-      <div className={`p-4 rounded-2xl border grid grid-cols-1 md:grid-cols-3 gap-4 items-center ${
-        isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
+      <div className="p-4 rounded-2xl border grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-[var(--surface-surface)] border-[var(--border-default)]">
         {/* Head 1 Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-subtle)]">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 1</div>
-            <div className="text-xs font-bold text-slate-200">{laserHeads[0]?.name || 'Laser Head 1'}</div>
+            <div className="text-[10px] font-mono text-[var(--text-muted)] uppercase font-bold">LASER 1</div>
+            <div className="text-xs font-bold text-[var(--text-primary)]">{laserHeads[0]?.name || 'Laser Head 1'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
             evalSummaryA.isAllPass 
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               : evalSummaryA.failCount > 0
-              ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
           }`}>
             {evalSummaryA.passCount}/8 PASS
           </span>
         </div>
 
         {/* Head 2 Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-subtle)]">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 2</div>
-            <div className="text-xs font-bold text-slate-200">{laserHeads[1]?.name || 'Laser Head 2'}</div>
+            <div className="text-[10px] font-mono text-[var(--text-muted)] uppercase font-bold">LASER 2</div>
+            <div className="text-xs font-bold text-[var(--text-primary)]">{laserHeads[1]?.name || 'Laser Head 2'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
             evalSummaryB.isAllPass 
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               : evalSummaryB.failCount > 0
-              ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
           }`}>
             {evalSummaryB.passCount}/8 PASS
           </span>
         </div>
 
         {/* Overall Power Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-subtle)]">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">OVERALL POWER STATUS</div>
-            <div className="text-xs font-bold text-slate-200">
+            <div className="text-[10px] font-mono text-[var(--text-muted)] uppercase font-bold">OVERALL POWER STATUS</div>
+            <div className="text-xs font-bold text-[var(--text-primary)]">
               {isOverallPass ? 'All Specs Satisfied' : hasFailures ? 'Out of Spec Detected' : 'Measurements Pending'}
             </div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-full border ${
             isOverallPass
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
               : hasFailures
-              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+              : 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border-cyan-500/40'
           }`}>
             {isOverallPass ? '✓ PASS' : hasFailures ? '⚠ OUT OF SPEC' : '◉ IN PROGRESS'}
           </span>
@@ -624,19 +620,19 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         {/* ================= LASER 1 ================= */}
         <div className={`p-5 rounded-2xl border space-y-4 ${
           evalSummaryA.isAllPass 
-            ? 'bg-slate-900/80 border-emerald-500/30' 
-            : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            ? 'bg-[var(--surface-surface)] border-emerald-500/40 shadow-xs' 
+            : 'bg-[var(--surface-surface)] border-[var(--border-default)]'
         }`}>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30 flex items-center justify-center font-bold text-xs">
                 L1
               </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-100">
+                <h4 className="font-bold text-sm text-[var(--text-primary)]">
                   {laserHeads[0]?.name || 'Laser Head 1'} (Laser 1)
                 </h4>
-                <div className="text-[10px] font-mono text-slate-400">
+                <div className="text-[10px] font-mono text-[var(--text-muted)]">
                   {laserHeads[0]?.serialNo || 'Primary Source Unit'}
                 </div>
               </div>
@@ -644,10 +640,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
 
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
               evalSummaryA.isAllPass 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40' 
                 : evalSummaryA.failCount > 0 
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+                : 'bg-[var(--surface-raised)] text-[var(--text-muted)] border-[var(--border-default)]'
             }`}>
               {evalSummaryA.isAllPass ? '✓ ALL 8 PASS' : `${evalSummaryA.passCount}/8 PASS`}
             </span>
@@ -668,24 +664,24 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                   key={`lh1-pt-${pt.id}`}
                   className={`p-3 rounded-xl border space-y-2 transition-all ${
                     evalRes.isPass 
-                      ? 'bg-slate-950/40 border-slate-800/80' 
+                      ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' 
                       : evalRes.isOutOfSpec
-                      ? 'bg-rose-950/20 border-rose-500/40'
-                      : 'bg-slate-950/20 border-slate-800/50'
+                      ? 'bg-rose-500/10 border-rose-500/40'
+                      : 'bg-[var(--surface-workspace)]/70 border-[var(--border-subtle)]'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">{pt.name}</span>
-                    <span className="text-[10px] font-mono text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    <span className="font-bold text-[var(--text-primary)]">{pt.name}</span>
+                    <span className="text-[10px] font-mono text-[var(--color-primary)] font-semibold bg-[var(--color-primary)]/10 px-2 py-0.5 rounded border border-[var(--color-primary)]/20">
                       Spec: {pt.specText}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                     {/* Previous Baseline Display */}
-                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/60">
-                      <span className="text-slate-500">Prev Baseline:</span>
-                      <span className={prevVal !== null ? 'text-slate-300 font-bold' : 'text-slate-600 font-normal'}>
+                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-[var(--surface-surface)] border border-[var(--border-subtle)]">
+                      <span className="text-[var(--text-muted)]">Prev Baseline:</span>
+                      <span className={prevVal !== null ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-subtle)] font-normal'}>
                         {prevVal !== null ? `${prevVal.toFixed(2)} W` : 'No baseline'}
                       </span>
                     </div>
@@ -701,13 +697,13 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                         placeholder="Measured W"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
                           evalRes.isPass
-                            ? 'bg-slate-900 border-emerald-500/40 text-emerald-300 focus:border-emerald-400'
+                            ? 'bg-[var(--surface-surface)] border-emerald-500/40 text-emerald-600 dark:text-emerald-300 focus:border-emerald-400'
                             : evalRes.isOutOfSpec
-                            ? 'bg-rose-900/30 border-rose-500/60 text-rose-200 focus:border-rose-400'
-                            : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
+                            ? 'bg-[var(--surface-surface)] border-rose-500/60 text-rose-600 dark:text-rose-300 focus:border-rose-400'
+                            : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
                         }`}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[var(--text-muted)]">
                         W
                       </span>
                     </div>
@@ -717,23 +713,23 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                   <div className="flex items-center justify-between text-[10px] font-mono pt-1">
                     {/* Status Badge */}
                     {evalRes.isPass ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>PASS ({currentVal?.toFixed(2)} W)</span>
                       </span>
                     ) : evalRes.isOutOfSpec ? (
-                      <span className="text-rose-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
                         <span>{evalRes.msg}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-500 font-semibold">Pending measurement</span>
+                      <span className="text-[var(--text-muted)] font-semibold">Pending measurement</span>
                     )}
 
                     {/* Delta W / % Display */}
                     {deltaW !== null && (
                       <span className={`font-semibold flex items-center gap-1 ${
-                        deltaW >= 0 ? 'text-emerald-400' : 'text-amber-400'
+                        deltaW >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                       }`}>
                         {deltaW >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         <span>Delta: {deltaW >= 0 ? `+${deltaW.toFixed(2)}` : deltaW.toFixed(2)} W ({deltaPct! >= 0 ? `+${deltaPct!.toFixed(1)}` : deltaPct!.toFixed(1)}%)</span>
@@ -749,19 +745,19 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
         {/* ================= LASER 2 ================= */}
         <div className={`p-5 rounded-2xl border space-y-4 ${
           evalSummaryB.isAllPass 
-            ? 'bg-slate-900/80 border-emerald-500/30' 
-            : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            ? 'bg-[var(--surface-surface)] border-emerald-500/40 shadow-xs' 
+            : 'bg-[var(--surface-surface)] border-[var(--border-default)]'
         }`}>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30 flex items-center justify-center font-bold text-xs">
                 L2
               </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-100">
+                <h4 className="font-bold text-sm text-[var(--text-primary)]">
                   {laserHeads[1]?.name || 'Laser Head 2'} (Laser 2)
                 </h4>
-                <div className="text-[10px] font-mono text-slate-400">
+                <div className="text-[10px] font-mono text-[var(--text-muted)]">
                   {laserHeads[1]?.serialNo || 'Secondary Source Unit'}
                 </div>
               </div>
@@ -769,10 +765,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
 
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
               evalSummaryB.isAllPass 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40' 
                 : evalSummaryB.failCount > 0 
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+                : 'bg-[var(--surface-raised)] text-[var(--text-muted)] border-[var(--border-default)]'
             }`}>
               {evalSummaryB.isAllPass ? '✓ ALL 8 PASS' : `${evalSummaryB.passCount}/8 PASS`}
             </span>
@@ -793,24 +789,24 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                   key={`lh2-pt-${pt.id}`}
                   className={`p-3 rounded-xl border space-y-2 transition-all ${
                     evalRes.isPass 
-                      ? 'bg-slate-950/40 border-slate-800/80' 
+                      ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' 
                       : evalRes.isOutOfSpec
-                      ? 'bg-rose-950/20 border-rose-500/40'
-                      : 'bg-slate-950/20 border-slate-800/50'
+                      ? 'bg-rose-500/10 border-rose-500/40'
+                      : 'bg-[var(--surface-workspace)]/70 border-[var(--border-subtle)]'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">{pt.name}</span>
-                    <span className="text-[10px] font-mono text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    <span className="font-bold text-[var(--text-primary)]">{pt.name}</span>
+                    <span className="text-[10px] font-mono text-[var(--color-primary)] font-semibold bg-[var(--color-primary)]/10 px-2 py-0.5 rounded border border-[var(--color-primary)]/20">
                       Spec: {pt.specText}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                     {/* Previous Baseline Display */}
-                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/60">
-                      <span className="text-slate-500">Prev Baseline:</span>
-                      <span className={prevVal !== null ? 'text-slate-300 font-bold' : 'text-slate-600 font-normal'}>
+                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-[var(--surface-surface)] border border-[var(--border-subtle)]">
+                      <span className="text-[var(--text-muted)]">Prev Baseline:</span>
+                      <span className={prevVal !== null ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-subtle)] font-normal'}>
                         {prevVal !== null ? `${prevVal.toFixed(2)} W` : 'No baseline'}
                       </span>
                     </div>
@@ -826,13 +822,13 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                         placeholder="Measured W"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
                           evalRes.isPass
-                            ? 'bg-slate-900 border-emerald-500/40 text-emerald-300 focus:border-emerald-400'
+                            ? 'bg-[var(--surface-surface)] border-emerald-500/40 text-emerald-600 dark:text-emerald-300 focus:border-emerald-400'
                             : evalRes.isOutOfSpec
-                            ? 'bg-rose-900/30 border-rose-500/60 text-rose-200 focus:border-rose-400'
-                            : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
+                            ? 'bg-[var(--surface-surface)] border-rose-500/60 text-rose-600 dark:text-rose-300 focus:border-rose-400'
+                            : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
                         }`}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[var(--text-muted)]">
                         W
                       </span>
                     </div>
@@ -842,23 +838,23 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
                   <div className="flex items-center justify-between text-[10px] font-mono pt-1">
                     {/* Status Badge */}
                     {evalRes.isPass ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>PASS ({currentVal?.toFixed(2)} W)</span>
                       </span>
                     ) : evalRes.isOutOfSpec ? (
-                      <span className="text-rose-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
                         <span>{evalRes.msg}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-500 font-semibold">Pending measurement</span>
+                      <span className="text-[var(--text-muted)] font-semibold">Pending measurement</span>
                     )}
 
                     {/* Delta W / % Display */}
                     {deltaW !== null && (
                       <span className={`font-semibold flex items-center gap-1 ${
-                        deltaW >= 0 ? 'text-emerald-400' : 'text-amber-400'
+                        deltaW >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                       }`}>
                         {deltaW >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         <span>Delta: {deltaW >= 0 ? `+${deltaW.toFixed(2)}` : deltaW.toFixed(2)} W ({deltaPct! >= 0 ? `+${deltaPct!.toFixed(1)}` : deltaPct!.toFixed(1)}%)</span>
@@ -873,12 +869,10 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       </div>
 
       {/* ENGINEER REMARKS INPUT */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
-        <label className="text-[11px] font-mono text-slate-300 font-bold flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <span>POWER CHECK ENGINEER REMARKS & OBSERVATIONS</span>
+      <div className="p-4 rounded-2xl border space-y-2 bg-[var(--surface-surface)] border-[var(--border-default)]">
+        <label className="text-[11px] font-mono text-[var(--text-secondary)] font-bold flex items-center gap-2">
+          <Activity className="w-4 h-4 text-[var(--color-primary)]" />
+          <span>POWER CHECK ENGINEER REMARKS &amp; OBSERVATIONS</span>
         </label>
         <input
           type="text"
@@ -886,28 +880,22 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
           value={engineerRemarks}
           onChange={(e) => setEngineerRemarks(e.target.value)}
           placeholder={isReadOnly ? "Read-only mode active" : "e.g., External power meter calibrated. Both laser source and top hat optics within 10% spec."}
-          className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all ${
-            isDark 
-              ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-              : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-          }`}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]"
         />
       </div>
 
       {/* ENGINEER ACTIVITY DISPOSITION */}
-      <div className={`p-4 rounded-2xl border space-y-3 ${
-        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
-      }`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+      <div className="p-4 rounded-2xl border space-y-3 bg-[var(--surface-surface)] border-[var(--border-default)] shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+            <span className="text-xs font-mono font-bold text-[var(--color-primary)] uppercase tracking-wide">
               Engineer Activity Disposition
             </span>
-            <span className="text-[10px] text-slate-400 font-sans">
-              (Raw Measurement: <strong className={hasFailures ? 'text-rose-400' : 'text-emerald-400'}>{hasFailures ? 'OUT OF SPEC' : 'PASS'}</strong>)
+            <span className="text-[10px] text-[var(--text-muted)] font-sans">
+              (Raw Measurement: <strong className={hasFailures ? 'text-rose-500' : 'text-emerald-500'}>{hasFailures ? 'OUT OF SPEC' : 'PASS'}</strong>)
             </span>
           </div>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[10px] font-mono text-[var(--text-muted)]">
             Field Engineer Qualitative &amp; Usability Assessment
           </span>
         </div>
@@ -920,17 +908,17 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'PASS'
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/50 shadow-md shadow-emerald-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/50 shadow-xs'
+                : 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">PASS</span>
-              {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+              {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Within Spec / Verified</span>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Within Spec / Verified</span>
           </button>
 
           <button
@@ -940,17 +928,17 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'ACCEPTED_DEVIATION'
-                ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/50 shadow-md shadow-blue-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-blue-500/20 border-blue-500 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-xs'
+                : 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
-              {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-blue-400" />}
+              {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-blue-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Accept Usable Power Drift</span>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Accept Usable Power Drift</span>
           </button>
 
           <button
@@ -960,17 +948,17 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'CONDITIONAL_PASS'
-                ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-md shadow-amber-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/50 shadow-xs'
+                : 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">CONDITIONAL PASS</span>
-              {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+              {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Monitor power at next cycle</span>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Monitor power at next cycle</span>
           </button>
 
           <button
@@ -980,17 +968,17 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'FAIL'
-                ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/50 shadow-md shadow-rose-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-rose-500/20 border-rose-500 text-rose-600 dark:text-rose-300 ring-1 ring-rose-500/50 shadow-xs'
+                : 'bg-[var(--surface-workspace)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">FAIL</span>
-              {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
+              {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Optical intervention required</span>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Optical intervention required</span>
           </button>
         </div>
       </div>
@@ -998,20 +986,20 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
       {/* COMPLETION GATE & ACTION BUTTON */}
       <div className={`p-5 rounded-2xl border space-y-4 ${
         isOverallPass
-          ? isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
+          ? 'bg-emerald-500/10 border-emerald-500/40'
           : hasFailures && isOverallComplete
-          ? isDark ? 'bg-amber-950/30 border-amber-500/40' : 'bg-amber-50 border-amber-300'
-          : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+          ? 'bg-amber-500/10 border-amber-500/40'
+          : 'bg-[var(--surface-surface)] border-[var(--border-default)]'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className={`w-5 h-5 ${isOverallPass ? 'text-emerald-400' : hasFailures && isOverallComplete ? 'text-amber-400' : 'text-slate-400'}`} />
-              <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
+              <ShieldCheck className={`w-5 h-5 ${isOverallPass ? 'text-emerald-500' : hasFailures && isOverallComplete ? 'text-amber-500' : 'text-[var(--text-muted)]'}`} />
+              <h4 className="font-extrabold text-sm sm:text-base text-[var(--text-primary)]">
                 Laser Power Completion Gate
               </h4>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               {isOverallPass 
                 ? 'All 16 measurement points satisfy specifications. Ready to record authoritative session data and advance Journey Rail.' 
                 : hasFailures && isOverallComplete
@@ -1020,9 +1008,9 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-[var(--surface-workspace)] border border-[var(--border-default)] text-[var(--text-primary)]">
             <span>MEASUREMENT STATUS:</span>
-            <span className={isOverallPass ? 'text-emerald-400 font-extrabold' : hasFailures ? 'text-rose-400 font-extrabold' : 'text-amber-400'}>
+            <span className={isOverallPass ? 'text-emerald-500 dark:text-emerald-400 font-extrabold' : hasFailures ? 'text-rose-500 font-extrabold' : 'text-amber-500'}>
               {evalSummaryA.passCount + evalSummaryB.passCount} / 16 PASSED {hasFailures && `(${evalSummaryA.failCount + evalSummaryB.failCount} FAIL)`}
             </span>
           </div>
@@ -1030,16 +1018,16 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
 
         {/* EXPLICIT OUT-OF-SPECIFICATION POINTS BREAKDOWN */}
         {allFailingPoints.length > 0 && (
-          <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 space-y-2 text-xs font-mono">
-            <div className="font-bold text-rose-300 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2 text-xs font-mono">
+            <div className="font-bold text-rose-600 dark:text-rose-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>Out-of-Specification Details ({allFailingPoints.length} failing {allFailingPoints.length === 1 ? 'point' : 'points'}):</span>
             </div>
-            <div className="space-y-1.5 pl-6 text-[11px] text-rose-200">
+            <div className="space-y-1.5 pl-6 text-[11px] text-rose-700 dark:text-rose-200">
               {allFailingPoints.map((f, i) => (
-                <div key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-900/40 pb-1 last:border-0 last:pb-0">
-                  <span>• <strong className="text-rose-100">{f.headLabel}</strong> — {f.pointName}:</span>
-                  <span className="font-semibold text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded border border-rose-700/60">{f.msg}</span>
+                <div key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-500/20 pb-1 last:border-0 last:pb-0">
+                  <span>• <strong className="text-[var(--text-primary)]">{f.headLabel}</strong> — {f.pointName}:</span>
+                  <span className="font-semibold text-rose-600 dark:text-rose-300 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">{f.msg}</span>
                 </div>
               ))}
             </div>
@@ -1052,16 +1040,16 @@ export const MhcLaserPowerActivity: React.FC<MhcLaserPowerActivityProps> = ({
             <button
               disabled={!isOverallComplete}
               onClick={handleSaveAndComplete}
-              className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-xs shadow-md flex items-center gap-2 transition-all ${
                 isOverallComplete
                   ? selectedDisposition === 'PASS'
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
                     : selectedDisposition === 'ACCEPTED_DEVIATION'
-                    ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20 hover:scale-[1.02] cursor-pointer'
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20 hover:scale-[1.02] cursor-pointer'
                     : selectedDisposition === 'CONDITIONAL_PASS'
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
-                    : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20 hover:scale-[1.02] cursor-pointer'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
+                    : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/20 hover:scale-[1.02] cursor-pointer'
+                  : 'bg-[var(--surface-surface)] text-[var(--text-subtle)] border border-[var(--border-default)] cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />

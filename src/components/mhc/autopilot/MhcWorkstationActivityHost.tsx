@@ -108,9 +108,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
       <div className="space-y-4">
         
         {/* 1. CONTEXTUAL WORK SUB-STRIP */}
-        <div className={`p-3 rounded-lg border flex flex-wrap items-center justify-between gap-3 ${
-          isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
-        }`}>
+        <div className="p-3 rounded-lg border flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-raised)] border-[var(--border-default)]">
           {/* Active Context Breadcrumb */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--surface-surface)] border border-[var(--border-default)] text-[var(--color-primary)] shrink-0">
@@ -523,11 +521,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                       }
                     }}
                     placeholder={isReadOnlyMode ? "Read-only mode active..." : "Add quick measurement notes or findings..."}
-                    className={`w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all ${
-                      isDark
-                        ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
-                    }`}
+                    className="w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]"
                   />
                 </div>
 
