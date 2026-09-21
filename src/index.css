@@ -87,10 +87,10 @@
   [data-theme="lumen"] {
     color-scheme: dark;
 
-    --color-bg: #0A0D12;
-    --color-surface: #141C27;
-    --color-card: #1C2636;
-    --color-border: rgba(56, 189, 248, 0.18);
+    --color-bg: #07090E;
+    --color-surface: #0E141E;
+    --color-card: #131C28;
+    --color-border: rgba(56, 189, 248, 0.20);
     --color-primary: #38BDF8;
     --color-primary-hover: #7DD3FC;
     --color-primary-muted: rgba(56, 189, 248, 0.15);
@@ -102,14 +102,16 @@
     --color-text-secondary: #94A3B8;
     --color-text-muted: #64748B;
 
-    --surface-canvas: #0A0D12;
-    --surface-workspace: #0F141C;
-    --surface-surface: #141C27;
-    --surface-raised: #1C2636;
-    --surface-overlay: #253347;
+    --surface-canvas: #07090E;
+    --surface-workspace: #0A0E15;
+    --surface-surface: #0E141E;
+    --surface-raised: #131C28;
+    --surface-overlay: #1A2536;
 
-    --canvas-bg: radial-gradient(120% 120% at 50% -10%, #152233 0%, #0A0D12 60%, #06080B 100%);
-    --surface-backdrop: blur(8px);
+    /* Atmospheric radial depth with dusk illumination and bottom-lit ambient glow */
+    --canvas-bg: radial-gradient(130% 90% at 50% -10%, #152438 0%, #080C12 55%, #040608 100%),
+                 radial-gradient(90% 60% at 50% 120%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+    --surface-backdrop: blur(12px);
 
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;
@@ -118,14 +120,15 @@
 
     --border-width: 1px;
     --border-subtle: rgba(56, 189, 248, 0.12);
-    --border-default: rgba(56, 189, 248, 0.18);
-    --border-strong: rgba(56, 189, 248, 0.35);
+    --border-default: rgba(56, 189, 248, 0.22);
+    --border-strong: rgba(56, 189, 248, 0.45);
     --border-active: #38BDF8;
 
-    --shadow-card: 0 0 25px -4px rgba(56, 189, 248, 0.12), 0 8px 28px -4px rgba(0, 0, 0, 0.7);
-    --shadow-modal: 0 0 35px -5px rgba(56, 189, 248, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-    --shadow-popover: 0 0 20px -3px rgba(56, 189, 248, 0.15), 0 12px 24px -4px rgba(0, 0, 0, 0.6);
-    --glow-accent: 0 0 16px rgba(56, 189, 248, 0.35);
+    /* Engineered-glass-at-dusk: specular top edge highlight + luminous atmospheric shadow */
+    --shadow-card: inset 0 1px 0 0 rgba(125, 211, 252, 0.20), 0 0 25px -4px rgba(56, 189, 248, 0.12), 0 12px 32px -4px rgba(0, 0, 0, 0.75);
+    --shadow-modal: inset 0 1px 0 0 rgba(125, 211, 252, 0.35), 0 0 45px -5px rgba(56, 189, 248, 0.28), 0 30px 60px -10px rgba(0, 0, 0, 0.85);
+    --shadow-popover: inset 0 1px 0 0 rgba(125, 211, 252, 0.25), 0 0 24px -3px rgba(56, 189, 248, 0.20), 0 14px 28px -4px rgba(0, 0, 0, 0.65);
+    --glow-accent: 0 0 18px rgba(56, 189, 248, 0.4);
 
     --radius-card: 0.875rem;
     --radius-button: 0.625rem;
@@ -548,6 +551,17 @@
   background: #3B4450;
 }
 
+[data-theme="lumen"] ::-webkit-scrollbar-track {
+  background: #07090E;
+}
+[data-theme="lumen"] ::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 9999px;
+}
+[data-theme="lumen"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+}
+
 .light ::-webkit-scrollbar-track {
   background: #F1F5F9;
 }
@@ -557,6 +571,64 @@
 }
 .light ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+
+/* ========================================================================= */
+/* LUMEN DESIGN SYSTEM SPECIFIC COMPONENT TRANSFORMATION                     */
+/* ========================================================================= */
+[data-theme="lumen"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="lumen"] select,
+[data-theme="lumen"] textarea {
+  background-color: rgba(14, 20, 30, 0.85);
+  border-color: rgba(56, 189, 248, 0.22);
+  color: #F8FAFC;
+  transition: all 150ms ease;
+}
+
+[data-theme="lumen"] input:not([type="checkbox"]):not([type="radio"]):hover,
+[data-theme="lumen"] select:hover,
+[data-theme="lumen"] textarea:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+[data-theme="lumen"] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme="lumen"] select:focus,
+[data-theme="lumen"] textarea:focus {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 1px #38BDF8, 0 0 14px rgba(56, 189, 248, 0.28);
+  outline: none;
+}
+
+[data-theme="lumen"] table thead {
+  background: linear-gradient(180deg, rgba(19, 28, 40, 0.95) 0%, rgba(14, 20, 30, 0.95) 100%);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="lumen"] table tbody tr {
+  border-bottom: 1px solid rgba(56, 189, 248, 0.08);
+  transition: background-color 150ms ease;
+}
+
+[data-theme="lumen"] table tbody tr:hover {
+  background-color: rgba(56, 189, 248, 0.05);
+}
+
+[data-theme="lumen"] .rounded-card {
+  background: linear-gradient(180deg, rgba(19, 28, 40, 0.92) 0%, rgba(14, 20, 30, 0.96) 100%);
+  border-color: rgba(56, 189, 248, 0.20);
+  box-shadow: inset 0 1px 0 0 rgba(125, 211, 252, 0.18), 0 0 25px -4px rgba(56, 189, 248, 0.10), 0 12px 30px -4px rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="lumen"] header {
+  background: rgba(14, 20, 30, 0.88);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.20);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 -1px 0 0 rgba(56, 189, 248, 0.12);
+}
+
+[data-theme="lumen"] aside {
+  background: rgba(10, 15, 23, 0.94);
+  border-right: 1px solid rgba(56, 189, 248, 0.20);
+  box-shadow: 4px 0 24px -2px rgba(0, 0, 0, 0.6), inset -1px 0 0 0 rgba(56, 189, 248, 0.12);
 }
 
 /* Print styles for Executive Engineering Reports */

@@ -100,53 +100,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     {
       id: 'precision' as const,
       name: 'Precision',
-      category: 'Dark',
+      category: 'Dark Baseline',
       description: 'Calm industrial graphite canvas with restrained technical accents.',
       iconColor: 'text-indigo-400',
     },
     {
       id: 'lumen' as const,
       name: 'Lumen',
-      category: 'Dark',
-      description: 'Deep obsidian charcoal with subtle luminous depth and cyan edges.',
+      category: 'Luminous Dark',
+      description: 'Deep obsidian dusk with atmospheric radial depth, cyan hairlines, and luminous edge highlights.',
       iconColor: 'text-sky-400',
     },
-    {
-      id: 'aether' as const,
-      name: 'Aether',
-      category: 'Light',
-      description: 'Soft pearl frosted surfaces with subtle glass depth and charcoal text.',
-      iconColor: 'text-indigo-600',
-    },
-    {
-      id: 'prism' as const,
-      name: 'Prism',
-      category: 'Light',
-      description: 'Light editorial alabaster canvas with crisp geometry and sapphire accents.',
-      iconColor: 'text-cyan-600',
-    },
-    {
-      id: 'forge' as const,
-      name: 'Forge',
-      category: 'Dark',
-      description: 'Deep industrial graphite canvas with warm amber telemetry accents.',
-      iconColor: 'text-amber-400',
-    },
-    {
-      id: 'cairn' as const,
-      name: 'Cairn',
-      category: 'Dark',
-      description: 'Basalt mineral canvas paired with quiet emerald verification accents.',
-      iconColor: 'text-emerald-400',
-    },
-    {
-      id: 'system' as const,
-      name: 'System Sync',
-      category: 'OS Adaptive',
-      description: `Synchronizes with OS display preference (${effectiveTheme}).`,
-      iconColor: 'text-blue-400',
-    },
-  ], [effectiveTheme]);
+  ], []);
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
@@ -645,7 +610,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               {/* Theme Selector Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
                 {THEME_OPTIONS.map((opt) => {
-                  const isSelected = theme === opt.id || (theme === 'dark' && opt.id === 'precision') || (theme === 'light' && opt.id === 'lumen');
+                  const isSelected = activeTheme === opt.id;
                   return (
                     <motion.button
                       key={opt.id}

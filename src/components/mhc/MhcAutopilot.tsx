@@ -166,8 +166,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   onNavigate,
   onUpdateMachine
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { isDark } = useTheme();
 
   // Step state in the Autopilot setup flow - always starts at welcome screen
   const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');

@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { NavigationTab, SystemUser } from '../../types';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme, NamedTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
+import { RubberSegment } from '../common/RubberSegment';
 import { 
   motionTimings, 
   motionEasings, 
@@ -37,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const { effectiveTheme } = useTheme();
+  const { effectiveTheme, activeTheme, setTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = Boolean(useReducedMotion());
 
@@ -131,6 +132,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* 2. Minimal Global Actions & Status */}
       <div className="flex items-center gap-2.5 shrink-0">
+        {/* Compact Theme Pilot Switcher (Precision | Lumen) */}
+        <RubberSegment
+          options={[
+            { value: 'precision', label: 'Precision' },
+            { value: 'lumen', label: 'Lumen' }
+          ]}
+          value={activeTheme}
+          onChange={(val) => setTheme(val as NamedTheme)}
+          size="xs"
+          className="shadow-2xs"
+        />
+
         {/* Real Sync Status */}
         <SyncStatusIndicator isDark={isDark} />
 
