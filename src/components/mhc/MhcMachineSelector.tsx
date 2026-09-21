@@ -67,24 +67,24 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
   return (
     <div className="space-y-6">
       {/* Search Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-4 rounded-card border border-theme-default shadow-theme-card">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-xl font-bold text-theme-primary flex items-center gap-2 font-theme-heading">
+            <Activity className="w-5 h-5 text-emerald-500" />
             Select Machine for Health Check (MHC)
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-theme-muted mt-1">
             Choose a cleanroom machine from the fleet to launch or continue an operational MHC inspection session.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-theme-muted" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search model, serial, customer..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full bg-canvas border border-theme-default rounded-input pl-9 pr-3 py-2 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-cyan-500 transition-colors"
           />
         </div>
       </div>
@@ -104,18 +104,18 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
               onClick={() => onSelectMachine(m.id)}
               className={`cursor-pointer transition-all border ${
                 isSelected
-                  ? 'border-emerald-500/80 bg-slate-900/90 shadow-lg shadow-emerald-950/20 ring-1 ring-emerald-500/30'
-                  : 'border-slate-800/80 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/70'
+                  ? 'border-emerald-500/80 bg-surface shadow-lg shadow-emerald-950/10 ring-2 ring-emerald-500/40'
+                  : 'border-theme-default bg-surface hover:border-theme-strong hover:bg-surface'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-theme-muted" />
                     {m.customerName}
                   </div>
-                  <h3 className="text-base font-bold text-slate-100">{m.model}</h3>
-                  <div className="font-mono text-xs text-emerald-400 mt-0.5">
+                  <h3 className="text-base font-bold text-theme-primary font-theme-heading">{m.model}</h3>
+                  <div className="font-mono text-xs text-emerald-500 dark:text-emerald-400 mt-0.5">
                     SN: {m.serialNumber} • {m.machineNumber}
                   </div>
                 </div>
@@ -132,30 +132,30 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
                 </Badge>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
+              <div className="mt-4 pt-3 border-t border-theme-subtle flex items-center justify-between text-xs text-theme-muted">
                 <div className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-slate-400" />
+                  <Activity className="w-3.5 h-3.5 text-theme-muted" />
                   <span>Status: <strong className={
                     LaserEngine.getMachineHealthStatus(m) === 'PASS'
-                      ? 'text-emerald-400'
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : LaserEngine.getMachineHealthStatus(m) === 'WARNING'
-                      ? 'text-amber-400'
-                      : 'text-rose-400'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-rose-600 dark:text-rose-400'
                   }>{LaserEngine.getMachineHealthStatus(m)}</strong></span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <Clock className="w-3.5 h-3.5 text-theme-muted" />
                   <span>Last MHC: {m.lastMhcDate}</span>
                 </div>
               </div>
 
               {activeSess && hasMeaningfulMhcProgress(activeSess) && (
-                <div className="mt-3 p-2 bg-emerald-950/30 border border-emerald-800/40 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-emerald-300 font-medium flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-emerald-400" />
+                <div className="mt-3 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     Incomplete Session ({completedStages}/8)
                   </span>
-                  <span className="text-emerald-400 font-mono text-[10px]">{activeSess.id}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">{activeSess.id}</span>
                 </div>
               )}
             </Card>
@@ -165,45 +165,45 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
 
       {/* Selected Machine Identity / Passport Summary + Continue Banner */}
       {selectedMachine && (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+        <div className="bg-surface border border-theme-default rounded-card p-6 space-y-6 shadow-theme-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-theme-subtle">
             <div className="flex items-start gap-4">
               {selectedMachine.photos && selectedMachine.photos[0] ? (
                 <img
                   src={selectedMachine.photos[0]}
                   alt={selectedMachine.model}
-                  className="w-20 h-20 rounded-xl object-cover border border-slate-700 bg-slate-950"
+                  className="w-20 h-20 rounded-xl object-cover border border-theme-default bg-canvas"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center">
-                  <Cpu className="w-8 h-8 text-slate-600" />
+                <div className="w-20 h-20 rounded-xl bg-canvas border border-theme-default flex items-center justify-center">
+                  <Cpu className="w-8 h-8 text-theme-muted" />
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/50">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                     MACHINE IDENTITY PASSPORT
                   </span>
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-theme-muted font-mono">
                     {selectedMachine.machineNumber}
                   </span>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-100 mt-1">
+                <h3 className="text-2xl font-bold text-theme-primary mt-1 font-theme-heading">
                   {selectedMachine.model}
                 </h3>
-                <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-slate-500" />
+                <p className="text-sm text-theme-muted mt-1 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-theme-muted" />
                   <span>{selectedMachine.customerName}</span> • <span>{selectedMachine.plantName}</span>
                 </p>
-                <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-slate-300 font-mono">
-                  <span className="bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-theme-secondary font-mono">
+                  <span className="bg-canvas px-2.5 py-1 rounded-badge border border-theme-default">
                     SN: {selectedMachine.serialNumber}
                   </span>
-                  <span className="bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                  <span className="bg-canvas px-2.5 py-1 rounded-badge border border-theme-default">
                     Line: {selectedMachine.productionLineName || 'Cleanroom Line A'}
                   </span>
-                  <span className="bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                  <span className="bg-canvas px-2.5 py-1 rounded-badge border border-theme-default">
                     Lasers: {selectedMachine.laserHeads?.length || 2} Heads
                   </span>
                 </div>
@@ -215,7 +215,8 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
               {activeSessionForSelected ? (
                 <Button
                   onClick={() => onContinueSession(activeSessionForSelected.id)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-950/50 py-3 text-sm flex items-center justify-center gap-2"
+                  variant="primary"
+                  className="py-3 text-sm flex items-center justify-center gap-2 shadow-md"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   Continue MHC Session
@@ -225,7 +226,7 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
               <Button
                 onClick={() => onStartNewSession(selectedMachine.id)}
                 variant={activeSessionForSelected ? 'outline' : 'primary'}
-                className={!activeSessionForSelected ? 'bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 text-sm flex items-center justify-center gap-2' : 'border-slate-700 text-slate-200 hover:bg-slate-800 py-2.5 text-sm flex items-center justify-center gap-2'}
+                className="py-2.5 text-sm flex items-center justify-center gap-2"
               >
                 <PlusIcon />
                 Start New MHC Inspection
@@ -235,24 +236,24 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
 
           {/* Continue MHC Banner if session exists */}
           {activeSessionForSelected && (
-            <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-surface border border-emerald-500/40 rounded-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-emerald-900/40 rounded-lg text-emerald-400 border border-emerald-700/50 mt-0.5">
+                <div className="p-2.5 bg-emerald-500/15 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mt-0.5">
                   <Activity className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                       ACTIVE MHC SESSION IN PROGRESS
                     </span>
-                    <span className="text-xs font-mono text-slate-400">
+                    <span className="text-xs font-mono text-theme-muted">
                       ID: {activeSessionForSelected.id}
                     </span>
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-200 mt-0.5">
+                  <h4 className="text-sm font-semibold text-theme-primary mt-0.5">
                     {getCompletedStagesCount(activeSessionForSelected)} / 8 Stages Completed
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-theme-muted mt-0.5">
                     Started: {activeSessionForSelected.startDate} {activeSessionForSelected.startTime} • Last Updated: {activeSessionForSelected.lastUpdated}
                   </p>
                 </div>
@@ -260,7 +261,8 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
 
               <Button
                 onClick={() => onContinueSession(activeSessionForSelected.id)}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2 text-xs flex items-center gap-2 whitespace-nowrap self-start md:self-auto"
+                variant="primary"
+                className="font-bold px-5 py-2 text-xs flex items-center gap-2 whitespace-nowrap self-start md:self-auto"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 Resume Session ({getCompletedStagesCount(activeSessionForSelected)}/8)
@@ -271,22 +273,22 @@ export const MhcMachineSelector: React.FC<MhcMachineSelectorProps> = ({
           {/* Laser Configuration Summary */}
           {selectedMachine.laserHeads && selectedMachine.laserHeads.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+              <h4 className="text-xs font-bold text-theme-muted uppercase tracking-wider mb-3">
                 LASER HEAD CONFIGURATION (SINGLE SOURCE OF TRUTH FROM PASSPORT)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {selectedMachine.laserHeads.map((lh, idx) => (
                   <div
                     key={lh.id || idx}
-                    className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 flex items-center justify-between"
+                    className="bg-canvas border border-theme-default rounded-card p-3.5 flex items-center justify-between"
                   >
                     <div>
-                      <div className="text-xs font-bold text-slate-200">{lh.model}</div>
-                      <div className="text-[11px] font-mono text-slate-400">SN: {lh.serialNumber}</div>
+                      <div className="text-xs font-bold text-theme-primary">{lh.model}</div>
+                      <div className="text-[11px] font-mono text-theme-muted">SN: {lh.serialNumber}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-semibold text-emerald-400">{lh.powerOutputWatts}W / {lh.ratedPowerWatts}W</div>
-                      <div className="text-[11px] font-mono text-slate-400">{lh.runningHours} hrs</div>
+                      <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{lh.powerOutputWatts}W / {lh.ratedPowerWatts}W</div>
+                      <div className="text-[11px] font-mono text-theme-muted">{lh.runningHours} hrs</div>
                     </div>
                   </div>
                 ))}

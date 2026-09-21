@@ -1127,6 +1127,18 @@
   transition: all 150ms ease;
 }
 
+[data-theme="aero"] select option,
+[data-theme="aero"] option {
+  background-color: #FFFFFF !important;
+  color: #0F2942 !important;
+}
+
+[data-theme="aero"] input::placeholder,
+[data-theme="aero"] textarea::placeholder {
+  color: #587A96 !important;
+  opacity: 1 !important;
+}
+
 [data-theme="aero"] input:not([type="checkbox"]):not([type="radio"]):hover,
 [data-theme="aero"] select:hover,
 [data-theme="aero"] textarea:hover {

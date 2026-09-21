@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v3.4.2 — FSOS Frutiger Aero Visual System & Readability Correction (2026-09-21)
+
+### Frutiger Aero Visual System & Readability Correction
+- **Machine Passport Shell Cleanup**: Removed JSON Import and Export controls from the Machine Passport shell header while preserving all laser lifecycle domain calculation engines and fleet navigation capabilities.
+- **MHC Autopilot & Machine Selector Theme Refinement**: Refactored `MhcMachineSelector` and Autopilot activity modules from hardcoded dark slate backgrounds to semantic theme tokens (`bg-surface`, `bg-canvas`, `border-theme-default`, `text-theme-primary`, `text-theme-secondary`, `text-theme-muted`), ensuring seamless translucent glass aesthetic in Frutiger Aero mode.
+- **Form Select & Input Legibility**: Standardized native `<select>` and `<option>` styling across MHC History, MHC Autopilot, and Machine Passport with solid white option backgrounds (`#FFFFFF`) and dark slate text (`#0F2942`) for WCAG AA compliance.
+- **Translucent Glass Surface Depth**: Aligned all cards, modals, and toolbars to the Frutiger Aero visual language featuring sky-blue daylight gradients, organic border radiuses, and crisp specular highlights.
+- **Strict Logic & PDF Pipeline Isolation**: Fully preserved all semiconductor inspection metrics, laser engine computations, Stage/AGC calibration algorithms, and official PDF generation routines.
+
 ## v3.4.0 — FSOS Frutiger Aero Theme System (2026-09-21)
 
 ### Frutiger Aero Visual Theme Implementation

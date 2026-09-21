@@ -1355,33 +1355,6 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
 
           {/* Right utility buttons */}
           <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".json"
-              onChange={handleFileSelected}
-              className="hidden"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              icon={<Upload className="w-3.5 h-3.5 text-slate-400" />}
-              onClick={handleTriggerImportFile}
-              className="text-xs h-8 px-2.5 font-sans"
-              title="Import Laser Monitor JSON"
-            >
-              Import JSON
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              icon={<Download className="w-3.5 h-3.5 text-slate-400" />}
-              onClick={handleExportJson}
-              className="text-xs h-8 px-2.5 font-sans"
-              title="Export Laser Lifecycle JSON"
-            >
-              Export JSON
-            </Button>
             <Button
               size="sm"
               variant="primary"
