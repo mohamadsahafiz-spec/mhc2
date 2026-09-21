@@ -198,11 +198,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
-              className={`p-5 md:p-6 rounded-xl border transition-colors ${
-                isDark 
-                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-              }`}
+              className="p-5 md:p-6 rounded-card border transition-colors bg-surface border-theme-default text-theme-primary lumen-focus-card shadow-theme-card"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                 <div className="space-y-2 min-w-0 flex-1">
@@ -223,7 +219,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                     )}
                   </div>
 
-                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate font-theme-heading">
                     {resumable.machine.machineNumber || resumable.machine.model} Health Check
                   </h2>
 
@@ -249,7 +245,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
 
                   {/* Operational Readiness Progress Bar */}
                   {typeof resumable.session.autopilotProgress?.readinessScore === 'number' && (
-                    <div className="w-full max-w-md bg-slate-200 dark:bg-[#111315] h-1.5 rounded-full overflow-hidden mt-2.5">
+                    <div className="w-full max-w-md bg-raised h-1.5 rounded-full overflow-hidden mt-2.5 border border-theme-subtle">
                       <motion.div
                         className="bg-emerald-500 h-full rounded-full"
                         initial={prefersReducedMotion ? { width: `${resumable.session.autopilotProgress.readinessScore}%` } : { width: 0 }}
@@ -286,11 +282,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
-              className={`p-5 md:p-6 rounded-xl border transition-colors ${
-                isDark 
-                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-              }`}
+              className="p-5 md:p-6 rounded-card border transition-colors bg-surface border-theme-default text-theme-primary lumen-focus-card shadow-theme-card"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                 <div className="space-y-1.5 min-w-0">
@@ -305,7 +297,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                     )}
                   </div>
 
-                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate font-theme-heading">
                     {resumable.machine.machineNumber || resumable.machine.model} Health Check
                   </h2>
 
@@ -340,11 +332,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
-              className={`p-5 md:p-6 rounded-xl border transition-colors ${
-                isDark 
-                  ? 'bg-[#16191D] border-[#2B323A] text-slate-100' 
-                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-              }`}
+              className="p-5 md:p-6 rounded-card border transition-colors bg-surface border-theme-default text-theme-primary lumen-focus-card shadow-theme-card"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                 <div className="space-y-1.5 min-w-0">
@@ -365,7 +353,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                     )}
                   </div>
 
-                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate">
+                  <h2 className="text-lg font-semibold tracking-tight text-theme-primary truncate font-theme-heading">
                     {primaryScheduleItem.title}
                   </h2>
 
@@ -413,11 +401,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
               animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: motionTimings.quick, ease: motionEasings.smooth }}
-              className={`p-6 text-center rounded-xl border ${
-                isDark 
-                  ? 'bg-[#16191D] border-[#2B323A] text-slate-300' 
-                  : 'bg-white border-slate-200 text-slate-700 shadow-2xs'
-              }`}
+              className="p-6 text-center rounded-card border bg-surface border-theme-default text-theme-primary lumen-focus-card shadow-theme-card"
             >
               <p className="text-sm font-medium text-theme-primary">
                 No active inspection or scheduled task in progress.
@@ -469,11 +453,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                   if (alert.machineId && onSelectMachine) onSelectMachine(alert.machineId);
                   onNavigate('machines');
                 }}
-                className={`p-3.5 rounded-lg border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                  isDark 
-                    ? 'bg-[#181B1E] border-rose-900/40 hover:border-rose-700/60' 
-                    : 'bg-rose-50/40 border-rose-200 hover:border-rose-300 shadow-2xs'
-                }`}
+                className="p-3.5 rounded-theme-md border flex items-center justify-between gap-3 cursor-pointer transition-colors bg-surface border-theme-default hover:border-rose-500/50 shadow-theme-card"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -497,11 +477,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                 whileHover={prefersReducedMotion ? undefined : { scale: 1.008, x: 2, transition: { duration: motionTimings.quick } }}
                 whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
                 onClick={() => onNavigate('contracts')}
-                className={`p-3.5 rounded-lg border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                  isDark 
-                    ? 'bg-[#181B1E] border-amber-900/40 hover:border-amber-700/60' 
-                    : 'bg-amber-50/40 border-amber-200 hover:border-amber-300 shadow-2xs'
-                }`}
+                className="p-3.5 rounded-theme-md border flex items-center justify-between gap-3 cursor-pointer transition-colors bg-surface border-theme-default hover:border-amber-500/50 shadow-theme-card"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Clock className="w-4 h-4 text-amber-500 shrink-0" />
@@ -535,9 +511,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* Today Column */}
-          <div className={`p-4 rounded-xl border space-y-3 ${
-            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-2xs'
-          }`}>
+          <div className="p-4 rounded-card border space-y-3 bg-surface border-theme-default shadow-theme-card">
             <div className="flex items-center justify-between border-b border-theme-subtle pb-2">
               <span className="text-xs font-semibold text-theme-primary">
                 Today
@@ -564,11 +538,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                         onNavigate('mhc_autopilot');
                       }
                     }}
-                    className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                      isDark 
-                        ? 'bg-[#1B1F24] border-[#2B323A] hover:border-slate-600' 
-                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
+                    className="p-3 rounded-theme-md border transition-colors cursor-pointer bg-raised border-theme-default hover:border-theme-strong"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -590,9 +560,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
           </div>
 
           {/* Upcoming Column */}
-          <div className={`p-4 rounded-xl border space-y-3 ${
-            isDark ? 'bg-[#16191D] border-[#2B323A]' : 'bg-white border-slate-200 shadow-2xs'
-          }`}>
+          <div className="p-4 rounded-card border space-y-3 bg-surface border-theme-default shadow-theme-card">
             <div className="flex items-center justify-between border-b border-theme-subtle pb-2">
               <span className="text-xs font-semibold text-theme-primary">
                 Upcoming
@@ -619,11 +587,7 @@ export const StartPageModule: React.FC<StartPageModuleProps> = ({
                         onNavigate('machines');
                       }
                     }}
-                    className={`p-3 rounded-lg border transition-colors cursor-pointer ${
-                      isDark 
-                        ? 'bg-[#1B1F24] border-[#2B323A] hover:border-slate-600' 
-                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
+                    className="p-3 rounded-theme-md border transition-colors cursor-pointer bg-raised border-theme-default hover:border-theme-strong"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">

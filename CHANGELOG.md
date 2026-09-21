@@ -1,18 +1,28 @@
 # FSOS CHANGELOG
 
-## v3.3.1 — FSOS Theme Visual Palettes (2026-09-20)
+## v3.3.2 — FSOS Lumen Application-Wide Coverage Pass (2026-09-21)
 
-### FSOS Theme Visual Palettes
-- **Six Distinct Visual Identities**: Implemented full theme token specifications and CSS custom variables for Precision, Lumen, Aether, Prism, Forge, and Cairn.
-  - **Precision**: Calm industrial graphite baseline with restrained cyan/teal accents and high-readability cleanroom dark surfaces (`#111315` canvas).
-  - **Lumen**: Deep obsidian charcoal with subtle luminous depth, restrained cyan edge hints, and ambient luminescence (`#0A0D12` canvas, `#38BDF8` accent).
-  - **Aether**: Soft pearl frosted translucent canvas with subtle glass depth, refracted violet-indigo highlights, and charcoal typography (`#EEF2F6` canvas, `#6366F1` accent).
-  - **Prism**: Light editorial alabaster canvas with crisp geometry, controlled visual contrast, and chromatic sapphire highlights (`#FAF9F6` canvas, `#0284C7` accent).
-  - **Forge**: Deep smoldered industrial graphite with warm amber telemetry accents and high engineering hierarchy (`#100F0E` canvas, `#F59E0B` accent).
-  - **Cairn**: Basalt mineral canvas with quiet emerald verification accents and atmospheric depth (`#0D1011` canvas, `#10B981` accent).
-- **Depth & Atmosphere Tokens**: Added semantic `shadow` and `glow` properties to `ThemeColorPalette` and exposed `--shadow-card` and `--glow-accent` CSS custom variables for each theme.
-- **Strict Semantic Protection**: Preserved universal engineering status colors (Pass/Warning/Defect/Info) across all themes.
-- **Protected Systems Intact**: Retained immutable PDF renderer (`MhcFullPdfRenderer.tsx`), Machine Passport cards, temperature telemetry, laser diagnostics, and autopilot systems untouched.
+### FSOS Lumen Application-Wide Coverage Pass
+- **Application-Wide Lumen Consistency**: Audited and confirmed unified "Engineered Glass at Dusk" visual language across all 11 FSOS sidebar destinations (Daily Work, MHC Autopilot, MHC History & Reports, Machine Passport, Customers & Plants, Contracts, Operational Analytics, My Profile, Engineers Directory, Settings, Release History).
+- **Top Header & Sync Status Refinement**: Transformed SyncStatusIndicator and top status bar controls into cohesive obsidian/graphite glass components with refined luminous badges, cyan connection telemetry, and seamless popover depth.
+- **Engineers Directory & Profile Modules**: Upgraded table structures, filter rows, search inputs, operator telemetry chips, and profile editor cards with Lumen radial surfaces, hairline borders, and luminous focus outlines.
+- **Operational Analytics & Fleet Workspaces**: Unified analytics segmented mode selectors, trajectory charts, customer hierarchy panels, and SLA contract milestone cards under consistent Lumen surface and hairline geometry.
+- **Comprehensive CSS Fallback Mappings**: Expanded `[data-theme="lumen"]` style overrides in `src/index.css` to comprehensively capture legacy dark classes across all shared components, modals, dropdowns, tables, and form inputs.
+- **Protected Engineering Logic Intact**: Strict preservation of all engineering calculation engines, PDF generation (`MhcFullPdfRenderer.tsx`), Machine Passport 3D flip-card mechanics, and MHC Autopilot workflows.
+
+## v3.3.1 — FSOS Theme Visual Palettes & Lumen Visual Transformation (2026-09-20)
+
+### FSOS Theme Visual Palettes & Lumen Transformation
+- **Lumen Corrective Visual Transformation**: Transformed Lumen into a distinctly recognizable "engineered glass at dusk" material aesthetic with deep graphite obsidian canvas (`#070A0F`), atmospheric top dusk radial spotlight and bottom-lit horizon glow.
+- **Luminous Material Hierarchy**:
+  - **Atmospheric Canvas**: Fixed environmental background depth with dusk radial gradients and luminous sky-cyan horizon reflection.
+  - **Sidebar Surface**: Deep engineered graphite glass (`linear-gradient(180deg, rgba(13, 19, 29, 0.96) 0%, rgba(8, 12, 18, 0.98) 100%)`) with luminous right hairline border and illuminated active navigation pills (`rgba(56, 189, 248, 0.16)` inset gradient, glowing cyan indicator).
+  - **Header & Modals**: Layered dusk graphite surfaces with specular top and bottom rim highlights and elevated backdrop blur.
+  - **Card Geometry & Specular Rim**: Layered raised graphite card surfaces with specular top edge highlight (`inset 0 1px 0 0 rgba(186, 230, 253, 0.22)`), deep obsidian ambient drop shadow, and reactive edge lift on interaction.
+  - **Form Controls & Tabular Depth**: Translucent obsidian inputs with cyan focus auras, dark gradient `thead` with luminous hairline dividers, and interactive row hover illumination.
+- **Six Distinct Visual Identities**: Full theme token specifications and CSS custom variables for Precision, Lumen, Aether, Prism, Forge, and Cairn.
+- **Header Switcher & Multi-Theme Architecture**: Seamless instant switching between Precision and Lumen via header RubberSegment and settings picker.
+- **Protected Systems Intact**: Left authoritative MHC PDF generator (`MhcFullPdfRenderer.tsx`), Machine Passport, Telemetry charts, and MHC Autopilot completely untouched.
 
 ## v3.3.0 — FSOS Multi-Theme Foundation (2026-09-20)
 
