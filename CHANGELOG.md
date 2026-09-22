@@ -1,5 +1,39 @@
 # FSOS CHANGELOG
 
+## v3.5.4 — FSOS Autopilot Live Kinetic Progress Path & Theme Identity (2026-09-22)
+
+### Autopilot Schedule Live Progress Path & Distinct Theme Visuals
+- **Live Continuous Progress Path**:
+  - Transformed the vertical schedule connector into an authentic live progression track.
+  - As Autopilot advances through activities, the progress line visibly fills along the vertical path and an animated kinetic energy beacon travels along the track to the target step.
+  - Reverse navigation smoothly retracts and travels upward along the track in natural reverse.
+- **Step Activation & Settlement**:
+  - Target steps activate with a pulsing diode beacon and theme-specific high-contrast typographic focus upon progress arrival.
+  - Departed steps settle smoothly into their completed state (`✓`) with an organic settlement transition.
+  - Removed whole-row beam overlays to return focus to the actual traveling progress path.
+- **Theme-Specific Visual Identities**:
+  - **Precision**: Technical amber laser energy beam, warm graphite typography (`#F3F4F6` / `#F59E0B`), crisp diode pulse beacon, and precision border styling.
+  - **Lumen**: Atmospheric deep obsidian with luminous cyan neon energy path (`#38BDF8`), radiant starlight beacon, and glowing text contrast.
+  - **Aero**: Crisp daylight airy aesthetic with sky-blue energy stream (`#0284C7`), vivid azure badges, and high-readability daylight typography.
+- **Strict Scope & Motion Standards**:
+  - 100% preservation of all step numbers, hierarchy, schedule content, and full `prefers-reduced-motion` instantaneous fallback.
+
+## v3.5.3 — FSOS Autopilot Live Kinetic Progress Rail (2026-09-22)
+
+### Autopilot Schedule Rail Animated Progression
+- **Kinetic Active Progression Capsule**:
+  - Implemented shared `layoutId="mhcAutopilotActiveHighlighter"` physical glide motion that visually travels along the schedule index when Autopilot moves between steps.
+  - Added directional traveling energy beam tracers that sweep downward during forward progression and upward during reverse navigation.
+- **Theme-Adaptive Energetic Aura**:
+  - **Precision**: Amber technical laser aura (`rgba(245, 158, 11, 0.7)`), calibrated diode beacon, and glowing active borders.
+  - **Lumen**: Deep sky/cyan neon luminous beam (`rgba(56, 189, 248, 0.8)`), starlight horizon ripple, and luminous glowing beacon.
+  - **Aero**: Radiant daylight sky azure stream (`rgba(14, 165, 233, 0.7)`), soft atmospheric depth, and daylight specular ripple.
+- **Hierarchical Conduit & Step Settlement**:
+  - Active branch tree spines illuminate with an energetic conduit trace when a child sub-item is active.
+  - Arriving steps smoothly pulse into life with a living radar beacon, while departed steps settle crisply into their completed state (`✓`).
+- **Strict Scope Preservation & Reduced Motion**:
+  - 100% preservation of all existing step numbers, wording, hierarchy, schedule data, and Autopilot state engine. Full `prefers-reduced-motion` instantaneous fallback.
+
 ## v3.5.2 — FSOS Sidebar Sync Relocation & Header Declutter (2026-09-22)
 
 ### Sync Status Indicator Relocation
