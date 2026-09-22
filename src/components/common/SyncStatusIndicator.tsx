@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Cloud, CloudOff, RefreshCw, CheckCircle2, Clock, Laptop, Monitor, AlertCircle, HardDrive } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, Clock, Monitor, AlertCircle, HardDrive } from 'lucide-react';
 import { SyncEngine } from '../../utils/syncEngine';
 import { SyncState } from '../../types/sync';
+import { HamsterSyncLoader } from './HamsterSyncLoader';
 
 interface SyncStatusIndicatorProps {
   isDark?: boolean;
-  placement?: 'bottom-right' | 'top-left' | 'top-right';
+  placement?: 'bottom-right' | 'top-left' | 'top-right' | 'top-center';
   fullWidth?: boolean;
   className?: string;
 }
 
 export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ 
   isDark = true,
-  placement = 'bottom-right',
+  placement = 'top-left',
   fullWidth = false,
   className = '',
 }) => {
@@ -73,30 +74,30 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
     switch (syncState.status) {
       case 'synced':
         return (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium font-mono transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium font-mono transition-all bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span>Synced</span>
           </div>
         );
       case 'syncing':
         const imgActivity = (syncState.pendingImageCount || 0) + (syncState.downloadingImageCount || 0);
         return (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium font-mono transition-all bg-amber-500/10 border-amber-500/30 text-amber-300">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium font-mono transition-all bg-amber-500/10 border-amber-500/30 text-amber-300">
             <RefreshCw className="w-3 h-3 text-amber-400 animate-spin shrink-0" />
-            <span>{imgActivity > 0 ? `Syncing (${imgActivity} img)...` : 'Syncing...'}</span>
+            <span>{imgActivity > 0 ? `Syncing (${imgActivity})...` : 'Syncing...'}</span>
           </div>
         );
       case 'pending':
         return (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium font-mono transition-all bg-orange-500/10 border-orange-500/30 text-orange-300">
-            <span className="w-2 h-2 rounded-full bg-orange-400 animate-ping shrink-0" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium font-mono transition-all bg-orange-500/10 border-orange-500/30 text-orange-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping shrink-0" />
             <span>Pending ({syncState.pendingCount})</span>
           </div>
         );
       case 'offline':
       default:
         return (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-medium font-mono transition-all bg-rose-500/10 border-rose-500/30 text-rose-300">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium font-mono transition-all bg-rose-500/10 border-rose-500/30 text-rose-300">
             <CloudOff className="w-3 h-3 text-rose-400 shrink-0" />
             <span>Offline</span>
           </div>
@@ -110,6 +111,8 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
         return 'bottom-full left-0 mb-2';
       case 'top-right':
         return 'bottom-full right-0 mb-2';
+      case 'top-center':
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
       case 'bottom-right':
       default:
         return 'top-full right-0 mt-2';
@@ -117,31 +120,29 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   };
 
   return (
-    <div className={`relative ${fullWidth ? 'w-full block' : 'inline-block'} ${className}`} ref={popoverRef}>
+    <div className={`relative inline-flex items-center justify-center ${className}`} ref={popoverRef}>
+      {/* Compact Hamster Visual Sync Trigger */}
       <button
+        id="cloud-sync-hamster-btn"
         onClick={() => setShowPopover(!showPopover)}
-        title={`FSOS Automatic Cloud Protection (${syncState.deviceId})`}
-        className={`flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-button border transition-all cursor-pointer bg-raised border-theme-default text-theme-primary hover:bg-surface hover:border-theme-strong font-theme-label ${
-          fullWidth ? 'w-full justify-between' : ''
-        }`}
+        title={`FSOS Cloud Sync (${syncState.deviceId}) — ${syncState.status}`}
+        aria-label={`Cloud Sync status: ${syncState.status}. Click for device and sync controls.`}
+        className="p-1 rounded-xl border border-theme-subtle/70 hover:border-theme-strong bg-raised/60 hover:bg-raised transition-all cursor-pointer flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-primary)] shadow-sm group"
       >
-        <div className="flex items-center gap-2 overflow-hidden truncate">
-          <Cloud className={`w-3.5 h-3.5 shrink-0 ${syncState.online ? 'text-[var(--color-primary)]' : 'text-theme-muted'}`} />
-          {fullWidth && (
-            <span className="text-[11px] font-mono text-theme-secondary truncate">Cloud Sync</span>
-          )}
-        </div>
-        {getStatusBadge()}
+        <HamsterSyncLoader 
+          status={syncState.status} 
+          size={44}
+        />
       </button>
 
-      {/* Sync Control Popover */}
+      {/* Sync Control Popover (Fits perfectly within sidebar bounds) */}
       {showPopover && (
-        <div className={`absolute ${getPopoverPlacementClass()} w-72 rounded-modal border shadow-theme-popover backdrop-theme-surface p-3.5 z-50 bg-raised border-theme-default text-theme-primary`}>
+        <div className={`absolute ${getPopoverPlacementClass()} w-[232px] rounded-modal border shadow-theme-popover backdrop-theme-surface p-3 z-50 bg-raised border-theme-default text-theme-primary`}>
           {/* Popover Header */}
-          <div className="flex items-center justify-between pb-2.5 border-b border-theme-subtle mb-3">
-            <div className="flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-[var(--color-primary)]" />
-              <h4 className="text-xs font-bold uppercase tracking-wider font-theme-heading text-theme-primary">
+          <div className="flex items-center justify-between pb-2 border-b border-theme-subtle mb-2.5">
+            <div className="flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+              <h4 className="text-[11px] font-bold uppercase tracking-wider font-theme-heading text-theme-primary">
                 Cloud Replica Sync
               </h4>
             </div>
@@ -149,16 +150,16 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
           </div>
 
           {/* Sync Stats List */}
-          <div className="space-y-2 text-xs font-mono">
+          <div className="space-y-1.5 text-xs font-mono">
             {/* Current Device */}
-            <div className="flex items-center justify-between bg-surface p-2 rounded-theme-sm border border-theme-subtle">
-              <span className="text-theme-muted text-[11px] flex items-center gap-1.5">
-                <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+            <div className="flex items-center justify-between bg-surface p-1.5 rounded-theme-sm border border-theme-subtle">
+              <span className="text-theme-muted text-[10px] flex items-center gap-1">
+                <Monitor className="w-3 h-3 text-[var(--color-primary)]" />
                 Current Device:
               </span>
               {!isEditingDevice ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[var(--color-primary)]">{syncState.deviceId}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-[10px] text-[var(--color-primary)]">{syncState.deviceId}</span>
                   <button 
                     onClick={() => setIsEditingDevice(true)} 
                     className="text-[9px] text-theme-muted hover:text-theme-primary underline cursor-pointer"
@@ -172,11 +173,11 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                     type="text"
                     value={customDeviceName}
                     onChange={(e) => setCustomDeviceName(e.target.value)}
-                    className="w-24 bg-surface border border-[var(--color-primary)] text-theme-primary text-[11px] px-1 py-0.5 rounded font-mono"
+                    className="w-20 bg-surface border border-[var(--color-primary)] text-theme-primary text-[10px] px-1 py-0.5 rounded font-mono"
                   />
                   <button
                     onClick={() => handleDeviceChange(customDeviceName)}
-                    className="bg-[var(--color-primary)] text-slate-950 text-[10px] px-1.5 py-0.5 rounded font-bold cursor-pointer"
+                    className="bg-[var(--color-primary)] text-slate-950 text-[9px] px-1.5 py-0.5 rounded font-bold cursor-pointer"
                   >
                     OK
                   </button>
@@ -185,12 +186,12 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
             </div>
 
             {/* Quick Switch Device Presets */}
-            <div className="flex items-center justify-between text-[10px] text-theme-muted px-1 pt-0.5">
-              <span>Switch Device View:</span>
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between text-[10px] text-theme-muted px-0.5 pt-0.5">
+              <span>Switch Device:</span>
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleDeviceChange('HOME-PC')}
-                  className={`px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded border text-[9px] transition cursor-pointer ${
                     syncState.deviceId === 'HOME-PC' 
                       ? 'bg-[var(--color-primary)]/15 border-[var(--color-primary)] text-[var(--color-primary)] font-bold' 
                       : 'border-theme-subtle text-theme-muted hover:text-theme-primary'
@@ -200,7 +201,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                 </button>
                 <button
                   onClick={() => handleDeviceChange('STM-LAPTOP')}
-                  className={`px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded border text-[9px] transition cursor-pointer ${
                     syncState.deviceId === 'STM-LAPTOP' 
                       ? 'bg-[var(--color-primary)]/15 border-[var(--color-primary)] text-[var(--color-primary)] font-bold' 
                       : 'border-theme-subtle text-theme-muted hover:text-theme-primary'
@@ -212,48 +213,48 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
             </div>
 
             {/* Last Sync Time */}
-            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle">
-              <span className="text-theme-muted flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle text-[11px]">
+              <span className="text-theme-muted flex items-center gap-1 text-[10px]">
+                <Clock className="w-3 h-3 text-amber-400" />
                 Last Cloud Sync:
               </span>
-              <span className="font-bold text-theme-primary">
+              <span className="font-bold text-[10px] text-theme-primary">
                 {formatLastSync(syncState.lastSyncTime)}
               </span>
             </div>
 
             {/* Pending Upload Queue */}
-            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle">
-              <span className="text-theme-muted flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-sky-400" />
+            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle text-[11px]">
+              <span className="text-theme-muted flex items-center gap-1 text-[10px]">
+                <AlertCircle className="w-3 h-3 text-sky-400" />
                 Pending Queue:
               </span>
-              <span className={`font-bold ${syncState.pendingCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              <span className={`font-bold text-[10px] ${syncState.pendingCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                 {syncState.pendingCount} item{syncState.pendingCount !== 1 ? 's' : ''}
               </span>
             </div>
 
             {/* Cloud D1 Server Replica */}
-            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle">
-              <span className="text-theme-muted flex items-center gap-1.5">
-                <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="flex items-center justify-between p-1.5 rounded-theme-sm bg-surface border border-theme-subtle text-[11px]">
+              <span className="text-theme-muted flex items-center gap-1 text-[10px]">
+                <HardDrive className="w-3 h-3 text-emerald-400" />
                 Cloud D1 Replica:
               </span>
-              <span className="font-bold text-emerald-400">
+              <span className="font-bold text-[10px] text-emerald-400">
                 {syncState.serverRecordCount} records
               </span>
             </div>
           </div>
 
           {/* Sync Now Trigger Button */}
-          <div className="mt-3.5 pt-2 border-t border-theme-subtle">
+          <div className="mt-2.5 pt-2 border-t border-theme-subtle">
             <button
               onClick={handleManualSync}
               disabled={syncState.status === 'syncing'}
-              className="w-full bg-[var(--color-primary)]/15 hover:bg-[var(--color-primary)]/25 text-[var(--color-primary)] border border-[var(--color-primary)]/40 font-bold text-xs py-1.5 px-3 rounded-button flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 font-theme-label"
+              className="w-full bg-[var(--color-primary)]/15 hover:bg-[var(--color-primary)]/25 text-[var(--color-primary)] border border-[var(--color-primary)]/40 font-bold text-xs py-1.5 px-3 rounded-button flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50 font-theme-label"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncState.status === 'syncing' ? 'animate-spin' : ''}`} />
-              <span>{syncState.status === 'syncing' ? 'Syncing with Cloud...' : 'Sync Now'}</span>
+              <RefreshCw className={`w-3 h-3 ${syncState.status === 'syncing' ? 'animate-spin' : ''}`} />
+              <span className="text-[11px]">{syncState.status === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
             </button>
           </div>
         </div>
@@ -261,3 +262,4 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
     </div>
   );
 };
+

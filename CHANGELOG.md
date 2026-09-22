@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v3.5.5 — FSOS Cloud Sync Compact Hamster UI (2026-09-22)
+
+### Compact Cloud Sync Presentation & Hamster Wheel Indicator
+- **Compact Hamster Visual Indicator**:
+  - Replaced the large bottom sync button and redundant "Cloud Sync / Synced" and "FSOS Core • Ready" text with a sleek, compact hamster wheel indicator.
+  - **Synced/Idle State**: Hamster renders in crisp emerald-green palette in static rest mode.
+  - **Active Syncing State**: Hamster seamlessly transitions to orange coat and dynamically runs inside the revolving wheel/spoke mechanism using the authoritative CSS animation spec.
+  - **Real State Driven**: Bound directly to live sync engine status (`synced`, `syncing`, `pending`, `offline`).
+- **Full Sync Information Popover**:
+  - Clicking the hamster reveals the compact, sidebar-constrained control popover.
+  - Seamlessly maintains all existing critical sync data: Current Device (with inline edit), Switch Device View presets (HOME-PC, STM-LAPTOP), Last Cloud Sync timestamp, Pending Queue count, Cloud D1 Replica count, and the manual "Sync Now" trigger.
+  - Guaranteed zero sidebar expansion, zero horizontal clipping, and no obstruction of navigation items.
+- **Theme & Motion Harmony**:
+  - Precision, Lumen, and Aero theme compatible with full `prefers-reduced-motion` instantaneous fallback.
+
 ## v3.5.4 — FSOS Autopilot Live Kinetic Progress Path & Theme Identity (2026-09-22)
 
 ### Autopilot Schedule Live Progress Path & Distinct Theme Visuals
