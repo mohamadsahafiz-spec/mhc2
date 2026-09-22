@@ -1,5 +1,24 @@
 # FSOS CHANGELOG
 
+## v3.4.6 — FSOS Lumen Official Report Toolbar (2026-09-22)
+
+### Lumen Official MHC PDF Report Toolbar & Controls
+- **Engineered Glass Horizon Surface**: Implemented the signature Lumen dusk graphite radial surface (`radial-gradient(130% 120% at 50% 100%, rgba(38, 52, 75, 0.70) 0%, rgba(14, 19, 28, 0.96) 65%)`) with luminous horizon highlight line (`::after`), deep shadow depth, and top specular hairline.
+- **Lumen Typography & Icon Luma**: Restored high-clarity dusk white headings (`#F8FAFC`), muted cyan-slate metadata (`#94A3B8`), and luminous cyan icon badge highlights (`#38BDF8`).
+- **Engineered Secondary Controls**: Restyled Edit Metadata, Zoom, Hide Empty, Print, and Back controls using translucent dusk graphite gradient fills, specular hairline highlights, and amber/cyan active illumination.
+- **Luminous Emerald PDF Action**: Preserved the green color identity of the "Download Official MHC PDF" button with Lumen specular edge lighting, emerald-to-mint gradient depth, and tactile click response.
+- **Strict Theme & PDF Pipeline Isolation**: Precision, Aero, and other themes remain completely untouched and distinct. Zero alterations made to PDF generation coordinates, telemetry, or report layout.
+
+## v3.4.5 — FSOS Frutiger Aero Official Report Toolbar (2026-09-22)
+
+### Frutiger Aero Official MHC PDF Report Toolbar & Controls
+- **Toolbar Surface Normalization**: Transformed the Official MHC PDF Report toolbar in Frutiger Aero mode to the authentic Aero light/glass surface (`linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(230, 246, 255, 0.75) 100%)`) with frosted blur, specular highlights, and pure organic border contours.
+- **Deep Navy Text Hierarchy**: Restored high-contrast dark-blue text hierarchy (`#0F2942` for document title and `#2C5270` for report metadata and machine serial details) on the Aero surface.
+- **Icon & Badge Contrast Refinement**: Updated the document icon container and FSOS official report badge with luminous sky-blue backgrounds (`#E0F2FE`), sharp cyan borders, and deep blue typography (`#0284C7`, `#0369A1`).
+- **Aero Controls & Interactive State System**: Adapted Edit Metadata, Zoom (+ / - / percentage), Hide Empty/Showing All, Print, and Back controls to the glossy Aero secondary control treatment with tactile hover/press states and dedicated amber/cyan active indicators.
+- **Glossy Emerald PDF Action**: Preserved the green color identity of the primary "Download Official MHC PDF" button with high-contrast specular lighting, vibrant gradient layering (`#4ADE80` to `#15803D`), and crisp white typography.
+- **Strict Theme & PDF Engine Isolation**: Dark themes (Precision, Lumen, Aether, Prism, Forge, Cairn) remain 100% untouched and pixel-identical. Original PDF generation stationery, coordinates, dynamic field mapping, and telemetry logic remain strictly unchanged.
+
 ## v3.4.4 — FSOS MHC Autopilot Aero Visual Consistency (2026-09-22)
 
 ### MHC Autopilot Aero Consistency Across Activities 01–10

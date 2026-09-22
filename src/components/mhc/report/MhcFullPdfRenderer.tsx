@@ -560,17 +560,20 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
     <div className="space-y-6">
       
       {/* TOOLBAR CONTROLS BAR */}
-      <div className={`p-4 rounded-2xl border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-4 z-40 backdrop-blur-md ${
-        isDark ? 'bg-slate-900/95 border-slate-800 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'
-      }`}>
+      <div 
+        id="mhc-official-report-toolbar"
+        className={`mhc-official-report-toolbar p-4 rounded-2xl border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-4 z-40 backdrop-blur-md ${
+          isDark ? 'bg-slate-900/95 border-slate-800 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'
+        }`}
+      >
         
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+          <div className="mhc-report-icon-box w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-800">
+              <span className="mhc-report-badge text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-800">
                 FSOS {APP_VERSION} • OFFICIAL MHC PDF
               </span>
               <h2 className="text-sm font-bold tracking-tight">Full Report Engine Preview (8 Pages)</h2>
@@ -586,11 +589,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           
           {/* Metadata Editor Toggle */}
           <button
+            id="btn-mhc-toggle-metadata"
             onClick={() => setShowMetadataEditor(!showMetadataEditor)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+            className={`mhc-toolbar-btn px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
               showMetadataEditor
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                ? 'mhc-toolbar-btn-amber-active bg-amber-500/20 text-amber-300 border-amber-500/50'
+                : 'mhc-toolbar-btn-secondary bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
             }`}
             title="Edit Report Metadata"
           >
@@ -599,8 +603,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
           </button>
 
           {/* Zoom Controls */}
-          <div className="hidden sm:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+          <div className="mhc-zoom-controls-container hidden sm:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
             <button
+              id="btn-mhc-zoom-out"
               onClick={() => setZoomScale(prev => Math.max(0.6, prev - 0.1))}
               className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition-colors cursor-pointer"
               title="Zoom Out"
@@ -611,6 +616,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
               {Math.round(zoomScale * 100)}%
             </span>
             <button
+              id="btn-mhc-zoom-in"
               onClick={() => setZoomScale(prev => Math.min(1.2, prev + 0.1))}
               className="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition-colors cursor-pointer"
               title="Zoom In"
@@ -621,11 +627,12 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
           {/* Optional Sections Toggle */}
           <button
+            id="btn-mhc-toggle-optional-sections"
             onClick={() => setShowOptionalSections(!showOptionalSections)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+            className={`mhc-toolbar-btn px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
               showOptionalSections
-                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                ? 'mhc-toolbar-btn-cyan-active bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                : 'mhc-toolbar-btn-secondary bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
             }`}
           >
             {showOptionalSections ? <Eye className="w-3.5 h-3.5 text-cyan-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
@@ -634,8 +641,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
           {/* Print Button */}
           <button
+            id="btn-mhc-print-report"
             onClick={handlePrint}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            className="mhc-toolbar-btn mhc-toolbar-btn-secondary px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print</span>
@@ -646,7 +654,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             id="btn-download-mhc-pdf"
             disabled={isGeneratingPdf}
             onClick={handleDownloadPdf}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50"
+            className="btn-download-mhc-pdf px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50"
           >
             <Download className="w-4 h-4" />
             <span>{isGeneratingPdf ? downloadProgress || 'Generating PDF...' : 'Download Official MHC PDF'}</span>
@@ -664,8 +672,9 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
           {onBackToAutopilot && (
             <button
+              id="btn-mhc-back-to-autopilot"
               onClick={onBackToAutopilot}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold cursor-pointer"
+              className="mhc-toolbar-btn mhc-toolbar-btn-secondary px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold cursor-pointer"
             >
               Back
             </button>
@@ -676,7 +685,7 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
 
       {/* INTERACTIVE REPORT METADATA EDITOR PANEL */}
       {showMetadataEditor && (
-        <div className="p-5 rounded-2xl bg-slate-900 border border-amber-500/30 text-white shadow-2xl space-y-4 animate-in fade-in duration-200">
+        <div className="mhc-metadata-editor-panel p-5 rounded-2xl bg-slate-900 border border-amber-500/30 text-white shadow-2xl space-y-4 animate-in fade-in duration-200">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
               <Sliders className="w-4 h-4" />

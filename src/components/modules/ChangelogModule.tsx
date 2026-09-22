@@ -44,7 +44,8 @@ export const ChangelogModule: React.FC<ChangelogModuleProps> = ({ onNavigate }) 
   const milestoneFamilies = useMemo(() => {
     return [
       { id: 'all', label: 'All Releases' },
-      { id: 'v3.3', label: 'v3.3.x (Current)' },
+      { id: 'v3.4', label: 'v3.4.x (Current)' },
+      { id: 'v3.3', label: 'v3.3.x' },
       { id: 'v3.1', label: 'v3.1.x' },
       { id: 'v3.0', label: 'v3.0.x' },
       { id: 'v2.6', label: 'v2.6.x' },

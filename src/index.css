@@ -1490,6 +1490,289 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(0, 133, 223, 0.35) !important;
 }
 
+/* 12. Frutiger Aero Official MHC PDF Report Toolbar & Controls */
+[data-theme="aero"] #mhc-official-report-toolbar,
+[data-theme="aero"] .mhc-official-report-toolbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(230, 246, 255, 0.75) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 10px 32px -4px rgba(28, 84, 134, 0.18), 0 2px 8px rgba(28, 84, 134, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  color: #0F2942 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar h2 {
+  color: #0F2942 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar p {
+  color: #2C5270 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-report-icon-box {
+  background: linear-gradient(180deg, rgba(224, 242, 254, 0.95) 0%, rgba(186, 230, 253, 0.75) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #0284C7 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-report-badge {
+  background: linear-gradient(180deg, rgba(240, 249, 255, 0.98) 0%, rgba(224, 242, 254, 0.90) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.40) !important;
+  color: #0369A1 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.90) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-toolbar-btn-secondary,
+[data-theme="aero"] #mhc-official-report-toolbar button.bg-slate-800 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(230, 245, 255, 0.85) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.90) !important;
+  color: #0F2942 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 2px 8px rgba(31, 78, 121, 0.10) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-toolbar-btn-secondary:hover,
+[data-theme="aero"] #mhc-official-report-toolbar button.bg-slate-800:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(215, 238, 255, 0.95) 100%) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
+  color: #0B1E30 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 4px 12px rgba(31, 78, 121, 0.16) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-toolbar-btn-amber-active,
+[data-theme="aero"] #mhc-official-report-toolbar button.bg-amber-500\/20 {
+  background: linear-gradient(180deg, rgba(254, 252, 232, 0.98) 0%, rgba(254, 240, 138, 0.60) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #92400E !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 2px 8px rgba(245, 158, 11, 0.15) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-toolbar-btn-cyan-active,
+[data-theme="aero"] #mhc-official-report-toolbar button.bg-cyan-500\/20 {
+  background: linear-gradient(180deg, rgba(240, 249, 255, 0.98) 0%, rgba(224, 242, 254, 0.90) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #0369A1 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 2px 8px rgba(0, 133, 223, 0.15) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-zoom-controls-container,
+[data-theme="aero"] #mhc-official-report-toolbar .bg-slate-800\/80 {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 30, 60, 0.08), 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-zoom-controls-container button {
+  color: #2C5270 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-zoom-controls-container button:hover {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0F2942 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar .mhc-zoom-controls-container span {
+  color: #0F2942 !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar #btn-download-mhc-pdf,
+[data-theme="aero"] #mhc-official-report-toolbar .btn-download-mhc-pdf {
+  background: linear-gradient(180deg, #34D399 0%, #10B258 50%, #059669 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.90), 0 4px 14px rgba(16, 178, 88, 0.40) !important;
+  text-shadow: 0 1px 2px rgba(0, 50, 20, 0.35) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar #btn-download-mhc-pdf:hover,
+[data-theme="aero"] #mhc-official-report-toolbar .btn-download-mhc-pdf:hover {
+  background: linear-gradient(180deg, #6EE7B7 0%, #22C55E 50%, #16A34A 100%) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 6px 20px rgba(16, 178, 88, 0.50) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar #btn-mhc-proceed-to-buyoff {
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 50%, #0369A1 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(2, 132, 199, 0.40) !important;
+  text-shadow: 0 1px 2px rgba(0, 40, 80, 0.45) !important;
+}
+
+[data-theme="aero"] #mhc-official-report-toolbar #btn-mhc-proceed-to-buyoff:hover {
+  background: linear-gradient(180deg, #60A5FA 0%, #0284C7 45%, #075985 100%) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 6px 20px rgba(2, 132, 199, 0.50) !important;
+}
+
+[data-theme="aero"] .mhc-metadata-editor-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(238, 248, 255, 0.90) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 16px 36px -4px rgba(28, 84, 134, 0.18) !important;
+  color: #0F2942 !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+[data-theme="aero"] .mhc-metadata-editor-panel .border-slate-800 {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+[data-theme="aero"] .mhc-metadata-editor-panel label {
+  color: #2C5270 !important;
+}
+
+/* 13. Frutiger Lumen Official MHC PDF Report Toolbar & Controls */
+[data-theme="lumen"] #mhc-official-report-toolbar,
+[data-theme="lumen"] .mhc-official-report-toolbar {
+  position: sticky;
+  background: radial-gradient(130% 120% at 50% 100%, rgba(38, 52, 75, 0.70) 0%, rgba(14, 19, 28, 0.96) 65%), #0D1117 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), 0 0 32px -8px rgba(56, 189, 248, 0.16), 0 20px 40px -8px rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  color: #F4F5F7 !important;
+  overflow: hidden;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(186, 230, 253, 0.60) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar h2 {
+  color: #F8FAFC !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar p {
+  color: #94A3B8 !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-report-icon-box {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.16) 0%, rgba(14, 165, 233, 0.06) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #38BDF8 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), 0 0 16px -2px rgba(56, 189, 248, 0.30) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-report-badge {
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.18) 0%, rgba(8, 47, 73, 0.40) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.30) !important;
+  color: #7DD3FC !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-toolbar-btn-secondary,
+[data-theme="lumen"] #mhc-official-report-toolbar button.bg-slate-800 {
+  background: linear-gradient(180deg, rgba(28, 36, 48, 0.85) 0%, rgba(17, 22, 30, 0.95) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #E2E8F0 !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-toolbar-btn-secondary:hover,
+[data-theme="lumen"] #mhc-official-report-toolbar button.bg-slate-800:hover {
+  background: linear-gradient(180deg, rgba(38, 48, 64, 0.95) 0%, rgba(22, 28, 38, 1) 100%) !important;
+  border-color: rgba(186, 230, 253, 0.35) !important;
+  color: #FFFFFF !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 0 16px -2px rgba(56, 189, 248, 0.25) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-toolbar-btn-amber-active,
+[data-theme="lumen"] #mhc-official-report-toolbar button.bg-amber-500\/20 {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22) 0%, rgba(120, 53, 15, 0.40) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  color: #FDE68A !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), 0 0 16px -2px rgba(245, 158, 11, 0.30) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-toolbar-btn-cyan-active,
+[data-theme="lumen"] #mhc-official-report-toolbar button.bg-cyan-500\/20 {
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.25) 0%, rgba(3, 105, 161, 0.45) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.45) !important;
+  color: #7DD3FC !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 0 18px -2px rgba(56, 189, 248, 0.35) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-zoom-controls-container,
+[data-theme="lumen"] #mhc-official-report-toolbar .bg-slate-800\/80 {
+  background: rgba(18, 23, 32, 0.90) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-zoom-controls-container button {
+  color: #94A3B8 !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-zoom-controls-container button:hover {
+  background: rgba(38, 48, 64, 0.6) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar .mhc-zoom-controls-container span {
+  color: #E2E8F0 !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar #btn-download-mhc-pdf,
+[data-theme="lumen"] #mhc-official-report-toolbar .btn-download-mhc-pdf {
+  background: linear-gradient(180deg, #10B981 0%, #059669 45%, #047857 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.40), 0 0 24px -2px rgba(16, 185, 129, 0.45), 0 8px 18px -2px rgba(0, 0, 0, 0.6) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar #btn-download-mhc-pdf:hover,
+[data-theme="lumen"] #mhc-official-report-toolbar .btn-download-mhc-pdf:hover {
+  background: linear-gradient(180deg, #34D399 0%, #10B981 45%, #059669 100%) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.55), 0 0 32px 0 rgba(16, 185, 129, 0.60), 0 12px 24px -2px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar #btn-mhc-proceed-to-buyoff {
+  background: linear-gradient(180deg, #0EA5E9 0%, #0284C7 50%, #0369A1 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 0 24px -2px rgba(14, 165, 233, 0.45), 0 8px 18px -2px rgba(0, 0, 0, 0.6) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="lumen"] #mhc-official-report-toolbar #btn-mhc-proceed-to-buyoff:hover {
+  background: linear-gradient(180deg, #38BDF8 0%, #0EA5E9 45%, #0284C7 100%) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.50), 0 0 32px 0 rgba(14, 165, 233, 0.60), 0 12px 24px -2px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="lumen"] .mhc-metadata-editor-panel {
+  position: relative;
+  background: radial-gradient(130% 120% at 50% 100%, rgba(38, 52, 75, 0.65) 0%, rgba(14, 19, 28, 0.96) 70%), #0D1117 !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16), 0 0 32px -8px rgba(245, 158, 11, 0.15), 0 20px 40px -8px rgba(0, 0, 0, 0.85) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="lumen"] .mhc-metadata-editor-panel .border-slate-800 {
+  border-color: rgba(245, 158, 11, 0.18) !important;
+}
+
+[data-theme="lumen"] .mhc-metadata-editor-panel input,
+[data-theme="lumen"] .mhc-metadata-editor-panel select {
+  background: rgba(18, 23, 32, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #F8FAFC !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="lumen"] .mhc-metadata-editor-panel label {
+  color: #94A3B8 !important;
+}
+
 /* Print styles for Executive Engineering Reports */
 @media print {
   body {
