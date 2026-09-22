@@ -102,7 +102,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
     switch (item.status) {
       case 'COMPLETE':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
             <span>✓</span>
             <span>COMPLETE</span>
           </span>
@@ -110,28 +110,28 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
       case 'NEEDS_REVIEW':
         if (item.isDispositioned) {
           return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-cyan-950/60 text-cyan-300 border border-cyan-500/40">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/40">
               <span>✓</span>
               <span>REVIEWED (FINDING)</span>
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
             <span>⚠</span>
             <span>NEEDS REVIEW</span>
           </span>
         );
       case 'LOCKED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[var(--surface-workspace)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
             <span>🔒</span>
             <span>LOCKED</span>
           </span>
         );
       case 'OPTIONAL':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-800/60 text-slate-400 border border-slate-700/60">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[var(--surface-workspace)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
             <span>—</span>
             <span>OPTIONAL</span>
           </span>
@@ -139,7 +139,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
       case 'INCOMPLETE':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
             <span>○</span>
             <span>INCOMPLETE</span>
           </span>
@@ -182,7 +182,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 font-bold border border-cyan-800/60">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-primary)]/15 text-[var(--color-primary)] font-bold border border-[var(--color-primary)]/30">
                 DAY 4 • 08
               </span>
               <h2 className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>MHC Readiness Review</h2>
@@ -203,7 +203,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
               color: 'var(--text-secondary)'
             }}
           >
-            Model: <strong className="text-cyan-400">{machine.model}</strong>
+            Model: <strong className="text-[var(--color-primary)]">{machine.model}</strong>
           </span>
           <span 
             className="text-[10px] font-mono px-2 py-1 rounded border"
@@ -233,13 +233,13 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
             {/* Status Pill */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono border shadow-sm backdrop-blur-md">
               {audit.isReadyForReport ? (
-                <div className="flex items-center gap-2 text-emerald-400 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1 rounded-full">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   <span>{audit.statusText}</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-amber-400 bg-amber-950/80 border border-amber-500/50 px-3 py-1 rounded-full">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
                   <span>🟠 ATTENTION REQUIRED</span>
                 </div>
               )}
@@ -262,8 +262,8 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
               <span style={{ color: 'var(--text-muted)' }}>NEXT ACTION:</span>
               <span className={`font-mono px-2 py-0.5 rounded border ${
                 audit.isReadyForReport
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40'
               }`}>
                 → {audit.nextAction.text}
               </span>
@@ -282,20 +282,20 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
             >
               <div className="p-2">
                 <div className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>RESOLVED</div>
-                <div className="text-base font-bold text-emerald-400 font-mono">
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                   {audit.completedRequiredCount} / {audit.totalRequiredCount}
                 </div>
               </div>
               <div className="p-2 border-x" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>SCORE</div>
-                <div className="text-base font-bold text-cyan-400 font-mono">
+                <div className="text-base font-bold text-[var(--color-primary)] font-mono">
                   {audit.readinessScore}%
                 </div>
               </div>
               <div className="p-2">
                 <div className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>BLOCKERS</div>
                 <div className={`text-base font-bold font-mono ${
-                  audit.blockers.length === 0 ? 'text-emerald-400' : 'text-amber-400'
+                  audit.blockers.length === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                 }`}>
                   {audit.blockers.length}
                 </div>
@@ -307,7 +307,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
               <button
                 id="btn-readiness-proceed-report"
                 onClick={onProceedToReportGeneration}
-                className="w-full py-3 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50"
+                className="w-full py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Unlock &amp; Proceed to Report Generation →</span>
@@ -316,7 +316,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
               <button
                 id="btn-readiness-resolve-first-blocker"
                 onClick={() => onNavigateToActivity(audit.nextAction.targetCode)}
-                className="w-full py-3 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3 px-5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <AlertTriangle className="w-4 h-4" />
                 <span>Resolve Blocker: {audit.nextAction.text} →</span>
@@ -879,7 +879,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
         <div className="text-xs font-mono flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <span>GATE STATUS:</span>
           <span className={`font-bold ${
-            audit.isReadyForReport ? 'text-emerald-400' : 'text-amber-400'
+            audit.isReadyForReport ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
           }`}>
             {audit.isReadyForReport ? 'UNLOCKED ✓' : 'LOCKED 🔒'}
           </span>
@@ -889,7 +889,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
           <button
             id="btn-footer-proceed-report"
             onClick={onProceedToReportGeneration}
-            className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all cursor-pointer"
+            className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Confirm Readiness &amp; Proceed to Report Generation →</span>
@@ -898,7 +898,7 @@ export const MhcReadinessReviewActivity: React.FC<MhcReadinessReviewActivityProp
           <button
             id="btn-footer-action-required"
             onClick={() => onNavigateToActivity(audit.nextAction.targetCode)}
-            className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/50 flex items-center gap-2 transition-all cursor-pointer"
+            className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all cursor-pointer"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>Action Required: {audit.nextAction.text} →</span>

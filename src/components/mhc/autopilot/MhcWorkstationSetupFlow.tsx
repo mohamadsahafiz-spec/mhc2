@@ -110,9 +110,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 bg-[var(--surface-workspace)]">
       {/* WORKSTATION SETUP HEADER & PROGRESS TRACKER */}
-      <div className={`px-4 sm:px-6 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 ${
-        isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-      }`}>
+      <div className="px-4 sm:px-6 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded border border-[var(--border-default)] bg-[var(--surface-surface)] flex items-center justify-center font-mono font-bold text-xs text-[var(--text-primary)]">
             MHC
@@ -145,19 +143,15 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                   isCurrent 
                     ? 'bg-[var(--surface-surface)] border-[var(--color-primary)] text-[var(--text-primary)] font-bold ring-1 ring-[var(--color-primary)]' 
                     : isCompleted
-                    ? isDark 
-                      ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-emerald-400' 
-                      : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    : isDark
-                    ? 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-muted)] opacity-60'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 opacity-70'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-muted)] opacity-60'
                 }`}
               >
                 <span className={`px-1 py-0.2 rounded font-mono text-[9px] ${
                   isCurrent 
                     ? 'bg-[var(--color-primary)] text-white font-bold' 
                     : isCompleted 
-                    ? 'bg-emerald-500/20 text-emerald-400 font-bold' 
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold' 
                     : 'bg-[var(--border-default)] text-[var(--text-muted)]'
                 }`}>
                   {isCompleted ? '✓' : stepItem.num}
@@ -186,9 +180,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
               {/* LEFT PRIMARY PANEL (7 Cols) */}
               <div className="lg:col-span-7 space-y-5">
                 {/* Introduction & Workstation Purpose */}
-                <div className={`p-5 rounded-lg border space-y-3 ${
-                  isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                }`}>
+                <div className="p-5 rounded-lg border space-y-3 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-secondary)] font-bold">
                       INSPECTION DESK INITIALIZER
@@ -225,9 +217,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                 {/* ACTIVE RESUMABLE SESSION DESK OR CLEAN STATE */}
                 {latestResumableSession && latestResumableMachine ? (
-                  <div className={`p-5 rounded-lg border space-y-4 transition-all ${
-                    isDark ? 'bg-[var(--surface-surface)] border-cyan-500/40 ring-1 ring-cyan-500/20' : 'bg-cyan-50/40 border-cyan-300 shadow-xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-4 transition-all bg-[var(--surface-surface)] border-cyan-500/40 ring-1 ring-cyan-500/20 shadow-xs">
                     <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[var(--border-subtle)]">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -284,7 +274,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                       <button
                         id="mhc-autopilot-welcome-complete-btn"
                         onClick={() => setConfirmingWelcomeComplete(true)}
-                        className="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-mono font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Complete MHC</span>
@@ -296,7 +286,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                           e.stopPropagation();
                           setSessionToDiscard(latestResumableSession);
                         }}
-                        className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-mono font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         title="Discard this draft session"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -305,11 +295,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                       <button
                         onClick={() => setCurrentStep('customer')}
-                        className={`px-3 py-2 rounded-lg font-mono text-xs border transition-all cursor-pointer ml-auto ${
-                          isDark 
-                            ? 'bg-[var(--surface-raised)] hover:bg-[var(--surface-surface)] text-[var(--text-secondary)] border-[var(--border-default)]' 
-                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-                        }`}
+                        className="px-3 py-2 rounded-lg font-mono text-xs border transition-all cursor-pointer ml-auto bg-[var(--surface-raised)] hover:bg-[var(--surface-surface)] text-[var(--text-secondary)] border-[var(--border-default)]"
                       >
                         <span>Manual Setup →</span>
                       </button>
@@ -320,20 +306,20 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                       <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-3.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 space-y-2.5"
+                        className="p-3.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 space-y-2.5"
                       >
-                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs font-mono">
+                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-mono">
                           <ShieldCheck className="w-4 h-4 shrink-0" />
                           <span>Confirm Completion for Session {latestResumableSession.id}?</span>
                         </div>
                         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                          This will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive it from active resume detection. All inspection records, logs, and historical data remain safely preserved.
+                          This will finalize Activity 09 Buyoff, set status to <strong className="text-emerald-600 dark:text-emerald-400">COMPLETED</strong>, and archive it from active resume detection. All inspection records, logs, and historical data remain safely preserved.
                         </p>
                         <div className="flex items-center gap-2 pt-0.5">
                           <button
                             id="btn-welcome-confirm-complete-yes"
                             onClick={handleConfirmWelcomeComplete}
-                            className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Yes, Complete MHC</span>
@@ -350,9 +336,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                   </div>
                 ) : (
                   /* NO RESUMABLE SESSION DETECTED */
-                  <div className={`p-5 rounded-lg border space-y-4 ${
-                    isDark ? 'bg-[var(--surface-surface)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-4 bg-[var(--surface-surface)] border-[var(--border-default)] shadow-xs">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded border border-[var(--border-default)] bg-[var(--surface-raised)] flex items-center justify-center text-[var(--text-muted)]">
                         <Clock className="w-4 h-4" />
@@ -379,9 +363,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
               {/* RIGHT REFERENCE PANEL (5 Cols) - AUTHORITATIVE PROTOCOL SCHEDULE */}
               <div className="lg:col-span-5 space-y-4">
-                <div className={`p-5 rounded-lg border space-y-3 ${
-                  isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                }`}>
+                <div className="p-5 rounded-lg border space-y-3 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                   <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       AUTHORITATIVE INSPECTION SCHEDULE
@@ -395,9 +377,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                     {MHC_WORKFLOW_SCHEDULE.map((activity) => (
                       <div 
                         key={activity.code}
-                        className={`p-2.5 rounded border text-xs flex items-center justify-between font-mono ${
-                          isDark ? 'bg-[var(--surface-surface)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
-                        }`}
+                        className="p-2.5 rounded border text-xs flex items-center justify-between font-mono bg-[var(--surface-surface)] border-[var(--border-subtle)]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="px-1.5 py-0.5 rounded bg-[var(--surface-workspace)] border border-[var(--border-default)] text-[10px] font-bold text-[var(--text-primary)] shrink-0">
@@ -459,11 +439,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     placeholder="Search by customer name, industry, or contact..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all ${
-                      isDark 
-                        ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
-                    }`}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--color-primary)]"
                   />
                 </div>
 
@@ -496,18 +472,14 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                           }}
                           className={`w-full text-left p-3.5 rounded-lg border text-xs transition-all flex items-center justify-between cursor-pointer ${
                             isSelected
-                              ? isDark
-                                ? 'bg-[var(--surface-raised)] border-cyan-500 text-[var(--text-primary)] ring-1 ring-cyan-500'
-                                : 'bg-cyan-50/70 border-cyan-400 text-slate-900 ring-1 ring-cyan-400'
-                              : isDark
-                              ? 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
-                              : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                              ? 'bg-[var(--surface-raised)] border-[var(--color-primary)] text-[var(--text-primary)] ring-1 ring-[var(--color-primary)] shadow-xs'
+                              : 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 ${
                               isSelected 
-                                ? 'bg-[var(--surface-surface)] border-cyan-500 text-cyan-400' 
+                                ? 'bg-[var(--surface-surface)] border-[var(--color-primary)] text-[var(--color-primary)]' 
                                 : 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-muted)]'
                             }`}>
                               <Building2 className="w-4 h-4" />
@@ -522,7 +494,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                           <div className="text-right font-mono flex items-center gap-2 shrink-0">
                             {hasActiveSessions && (
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 font-bold flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                                 <span>Active Job</span>
                               </span>
@@ -541,14 +513,12 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
               {/* RIGHT PANE: BOUND CUSTOMER DETAILS & ASSET PREVIEW */}
               <div className="lg:col-span-5 space-y-4">
                 {selectedCustomer ? (
-                  <div className={`p-5 rounded-lg border space-y-4 ${
-                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-4 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                     <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                         BOUND CUSTOMER ACCOUNT
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
                         SELECTED
                       </span>
                     </div>
@@ -582,9 +552,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                           {customerMachines.map((m) => (
                             <div 
                               key={m.id}
-                              className={`p-2 rounded border text-xs flex items-center justify-between font-mono ${
-                                isDark ? 'bg-[var(--surface-surface)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
-                              }`}
+                              className="p-2 rounded border text-xs flex items-center justify-between font-mono bg-[var(--surface-surface)] border-[var(--border-subtle)]"
                             >
                               <div className="flex items-center gap-2">
                                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
@@ -619,9 +587,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-8 text-center rounded-lg border border-dashed text-xs text-[var(--text-muted)] font-mono ${
-                    isDark ? 'border-[var(--border-default)]' : 'border-slate-300'
-                  }`}>
+                  <div className="p-8 text-center rounded-lg border border-dashed text-xs text-[var(--text-muted)] font-mono border-[var(--border-default)]">
                     Select a customer account from the left directory.
                   </div>
                 )}
@@ -666,11 +632,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                     value={machineSearch}
                     onChange={(e) => setMachineSearch(e.target.value)}
                     placeholder="Search by model, serial number, plant..."
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all ${
-                      isDark 
-                        ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-cyan-500' 
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
-                    }`}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs outline-none transition-all bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--color-primary)]"
                   />
                 </div>
 
@@ -694,18 +656,14 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                           }}
                           className={`w-full text-left p-3.5 rounded-lg border text-xs transition-all flex items-center justify-between cursor-pointer ${
                             isSelected
-                              ? isDark
-                                ? 'bg-[var(--surface-raised)] border-cyan-500 text-[var(--text-primary)] ring-1 ring-cyan-500'
-                                : 'bg-cyan-50/70 border-cyan-400 text-slate-900 ring-1 ring-cyan-400'
-                              : isDark
-                              ? 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
-                              : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                              ? 'bg-[var(--surface-raised)] border-[var(--color-primary)] text-[var(--text-primary)] ring-1 ring-[var(--color-primary)] shadow-xs'
+                              : 'bg-[var(--surface-surface)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:border-[var(--border-default)]'
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 ${
                               isSelected 
-                                ? 'bg-[var(--surface-surface)] border-cyan-500 text-cyan-400' 
+                                ? 'bg-[var(--surface-surface)] border-[var(--color-primary)] text-[var(--color-primary)]' 
                                 : 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-muted)]'
                             }`}>
                               <Cpu className="w-4 h-4" />
@@ -720,15 +678,15 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                           <div className="text-right flex items-center gap-2 font-mono shrink-0">
                             {hasActiveSession ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                                 <span>Active Session</span>
                               </span>
                             ) : (
                               <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
                                 m.status === 'OPERATIONAL' 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                               }`}>
                                 {m.status || 'OPERATIONAL'}
                               </span>
@@ -744,21 +702,19 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
               {/* RIGHT PANE: TARGET EQUIPMENT PASSPORT PREVIEW */}
               <div className="lg:col-span-5 space-y-4">
                 {localSelectedMachine ? (
-                  <div className={`p-5 rounded-lg border space-y-4 ${
-                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-4 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                     <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                         TARGET EQUIPMENT PASSPORT
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-bold">
                         TARGET ASSET
                       </span>
                     </div>
 
                     <div className="space-y-1">
                       <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
-                        <Cpu className="w-4 h-4 text-cyan-400" />
+                        <Cpu className="w-4 h-4 text-[var(--color-primary)]" />
                         <span>{localSelectedMachine.model}</span>
                       </h3>
                       <div className="text-xs text-[var(--text-muted)] font-mono">
@@ -818,9 +774,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-8 text-center rounded-lg border border-dashed text-xs text-[var(--text-muted)] font-mono ${
-                    isDark ? 'border-[var(--border-default)]' : 'border-slate-300'
-                  }`}>
+                  <div className="p-8 text-center rounded-lg border border-dashed text-xs text-[var(--text-muted)] font-mono border-[var(--border-default)]">
                     Select a target machine asset from the left directory.
                   </div>
                 )}
@@ -840,11 +794,9 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
             className="w-full max-w-7xl mx-auto space-y-6"
           >
             {/* BOUND EQUIPMENT SUMMARY BANNER */}
-            <div className={`p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono ${
-              isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-            }`}>
+            <div className="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded border border-cyan-500/40 bg-[var(--surface-surface)] flex items-center justify-center text-cyan-400">
+                <div className="w-9 h-9 rounded border border-[var(--color-primary)]/40 bg-[var(--surface-surface)] flex items-center justify-center text-[var(--color-primary)]">
                   <Cpu className="w-5 h-5" />
                 </div>
                 <div>
@@ -872,9 +824,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* PRIMARY OPTION: RESUME SESSION (7 Cols) */}
                 <div className="lg:col-span-7 space-y-4">
-                  <div className={`p-5 rounded-lg border space-y-4 ${
-                    isDark ? 'bg-[var(--surface-surface)] border-cyan-500/50 ring-1 ring-cyan-500/20' : 'bg-cyan-50/50 border-cyan-400 shadow-xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-4 bg-[var(--surface-surface)] border-cyan-500/50 ring-1 ring-cyan-500/20 shadow-xs">
                     <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -925,7 +875,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                       <button
                         onClick={handleReviewProgress}
-                        className="px-3.5 py-2.5 text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer border border-[var(--border-default)] rounded-lg"
+                        className="px-3.5 py-2.5 text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer border border-[var(--border-default)] rounded-lg bg-[var(--surface-raised)]"
                       >
                         <Eye className="w-3.5 h-3.5 text-cyan-400" />
                         <span>Review Progress (Read-Only)</span>
@@ -936,9 +886,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
 
                 {/* SECONDARY / ALTERNATIVE ACTIONS (5 Cols) */}
                 <div className="lg:col-span-5 space-y-4">
-                  <div className={`p-5 rounded-lg border space-y-3 ${
-                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-                  }`}>
+                  <div className="p-5 rounded-lg border space-y-3 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                     <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)] pb-2 border-b border-[var(--border-subtle)]">
                       ALTERNATIVE PATHWAYS
                     </div>
@@ -958,7 +906,7 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                       </div>
 
                       <div className="p-3 rounded border border-rose-500/20 bg-rose-500/5 space-y-2">
-                        <div className="text-xs font-bold text-rose-400">Discard Incomplete Draft</div>
+                        <div className="text-xs font-bold text-rose-600 dark:text-rose-400">Discard Incomplete Draft</div>
                         <p className="text-[11px] text-[var(--text-muted)]">
                           Remove this uncompleted session if created by error.
                         </p>
@@ -968,9 +916,9 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
                             e.stopPropagation();
                             setSessionToDiscard(existingIncompleteSession);
                           }}
-                          className="px-3.5 py-1.5 rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                           <span>Discard Draft Session</span>
                         </button>
                       </div>
@@ -995,11 +943,9 @@ export const MhcWorkstationSetupFlow: React.FC<MhcWorkstationSetupFlowProps> = (
               </div>
             ) : (
               /* CASE B: NO INCOMPLETE SESSION - READY TO LAUNCH NEW SESSION */
-              <div className={`p-6 rounded-lg border space-y-5 ${
-                isDark ? 'bg-[var(--surface-raised)] border-[var(--border-default)]' : 'bg-white border-slate-200 shadow-2xs'
-              }`}>
+              <div className="p-6 rounded-lg border space-y-5 bg-[var(--surface-raised)] border-[var(--border-default)] shadow-xs">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                  <div className="w-10 h-10 rounded border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">

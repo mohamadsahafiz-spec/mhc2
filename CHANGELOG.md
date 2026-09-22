@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.4.4 — FSOS MHC Autopilot Aero Visual Consistency (2026-09-22)
+
+### MHC Autopilot Aero Consistency Across Activities 01–10
+- **Activity Internal Surface Normalization**: Converted all legacy dark/gray and ternary-hardcoded surfaces across Activities 01 through 10 (`MhcLaserHoursActivity`, `MhcLaserPowerActivity`, `MhcBeamProfileActivity`, `MhcProductProcessActivity`, `MhcStageCalibrationActivity`, `MhcAgcActivity`, `MhcReadinessReviewActivity`, `MhcOpticalMechanicalActivity`, `MhcFocusOptimizationActivity`, `MhcTemperatureEvidenceActivity`, `MhcRecommendationsSparePartsActivity`, and `MhcWorkstationSetupFlow`) to the unified semantic theme system (`bg-[var(--surface-surface)]`, `bg-[var(--surface-raised)]`, `bg-[var(--surface-workspace)]`, `border-[var(--border-default)]`, `border-[var(--border-subtle)]`, `text-[var(--text-primary)]`, `text-[var(--text-secondary)]`, and `text-[var(--text-muted)]`).
+- **Complete Elimination of FSOS Dark Islanding**: Removed all legacy `bg-slate-900`, `bg-slate-950`, and `border-slate-800` hardcoded blocks within measurement cards, disposition controls, baseline spec summaries, and calculation panels.
+- **Glass Specular & Atmospheric Transmission**: In Frutiger Aero mode, all internal activity panels now inherit the atmospheric background, soft frosted translucency, crisp top specular highlights, and clean typography matching the Settings Theme preview.
+- **Strict Logic & PDF Pipeline Isolation**: 100% preservation of all semiconductor physics equations, laser telemetry calculators, Stage/AGC verification logic, inspection milestones, Machine Passport data, and official PDF rendering stationery.
+
 ## v3.4.3 — FSOS Frutiger Aero Autopilot Visual System Propagation (2026-09-22)
 
 ### Frutiger Aero Autopilot Propagation

@@ -295,31 +295,29 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
   };
 
   return (
-    <div className={`p-4 sm:p-6 rounded-2xl border space-y-6 ${
-      isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-    }`}>
+    <div className="p-4 sm:p-6 rounded-card border space-y-6 bg-surface border-theme-default">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-theme-default">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+          <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
             <Crosshair className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                 DAY 2 • 04
               </span>
-              <h2 className="text-lg font-bold text-slate-100">Stage Calibration Autopilot</h2>
+              <h2 className="text-lg font-bold text-theme-primary">Stage Calibration Autopilot</h2>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-theme-secondary mt-0.5">
               Authoritative final X/Y deviation accuracy check (Tolerance: ±2.0 µm)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/60 text-xs font-medium">
-          <span className="text-slate-400 pl-2">Bench Specification:</span>
-          <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold border border-cyan-500/30 flex items-center gap-1">
+        <div className="flex items-center gap-2 bg-raised p-1.5 rounded-xl border border-theme-default text-xs font-medium">
+          <span className="text-theme-muted pl-2">Bench Specification:</span>
+          <span className="px-2 py-1 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-mono font-bold border border-cyan-500/20 flex items-center gap-1">
             <Ruler className="w-3.5 h-3.5" /> ±2.0 µm
           </span>
         </div>
@@ -337,21 +335,17 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
               key={stId}
               type="button"
               onClick={() => setActiveStageId(stId)}
-              className={`p-3.5 rounded-xl border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+              className={`p-3.5 rounded-card border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer ${
                 isActive
-                  ? isDark
-                    ? 'bg-cyan-950/40 border-cyan-500/60 ring-1 ring-cyan-500/30'
-                    : 'bg-cyan-50 border-cyan-400 ring-1 ring-cyan-400/30'
-                  : isDark
-                    ? 'bg-slate-800/40 border-slate-700/60 hover:bg-slate-800/80'
-                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  ? 'bg-cyan-500/10 border-cyan-500/60 ring-1 ring-cyan-500/30'
+                  : 'bg-raised border-theme-default hover:border-theme-strong'
               }`}
             >
               <div className="flex items-center gap-2">
-                <Layers className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                <Layers className={`w-4 h-4 ${isActive ? 'text-cyan-500' : 'text-theme-muted'}`} />
                 <div>
-                  <div className="text-xs font-mono font-bold text-slate-400">{code}</div>
-                  <div className="text-sm font-bold text-slate-200">{label}</div>
+                  <div className="text-xs font-mono font-bold text-theme-muted">{code}</div>
+                  <div className="text-sm font-bold text-theme-primary">{label}</div>
                 </div>
               </div>
               <div>{getStageTabStatus(stId)}</div>
@@ -361,14 +355,12 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
       </div>
 
       {/* Stage Active Workspace Card */}
-      <div className={`p-5 rounded-xl border space-y-6 ${
-        isDark ? 'bg-slate-800/30 border-slate-700/60' : 'bg-slate-50/80 border-slate-200'
-      }`}>
+      <div className="p-5 rounded-card border space-y-6 bg-raised border-theme-default">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
+          <h3 className="font-bold text-base text-theme-primary flex items-center gap-2">
             <span>{activeStageId === 'stage1' ? 'Stage 1' : 'Stage 2'} Final Result Data Entry</span>
             {currentRecord.status === 'COMPLETED' && currentRecord.verdict === 'PASS' && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 Authoritative Record
               </span>
             )}
@@ -378,7 +370,7 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
               type="button"
               onClick={handleResetStage}
               disabled={isReadOnly}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-theme-muted hover:text-theme-primary flex items-center gap-1 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Re-enter Readings
             </button>
@@ -389,9 +381,9 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* X Min */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>X Min Deviation (µm)</span>
-              <span className="text-[10px] text-slate-400 font-mono">Spec ±2.0</span>
+              <span className="text-[10px] text-theme-muted font-mono">Spec ±2.0</span>
             </label>
             <div className="relative">
               <input
@@ -403,21 +395,19 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 disabled={isReadOnly}
                 className={`w-full px-3 py-2 rounded-lg border font-mono text-sm transition-all ${
                   xMin !== null && Math.abs(xMin) > 2.0
-                    ? 'border-rose-500 bg-rose-950/20 text-rose-300 focus:ring-rose-500'
-                    : isDark
-                      ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                      : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600'
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                    : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
                 }`}
               />
-              <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">µm</span>
+              <span className="absolute right-3 top-2.5 text-xs text-theme-muted font-mono">µm</span>
             </div>
           </div>
 
           {/* X Max */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>X Max Deviation (µm)</span>
-              <span className="text-[10px] text-slate-400 font-mono">Spec ±2.0</span>
+              <span className="text-[10px] text-theme-muted font-mono">Spec ±2.0</span>
             </label>
             <div className="relative">
               <input
@@ -429,21 +419,19 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 disabled={isReadOnly}
                 className={`w-full px-3 py-2 rounded-lg border font-mono text-sm transition-all ${
                   xMax !== null && Math.abs(xMax) > 2.0
-                    ? 'border-rose-500 bg-rose-950/20 text-rose-300 focus:ring-rose-500'
-                    : isDark
-                      ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                      : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600'
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                    : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
                 }`}
               />
-              <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">µm</span>
+              <span className="absolute right-3 top-2.5 text-xs text-theme-muted font-mono">µm</span>
             </div>
           </div>
 
           {/* Y Min */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>Y Min Deviation (µm)</span>
-              <span className="text-[10px] text-slate-400 font-mono">Spec ±2.0</span>
+              <span className="text-[10px] text-theme-muted font-mono">Spec ±2.0</span>
             </label>
             <div className="relative">
               <input
@@ -455,21 +443,19 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 disabled={isReadOnly}
                 className={`w-full px-3 py-2 rounded-lg border font-mono text-sm transition-all ${
                   yMin !== null && Math.abs(yMin) > 2.0
-                    ? 'border-rose-500 bg-rose-950/20 text-rose-300 focus:ring-rose-500'
-                    : isDark
-                      ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                      : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600'
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                    : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
                 }`}
               />
-              <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">µm</span>
+              <span className="absolute right-3 top-2.5 text-xs text-theme-muted font-mono">µm</span>
             </div>
           </div>
 
           {/* Y Max */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>Y Max Deviation (µm)</span>
-              <span className="text-[10px] text-slate-400 font-mono">Spec ±2.0</span>
+              <span className="text-[10px] text-theme-muted font-mono">Spec ±2.0</span>
             </label>
             <div className="relative">
               <input
@@ -481,13 +467,11 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 disabled={isReadOnly}
                 className={`w-full px-3 py-2 rounded-lg border font-mono text-sm transition-all ${
                   yMax !== null && Math.abs(yMax) > 2.0
-                    ? 'border-rose-500 bg-rose-950/20 text-rose-300 focus:ring-rose-500'
-                    : isDark
-                      ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                      : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600'
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                    : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
                 }`}
               />
-              <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">µm</span>
+              <span className="absolute right-3 top-2.5 text-xs text-theme-muted font-mono">µm</span>
             </div>
           </div>
         </div>
@@ -495,104 +479,104 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
         {/* Real-time Validation Metrics Dashboard */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
           {/* Max Abs X */}
-          <div className={`p-3.5 rounded-xl border ${
+          <div className={`p-3.5 rounded-card border ${
             maxAbsX === null
-              ? 'bg-slate-900/40 border-slate-800'
+              ? 'bg-workspace border-theme-default'
               : maxAbsX > 2.0
-                ? 'bg-rose-950/30 border-rose-500/50'
-                : 'bg-emerald-950/20 border-emerald-500/30'
+                ? 'bg-rose-500/10 border-rose-500/40'
+                : 'bg-emerald-500/10 border-emerald-500/30'
           }`}>
-            <div className="text-[11px] text-slate-400 font-medium">Max Abs X Deviation</div>
+            <div className="text-[11px] text-theme-muted font-medium">Max Abs X Deviation</div>
             <div className={`text-lg font-mono font-bold mt-1 ${
               maxAbsX === null
-                ? 'text-slate-500'
+                ? 'text-theme-muted'
                 : maxAbsX > 2.0
-                  ? 'text-rose-400'
-                  : 'text-emerald-400'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
             }`}>
               {maxAbsX !== null ? `${maxAbsX.toFixed(2)} µm` : '—'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
+            <div className="text-[10px] text-theme-muted mt-1 font-mono">
               {maxAbsX !== null ? (maxAbsX <= 2.0 ? '✓ ≤ 2.0 µm' : '⚠ Exceeds Limit') : 'Awaiting input'}
             </div>
           </div>
 
           {/* Max Abs Y */}
-          <div className={`p-3.5 rounded-xl border ${
+          <div className={`p-3.5 rounded-card border ${
             maxAbsY === null
-              ? 'bg-slate-900/40 border-slate-800'
+              ? 'bg-workspace border-theme-default'
               : maxAbsY > 2.0
-                ? 'bg-rose-950/30 border-rose-500/50'
-                : 'bg-emerald-950/20 border-emerald-500/30'
+                ? 'bg-rose-500/10 border-rose-500/40'
+                : 'bg-emerald-500/10 border-emerald-500/30'
           }`}>
-            <div className="text-[11px] text-slate-400 font-medium">Max Abs Y Deviation</div>
+            <div className="text-[11px] text-theme-muted font-medium">Max Abs Y Deviation</div>
             <div className={`text-lg font-mono font-bold mt-1 ${
               maxAbsY === null
-                ? 'text-slate-500'
+                ? 'text-theme-muted'
                 : maxAbsY > 2.0
-                  ? 'text-rose-400'
-                  : 'text-emerald-400'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
             }`}>
               {maxAbsY !== null ? `${maxAbsY.toFixed(2)} µm` : '—'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
+            <div className="text-[10px] text-theme-muted mt-1 font-mono">
               {maxAbsY !== null ? (maxAbsY <= 2.0 ? '✓ ≤ 2.0 µm' : '⚠ Exceeds Limit') : 'Awaiting input'}
             </div>
           </div>
 
           {/* Overall Max Dev */}
-          <div className={`p-3.5 rounded-xl border ${
+          <div className={`p-3.5 rounded-card border ${
             overallMaxDev === null
-              ? 'bg-slate-900/40 border-slate-800'
+              ? 'bg-workspace border-theme-default'
               : overallMaxDev > 2.0
-                ? 'bg-rose-950/30 border-rose-500/50'
-                : 'bg-cyan-950/30 border-cyan-500/30'
+                ? 'bg-rose-500/10 border-rose-500/40'
+                : 'bg-cyan-500/10 border-cyan-500/30'
           }`}>
-            <div className="text-[11px] text-slate-400 font-medium">Overall Max Deviation</div>
+            <div className="text-[11px] text-theme-muted font-medium">Overall Max Deviation</div>
             <div className={`text-lg font-mono font-bold mt-1 ${
               overallMaxDev === null
-                ? 'text-slate-500'
+                ? 'text-theme-muted'
                 : overallMaxDev > 2.0
-                  ? 'text-rose-400'
-                  : 'text-cyan-300'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-cyan-600 dark:text-cyan-400'
             }`}>
               {overallMaxDev !== null ? `${overallMaxDev.toFixed(2)} µm` : '—'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1 font-mono">
+            <div className="text-[10px] text-theme-muted mt-1 font-mono">
               Worst-case X/Y offset
             </div>
           </div>
 
           {/* Overall Verdict Badge */}
-          <div className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+          <div className={`p-3.5 rounded-card border flex flex-col justify-between ${
             liveVerdict === 'PASS'
-              ? 'bg-emerald-950/30 border-emerald-500/50'
+              ? 'bg-emerald-500/10 border-emerald-500/40'
               : liveVerdict === 'OUT_OF_SPEC'
-                ? 'bg-rose-950/40 border-rose-500/60'
-                : 'bg-slate-900/40 border-slate-800'
+                ? 'bg-rose-500/10 border-rose-500/50'
+                : 'bg-workspace border-theme-default'
           }`}>
-            <div className="text-[11px] text-slate-400 font-medium">Specification Verdict</div>
+            <div className="text-[11px] text-theme-muted font-medium">Specification Verdict</div>
             <div className="mt-1">
               {liveVerdict === 'PASS' && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/30">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   <span>PASS (Within Spec)</span>
                 </div>
               )}
               {liveVerdict === 'OUT_OF_SPEC' && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 font-bold text-xs border border-rose-500/40">
-                  <XCircle className="w-4 h-4 text-rose-400" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-500/40">
+                  <XCircle className="w-4 h-4 text-rose-500" />
                   <span>OUT OF SPEC</span>
                 </div>
               )}
               {liveVerdict === 'UNANSWERED' && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold text-xs border border-slate-700">
-                  <Info className="w-4 h-4 text-slate-400" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-raised text-theme-muted font-bold text-xs border border-theme-default">
+                  <Info className="w-4 h-4 text-theme-muted" />
                   <span>INCOMPLETE</span>
                 </div>
               )}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1">
+            <div className="text-[10px] text-theme-muted mt-1">
               {liveVerdict === 'PASS' ? 'Ready to confirm' : liveVerdict === 'OUT_OF_SPEC' ? 'Needs adjustment' : 'Enter 4 values'}
             </div>
           </div>
@@ -600,30 +584,30 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
 
         {/* Dynamic Alert Banner */}
         {!hasAllValues && (
-          <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-slate-300 flex items-center gap-2">
-            <Info className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="p-3.5 rounded-card bg-workspace border border-theme-default text-xs text-theme-secondary flex items-center gap-2">
+            <Info className="w-4 h-4 text-theme-muted shrink-0" />
             <span>Please enter all 4 deviation readings (X Min, X Max, Y Min, Y Max) in µm to evaluate stage accuracy.</span>
           </div>
         )}
 
         {hasAllValues && isOutOfSpec && (
-          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/50 text-xs text-rose-200 space-y-1">
-            <div className="flex items-center gap-2 font-bold text-rose-300 text-sm">
-              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+          <div className="p-4 rounded-card bg-rose-500/10 border border-rose-500/40 text-xs text-rose-700 dark:text-rose-300 space-y-1">
+            <div className="flex items-center gap-2 font-bold text-rose-600 dark:text-rose-400 text-sm">
+              <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
               <span>OUT OF SPEC — Maximum Deviation Exceeds ±2.0 µm</span>
             </div>
-            <p className="text-rose-300/90 pl-7">
+            <p className="text-rose-600/90 dark:text-rose-300/90 pl-7">
               The recorded stage deviation ({overallMaxDev?.toFixed(2)} µm) exceeds the allowable benchmark limit of ±2.0 µm. Pass cannot be granted until physical mechanical stage re-alignment is performed.
             </p>
           </div>
         )}
 
         {hasAllValues && !isOutOfSpec && (
-          <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="p-4 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             <div>
-              <span className="font-bold text-emerald-300">PASS — All Readings Within Specification</span>
-              <p className="text-emerald-300/80 mt-0.5">
+              <span className="font-bold text-emerald-600 dark:text-emerald-300">PASS — All Readings Within Specification</span>
+              <p className="text-emerald-600/80 dark:text-emerald-300/80 mt-0.5">
                 Maximum stage deviation is {overallMaxDev?.toFixed(2)} µm (Benchmark tolerance: ±2.0 µm). Ready to save authoritative result.
               </p>
             </div>
@@ -634,9 +618,9 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
           {/* Optional Engineer Note */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>Optional Engineer Note</span>
-              <span className="text-[10px] text-slate-400">Re-run observation or calibration log</span>
+              <span className="text-[10px] text-theme-muted">Re-run observation or calibration log</span>
             </label>
             <textarea
               rows={3}
@@ -644,37 +628,33 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
               value={engineerNote}
               onChange={e => setEngineerNote(e.target.value)}
               disabled={isReadOnly}
-              className={`w-full px-3 py-2 rounded-lg border text-xs transition-all ${
-                isDark
-                  ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
-                  : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-600'
-              }`}
+              className="w-full px-3 py-2 rounded-lg border text-xs transition-all bg-workspace border-theme-default text-theme-primary focus:border-cyan-500 outline-none"
             />
           </div>
 
           {/* Optional Evidence Image */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-theme-secondary flex items-center justify-between">
               <span>Optional Calibration Image / Document</span>
-              <span className="text-[10px] text-slate-400">Attach externally prepared report image</span>
+              <span className="text-[10px] text-theme-muted">Attach externally prepared report image</span>
             </label>
 
             {evidenceImage ? (
-              <div className="relative p-2 rounded-xl border border-slate-700 bg-slate-900 flex items-center gap-3">
+              <div className="relative p-2 rounded-card border border-theme-default bg-workspace flex items-center gap-3">
                 <img
                   src={evidenceImage}
                   alt="Stage Calibration Evidence"
-                  className="w-14 h-14 object-cover rounded-lg border border-slate-700"
+                  className="w-14 h-14 object-cover rounded-lg border border-theme-default"
                 />
                 <div className="flex-1 min-w-0 text-xs">
-                  <div className="font-semibold text-slate-200 truncate">Calibration Evidence Attached</div>
-                  <div className="text-[10px] text-slate-400">Optional evidence ready</div>
+                  <div className="font-semibold text-theme-primary truncate">Calibration Evidence Attached</div>
+                  <div className="text-[10px] text-theme-muted">Optional evidence ready</div>
                 </div>
                 {!isReadOnly && (
                   <button
                     type="button"
                     onClick={() => setEvidenceImage('')}
-                    className="p-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 transition-colors"
+                    className="p-1.5 rounded-lg bg-rose-500/20 text-rose-500 hover:bg-rose-500/30 transition-colors cursor-pointer"
                     title="Remove Image"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -682,14 +662,12 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 )}
               </div>
             ) : (
-              <label className={`p-3 rounded-xl border border-dashed text-center flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors ${
-                isDark ? 'bg-slate-900/50 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-300 hover:border-slate-400'
-              }`}>
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                  <Upload className="w-4 h-4 text-cyan-400" />
+              <label className="p-3 rounded-card border border-dashed text-center flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors bg-workspace border-theme-default hover:border-theme-strong">
+                <div className="flex items-center gap-2 text-xs text-theme-muted font-medium">
+                  <Upload className="w-4 h-4 text-cyan-500" />
                   <span>Click to attach evidence image</span>
                 </div>
-                <span className="text-[10px] text-slate-500">PNG, JPG up to 5MB</span>
+                <span className="text-[10px] text-theme-muted">PNG, JPG up to 5MB</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -704,17 +682,17 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
 
         {/* Engineer Disposition Selection & Control Block */}
         {hasAllValues && (
-          <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/20 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-2">
+          <div className="p-4 rounded-card border border-cyan-500/30 bg-cyan-500/5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme-default pb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+                <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">
                   Engineer Activity Disposition
                 </span>
-                <span className="text-[10px] text-slate-400 font-sans">
-                  (System Result: <strong className={isOutOfSpec ? 'text-rose-400' : 'text-emerald-400'}>{isOutOfSpec ? 'OUT OF SPEC' : 'PASS'}</strong>)
+                <span className="text-[10px] text-theme-muted font-sans">
+                  (System Result: <strong className={isOutOfSpec ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>{isOutOfSpec ? 'OUT OF SPEC' : 'PASS'}</strong>)
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-[10px] font-mono text-theme-muted">
                 Independent Field Engineer Review
               </span>
             </div>
@@ -724,79 +702,79 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
                 type="button"
                 onClick={() => setSelectedDisposition('PASS')}
                 disabled={isReadOnly}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-2.5 rounded-card border text-left flex flex-col justify-between transition-all cursor-pointer ${
                   selectedDisposition === 'PASS'
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/50 shadow-md shadow-emerald-950/40'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/50 shadow-sm'
+                    : 'bg-surface border-theme-default text-theme-secondary hover:border-theme-strong'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold font-mono">PASS</span>
-                  {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                  {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1">Within Spec / Verified</span>
+                <span className="text-[10px] text-theme-muted mt-1">Within Spec / Verified</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSelectedDisposition('ACCEPTED_DEVIATION')}
                 disabled={isReadOnly}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-2.5 rounded-card border text-left flex flex-col justify-between transition-all cursor-pointer ${
                   selectedDisposition === 'ACCEPTED_DEVIATION'
-                    ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 ring-1 ring-cyan-500/50 shadow-md shadow-cyan-950/40'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-cyan-500/20 border-cyan-500 text-cyan-600 dark:text-cyan-300 ring-1 ring-cyan-500/50 shadow-sm'
+                    : 'bg-surface border-theme-default text-theme-secondary hover:border-theme-strong'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
-                  {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                  {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-cyan-500" />}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1">Accept Drift & Proceed</span>
+                <span className="text-[10px] text-theme-muted mt-1">Accept Drift & Proceed</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSelectedDisposition('CONDITIONAL_PASS')}
                 disabled={isReadOnly}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-2.5 rounded-card border text-left flex flex-col justify-between transition-all cursor-pointer ${
                   selectedDisposition === 'CONDITIONAL_PASS'
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-md shadow-amber-950/40'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/50 shadow-sm'
+                    : 'bg-surface border-theme-default text-theme-secondary hover:border-theme-strong'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold font-mono">CONDITIONAL PASS</span>
-                  {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+                  {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1">Monitor next interval</span>
+                <span className="text-[10px] text-theme-muted mt-1">Monitor next interval</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSelectedDisposition('FAIL')}
                 disabled={isReadOnly}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                className={`p-2.5 rounded-card border text-left flex flex-col justify-between transition-all cursor-pointer ${
                   selectedDisposition === 'FAIL'
-                    ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/50 shadow-md shadow-rose-950/40'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    ? 'bg-rose-500/20 border-rose-500 text-rose-600 dark:text-rose-300 ring-1 ring-rose-500/50 shadow-sm'
+                    : 'bg-surface border-theme-default text-theme-secondary hover:border-theme-strong'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold font-mono">FAIL</span>
-                  {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
+                  {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-500" />}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1">Mechanical fix required</span>
+                <span className="text-[10px] text-theme-muted mt-1">Mechanical fix required</span>
               </button>
             </div>
           </div>
         )}
 
         {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-700/50">
-          <div className="text-xs text-slate-400 font-mono">
-            Active Unit: <span className="font-bold text-slate-200">{activeStageId === 'stage1' ? 'Stage 1' : 'Stage 2'}</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-theme-default">
+          <div className="text-xs text-theme-secondary font-mono">
+            Active Unit: <span className="font-bold text-theme-primary">{activeStageId === 'stage1' ? 'Stage 1' : 'Stage 2'}</span>
             {hasAllValues && (
-              <span className="ml-2 text-cyan-400 font-semibold">
+              <span className="ml-2 text-cyan-600 dark:text-cyan-400 font-semibold">
                 • Disposition: {selectedDisposition}
               </span>
             )}
@@ -807,14 +785,14 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
               <button
                 type="button"
                 onClick={() => saveStageResult(selectedDisposition)}
-                className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
+                className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
                   selectedDisposition === 'FAIL'
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/30'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white'
                     : selectedDisposition === 'ACCEPTED_DEVIATION'
-                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-950/30'
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
                     : selectedDisposition === 'CONDITIONAL_PASS'
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/30'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/30'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
@@ -829,7 +807,7 @@ export const MhcStageCalibrationActivity: React.FC<MhcStageCalibrationActivityPr
               <button
                 type="button"
                 disabled
-                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs border border-slate-700/60 cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-raised text-theme-muted font-bold text-xs border border-theme-default cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <span>Enter 4 Readings to Save</span>
               </button>

@@ -431,30 +431,26 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
   return (
     <div className="space-y-6">
       {/* HEADER BANNER */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-900'
-      }`}>
+      <div className="p-4 rounded-card border space-y-2 bg-raised border-cyan-500/30 text-theme-primary">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-cyan-400 shrink-0" />
+            <Eye className="w-5 h-5 text-cyan-500 dark:text-cyan-400 shrink-0" />
             <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
               Day 1 • Activity 02 & 03: Optical & Mechanical Inspection Workspace
             </h3>
           </div>
-          <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+          <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
             HEAD INDEPENDENCE ACTIVE
           </span>
         </div>
 
-        <p className="text-xs text-slate-300 leading-relaxed">
+        <p className="text-xs text-theme-secondary leading-relaxed">
           Record optical and mechanical inspection findings independently for Laser Head 1 and Laser Head 2. Capture component damage, actionable recommendations, and optional evidence image attachments.
         </p>
       </div>
 
       {/* LASER HEAD SWITCHER TABS & INDEPENDENT STATUS BAR */}
-      <div className={`p-3 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
-        isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
+      <div className="p-3 rounded-card border flex flex-wrap items-center justify-between gap-3 bg-surface border-theme-default">
         <div className="flex items-center gap-2">
           {/* Head 1 Tab */}
           <button
@@ -462,17 +458,17 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeHeadKey === 'lh1'
                 ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700'
+                : 'bg-raised hover:bg-workspace text-theme-secondary border border-theme-default'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Laser Head 1</span>
             <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-extrabold border ${
               head1Data.status === 'COMPLETED'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
                 : head1Data.status === 'NEEDS_REVIEW'
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                : 'bg-slate-900 text-slate-400 border-slate-700'
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40'
+                : 'bg-workspace text-theme-muted border-theme-default'
             }`}>
               {head1Data.status === 'COMPLETED' ? '✓ DONE' : head1Data.status === 'NEEDS_REVIEW' ? '⚠ REVIEW' : 'PENDING'}
             </span>
@@ -484,17 +480,17 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeHeadKey === 'lh2'
                 ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700'
+                : 'bg-raised hover:bg-workspace text-theme-secondary border border-theme-default'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Laser Head 2</span>
             <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-extrabold border ${
               head2Data.status === 'COMPLETED'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
                 : head2Data.status === 'NEEDS_REVIEW'
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                : 'bg-slate-900 text-slate-400 border-slate-700'
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40'
+                : 'bg-workspace text-theme-muted border-theme-default'
             }`}>
               {head2Data.status === 'COMPLETED' ? '✓ DONE' : head2Data.status === 'NEEDS_REVIEW' ? '⚠ REVIEW' : 'PENDING'}
             </span>
@@ -502,33 +498,33 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
         </div>
 
         <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="text-slate-400">ACTIVE:</span>
-          <span className="font-extrabold text-cyan-300">{headState.headName}</span>
+          <span className="text-theme-muted">ACTIVE:</span>
+          <span className="font-extrabold text-cyan-600 dark:text-cyan-300">{headState.headName}</span>
         </div>
       </div>
 
       {/* START QUESTION CARD */}
-      <div className={`p-5 rounded-2xl border space-y-4 ${
+      <div className={`p-5 rounded-card border space-y-4 ${
         headState.decision === 'NO_ISSUE'
-          ? 'bg-emerald-950/20 border-emerald-500/30'
+          ? 'bg-emerald-500/10 border-emerald-500/30'
           : headState.decision === 'ISSUE_FOUND'
-          ? 'bg-amber-950/20 border-amber-500/30'
-          : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+          ? 'bg-amber-500/10 border-amber-500/30'
+          : 'bg-surface border-theme-default'
       }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-cyan-400 shrink-0" />
-            <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
+            <Search className="w-5 h-5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+            <h4 className="font-extrabold text-sm sm:text-base text-theme-primary">
               {headState.headName} — Any component requiring attention?
             </h4>
           </div>
 
           <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
             headState.decision === 'NO_ISSUE'
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
               : headState.decision === 'ISSUE_FOUND'
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-              : 'bg-slate-800 text-slate-400 border-slate-700'
+              ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/40'
+              : 'bg-workspace text-theme-muted border-theme-default'
           }`}>
             {headState.decision === 'NO_ISSUE' ? 'NO ISSUE FOUND' : headState.decision === 'ISSUE_FOUND' ? 'ISSUE / RECOMMENDATION FOUND' : 'DECISION REQUIRED'}
           </span>
@@ -542,14 +538,14 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             onClick={() => handleSelectDecision('NO_ISSUE')}
             className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
               headState.decision === 'NO_ISSUE'
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-200 ring-2 ring-emerald-500/30'
-                : 'bg-slate-900 hover:bg-slate-800/80 border-slate-800 text-slate-300'
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-200 ring-2 ring-emerald-500/30'
+                : 'bg-raised hover:bg-workspace border-theme-default text-theme-secondary'
             }`}
           >
-            <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${headState.decision === 'NO_ISSUE' ? 'text-emerald-400' : 'text-slate-500'}`} />
+            <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${headState.decision === 'NO_ISSUE' ? 'text-emerald-500' : 'text-theme-muted'}`} />
             <div>
-              <div className="font-bold text-xs uppercase font-mono">No issue found</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="font-bold text-xs uppercase font-mono text-theme-primary">No issue found</div>
+              <div className="text-[11px] text-theme-muted mt-0.5">
                 All cameras, lenses, optics, and mirrors on {headState.headName} are clean and in nominal working condition.
               </div>
             </div>
@@ -561,14 +557,14 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             onClick={() => handleSelectDecision('ISSUE_FOUND')}
             className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
               headState.decision === 'ISSUE_FOUND'
-                ? 'bg-amber-500/20 border-amber-500 text-amber-200 ring-2 ring-amber-500/30'
-                : 'bg-slate-900 hover:bg-slate-800/80 border-slate-800 text-slate-300'
+                ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-200 ring-2 ring-amber-500/30'
+                : 'bg-raised hover:bg-workspace border-theme-default text-theme-secondary'
             }`}
           >
-            <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${headState.decision === 'ISSUE_FOUND' ? 'text-amber-400' : 'text-slate-500'}`} />
+            <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${headState.decision === 'ISSUE_FOUND' ? 'text-amber-500' : 'text-theme-muted'}`} />
             <div>
-              <div className="font-bold text-xs uppercase font-mono">Issue / recommendation found</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="font-bold text-xs uppercase font-mono text-theme-primary">Issue / recommendation found</div>
+              <div className="text-[11px] text-theme-muted mt-0.5">
                 Record damage, burn marks, contamination, or recommended replacement on {headState.headName}.
               </div>
             </div>
@@ -581,23 +577,21 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
         <div className="space-y-6">
           {/* ADD NEW FINDING DRAFT FORM */}
           {!isReadOnly && (
-            <div className={`p-5 rounded-2xl border space-y-5 ${
-              isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
-            }`}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="p-5 rounded-card border space-y-5 bg-surface border-theme-default">
+              <div className="flex items-center justify-between pb-3 border-b border-theme-default">
                 <div className="flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-cyan-400" />
-                  <h4 className="font-bold text-sm text-slate-100">
+                  <Plus className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
+                  <h4 className="font-bold text-sm text-theme-primary">
                     Record Inspection Finding on {headState.headName}
                   </h4>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">PROGRESSIVE FORM</span>
+                <span className="text-[10px] font-mono text-theme-muted">PROGRESSIVE FORM</span>
               </div>
 
               {/* 1. COMPONENT SELECTION */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">1</span>
+                <label className="text-xs font-mono font-bold text-theme-secondary flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">1</span>
                   <span>Select Affected Component / Area *</span>
                 </label>
 
@@ -609,8 +603,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                       onClick={() => setSelectedComponent(comp)}
                       className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer ${
                         selectedComponent === comp
-                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-200 font-bold'
-                          : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-700 dark:text-cyan-200 font-bold'
+                          : 'bg-raised border-theme-default hover:border-theme-strong text-theme-secondary'
                       }`}
                     >
                       {comp}
@@ -625,7 +619,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                       value={customComponent}
                       onChange={e => setCustomComponent(e.target.value)}
                       placeholder="Specify custom component name (e.g. Beam Expander Optic)"
-                      className="w-full px-3.5 py-2 rounded-xl border bg-slate-950 border-slate-700 text-xs text-slate-100 outline-none focus:border-cyan-500 font-mono"
+                      className="w-full px-3.5 py-2 rounded-xl border bg-workspace border-theme-default text-xs text-theme-primary outline-none focus:border-cyan-500 font-mono"
                     />
                   </div>
                 )}
@@ -633,8 +627,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
 
               {/* 2. CONDITION / DAMAGE SELECTION */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">2</span>
+                <label className="text-xs font-mono font-bold text-theme-secondary flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">2</span>
                   <span>Select Observed Condition / Damage (Multi-select) *</span>
                 </label>
 
@@ -648,11 +642,11 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                         onClick={() => handleToggleCondition(cond)}
                         className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-200 font-bold'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-200 font-bold'
+                            : 'bg-raised border-theme-default text-theme-muted hover:text-theme-primary'
                         }`}
                       >
-                        {isSelected ? <Check className="w-3.5 h-3.5 text-amber-400" /> : <Plus className="w-3.5 h-3.5 text-slate-600" />}
+                        {isSelected ? <Check className="w-3.5 h-3.5 text-amber-500" /> : <Plus className="w-3.5 h-3.5 text-theme-muted" />}
                         <span>{cond}</span>
                       </button>
                     );
@@ -666,7 +660,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                       value={customConditionDetail}
                       onChange={e => setCustomConditionDetail(e.target.value)}
                       placeholder="Specify custom condition details"
-                      className="w-full px-3 py-1.5 rounded-lg border bg-slate-950 border-slate-700 text-xs text-slate-100 outline-none focus:border-cyan-500 font-mono"
+                      className="w-full px-3 py-1.5 rounded-lg border bg-workspace border-theme-default text-xs text-theme-primary outline-none focus:border-cyan-500 font-mono"
                     />
                   </div>
                 )}
@@ -674,12 +668,12 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
 
               {/* KNOWN ENGINEERING RULE BANNER */}
               {isBurnedOptic && (
-                <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/50 text-rose-200 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-rose-300 uppercase">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-700 dark:text-rose-200 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-rose-600 dark:text-rose-300 uppercase">
+                    <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
                     <span>Known Engineering Constraint</span>
                   </div>
-                  <p className="text-xs leading-relaxed text-rose-200">
+                  <p className="text-xs leading-relaxed text-rose-700 dark:text-rose-200">
                     A burned transmitting lens/optic cannot be restored by cleaning and requires replacement.
                   </p>
                 </div>
@@ -687,8 +681,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
 
               {/* 3. ACTION / RECOMMENDATION */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">3</span>
+                <label className="text-xs font-mono font-bold text-theme-secondary flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]">3</span>
                   <span>Action / Recommendation *</span>
                 </label>
 
@@ -701,9 +695,9 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                       className={`p-2.5 rounded-xl border text-center text-xs font-mono font-bold transition-all cursor-pointer ${
                         selectedAction === act
                           ? act === 'Replacement required'
-                            ? 'bg-rose-500/20 border-rose-500 text-rose-200 ring-1 ring-rose-500/30'
-                            : 'bg-indigo-500/20 border-indigo-500 text-indigo-200 ring-1 ring-indigo-500/30'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-rose-500/20 border-rose-500 text-rose-700 dark:text-rose-200 ring-1 ring-rose-500/30'
+                            : 'bg-indigo-500/20 border-indigo-500 text-indigo-700 dark:text-indigo-200 ring-1 ring-indigo-500/30'
+                          : 'bg-raised border-theme-default text-theme-muted hover:text-theme-primary'
                       }`}
                     >
                       {act}
@@ -712,7 +706,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                 </div>
 
                 {isCleaningBurnedOptic && (
-                  <p className="text-[11px] font-mono text-rose-400 font-bold pt-1">
+                  <p className="text-[11px] font-mono text-rose-500 font-bold pt-1">
                     ⚠ Warning: Burned transmitting optics cannot be restored by cleaning. Please select "Replacement required" or "Recommended replacement".
                   </p>
                 )}
@@ -722,8 +716,8 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Note */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-300 font-bold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                  <label className="text-[11px] font-mono text-theme-secondary font-bold flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
                     <span>Engineer Observation Note (Optional)</span>
                   </label>
                   <input
@@ -731,14 +725,14 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                     value={engineerNote}
                     onChange={e => setEngineerNote(e.target.value)}
                     placeholder="e.g. Center burn mark observed on optic lens with 15% power drop"
-                    className="w-full px-3 py-2 rounded-xl border bg-slate-950 border-slate-700 text-xs text-slate-100 outline-none focus:border-cyan-500 font-mono"
+                    className="w-full px-3 py-2 rounded-xl border bg-workspace border-theme-default text-xs text-theme-primary outline-none focus:border-cyan-500 font-mono"
                   />
                 </div>
 
                 {/* Optional Image */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-300 font-bold flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <label className="text-[11px] font-mono text-theme-secondary font-bold flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
                     <span>Evidence Image Attachment (Optional)</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -757,14 +751,14 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                         <button
                           type="button"
                           onClick={() => setEvidenceImage(undefined)}
-                          className="p-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                          className="p-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : (
-                      <label className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono transition-all flex items-center gap-2 cursor-pointer">
-                        <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                      <label className="px-3 py-2 rounded-xl bg-raised hover:bg-workspace text-theme-secondary border border-theme-default text-xs font-mono transition-all flex items-center gap-2 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
                         <span>Attach Image File</span>
                         <input
                           type="file"
@@ -781,10 +775,10 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
               </div>
 
               {/* 5. AI FINDING ASSISTANCE */}
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-xl bg-workspace border border-theme-default space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-200">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-theme-primary">
+                    <Sparkles className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                     <span>AI Finding Report Wording (Editable)</span>
                   </div>
 
@@ -792,9 +786,9 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                     type="button"
                     disabled={isGeneratingAi}
                     onClick={handleGenerateAiWording}
-                    className="px-3 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                    <Sparkles className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
                     <span>{isGeneratingAi ? 'Formatting...' : 'Generate Finding Wording'}</span>
                   </button>
                 </div>
@@ -804,7 +798,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                   value={aiWording}
                   onChange={e => setAiWording(e.target.value)}
                   placeholder="Click 'Generate Finding Wording' or type formal technical report text here..."
-                  className="w-full px-3 py-2 rounded-xl border bg-slate-900 border-slate-700 text-xs text-slate-100 outline-none focus:border-indigo-500 font-mono resize-none"
+                  className="w-full px-3 py-2 rounded-xl border bg-raised border-theme-default text-xs text-theme-primary outline-none focus:border-indigo-500 font-mono resize-none"
                 />
               </div>
 
@@ -816,7 +810,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                   disabled={isCleaningBurnedOptic}
                   className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all cursor-pointer ${
                     isCleaningBurnedOptic
-                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                      ? 'bg-workspace text-theme-muted border border-theme-default cursor-not-allowed'
                       : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
                   }`}
                 >
@@ -829,13 +823,13 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
 
           {/* RECORDED FINDINGS LIST FOR ACTIVE HEAD */}
           <div className="space-y-3">
-            <h5 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <FileText className="w-4 h-4 text-cyan-400" />
+            <h5 className="text-xs font-mono font-bold text-theme-secondary uppercase tracking-wider flex items-center gap-2">
+              <FileText className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               <span>Recorded Findings for {headState.headName} ({headState.findings.length})</span>
             </h5>
 
             {headState.findings.length === 0 ? (
-              <div className="p-6 rounded-2xl border border-dashed border-slate-800 text-center text-slate-500 text-xs font-mono">
+              <div className="p-6 rounded-card border border-dashed border-theme-default text-center text-theme-muted text-xs font-mono">
                 No individual component findings recorded for {headState.headName} yet. Use the form above to add an issue finding or select "No issue found".
               </div>
             ) : (
@@ -843,19 +837,19 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                 {headState.findings.map(item => (
                   <div
                     key={item.id}
-                    className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2.5 transition-all hover:border-slate-700"
+                    className="p-4 rounded-xl bg-surface border border-theme-default space-y-2.5 transition-all hover:border-theme-strong"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-amber-400 shrink-0" />
-                        <span className="font-bold text-xs text-slate-100">{item.component}</span>
+                        <Wrench className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                        <span className="font-bold text-xs text-theme-primary">{item.component}</span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
                           item.actionRecommendation === 'Replacement required'
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                            : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                            ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                            : 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/40'
                         }`}>
                           {item.actionRecommendation}
                         </span>
@@ -864,7 +858,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                           <button
                             type="button"
                             onClick={() => handleDeleteFinding(item.id)}
-                            className="p-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-all cursor-pointer"
+                            className="p-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-500/30 transition-all cursor-pointer"
                             title="Remove finding"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -876,7 +870,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                     {/* Conditions */}
                     <div className="flex flex-wrap gap-1.5">
                       {item.conditions.map(c => (
-                        <span key={c} className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                        <span key={c} className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                           {c}
                         </span>
                       ))}
@@ -884,12 +878,12 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
 
                     {/* AI Wording or Engineer Note */}
                     {item.aiGeneratedWording ? (
-                      <p className="text-xs text-slate-200 leading-relaxed font-mono bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-                        <strong className="text-indigo-400">Report Wording:</strong> {item.aiGeneratedWording}
+                      <p className="text-xs text-theme-secondary leading-relaxed font-mono bg-workspace p-2.5 rounded-lg border border-theme-default">
+                        <strong className="text-indigo-600 dark:text-indigo-400">Report Wording:</strong> {item.aiGeneratedWording}
                       </p>
                     ) : item.engineerNote ? (
-                      <p className="text-xs text-slate-300 leading-relaxed font-mono bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-                        <strong className="text-cyan-400">Note:</strong> {item.engineerNote}
+                      <p className="text-xs text-theme-secondary leading-relaxed font-mono bg-workspace p-2.5 rounded-lg border border-theme-default">
+                        <strong className="text-cyan-600 dark:text-cyan-400">Note:</strong> {item.engineerNote}
                       </p>
                     ) : null}
 
@@ -910,11 +904,11 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
                               </div>
                             </button>
                           ) : (
-                            <div className="w-10 h-10 rounded border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-500 text-[9px] text-center font-mono">
+                            <div className="w-10 h-10 rounded border border-theme-default bg-workspace flex items-center justify-center text-theme-muted text-[9px] text-center font-mono">
                               Loading
                             </div>
                           )}
-                          <span className="text-[10px] font-mono text-cyan-400">Evidence Image Attached</span>
+                          <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400">Evidence Image Attached</span>
                         </div>
                       );
                     })()}
@@ -927,22 +921,22 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
       )}
 
       {/* COMPLETION GATE & ACTION BUTTON */}
-      <div className={`p-5 rounded-2xl border space-y-4 ${
+      <div className={`p-5 rounded-card border space-y-4 ${
         headState.status === 'COMPLETED'
-          ? 'bg-emerald-950/20 border-emerald-500/40'
+          ? 'bg-emerald-500/10 border-emerald-500/40'
           : headState.status === 'NEEDS_REVIEW'
-          ? 'bg-amber-950/20 border-amber-500/40'
-          : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+          ? 'bg-amber-500/10 border-amber-500/40'
+          : 'bg-surface border-theme-default'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className={`w-5 h-5 ${headState.status === 'COMPLETED' ? 'text-emerald-400' : 'text-amber-400'}`} />
-              <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
+              <ShieldCheck className={`w-5 h-5 ${headState.status === 'COMPLETED' ? 'text-emerald-500' : 'text-amber-500'}`} />
+              <h4 className="font-extrabold text-sm sm:text-base text-theme-primary">
                 {headState.headName} Inspection Gate
               </h4>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-theme-secondary">
               {headState.decision === 'UNANSWERED'
                 ? 'Please select whether any component on this laser head requires attention.'
                 : headState.decision === 'NO_ISSUE'
@@ -955,10 +949,10 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-workspace border border-theme-default text-cyan-600 dark:text-cyan-300">
             <span>HEAD STATUS:</span>
             <span className={
-              headState.status === 'COMPLETED' ? 'text-emerald-400' : headState.status === 'NEEDS_REVIEW' ? 'text-amber-400' : 'text-slate-500'
+              headState.status === 'COMPLETED' ? 'text-emerald-600 dark:text-emerald-400' : headState.status === 'NEEDS_REVIEW' ? 'text-amber-600 dark:text-amber-400' : 'text-theme-muted'
             }>
               {headState.status}
             </span>
@@ -975,7 +969,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
               className={`px-6 py-3 rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
                 headState.decision !== 'UNANSWERED' && (headState.decision === 'NO_ISSUE' || headState.findings.length > 0)
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  : 'bg-workspace text-theme-muted border border-theme-default cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
@@ -999,18 +993,18 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
       {/* IMAGE PREVIEW MODAL */}
       {previewImageModal && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 mhc-autopilot-backdrop flex items-center justify-center p-4"
           onClick={() => setPreviewImageModal(null)}
         >
           <div 
-            className="relative max-w-2xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden p-2 space-y-2"
+            className="relative max-w-2xl max-h-[85vh] bg-surface border border-theme-strong rounded-modal overflow-hidden p-2 space-y-2 shadow-theme-modal"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-3 py-1 text-xs font-bold text-slate-200 font-mono">
+            <div className="flex items-center justify-between px-3 py-1 text-xs font-bold text-theme-primary font-mono">
               <span>FINDING EVIDENCE PREVIEW</span>
               <button 
                 onClick={() => setPreviewImageModal(null)}
-                className="text-slate-400 hover:text-slate-100 text-sm cursor-pointer"
+                className="text-theme-muted hover:text-theme-primary text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -1018,7 +1012,7 @@ export const MhcLaserInspectionActivity: React.FC<MhcLaserInspectionActivityProp
             <img 
               src={previewImageModal} 
               alt="Finding evidence preview" 
-              className="max-h-[70vh] w-auto mx-auto object-contain rounded-lg border border-slate-800" 
+              className="max-h-[70vh] w-auto mx-auto object-contain rounded-lg border border-theme-default" 
             />
           </div>
         </div>

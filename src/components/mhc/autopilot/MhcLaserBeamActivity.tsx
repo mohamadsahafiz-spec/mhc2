@@ -445,41 +445,39 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
   return (
     <div className="space-y-6">
       {/* HEADER BANNER */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-900'
-      }`}>
+      <div className="p-4 rounded-card border space-y-2 bg-raised border-theme-default text-theme-primary">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Aperture className="w-5 h-5 text-cyan-400 shrink-0" />
-            <h3 className="font-extrabold text-sm sm:text-base tracking-tight">
+            <Aperture className="w-5 h-5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+            <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-theme-primary">
               Day 1 • Activity 02: Laser Beam Profile & Mode Workspace (Laser 1 & 2)
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
               SIDE-BY-SIDE MATRIX ACTIVE
             </span>
             {!isReadOnly && (
               <button
                 onClick={handlePreFillNominal}
-                className="px-2.5 py-1 rounded-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 rounded-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-600 dark:text-indigo-300 border border-indigo-500/40 text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer"
                 title="Fill nominal passing beam diameters for fast testing"
               >
-                <Sparkles className="w-3 h-3 text-indigo-400" />
+                <Sparkles className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
                 <span>Pre-fill Nominal Specs</span>
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+        <div className="flex flex-wrap items-center justify-between text-xs text-theme-secondary gap-2">
           <p className="leading-relaxed">
-            Record beam diameters and optional profile image evidence across Source, Optics, and Index Masks 0–5 for Laser Head 1 & 2 using native <strong className="text-cyan-300 font-mono">BeamProfileEngine</strong> specifications.
+            Record beam diameters and optional profile image evidence across Source, Optics, and Index Masks 0–5 for Laser Head 1 & 2 using native <strong className="text-cyan-600 dark:text-cyan-300 font-mono">BeamProfileEngine</strong> specifications.
           </p>
           <div className="flex items-center gap-2 font-mono text-[11px]">
-            <History className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-slate-400">Baseline:</span>
-            <span className={previousRecord ? 'text-amber-300 font-bold' : 'text-slate-500 font-semibold'}>
+            <History className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+            <span className="text-theme-muted">Baseline:</span>
+            <span className={previousRecord ? 'text-amber-600 dark:text-amber-300 font-bold' : 'text-theme-muted font-semibold'}>
               {previousRecord ? `Record ${previousRecord.id} (${previousRecord.date})` : 'No previous baseline'}
             </span>
           </div>
@@ -487,57 +485,55 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       </div>
 
       {/* OVERALL STATUS SUMMARY BAR */}
-      <div className={`p-4 rounded-2xl border grid grid-cols-1 md:grid-cols-3 gap-4 items-center ${
-        isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
+      <div className="p-4 rounded-card border grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-surface border-theme-default">
         {/* Head 1 Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-workspace border border-theme-default">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 1</div>
-            <div className="text-xs font-bold text-slate-200">{laserHeads[0]?.name || 'Laser Head 1'}</div>
+            <div className="text-[10px] font-mono text-theme-muted uppercase font-bold">LASER 1</div>
+            <div className="text-xs font-bold text-theme-primary">{laserHeads[0]?.name || 'Laser Head 1'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
             evalHead1.isAllPass 
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               : evalHead1.failCount > 0
-              ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+              : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
           }`}>
             {evalHead1.passCount}/8 PASS
           </span>
         </div>
 
         {/* Head 2 Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-workspace border border-theme-default">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">LASER 2</div>
-            <div className="text-xs font-bold text-slate-200">{laserHeads[1]?.name || 'Laser Head 2'}</div>
+            <div className="text-[10px] font-mono text-theme-muted uppercase font-bold">LASER 2</div>
+            <div className="text-xs font-bold text-theme-primary">{laserHeads[1]?.name || 'Laser Head 2'}</div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border ${
             evalHead2.isAllPass 
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               : evalHead2.failCount > 0
-              ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+              : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
           }`}>
             {evalHead2.passCount}/8 PASS
           </span>
         </div>
 
         {/* Overall Beam Status */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-workspace border border-theme-default">
           <div>
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">OVERALL BEAM STATUS</div>
-            <div className="text-xs font-bold text-slate-200">
+            <div className="text-[10px] font-mono text-theme-muted uppercase font-bold">OVERALL BEAM STATUS</div>
+            <div className="text-xs font-bold text-theme-primary">
               {isOverallPass ? 'All Specs Satisfied' : hasFailures ? 'Out of Spec Detected' : 'Measurements Pending'}
             </div>
           </div>
           <span className={`text-[11px] font-mono font-bold px-3 py-1 rounded-full border ${
             isOverallPass
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40'
               : hasFailures
-              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+              : 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border-cyan-500/40'
           }`}>
             {isOverallPass ? '✓ PASS' : hasFailures ? '⚠ OUT OF SPEC' : '◉ IN PROGRESS'}
           </span>
@@ -548,21 +544,21 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* ================= LASER HEAD 1 ================= */}
-        <div className={`p-5 rounded-2xl border space-y-4 ${
+        <div className={`p-5 rounded-card border space-y-4 ${
           evalHead1.isAllPass 
-            ? 'bg-slate-900/80 border-emerald-500/30' 
-            : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            ? 'bg-raised border-emerald-500/40' 
+            : 'bg-raised border-theme-default'
         }`}>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-theme-default">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
                 L1
               </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-100">
+                <h4 className="font-bold text-sm text-theme-primary">
                   {laserHeads[0]?.name || 'Laser Head 1'} (Laser 1)
                 </h4>
-                <div className="text-[10px] font-mono text-slate-400">
+                <div className="text-[10px] font-mono text-theme-muted">
                   {laserHeads[0]?.serialNo || 'Primary Beam Path'}
                 </div>
               </div>
@@ -570,10 +566,10 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
 
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
               evalHead1.isAllPass 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40' 
                 : evalHead1.failCount > 0 
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+                : 'bg-workspace text-theme-muted border-theme-default'
             }`}>
               {evalHead1.isAllPass ? '✓ ALL 8 PASS' : `${evalHead1.passCount}/8 PASS`}
             </span>
@@ -596,26 +592,26 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                   key={`lh1-beam-${chkId}`}
                   className={`p-3.5 rounded-xl border space-y-2.5 transition-all ${
                     evalRes.isPass 
-                      ? 'bg-slate-950/40 border-slate-800/80' 
+                      ? 'bg-surface border-theme-default' 
                       : evalRes.isOutOfSpec
-                      ? 'bg-rose-950/20 border-rose-500/40'
-                      : 'bg-slate-950/20 border-slate-800/50'
+                      ? 'bg-rose-500/10 border-rose-500/40'
+                      : 'bg-surface border-theme-default'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">
+                    <span className="font-bold text-theme-primary">
                       {STATION_DISPLAY_NAMES[chkId] || spec.stageLabel}
                     </span>
-                    <span className="text-[10px] font-mono text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
                       Spec: {spec.specText}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                     {/* Previous Baseline Display */}
-                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/60">
-                      <span className="text-slate-500">Prev Baseline:</span>
-                      <span className={prevDiameter !== null ? 'text-slate-300 font-bold' : 'text-slate-600 font-normal'}>
+                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-workspace border border-theme-default">
+                      <span className="text-theme-muted">Prev Baseline:</span>
+                      <span className={prevDiameter !== null ? 'text-theme-primary font-bold' : 'text-theme-muted font-normal'}>
                         {prevDiameter !== null ? `${prevDiameter.toFixed(2)} mm` : 'No baseline'}
                       </span>
                     </div>
@@ -631,22 +627,22 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                         placeholder="Diameter (mm)"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
                           evalRes.isPass
-                            ? 'bg-slate-900 border-emerald-500/40 text-emerald-300 focus:border-emerald-400'
+                            ? 'bg-surface border-emerald-500/40 text-emerald-600 dark:text-emerald-300 focus:border-emerald-400'
                             : evalRes.isOutOfSpec
-                            ? 'bg-rose-900/30 border-rose-500/60 text-rose-200 focus:border-rose-400'
-                            : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
+                            ? 'bg-rose-500/10 border-rose-500/60 text-rose-600 dark:text-rose-200 focus:border-rose-400'
+                            : 'bg-surface border-theme-default text-theme-primary focus:border-cyan-500'
                         }`}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-theme-muted">
                         mm
                       </span>
                     </div>
                   </div>
 
                   {/* EVIDENCE IMAGE ATTACHMENT AREA */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-theme-default">
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-theme-secondary">
+                      <ImageIcon className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
                       <span>Evidence Image (Optional):</span>
                     </div>
 
@@ -655,7 +651,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                         <button
                           type="button"
                           onClick={() => setPreviewImageModal(prevImage)}
-                          className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono flex items-center gap-1 cursor-pointer hover:bg-amber-500/20"
+                          className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-[10px] font-mono flex items-center gap-1 cursor-pointer hover:bg-amber-500/20"
                           title="View previous baseline image evidence"
                         >
                           <Maximize2 className="w-2.5 h-2.5" />
@@ -679,7 +675,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(chkId)}
-                              className="p-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                              className="p-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
                               title="Remove image"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -687,8 +683,8 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                           )}
                         </div>
                       ) : !isReadOnly ? (
-                        <label className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-mono font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                          <Upload className="w-3 h-3 text-cyan-400" />
+                        <label className="px-2.5 py-1 rounded bg-raised hover:bg-surface text-theme-secondary border border-theme-default text-[10px] font-mono font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
                           <span>Attach Image</span>
                           <input 
                             type="file" 
@@ -700,7 +696,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                           />
                         </label>
                       ) : (
-                        <span className="text-[10px] font-mono text-slate-600">No image</span>
+                        <span className="text-[10px] font-mono text-theme-muted">No image</span>
                       )}
                     </div>
                   </div>
@@ -709,23 +705,23 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                   <div className="flex items-center justify-between text-[10px] font-mono pt-1">
                     {/* Status Badge */}
                     {evalRes.isPass ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>PASS ({currentVal?.toFixed(2)} mm)</span>
                       </span>
                     ) : evalRes.isOutOfSpec ? (
-                      <span className="text-rose-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
                         <span>{evalRes.msg}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-500 font-semibold">Pending measurement</span>
+                      <span className="text-theme-muted font-semibold">Pending measurement</span>
                     )}
 
                     {/* Delta Display */}
                     {deltaMm !== null && (
                       <span className={`font-semibold flex items-center gap-1 ${
-                        deltaMm >= 0 ? 'text-cyan-400' : 'text-amber-400'
+                        deltaMm >= 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400'
                       }`}>
                         {deltaMm >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         <span>Delta: {deltaMm >= 0 ? `+${deltaMm.toFixed(2)}` : deltaMm.toFixed(2)} mm ({deltaPct! >= 0 ? `+${deltaPct!.toFixed(1)}` : deltaPct!.toFixed(1)}%)</span>
@@ -739,21 +735,21 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
         </div>
 
         {/* ================= LASER HEAD 2 ================= */}
-        <div className={`p-5 rounded-2xl border space-y-4 ${
+        <div className={`p-5 rounded-card border space-y-4 ${
           evalHead2.isAllPass 
-            ? 'bg-slate-900/80 border-emerald-500/30' 
-            : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            ? 'bg-raised border-emerald-500/40' 
+            : 'bg-raised border-theme-default'
         }`}>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-theme-default">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-xs">
                 L2
               </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-100">
+                <h4 className="font-bold text-sm text-theme-primary">
                   {laserHeads[1]?.name || 'Laser Head 2'} (Laser 2)
                 </h4>
-                <div className="text-[10px] font-mono text-slate-400">
+                <div className="text-[10px] font-mono text-theme-muted">
                   {laserHeads[1]?.serialNo || 'Secondary Beam Path'}
                 </div>
               </div>
@@ -761,10 +757,10 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
 
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
               evalHead2.isAllPass 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40' 
                 : evalHead2.failCount > 0 
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/40'
+                : 'bg-workspace text-theme-muted border-theme-default'
             }`}>
               {evalHead2.isAllPass ? '✓ ALL 8 PASS' : `${evalHead2.passCount}/8 PASS`}
             </span>
@@ -787,26 +783,26 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                   key={`lh2-beam-${chkId}`}
                   className={`p-3.5 rounded-xl border space-y-2.5 transition-all ${
                     evalRes.isPass 
-                      ? 'bg-slate-950/40 border-slate-800/80' 
+                      ? 'bg-surface border-theme-default' 
                       : evalRes.isOutOfSpec
-                      ? 'bg-rose-950/20 border-rose-500/40'
-                      : 'bg-slate-950/20 border-slate-800/50'
+                      ? 'bg-rose-500/10 border-rose-500/40'
+                      : 'bg-surface border-theme-default'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">
+                    <span className="font-bold text-theme-primary">
                       {STATION_DISPLAY_NAMES[chkId] || spec.stageLabel}
                     </span>
-                    <span className="text-[10px] font-mono text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                    <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
                       Spec: {spec.specText}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                     {/* Previous Baseline Display */}
-                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/60">
-                      <span className="text-slate-500">Prev Baseline:</span>
-                      <span className={prevDiameter !== null ? 'text-slate-300 font-bold' : 'text-slate-600 font-normal'}>
+                    <div className="text-[11px] font-mono flex items-center justify-between p-2 rounded-lg bg-workspace border border-theme-default">
+                      <span className="text-theme-muted">Prev Baseline:</span>
+                      <span className={prevDiameter !== null ? 'text-theme-primary font-bold' : 'text-theme-muted font-normal'}>
                         {prevDiameter !== null ? `${prevDiameter.toFixed(2)} mm` : 'No baseline'}
                       </span>
                     </div>
@@ -822,22 +818,22 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                         placeholder="Diameter (mm)"
                         className={`w-full pl-3 pr-12 py-1.5 rounded-lg border text-xs font-mono font-bold outline-none transition-all ${
                           evalRes.isPass
-                            ? 'bg-slate-900 border-emerald-500/40 text-emerald-300 focus:border-emerald-400'
+                            ? 'bg-surface border-emerald-500/40 text-emerald-600 dark:text-emerald-300 focus:border-emerald-400'
                             : evalRes.isOutOfSpec
-                            ? 'bg-rose-900/30 border-rose-500/60 text-rose-200 focus:border-rose-400'
-                            : 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500'
+                            ? 'bg-rose-500/10 border-rose-500/60 text-rose-600 dark:text-rose-200 focus:border-rose-400'
+                            : 'bg-surface border-theme-default text-theme-primary focus:border-cyan-500'
                         }`}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-theme-muted">
                         mm
                       </span>
                     </div>
                   </div>
 
                   {/* EVIDENCE IMAGE ATTACHMENT AREA */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-theme-default">
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-theme-secondary">
+                      <ImageIcon className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
                       <span>Evidence Image (Optional):</span>
                     </div>
 
@@ -846,7 +842,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                         <button
                           type="button"
                           onClick={() => setPreviewImageModal(prevImage)}
-                          className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono flex items-center gap-1 cursor-pointer hover:bg-amber-500/20"
+                          className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-[10px] font-mono flex items-center gap-1 cursor-pointer hover:bg-amber-500/20"
                           title="View previous baseline image evidence"
                         >
                           <Maximize2 className="w-2.5 h-2.5" />
@@ -870,7 +866,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(chkId)}
-                              className="p-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                              className="p-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
                               title="Remove image"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -878,8 +874,8 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                           )}
                         </div>
                       ) : !isReadOnly ? (
-                        <label className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-mono font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                          <Upload className="w-3 h-3 text-cyan-400" />
+                        <label className="px-2.5 py-1 rounded bg-raised hover:bg-surface text-theme-secondary border border-theme-default text-[10px] font-mono font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
                           <span>Attach Image</span>
                           <input 
                             type="file" 
@@ -891,7 +887,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                           />
                         </label>
                       ) : (
-                        <span className="text-[10px] font-mono text-slate-600">No image</span>
+                        <span className="text-[10px] font-mono text-theme-muted">No image</span>
                       )}
                     </div>
                   </div>
@@ -900,23 +896,23 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                   <div className="flex items-center justify-between text-[10px] font-mono pt-1">
                     {/* Status Badge */}
                     {evalRes.isPass ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>PASS ({currentVal?.toFixed(2)} mm)</span>
                       </span>
                     ) : evalRes.isOutOfSpec ? (
-                      <span className="text-rose-400 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
                         <span>{evalRes.msg}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-500 font-semibold">Pending measurement</span>
+                      <span className="text-theme-muted font-semibold">Pending measurement</span>
                     )}
 
                     {/* Delta Display */}
                     {deltaMm !== null && (
                       <span className={`font-semibold flex items-center gap-1 ${
-                        deltaMm >= 0 ? 'text-cyan-400' : 'text-amber-400'
+                        deltaMm >= 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400'
                       }`}>
                         {deltaMm >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         <span>Delta: {deltaMm >= 0 ? `+${deltaMm.toFixed(2)}` : deltaMm.toFixed(2)} mm ({deltaPct! >= 0 ? `+${deltaPct!.toFixed(1)}` : deltaPct!.toFixed(1)}%)</span>
@@ -931,11 +927,9 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       </div>
 
       {/* ENGINEER REMARKS INPUT */}
-      <div className={`p-4 rounded-2xl border space-y-2 ${
-        isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
-        <label className="text-[11px] font-mono text-slate-300 font-bold flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
+      <div className="p-4 rounded-card border space-y-2 bg-surface border-theme-default">
+        <label className="text-[11px] font-mono text-theme-secondary font-bold flex items-center gap-2">
+          <Activity className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
           <span>BEAM PROFILE & MODE ENGINEER REMARKS & OBSERVATIONS</span>
         </label>
         <input
@@ -944,28 +938,22 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
           value={engineerRemarks}
           onChange={(e) => setEngineerRemarks(e.target.value)}
           placeholder={isReadOnly ? "Read-only mode active" : "e.g., Beam profile concentricity verified. All index mask diameters strictly within nominal specs."}
-          className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all ${
-            isDark 
-              ? 'bg-slate-900 border-slate-700 text-slate-100 focus:border-cyan-500' 
-              : 'bg-white border-slate-300 text-slate-900 focus:border-cyan-500'
-          }`}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all bg-surface border-theme-default text-theme-primary focus:border-cyan-500"
         />
       </div>
 
       {/* ENGINEER ACTIVITY DISPOSITION */}
-      <div className={`p-4 rounded-2xl border space-y-3 ${
-        isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
-      }`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+      <div className="p-4 rounded-card border space-y-3 bg-surface border-theme-default shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-theme-default pb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">
+            <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">
               Engineer Activity Disposition
             </span>
-            <span className="text-[10px] text-slate-400 font-sans">
-              (Raw Measurement: <strong className={hasFailures ? 'text-rose-400' : 'text-emerald-400'}>{hasFailures ? 'OUT OF SPEC' : 'PASS'}</strong>)
+            <span className="text-[10px] text-theme-muted font-sans">
+              (Raw Measurement: <strong className={hasFailures ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>{hasFailures ? 'OUT OF SPEC' : 'PASS'}</strong>)
             </span>
           </div>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[10px] font-mono text-theme-muted">
             Field Engineer Spot Quality Assessment
           </span>
         </div>
@@ -978,17 +966,17 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'PASS'
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/50 shadow-md shadow-emerald-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/50 shadow-md'
+                : 'bg-raised border-theme-default text-theme-secondary hover:border-theme-strong'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">PASS</span>
-              {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+              {selectedDisposition === 'PASS' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Within Spec / Verified</span>
+            <span className="text-[10px] text-theme-muted mt-1">Within Spec / Verified</span>
           </button>
 
           <button
@@ -998,17 +986,17 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'ACCEPTED_DEVIATION'
-                ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/50 shadow-md shadow-blue-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50 shadow-md'
+                : 'bg-raised border-theme-default text-theme-secondary hover:border-theme-strong'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
-              {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-blue-400" />}
+              {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-blue-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Accept Usable Spot Profile</span>
+            <span className="text-[10px] text-theme-muted mt-1">Accept Usable Spot Profile</span>
           </button>
 
           <button
@@ -1018,17 +1006,17 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'CONDITIONAL_PASS'
-                ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-md shadow-amber-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/50 shadow-md'
+                : 'bg-raised border-theme-default text-theme-secondary hover:border-theme-strong'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">CONDITIONAL PASS</span>
-              {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+              {selectedDisposition === 'CONDITIONAL_PASS' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Monitor mode stability</span>
+            <span className="text-[10px] text-theme-muted mt-1">Monitor mode stability</span>
           </button>
 
           <button
@@ -1038,40 +1026,40 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
               setUserInteractedDisposition(true);
             }}
             disabled={isReadOnly}
-            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+            className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
               selectedDisposition === 'FAIL'
-                ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/50 shadow-md shadow-rose-950/40'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                ? 'bg-rose-500/20 border-rose-500 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/50 shadow-md'
+                : 'bg-raised border-theme-default text-theme-secondary hover:border-theme-strong'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono">FAIL</span>
-              {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
+              {selectedDisposition === 'FAIL' && <XCircle className="w-3.5 h-3.5 text-rose-500" />}
             </div>
-            <span className="text-[10px] text-slate-400 mt-1">Collimator/aperture alignment required</span>
+            <span className="text-[10px] text-theme-muted mt-1">Collimator/aperture alignment required</span>
           </button>
         </div>
       </div>
 
       {/* COMPLETION GATE & ACTION BUTTON */}
-      <div className={`p-5 rounded-2xl border space-y-4 ${
+      <div className={`p-5 rounded-card border space-y-4 ${
         isOverallPass
-          ? isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'
+          ? 'bg-emerald-500/10 border-emerald-500/40'
           : hasFailures && isOverallComplete
-          ? isDark ? 'bg-amber-950/30 border-amber-500/40' : 'bg-amber-50 border-amber-300'
-          : isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+          ? 'bg-amber-500/10 border-amber-500/40'
+          : 'bg-raised border-theme-default'
       }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <ShieldCheck className={`w-5 h-5 ${
-                isOverallPass ? 'text-emerald-400' : hasFailures && isOverallComplete ? 'text-amber-400' : 'text-slate-400'
+                isOverallPass ? 'text-emerald-500' : hasFailures && isOverallComplete ? 'text-amber-500' : 'text-theme-muted'
               }`} />
-              <h4 className="font-extrabold text-sm sm:text-base text-slate-100">
+              <h4 className="font-extrabold text-sm sm:text-base text-theme-primary">
                 Beam Profile Completion Gate
               </h4>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-theme-secondary">
               {isOverallPass 
                 ? 'All 16 beam diameter measurements satisfy specifications. Ready to record authoritative session data and advance Journey Rail.' 
                 : hasFailures && isOverallComplete
@@ -1082,9 +1070,9 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold px-3 py-1.5 rounded-xl bg-workspace border border-theme-default text-cyan-600 dark:text-cyan-300">
             <span>PASSED STATIONS:</span>
-            <span className={isOverallPass ? 'text-emerald-400 font-extrabold' : 'text-amber-400'}>
+            <span className={isOverallPass ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-amber-600 dark:text-amber-400'}>
               {evalHead1.passCount + evalHead2.passCount} / 16
             </span>
           </div>
@@ -1105,7 +1093,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
                     : selectedDisposition === 'CONDITIONAL_PASS'
                     ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 hover:scale-[1.02] cursor-pointer'
                     : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20 hover:scale-[1.02] cursor-pointer'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  : 'bg-workspace text-theme-muted border border-theme-default cursor-not-allowed opacity-60'
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
@@ -1122,18 +1110,18 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
       {/* IMAGE PREVIEW MODAL */}
       {previewImageModal && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 mhc-autopilot-backdrop flex items-center justify-center p-4"
           onClick={() => setPreviewImageModal(null)}
         >
           <div 
-            className="relative max-w-2xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden p-2 space-y-2"
+            className="relative max-w-2xl max-h-[85vh] bg-surface border border-theme-strong rounded-modal overflow-hidden p-3 space-y-2 shadow-theme-modal"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-3 py-1 text-xs font-bold text-slate-200 font-mono">
+            <div className="flex items-center justify-between px-3 py-1 text-xs font-bold text-theme-primary font-mono">
               <span>BEAM EVIDENCE PREVIEW</span>
               <button 
                 onClick={() => setPreviewImageModal(null)}
-                className="text-slate-400 hover:text-slate-100 text-sm cursor-pointer"
+                className="text-theme-muted hover:text-theme-primary text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -1141,7 +1129,7 @@ export const MhcLaserBeamActivity: React.FC<MhcLaserBeamActivityProps> = ({
             <img 
               src={previewImageModal} 
               alt="Beam profile evidence preview" 
-              className="max-h-[70vh] w-auto mx-auto object-contain rounded-lg border border-slate-800" 
+              className="max-h-[70vh] w-auto mx-auto object-contain rounded-lg border border-theme-default" 
             />
           </div>
         </div>

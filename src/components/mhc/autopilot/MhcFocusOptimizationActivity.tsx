@@ -342,11 +342,9 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
   const isCurrentCompleted = session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED';
 
   return (
-    <div className={`p-4 sm:p-6 rounded-2xl border space-y-6 ${
-      isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-    }`}>
+    <div className="p-4 sm:p-6 rounded-card border space-y-6 bg-surface border-theme-default">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-theme-default">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
@@ -367,25 +365,25 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
               )
             )}
           </div>
-          <h2 className="text-xl font-bold tracking-tight mt-1 text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight mt-1 text-theme-primary flex items-center gap-2">
             <Crosshair className="w-5 h-5 text-sky-500" />
             Focus Optimization (Laser 1 & 2)
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-theme-secondary mt-0.5">
             Dummy wafer laser drill inspection across 7 defocus steps (-3 to +3). Select the optimal focal height for both heads.
           </p>
         </div>
 
         {/* Dual Laser Head Selector (visible in Performed mode) */}
         {executionState === 'PERFORMED' && (
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 self-start md:self-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-raised border border-theme-default self-start md:self-auto">
             <button
               type="button"
               onClick={() => setActiveHead('laser1')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 activeHead === 'laser1'
-                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-workspace text-sky-600 dark:text-sky-400 shadow-sm border border-theme-default'
+                  : 'text-theme-secondary hover:text-theme-primary'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
@@ -399,10 +397,10 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
             <button
               type="button"
               onClick={() => setActiveHead('laser2')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 activeHead === 'laser2'
-                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-workspace text-sky-600 dark:text-sky-400 shadow-sm border border-theme-default'
+                  : 'text-theme-secondary hover:text-theme-primary'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
@@ -418,19 +416,19 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       </div>
 
       {/* Activity Execution State Selection */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-card bg-raised border border-theme-default">
         <div>
-          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+          <span className="text-xs font-bold text-theme-primary block">
             Focus Optimization Disposition for Current MHC
           </span>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-theme-muted">
             {executionState === 'PERFORMED'
               ? 'Wafer drill focal calibration executed during this maintenance service.'
               : 'Focus is nominal; wafer drill calibration skipped for this maintenance service.'}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-slate-200/80 dark:bg-slate-900/60 shrink-0">
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-workspace shrink-0 border border-theme-default">
           <button
             type="button"
             onClick={() => {
@@ -438,10 +436,10 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
               setExecutionState('PERFORMED');
             }}
             disabled={isReadOnly}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               executionState === 'PERFORMED'
-                ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-surface text-sky-600 dark:text-sky-400 shadow-sm border border-theme-default'
+                : 'text-theme-secondary hover:text-theme-primary'
             }`}
           >
             <Crosshair className="w-3.5 h-3.5" />
@@ -454,10 +452,10 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
               setExecutionState('NOT_REQUIRED');
             }}
             disabled={isReadOnly}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               executionState === 'NOT_REQUIRED'
-                ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-sm border border-theme-default'
+                : 'text-theme-secondary hover:text-theme-primary'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -469,12 +467,12 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       {/* STATE 2: NOT REQUIRED / SKIPPED VIEW */}
       {executionState === 'NOT_REQUIRED' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-slate-800 dark:text-slate-200 space-y-2">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-theme-primary space-y-2">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
               <ShieldCheck className="w-4 h-4" />
               <span>Focus Optimization Not Required / Skipped for this MHC</span>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-xs text-theme-secondary">
               The service engineer has determined that wafer drill focus sequence is not required for this MHC.
               The historical baseline in Machine Passport will be preserved and cited in reports as reference data only.
             </p>
@@ -483,7 +481,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           {/* Reason / Justification Input */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-theme-primary flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-amber-500" />
                 <span>Reason / Justification for Skipping (Required)</span>
               </label>
@@ -504,17 +502,17 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
               }}
               disabled={isReadOnly}
               placeholder="Provide reason for skipping focus calibration (e.g., optical train undisturbed, spot size nominal)..."
-              className={`w-full text-xs p-3 rounded-xl border bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+              className={`w-full text-xs p-3 rounded-xl border bg-workspace text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                 skippedReasonError
                   ? 'border-rose-300 dark:border-rose-700 bg-rose-50/20'
-                  : 'border-slate-200 dark:border-slate-700'
+                  : 'border-theme-default'
               }`}
             />
 
             {/* Quick Reason Presets */}
             {!isReadOnly && (
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Quick Presets:</span>
+                <span className="text-[10px] uppercase font-bold text-theme-muted tracking-wider">Quick Presets:</span>
                 {[
                   'Routine maintenance — beam alignment nominal',
                   'Optical path undisturbed; laser source not replaced',
@@ -528,7 +526,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                       setSkippedReason(preset);
                       if (skippedReasonError) setSkippedReasonError(null);
                     }}
-                    className="text-[10.5px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 hover:text-amber-900 dark:hover:bg-amber-900/40 dark:hover:text-amber-200 border border-slate-200 dark:border-slate-700 transition-colors"
+                    className="text-[10.5px] px-2.5 py-1 rounded-lg bg-raised text-theme-secondary hover:bg-amber-500/20 hover:text-amber-700 dark:hover:text-amber-300 border border-theme-default transition-colors cursor-pointer"
                   >
                     {preset}
                   </button>
@@ -538,15 +536,15 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           </div>
 
           {/* Historical Baseline Reference Card */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/60 pb-2">
+          <div className="p-3.5 rounded-card bg-raised border border-theme-default space-y-2.5">
+            <div className="flex items-center justify-between border-b border-theme-default pb-2">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-slate-500" />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <History className="w-4 h-4 text-theme-muted" />
+                <span className="text-xs font-bold text-theme-primary">
                   Historical Baseline Reference (Machine Passport)
                 </span>
               </div>
-              <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
+              <Badge variant="outline" className="text-[10px] font-mono font-bold text-theme-muted">
                 REFERENCE ONLY • NOT PERFORMED THIS MHC
               </Badge>
             </div>
@@ -554,42 +552,42 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
             {historicalPassportRecord ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Baseline Date</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                  <span className="text-[10px] uppercase font-bold text-theme-muted block">Baseline Date</span>
+                  <span className="font-mono text-theme-primary font-bold">
                     {historicalPassportRecord.date}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Baseline Value</span>
+                  <span className="text-[10px] uppercase font-bold text-theme-muted block">Baseline Value</span>
                   <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                     -0.300 mm
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Optimal Focus (L1)</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                  <span className="text-[10px] uppercase font-bold text-theme-muted block">Optimal Focus (L1)</span>
+                  <span className="font-mono text-theme-primary font-bold">
                     {historicalPassportRecord.laser1?.selectedBestFocusPosition || '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Optimal Focus (L2)</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">
+                  <span className="text-[10px] uppercase font-bold text-theme-muted block">Optimal Focus (L2)</span>
+                  <span className="font-mono text-theme-primary font-bold">
                     {historicalPassportRecord.laser2?.selectedBestFocusPosition || '—'}
                   </span>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-slate-500 italic">
+              <p className="text-xs text-theme-muted italic">
                 No prior Focus Optimization historical records found in Machine Passport.
               </p>
             )}
           </div>
 
           {/* Action Footer for Not Required */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-theme-default">
+            <div className="flex items-center gap-2 text-xs text-theme-secondary">
               <ShieldCheck className="w-4 h-4 text-amber-500" />
-              <span>Status: Focus Optimization will be documented as <strong className="text-amber-700 dark:text-amber-400">NOT REQUIRED</strong> for this MHC.</span>
+              <span>Status: Focus Optimization will be documented as <strong className="text-amber-600 dark:text-amber-400">NOT REQUIRED</strong> for this MHC.</span>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -624,30 +622,28 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
         <div className="space-y-6">
           {/* Baseline Reference Header Banner */}
           {historicalPassportRecord && (
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40 text-xs">
-              <div className="flex items-center gap-2 text-sky-900 dark:text-sky-300">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-xs">
+              <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300">
                 <Info className="w-4 h-4 text-sky-500 shrink-0" />
                 <span>
                   Passport Baseline Reference: <strong>L1: {historicalPassportRecord.laser1?.selectedBestFocusPosition || '—'}</strong>, <strong>L2: {historicalPassportRecord.laser2?.selectedBestFocusPosition || '—'}</strong> ({historicalPassportRecord.date})
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-sky-700 dark:text-sky-400 font-semibold">
+              <span className="text-[10px] font-mono text-sky-600 dark:text-sky-400 font-semibold">
                 Baseline: -0.300 mm
               </span>
             </div>
           )}
 
       {/* Specification & Parameters Bar */}
-      <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-        isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-      }`}>
+      <div className="p-4 rounded-card border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-raised border-theme-default">
         <div className="flex items-start gap-3">
           <Info className="w-4 h-4 text-sky-500 mt-0.5 shrink-0" />
           <div className="text-xs space-y-0.5">
-            <div className="font-semibold text-slate-800 dark:text-slate-200">
+            <div className="font-semibold text-theme-primary">
               Machining Focus Calibration Procedure
             </div>
-            <div className="text-slate-500 dark:text-slate-400">
+            <div className="text-theme-secondary">
               Drill on dummy wafer across positions <span className="font-mono font-medium">+3, +2, +1, 0, -1, -2, -3</span>. Position <span className="font-mono font-medium">0</span> represents nominal focal plane.
             </div>
           </div>
@@ -670,11 +666,11 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
       {/* Defocus Position Matrix */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-theme-primary flex items-center gap-2">
             <Layers className="w-4 h-4 text-sky-500" />
             {activeHead === 'laser1' ? 'Laser Head 1' : 'Laser Head 2'} Defocus Wafer Grid
           </h3>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-theme-secondary">
             Selected Optimal Focus: <span className="font-mono font-bold text-sky-600 dark:text-sky-400">{activeEvidence.selectedBestFocusPosition || 'Not Set'}</span>
           </span>
         </div>
@@ -690,10 +686,8 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                 key={pos}
                 className={`relative rounded-xl border p-3 flex flex-col items-center justify-between gap-2.5 transition-all ${
                   isBest
-                    ? 'border-sky-500 bg-sky-500/5 ring-2 ring-sky-500/30'
-                    : isDark
-                    ? 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    ? 'border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/30'
+                    : 'border-theme-default bg-surface hover:border-theme-strong'
                 }`}
               >
                 {/* Header Tag */}
@@ -701,7 +695,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                   <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
                     pos === '0'
                       ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      : 'bg-raised text-theme-secondary'
                   }`}>
                     {pos === '0' ? '0 (Nominal)' : pos}
                   </span>
@@ -713,7 +707,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                 </div>
 
                 {/* Micrograph Preview */}
-                <div className="w-full aspect-square rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 overflow-hidden flex items-center justify-center relative group">
+                <div className="w-full aspect-square rounded-lg border border-theme-default bg-workspace overflow-hidden flex items-center justify-center relative group">
                   {imgUrl ? (
                     <img
                       src={imgUrl}
@@ -722,7 +716,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="text-center p-2 text-slate-400">
+                    <div className="text-center p-2 text-theme-muted">
                       <Crosshair className="w-6 h-6 mx-auto mb-1 stroke-1 opacity-50" />
                       <span className="text-[10px]">No image</span>
                     </div>
@@ -749,13 +743,13 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                       value={posData.drillDiameterUm ?? ''}
                       onChange={(e) => handleDiameterChange(pos, e.target.value)}
                       disabled={isReadOnly}
-                      className="w-full text-center text-xs font-mono py-1 px-1.5 rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white"
+                      className="w-full text-center text-xs font-mono py-1 px-1.5 rounded border border-theme-default bg-workspace text-theme-primary outline-none focus:border-sky-500"
                     />
-                    <span className="text-[10px] text-slate-400">µm</span>
+                    <span className="text-[10px] text-theme-muted">µm</span>
                   </div>
 
                   <div className="flex items-center gap-1 w-full">
-                    <label className="flex-1 cursor-pointer py-1 px-1.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-center text-[10px] text-slate-600 dark:text-slate-300 transition-colors">
+                    <label className="flex-1 cursor-pointer py-1 px-1.5 rounded border border-theme-default hover:bg-raised text-center text-[10px] text-theme-secondary transition-colors">
                       <Upload className="w-2.5 h-2.5 inline mr-1" />
                       Upload
                       <input
@@ -771,10 +765,10 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
                       type="button"
                       onClick={() => handleSelectBestFocus(pos)}
                       disabled={isReadOnly}
-                      className={`py-1 px-2 rounded text-[10px] font-semibold transition-all ${
+                      className={`py-1 px-2 rounded text-[10px] font-semibold transition-all cursor-pointer ${
                         isBest
                           ? 'bg-sky-500 text-white'
-                          : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-sky-500 hover:text-sky-500'
+                          : 'border border-theme-default text-theme-secondary hover:border-sky-500 hover:text-sky-500'
                       }`}
                       title="Set as optimal focus position"
                     >
@@ -790,7 +784,7 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
 
       {/* Engineer Notes */}
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <label className="text-xs font-semibold text-theme-primary">
           Focus Optimization Engineer Notes
         </label>
         <textarea
@@ -799,15 +793,15 @@ export const MhcFocusOptimizationActivity: React.FC<MhcFocusOptimizationActivity
           onChange={(e) => setEngineerNotes(e.target.value)}
           disabled={isReadOnly}
           placeholder="Document wafer batch, defocus observations, or optical adjustment notes..."
-          className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="w-full text-xs p-3 rounded-xl border border-theme-default bg-workspace text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-sky-500"
         />
       </div>
 
       {/* Action Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-theme-default">
+        <div className="flex items-center gap-2 text-xs text-theme-secondary">
           <ShieldCheck className="w-4 h-4 text-sky-500" />
-          <span>Status: L1 Best Focus = <strong className="font-mono text-slate-800 dark:text-slate-200">{record.laser1?.selectedBestFocusPosition || 'None'}</strong> • L2 Best Focus = <strong className="font-mono text-slate-800 dark:text-slate-200">{record.laser2?.selectedBestFocusPosition || 'None'}</strong></span>
+          <span>Status: L1 Best Focus = <strong className="font-mono text-theme-primary">{record.laser1?.selectedBestFocusPosition || 'None'}</strong> • L2 Best Focus = <strong className="font-mono text-theme-primary">{record.laser2?.selectedBestFocusPosition || 'None'}</strong></span>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
