@@ -152,10 +152,10 @@
   [data-theme="aero"] {
     color-scheme: light;
 
-    --color-bg: #9FD0EB;
-    --color-surface: rgba(255, 255, 255, 0.82);
-    --color-card: rgba(255, 255, 255, 0.85);
-    --color-border: rgba(255, 255, 255, 0.75);
+    --color-bg: #8DC7EB;
+    --color-surface: rgba(255, 255, 255, 0.76);
+    --color-card: rgba(255, 255, 255, 0.78);
+    --color-border: rgba(255, 255, 255, 0.85);
     --color-primary: #0085DF;
     --color-primary-hover: #1FA4FA;
     --color-primary-muted: rgba(0, 133, 223, 0.15);
@@ -167,32 +167,32 @@
     --color-text-secondary: #2C5270;
     --color-text-muted: #587A96;
 
-    --surface-canvas: #9FD0EB;
-    --surface-workspace: rgba(255, 255, 255, 0.55);
-    --surface-surface: rgba(255, 255, 255, 0.82);
-    --surface-raised: rgba(255, 255, 255, 0.92);
-    --surface-overlay: rgba(255, 255, 255, 0.98);
+    --surface-canvas: #8DC7EB;
+    --surface-workspace: rgba(255, 255, 255, 0.45);
+    --surface-surface: rgba(255, 255, 255, 0.76);
+    --surface-raised: rgba(255, 255, 255, 0.86);
+    --surface-overlay: rgba(255, 255, 255, 0.96);
 
     /* Atmospheric Sky Background with Radiant Sunlight & Horizon Glow */
-    --canvas-bg: radial-gradient(130% 90% at 50% -10%, #FFFFFF 0%, #E3F5FD 30%, #A2D8F6 65%, #6EB9E5 100%),
-                 #9FD0EB;
-    --surface-backdrop: blur(16px);
+    --canvas-bg: radial-gradient(140% 100% at 50% -15%, #FFFFFF 0%, #E0F4FD 28%, #9AD5F5 60%, #68B4E3 100%),
+                 #8DC7EB;
+    --surface-backdrop: blur(20px) saturate(160%);
 
     --text-primary: #0F2942;
     --text-secondary: #2C5270;
     --text-muted: #587A96;
-    --text-subtle: #819EB5;
+    --text-subtle: #799AB5;
 
     --border-width: 1px;
-    --border-subtle: rgba(255, 255, 255, 0.55);
-    --border-default: rgba(255, 255, 255, 0.75);
-    --border-strong: rgba(255, 255, 255, 0.95);
+    --border-subtle: rgba(255, 255, 255, 0.65);
+    --border-default: rgba(255, 255, 255, 0.85);
+    --border-strong: rgba(255, 255, 255, 0.98);
     --border-active: #0085DF;
 
     /* Frutiger Aero Glossy Glass Specular Highlights & Ambient Sky Shadows */
-    --shadow-card: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 8px 30px -4px rgba(31, 78, 121, 0.18), 0 2px 6px rgba(31, 78, 121, 0.08);
-    --shadow-modal: inset 0 1px 0 0 rgba(255, 255, 255, 0.98), 0 24px 60px -8px rgba(20, 60, 95, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.85);
-    --shadow-popover: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 12px 32px -4px rgba(20, 60, 95, 0.20), 0 0 0 1px rgba(255, 255, 255, 0.8);
+    --shadow-card: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 10px 32px -4px rgba(28, 84, 134, 0.18), 0 2px 8px rgba(28, 84, 134, 0.08);
+    --shadow-modal: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 24px 60px -8px rgba(20, 60, 95, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.90);
+    --shadow-popover: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 12px 32px -4px rgba(20, 60, 95, 0.20), 0 0 0 1px rgba(255, 255, 255, 0.85);
     --glow-accent: 0 0 20px rgba(0, 133, 223, 0.35);
 
     --radius-card: 1rem;
@@ -985,44 +985,51 @@
 /* ========================================================================= */
 /* FRUTIGER AERO DESIGN SYSTEM SPECIFIC COMPONENT TRANSFORMATION             */
 /* ========================================================================= */
+[data-theme="aero"],
 [data-theme="aero"] body {
-  background: var(--canvas-bg);
-  background-attachment: fixed;
+  background: radial-gradient(140% 100% at 50% -15%, #FFFFFF 0%, #E0F4FD 28%, #9AD5F5 60%, #68B4E3 100%), #8DC7EB !important;
+  background-attachment: fixed !important;
 }
 
 [data-theme="aero"] .bg-canvas {
-  background: var(--canvas-bg);
-  background-attachment: fixed;
+  background: radial-gradient(140% 100% at 50% -15%, #FFFFFF 0%, #E0F4FD 28%, #9AD5F5 60%, #68B4E3 100%), #8DC7EB !important;
+  background-attachment: fixed !important;
 }
 
-/* 1. Translucent Aero Glass Surfaces & Cards */
+/* 1. Translucent Aero Frosted Glass Surfaces & Cards */
 [data-theme="aero"] .bg-surface,
 [data-theme="aero"] .rounded-card,
 [data-theme="aero"] .aero-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.90) 0%, rgba(240, 248, 255, 0.82) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.85) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 8px 30px -4px rgba(31, 78, 121, 0.16), 0 2px 6px rgba(31, 78, 121, 0.06) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(238, 248, 255, 0.62) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 10px 32px -4px rgba(28, 84, 134, 0.18), 0 2px 8px rgba(28, 84, 134, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 [data-theme="aero"] .bg-raised {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(235, 246, 255, 0.90) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.90) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 4px 14px rgba(31, 78, 121, 0.10) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(232, 246, 255, 0.74) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 6px 18px rgba(28, 84, 134, 0.12) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 [data-theme="aero"] .bg-workspace {
-  background-color: rgba(255, 255, 255, 0.55) !important;
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 /* 2. Signature Frutiger Aero Focus Panel */
 [data-theme="aero"] .aero-focus-card,
 [data-theme="aero"] .lumen-focus-card {
   position: relative;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(225, 244, 255, 0.88) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(220, 244, 255, 0.72) 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.95) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 12px 36px -4px rgba(0, 133, 223, 0.18), 0 4px 10px rgba(31, 78, 121, 0.08) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 14px 38px -4px rgba(0, 133, 223, 0.22), 0 4px 12px rgba(28, 84, 134, 0.10) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   overflow: hidden;
 }
 
@@ -1031,20 +1038,20 @@
   content: "";
   position: absolute;
   top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.9) 50%, transparent 100%);
+  left: 5%;
+  right: 5%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 50%, transparent 100%);
   pointer-events: none;
 }
 
-/* 3. Primary Button — Glossy Specular Skeuomorphic Gradient (active:scale-95) */
+/* 3. Primary Button — Glossy Specular Skeuomorphic Gradient */
 [data-theme="aero"] button.bg-\[var\(--color-primary\)\],
 [data-theme="aero"] .btn-primary {
   background: linear-gradient(180deg, #38BDF8 0%, #0284C7 50%, #0369A1 100%) !important;
   color: #FFFFFF !important;
-  border: 1px solid rgba(255, 255, 255, 0.65) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.80), 0 4px 14px rgba(2, 132, 199, 0.38), 0 1px 2px rgba(0, 30, 60, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(2, 132, 199, 0.38), 0 1px 2px rgba(0, 30, 60, 0.18) !important;
   text-shadow: 0 1px 2px rgba(0, 40, 80, 0.45) !important;
   font-weight: 600 !important;
   letter-spacing: 0.01em !important;
@@ -1054,7 +1061,7 @@
 [data-theme="aero"] button.bg-\[var\(--color-primary\)\]:hover,
 [data-theme="aero"] .btn-primary:hover {
   background: linear-gradient(180deg, #60A5FA 0%, #0284C7 45%, #075985 100%) !important;
-  border-color: rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 6px 20px rgba(2, 132, 199, 0.50) !important;
 }
 
@@ -1063,13 +1070,13 @@
 [data-theme="aero"] button.bg-surface:active,
 [data-theme="aero"] .btn-secondary:active,
 [data-theme="aero"] button:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.96) !important;
 }
 
 /* 4. Secondary & Surface Buttons */
 [data-theme="aero"] button.bg-surface,
 [data-theme="aero"] .btn-secondary {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(235, 246, 255, 0.88) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(230, 245, 255, 0.85) 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.90) !important;
   color: #0F2942 !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 2px 8px rgba(31, 78, 121, 0.10) !important;
@@ -1078,7 +1085,7 @@
 
 [data-theme="aero"] button.bg-surface:hover,
 [data-theme="aero"] .btn-secondary:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(220, 240, 255, 0.95) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(215, 238, 255, 0.95) 100%) !important;
   border-color: rgba(255, 255, 255, 1) !important;
   color: #0B1E30 !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 4px 12px rgba(31, 78, 121, 0.16) !important;
@@ -1086,24 +1093,24 @@
 
 /* 5. Header & Navigation (Sidebar) */
 [data-theme="aero"] header {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(235, 247, 255, 0.85) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(230, 245, 255, 0.70) 100%) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.90) !important;
-  box-shadow: 0 4px 20px rgba(31, 78, 121, 0.10) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 4px 20px rgba(28, 84, 134, 0.10) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 [data-theme="aero"] aside {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.90) 0%, rgba(230, 244, 254, 0.85) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(225, 244, 255, 0.68) 100%) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.90) !important;
-  box-shadow: 4px 0 24px rgba(31, 78, 121, 0.10) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 4px 0 24px rgba(28, 84, 134, 0.10) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 [data-theme="aero"] aside nav button.bg-raised,
 [data-theme="aero"] aside nav button[aria-current="page"] {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(195, 230, 252, 0.88) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(195, 230, 252, 0.90) 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.95) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), inset 3px 0 0 0 #0085DF, 0 2px 8px rgba(0, 133, 223, 0.18) !important;
   color: #0F2942 !important;
@@ -1120,10 +1127,11 @@
 [data-theme="aero"] input:not([type="checkbox"]):not([type="radio"]),
 [data-theme="aero"] select,
 [data-theme="aero"] textarea {
-  background-color: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
   border: 1px solid rgba(14, 116, 144, 0.28) !important;
   color: #0F2942 !important;
   box-shadow: inset 0 1.5px 3px rgba(0, 30, 60, 0.08), 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px) !important;
   transition: all 150ms ease;
 }
 
@@ -1438,6 +1446,25 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.60), 0 0 6px -1px rgba(100, 116, 139, 0.25) !important;
 }
 
+/* 11. Frutiger Aero Autopilot Disposition Controls */
+[data-theme="aero"] button[aria-label*="PASS"],
+[data-theme="aero"] button[aria-label*="Pass"],
+[data-theme="aero"] .ring-emerald-500\/50 {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme="aero"] button[aria-label*="FAIL"],
+[data-theme="aero"] button[aria-label*="Fail"],
+[data-theme="aero"] .ring-rose-500\/50 {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
+[data-theme="aero"] button[aria-label*="DEVIATION"],
+[data-theme="aero"] button[aria-label*="Deviation"],
+[data-theme="aero"] .ring-blue-500\/50,
+[data-theme="aero"] .ring-amber-500\/50 {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 4px 14px rgba(0, 133, 223, 0.35) !important;
+}
 
 /* Print styles for Executive Engineering Reports */
 @media print {
