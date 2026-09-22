@@ -1,5 +1,31 @@
 # FSOS CHANGELOG
 
+## v3.4.9 — FSOS Theme Canvas Shader Experiment (2026-09-22)
+
+### Real-Time Application Canvas Shader Environment
+- **Lightweight Hardware-Accelerated Shader**: Integrated `ThemeCanvasShader` providing high-performance WebGL fragment shader background environments tailored specifically for Precision, Lumen, and Aero with 0% external overhead and graceful Canvas2D fallback.
+- **Unmistakable Theme Background Personalities**:
+  - **Precision**: Dark industrial semiconductor cleanroom console (`#111315`) with Cartesian micron grid matrix, optical intersection crosshairs, and slow-scanning collimated laser calibration beam (warm amber `#F59E0B` and technical cyan).
+  - **Lumen**: Deep obsidian dusk void (`#07080A`) with fluid, undulating chromatic cyan (`#38BDF8`) & deep sapphire horizon plasma caustics, soft radiant optical bloom, and floating atmospheric photon drift.
+  - **Aero**: Vibrant daylight sky gradient (`#F8FAFC` to `#6BB8EB`), organic liquid crystal water caustics, glossy diagonal glass specular light sweeps, and buoyant daylight light bubbles.
+- **Strict Performance & Accessibility**:
+  - Automatically respects `prefers-reduced-motion` by rendering a pristine single static frame without animation loops.
+  - Pauses requestAnimationFrame loop automatically when the browser tab is hidden (`visibilitychange`).
+  - Fixed full-screen positioning with `pointer-events-none` behind all UI cards and navigation, ensuring complete UI legibility and 100% WCAG AA contrast compliance.
+- **Domain Logic & Layout Isolation**: Zero modifications to UI components, layout structures, ThemeContext persistence, semiconductor algorithms, or PDF generation pipelines.
+
+## v3.4.8 — FSOS Theme Switcher Thumbnail Redesign (2026-09-22)
+
+### Header Theme Switcher Visual Thumbnail Redesign
+- **Visual Theme Previews**: Replaced plain text switcher labels ("Precision", "Lumen", "Aero") in the Header with authentic, pixel-perfect miniature UI thumbnails depicting the visual language of each theme before reading any text.
+- **Equal-Width RubberSegment Physics**: Implemented `equalSlots` geometry on `RubberSegment`, ensuring Precision, Lumen, and Aero slots share identical dimensions and aspect ratios with animated rubber sliding thumbs and reduced-motion support.
+- **Authentic Theme Identity Previews**:
+  - **Precision Thumbnail**: Dark industrial graphite canvas (`#111315`), technical grid lines, amber laser focal crosshair, and cool slate metadata.
+  - **Lumen Thumbnail**: Deep obsidian dusk canvas (`#07080A`) with luminous cyan radial horizon illumination (`#38BDF8`), edge hairlines, and glowing glass accents.
+  - **Frutiger Aero Thumbnail**: Luminous azure daylight sky gradient, organic translucent glass surfaces, specular reflection highlights, and vibrant sky blue accents.
+- **Full Accessibility & Semantic Retention**: Maintained semantic `aria-label` names ("Precision Theme", "Lumen Theme", "Frutiger Aero Theme"), radio group roles, and `aria-checked` states for screen readers and keyboard navigation (Arrow keys, Home, End).
+- **Domain Logic & Persistence Isolation**: 100% preservation of ThemeContext persistence (`fso_theme_mode`), theme definitions, semiconductor algorithms, and PDF generation pipelines.
+
 ## v3.4.7 — FSOS Core Chrome Theme Identity (2026-09-22)
 
 ### Core Chrome & Surface Visual Differentiation

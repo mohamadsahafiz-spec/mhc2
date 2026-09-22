@@ -32,6 +32,7 @@ import { motionTimings, motionEasings } from './theme/motion';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LoginPage } from './components/auth/LoginPage';
+import { ThemeCanvasShader } from './components/common/ThemeCanvasShader';
 
 // Modules
 import { StartPageModule } from './components/modules/StartPageModule';
@@ -494,7 +495,10 @@ function AppLayout() {
   }
 
   return (
-    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150`}>
+    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150 relative overflow-x-hidden`}>
+      {/* Real-Time Shader Canvas Environment */}
+      <ThemeCanvasShader />
+
       {/* Sidebar Navigation */}
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
@@ -511,7 +515,7 @@ function AppLayout() {
       </AnimatePresence>
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}

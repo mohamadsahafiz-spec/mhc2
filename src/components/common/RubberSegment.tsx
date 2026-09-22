@@ -6,6 +6,7 @@ export interface RubberSegmentOption {
   label: React.ReactNode;
   icon?: React.ReactNode;
   ariaLabel?: string;
+  title?: string;
 }
 
 export interface RubberSegmentProps {
@@ -13,11 +14,14 @@ export interface RubberSegmentProps {
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'custom';
+  equalSlots?: boolean;
   className?: string;
+  slotClassName?: string;
   disabled?: boolean;
   name?: string;
   id?: string;
+  ariaLabel?: string;
 }
 
 export const RubberSegment: React.FC<RubberSegmentProps> = ({
@@ -26,10 +30,13 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
   defaultValue,
   onChange,
   size = 'sm',
+  equalSlots = false,
   className = '',
+  slotClassName = '',
   disabled = false,
   name,
   id: customId,
+  ariaLabel = 'Theme Selection',
 }) => {
   const generatedId = useId();
   const componentId = customId || generatedId;
@@ -38,7 +45,7 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
   // Normalize options
   const normalizedOptions: RubberSegmentOption[] = options.map((opt) => {
     if (typeof opt === 'string') {
-      return { value: opt, label: opt };
+      return { value: opt, label: opt, ariaLabel: opt };
     }
     return opt;
   });
@@ -96,6 +103,7 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
     sm: 'p-1 text-xs gap-1',
     md: 'p-1.5 text-sm gap-1.5',
     lg: 'p-2 text-base gap-2',
+    custom: 'p-1 gap-1',
   };
 
   const buttonPadding = {
@@ -103,6 +111,7 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
     sm: 'px-2.5 py-1 h-7',
     md: 'px-3.5 py-1.5 h-8',
     lg: 'px-4.5 py-2 h-10',
+    custom: 'p-0.5',
   };
 
   const springTransition = prefersReducedMotion
@@ -119,7 +128,7 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
       ref={containerRef}
       role="radiogroup"
       id={componentId}
-      aria-label="Theme Selection"
+      aria-label={ariaLabel}
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : 0}
       onKeyDown={handleKeyDown}
@@ -146,27 +155,30 @@ export const RubberSegment: React.FC<RubberSegmentProps> = ({
             role="radio"
             aria-checked={isSelected}
             aria-label={option.ariaLabel || (typeof option.label === 'string' ? option.label : option.value)}
+            title={option.title || (typeof option.label === 'string' ? option.label : undefined)}
             disabled={disabled}
             tabIndex={-1}
             onClick={() => handleSelect(option.value)}
-            className={`relative z-10 font-theme-label font-medium flex items-center justify-center gap-1.5 transition-colors duration-150 rounded-button ${
-              buttonPadding[size]
+            className={`relative z-10 font-theme-label font-medium flex items-center justify-center transition-colors duration-150 rounded-button ${
+              equalSlots ? 'flex-1 min-w-0' : ''
+            } ${
+              size === 'custom' ? '' : buttonPadding[size]
             } ${
               isSelected
                 ? 'text-theme-primary font-semibold'
                 : 'text-theme-muted hover:text-theme-primary'
-            } ${isFocused ? 'ring-1 ring-inset ring-[var(--color-primary)]/50' : ''}`}
+            } ${isFocused ? 'ring-1 ring-inset ring-[var(--color-primary)]/50' : ''} ${slotClassName}`}
           >
             {isSelected && (
               <motion.div
                 layoutId={`rubber-segment-thumb-${componentId}`}
                 transition={springTransition}
-                className="absolute inset-0 rounded-button shadow-xs bg-surface border border-theme-default"
+                className="absolute inset-0 rounded-button shadow-xs bg-surface border border-theme-default pointer-events-none"
                 style={{ zIndex: -1 }}
               />
             )}
             {option.icon && <span className="shrink-0 text-current">{option.icon}</span>}
-            <span>{option.label}</span>
+            {typeof option.label === 'string' ? <span>{option.label}</span> : option.label}
           </button>
         );
       })}

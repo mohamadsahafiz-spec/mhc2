@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeCanvasShader } from '../common/ThemeCanvasShader';
 
 interface LoginBackgroundProps {
   isDark?: boolean;
@@ -37,6 +38,9 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark: propIs
       className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0 login-background-container"
       aria-hidden="true"
     >
+      {/* Real-Time Theme Canvas Shader */}
+      <ThemeCanvasShader />
+
       {/* Interactive Ambient Spotlight */}
       <div
         className="absolute inset-0 transition-opacity duration-700 ease-out login-ambient-spotlight"

@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v3.4.7';
-export const APP_VERSION_RAW = '3.4.7';
-export const APP_BUILD_ID = 'CFW-20260922-1300';
-export const APP_CODENAME = 'FSOS Core Chrome Theme Identity';
+export const APP_VERSION = 'v3.4.9';
+export const APP_VERSION_RAW = '3.4.9';
+export const APP_BUILD_ID = 'CFW-20260922-1500';
+export const APP_CODENAME = 'FSOS Theme Canvas Shader Experiment';

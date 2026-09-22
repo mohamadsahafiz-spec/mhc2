@@ -13,6 +13,7 @@ import { useTheme, NamedTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
 import { RubberSegment } from '../common/RubberSegment';
+import { ThemeThumbnail } from '../common/ThemeThumbnail';
 import { 
   motionTimings, 
   motionEasings, 
@@ -135,14 +136,32 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Compact Theme Pilot Switcher (Precision | Lumen | Aero) */}
         <RubberSegment
           options={[
-            { value: 'precision', label: 'Precision' },
-            { value: 'lumen', label: 'Lumen' },
-            { value: 'aero', label: 'Aero' }
+            {
+              value: 'precision',
+              label: <ThemeThumbnail theme="precision" isSelected={activeTheme === 'precision'} />,
+              ariaLabel: 'Precision Theme',
+              title: 'Precision (Industrial Dark)',
+            },
+            {
+              value: 'lumen',
+              label: <ThemeThumbnail theme="lumen" isSelected={activeTheme === 'lumen'} />,
+              ariaLabel: 'Lumen Theme',
+              title: 'Lumen (Luminous Obsidian)',
+            },
+            {
+              value: 'aero',
+              label: <ThemeThumbnail theme="aero" isSelected={activeTheme === 'aero'} />,
+              ariaLabel: 'Frutiger Aero Theme',
+              title: 'Frutiger Aero (Atmospheric Sky Glass)',
+            },
           ]}
           value={activeTheme}
           onChange={(val) => setTheme(val as NamedTheme)}
-          size="xs"
-          className="shadow-2xs"
+          size="custom"
+          equalSlots={true}
+          slotClassName="p-0.5"
+          className="shadow-2xs p-0.5 gap-1 bg-raised border-theme-default"
+          ariaLabel="Theme Selector"
         />
 
         {/* Real Sync Status */}
