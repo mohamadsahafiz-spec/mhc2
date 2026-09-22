@@ -1,18 +1,14 @@
 # FSOS CHANGELOG
 
-## v3.4.9 — FSOS Theme Canvas Shader Experiment (2026-09-22)
+## v3.4.9 — FSOS Theme Canvas Shaders (2026-09-22)
 
-### Real-Time Application Canvas Shader Environment
-- **Lightweight Hardware-Accelerated Shader**: Integrated `ThemeCanvasShader` providing high-performance WebGL fragment shader background environments tailored specifically for Precision, Lumen, and Aero with 0% external overhead and graceful Canvas2D fallback.
-- **Unmistakable Theme Background Personalities**:
-  - **Precision**: Dark industrial semiconductor cleanroom console (`#111315`) with Cartesian micron grid matrix, optical intersection crosshairs, and slow-scanning collimated laser calibration beam (warm amber `#F59E0B` and technical cyan).
-  - **Lumen**: Deep obsidian dusk void (`#07080A`) with fluid, undulating chromatic cyan (`#38BDF8`) & deep sapphire horizon plasma caustics, soft radiant optical bloom, and floating atmospheric photon drift.
-  - **Aero**: Vibrant daylight sky gradient (`#F8FAFC` to `#6BB8EB`), organic liquid crystal water caustics, glossy diagonal glass specular light sweeps, and buoyant daylight light bubbles.
-- **Strict Performance & Accessibility**:
-  - Automatically respects `prefers-reduced-motion` by rendering a pristine single static frame without animation loops.
-  - Pauses requestAnimationFrame loop automatically when the browser tab is hidden (`visibilitychange`).
-  - Fixed full-screen positioning with `pointer-events-none` behind all UI cards and navigation, ensuring complete UI legibility and 100% WCAG AA contrast compliance.
-- **Domain Logic & Layout Isolation**: Zero modifications to UI components, layout structures, ThemeContext persistence, semiconductor algorithms, or PDF generation pipelines.
+### Authenticated Application Canvas Shaders
+- **Distinct Theme Shader Environments**: Integrated dedicated canvas background shaders for the authenticated FSOS application workspace, establishing three distinct visual environments across Precision, Lumen, and Aero while preserving 100% typography contrast and UI legibility.
+- **Precision Laser Optics Matrix**: Industrial dark graphite foundation with fine orthogonal cleanroom coordinate grids, harmonic laser interferometer sweep waves, and micro-pulsing crosshair calibration nodes.
+- **Lumen Obsidian Dusk Aurora**: Deep obsidian base with dual-source volumetric dusk radial auroras (cyan and cobalt), luminous dusk horizon contour waves, and organic drifting photon dust particles.
+- **Frutiger Aero Daylight Sky Glass**: Fluid azure daylight sky gradient, organic translucent bokeh bubbles with specular highlights, prismatic sunlight refraction beams, and harmonic sky caustic waves.
+- **Performance & Reduced-Motion Protection**: Canvas rendering pauses and smoothly falls back to a static frame when `prefers-reduced-motion` is enabled, minimizing CPU cycles and respecting accessibility standards.
+- **Strict Architecture Isolation**: Scope restricted strictly to authenticated canvas background. Login background, Login UI, Header, Sidebar, Autopilot, PDF rendering pipelines, and domain logic remain untouched.
 
 ## v3.4.8 — FSOS Theme Switcher Thumbnail Redesign (2026-09-22)
 
