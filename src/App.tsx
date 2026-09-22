@@ -32,7 +32,6 @@ import { motionTimings, motionEasings } from './theme/motion';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LoginPage } from './components/auth/LoginPage';
-import { AppCanvasShader } from './components/common/AppCanvasShader';
 
 // Modules
 import { StartPageModule } from './components/modules/StartPageModule';
@@ -495,10 +494,7 @@ function AppLayout() {
   }
 
   return (
-    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150 relative overflow-x-hidden`}>
-      {/* Dynamic Ambient Application Canvas Shader */}
-      <AppCanvasShader />
-
+    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150`}>
       {/* Sidebar Navigation */}
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
