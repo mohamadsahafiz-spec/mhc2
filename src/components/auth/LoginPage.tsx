@@ -21,7 +21,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginSuccess,
   savedWorkspaceMode = 'MHC_MODE'
 }) => {
-  const { effectiveTheme } = useTheme();
+  const { effectiveTheme, activeTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = useReducedMotion();
 
@@ -143,22 +143,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors duration-200 select-none ${
-      isDark ? 'bg-[#0E1013] text-[#F3F4F6]' : 'bg-[#F2F5F8] text-slate-900'
-    }`}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors duration-200 select-none bg-canvas text-theme-primary">
       {/* Animated Precision Environment Background */}
       <LoginBackground isDark={isDark} />
 
       {/* Main Login Composition Panel */}
       <motion.div
+        id="login-card"
         variants={panelVariants}
         initial="hidden"
         animate={loginState === 'success' ? 'exit' : 'visible'}
-        className={`w-full max-w-md rounded-2xl border p-7 sm:p-8 relative z-10 transition-all ${
-          isDark 
-            ? 'bg-[#15181E]/95 border-[#272F3B] shadow-2xl shadow-black/60 backdrop-blur-sm' 
-            : 'bg-white/95 border-slate-200/90 shadow-2xl shadow-slate-900/10 backdrop-blur-sm'
-        }`}
+        className="login-panel-card w-full max-w-md rounded-2xl border p-7 sm:p-8 relative z-10 transition-all bg-surface border-theme-default shadow-2xl backdrop-theme-surface"
       >
         {/* Deliberate FSOS Brand Mark Presentation */}
         <motion.div variants={itemVariants} className="text-center space-y-3 mb-6">
@@ -167,7 +162,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {/* Outer Mechanical Precision Alignment Ring */}
               <motion.svg
                 variants={waferRingVariants}
-                className="absolute inset-0 w-full h-full pointer-events-none opacity-60 dark:opacity-50"
+                className="absolute inset-0 w-full h-full pointer-events-none opacity-60 dark:opacity-50 login-wafer-ring"
                 viewBox="0 0 80 80"
                 fill="none"
               >
@@ -208,13 +203,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-sans">
+            <h1 className="text-2xl font-bold tracking-tight font-sans text-theme-primary">
               FSOS
             </h1>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono tracking-wider uppercase font-semibold bg-slate-100 dark:bg-[#1E232B] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#2C3542]">
+            <div className="login-badge-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono tracking-wider uppercase font-semibold bg-raised text-theme-secondary border border-theme-default">
               Field Service Operations System
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+            <p className="text-xs text-theme-muted pt-0.5">
               Precision Field Engineering Platform
             </p>
           </div>
@@ -227,7 +222,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <motion.div variants={itemVariants} className="space-y-1.5">
               <label 
                 htmlFor="account-select" 
-                className="block text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-300"
+                className="block text-xs font-semibold tracking-wide text-theme-secondary"
               >
                 Field Engineer Account
               </label>
@@ -235,11 +230,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 id="account-select"
                 value={selectedUserId}
                 onChange={(e) => handleUserSelect(e.target.value)}
-                className={`w-full text-xs font-medium rounded-lg px-3 py-2.5 border transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                  isDark
-                    ? 'bg-[#1A1E25] border-[#29323F] text-slate-100 focus:ring-slate-400 focus:border-slate-400 focus:ring-offset-[#15181E]'
-                    : 'bg-white border-slate-200 text-slate-900 focus:ring-slate-900 focus:border-slate-900 focus:ring-offset-white'
-                }`}
+                className="login-select w-full text-xs font-medium rounded-lg px-3 py-2.5 border transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 bg-workspace border-theme-default text-theme-primary"
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -254,14 +245,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <motion.div variants={itemVariants} className="space-y-1.5">
             <label 
               htmlFor="email-input" 
-              className="block text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-300"
+              className="block text-xs font-semibold tracking-wide text-theme-secondary"
             >
               Email / Engineer ID
             </label>
             <div className="relative">
-              <User className={`w-4 h-4 absolute left-3 top-3 pointer-events-none ${
-                isDark ? 'text-slate-500' : 'text-slate-400'
-              }`} />
+              <User className="w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-muted" />
               <input
                 id="email-input"
                 type="text"
@@ -269,11 +258,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 placeholder="engineer@eotechnics.com"
-                className={`w-full text-xs rounded-lg pl-9 pr-3 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                  isDark
-                    ? 'bg-[#1A1E25] border-[#29323F] text-slate-100 placeholder-slate-600 focus:ring-slate-400 focus:border-slate-400 focus:ring-offset-[#15181E]'
-                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-slate-900 focus:border-slate-900 focus:ring-offset-white'
-                }`}
+                className="login-input w-full text-xs rounded-lg pl-9 pr-3 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 bg-workspace border-theme-default text-theme-primary"
               />
             </div>
           </motion.div>
@@ -282,14 +267,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <motion.div variants={itemVariants} className="space-y-1.5">
             <label 
               htmlFor="password-input" 
-              className="block text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-300"
+              className="block text-xs font-semibold tracking-wide text-theme-secondary"
             >
               Password
             </label>
             <div className="relative">
-              <Lock className={`w-4 h-4 absolute left-3 top-3 pointer-events-none ${
-                isDark ? 'text-slate-500' : 'text-slate-400'
-              }`} />
+              <Lock className="w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-muted" />
               <input
                 id="password-input"
                 type="password"
@@ -297,24 +280,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••••••"
-                className={`w-full text-xs rounded-lg pl-9 pr-3 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                  isDark
-                    ? 'bg-[#1A1E25] border-[#29323F] text-slate-100 placeholder-slate-600 focus:ring-slate-400 focus:border-slate-400 focus:ring-offset-[#15181E]'
-                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-slate-900 focus:border-slate-900 focus:ring-offset-white'
-                }`}
+                className="login-input w-full text-xs rounded-lg pl-9 pr-3 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 bg-workspace border-theme-default text-theme-primary"
               />
             </div>
           </motion.div>
 
           {/* Workspace Mode Selection with Animated Mechanical Indicator */}
           <motion.div variants={itemVariants} className="space-y-1.5 pt-1">
-            <label className="block text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-semibold tracking-wide text-theme-secondary">
               Target Workspace Mode
             </label>
             <div 
-              className={`grid grid-cols-2 gap-1.5 p-1 rounded-xl border relative ${
-                isDark ? 'bg-[#14171D] border-[#272F3B]' : 'bg-slate-100/90 border-slate-200'
-              }`}
+              className="login-mode-container grid grid-cols-2 gap-1.5 p-1 rounded-xl border relative bg-workspace border-theme-default"
               role="radiogroup" 
               aria-label="Target Workspace Mode"
             >
@@ -324,30 +301,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 role="radio"
                 aria-checked={preferredMode === 'MHC_MODE'}
                 onClick={() => setPreferredMode('MHC_MODE')}
-                className={`relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
+                className={`login-mode-btn relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
                   preferredMode === 'MHC_MODE'
-                    ? isDark ? 'text-slate-100' : 'text-slate-900'
-                    : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'
+                    ? 'text-theme-primary font-semibold'
+                    : 'text-theme-muted hover:text-theme-primary'
                 }`}
               >
                 {preferredMode === 'MHC_MODE' && (
                   <motion.div
                     layoutId="activeWorkspaceMode"
                     transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                    className={`absolute inset-0 rounded-lg border shadow-sm ${
-                      isDark 
-                        ? 'bg-[#222933] border-slate-400/80 shadow-black/40' 
-                        : 'bg-white border-slate-900/80 shadow-slate-900/5'
-                    }`}
+                    className="login-mode-active-indicator absolute inset-0 rounded-lg border shadow-sm bg-surface border-theme-strong"
                   />
                 )}
                 <div className="relative z-10 flex items-center justify-between text-xs font-semibold">
                   <span>MHC Mode</span>
                   {preferredMode === 'MHC_MODE' && (
-                    <Check className={`w-3.5 h-3.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} />
+                    <Check className="w-3.5 h-3.5 text-theme-primary" />
                   )}
                 </div>
-                <span className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                <span className="relative z-10 text-[10px] text-theme-muted font-normal">
                   Focused Health Check
                 </span>
               </button>
@@ -358,30 +331,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 role="radio"
                 aria-checked={preferredMode === 'FOUNDER_MODE'}
                 onClick={() => setPreferredMode('FOUNDER_MODE')}
-                className={`relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
+                className={`login-mode-btn relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
                   preferredMode === 'FOUNDER_MODE'
-                    ? isDark ? 'text-slate-100' : 'text-slate-900'
-                    : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'
+                    ? 'text-theme-primary font-semibold'
+                    : 'text-theme-muted hover:text-theme-primary'
                 }`}
               >
                 {preferredMode === 'FOUNDER_MODE' && (
                   <motion.div
                     layoutId="activeWorkspaceMode"
                     transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                    className={`absolute inset-0 rounded-lg border shadow-sm ${
-                      isDark 
-                        ? 'bg-[#222933] border-slate-400/80 shadow-black/40' 
-                        : 'bg-white border-slate-900/80 shadow-slate-900/5'
-                    }`}
+                    className="login-mode-active-indicator absolute inset-0 rounded-lg border shadow-sm bg-surface border-theme-strong"
                   />
                 )}
                 <div className="relative z-10 flex items-center justify-between text-xs font-semibold">
                   <span>Founder Mode</span>
                   {preferredMode === 'FOUNDER_MODE' && (
-                    <Check className={`w-3.5 h-3.5 ${isDark ? 'text-slate-100' : 'text-slate-900'}`} />
+                    <Check className="w-3.5 h-3.5 text-theme-primary" />
                   )}
                 </div>
-                <span className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                <span className="relative z-10 text-[10px] text-theme-muted font-normal">
                   Complete Platform
                 </span>
               </button>
@@ -395,13 +364,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-200 focus:ring-slate-400"
+                className="w-3.5 h-3.5 rounded border-theme-default bg-workspace text-theme-primary focus:ring-1 focus:ring-[var(--border-active)]"
               />
-              <span className="text-slate-600 dark:text-slate-300 text-xs font-medium">
+              <span className="text-theme-secondary text-xs font-medium">
                 Remember session
               </span>
             </label>
-            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+            <span className="text-[11px] font-mono text-theme-muted">
               LOCAL-FIRST
             </span>
           </motion.div>
@@ -409,16 +378,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Primary Action Button */}
           <motion.div variants={itemVariants} className="pt-2">
             <motion.button
+              id="login-submit-btn"
               type="submit"
               disabled={loginState !== 'idle'}
               whileHover={{ scale: prefersReducedMotion ? 1 : 1.008 }}
               whileTap={{ scale: prefersReducedMotion ? 1 : 0.992 }}
-              className={`w-full py-3 px-4 rounded-xl font-semibold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-80 shadow-md ${
+              className={`login-submit-btn w-full py-3 px-4 rounded-xl font-semibold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-80 shadow-md ${
                 loginState === 'success'
                   ? 'bg-emerald-600 text-white focus:ring-emerald-500'
-                  : isDark
-                    ? 'bg-slate-100 hover:bg-white text-slate-900 focus:ring-slate-400 focus:ring-offset-[#15181E]'
-                    : 'bg-slate-900 hover:bg-slate-800 text-white focus:ring-slate-900 focus:ring-offset-white'
+                  : 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-95'
               }`}
             >
               <AnimatePresence mode="wait">
@@ -467,9 +435,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         {/* Footer Technical Metadata */}
         <motion.div 
           variants={itemVariants}
-          className={`mt-6 pt-4 border-t flex items-center justify-between text-[11px] font-mono ${
-            isDark ? 'border-[#242C37] text-slate-500' : 'border-slate-100 text-slate-400'
-          }`}
+          className="mt-6 pt-4 border-t border-theme-subtle flex items-center justify-between text-[11px] font-mono text-theme-muted"
         >
           <span>EO TECHNICS</span>
           <span>CERTIFIED OPERATING SYSTEM</span>

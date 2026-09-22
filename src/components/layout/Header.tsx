@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [activeTab]);
 
   return (
-    <header className="h-14 px-4 sm:px-6 border-b sticky top-0 z-20 backdrop-theme-surface transition-colors duration-150 flex items-center justify-between gap-3 bg-surface border-theme-default text-theme-primary">
+    <header id="main-header" className="main-header h-14 px-4 sm:px-6 border-b sticky top-0 z-20 backdrop-theme-surface transition-colors duration-150 flex items-center justify-between gap-3 bg-surface border-theme-default text-theme-primary">
       {/* 1. Context Orientation & Restore Sidebar Trigger */}
       <div className="flex items-center gap-2.5 min-w-0">
         <AnimatePresence>
@@ -151,6 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Account Menu */}
         <div className="relative" ref={userMenuRef}>
           <motion.button
+            id="main-header-account-btn"
             whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.tap}
             onClick={() => setShowUserMenu(!showUserMenu)}
             title="Account Menu"
@@ -170,6 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
           <AnimatePresence>
             {showUserMenu && (
               <motion.div
+                id="main-header-user-dropdown"
                 key="user-account-dropdown"
                 variants={createScaleFadeVariants(prefersReducedMotion)}
                 initial="hidden"

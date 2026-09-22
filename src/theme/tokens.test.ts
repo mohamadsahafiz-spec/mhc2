@@ -45,7 +45,7 @@ describe('FSOS R1 Visual Foundation Tokens', () => {
 
     it('configures Lumen with deep obsidian charcoal and luminous cyan depth', () => {
       expect(themePalettes.lumen.baseMode).toBe('dark');
-      expect(themePalettes.lumen.canvas).toBe('#0A0D12');
+      expect(themePalettes.lumen.canvas).toBe('#07080A');
       expect(themePalettes.lumen.accent).toBe('#38BDF8');
     });
 
@@ -101,13 +101,13 @@ describe('FSOS R1 Visual Foundation Tokens', () => {
     });
 
     it('enforces distinct geometry language between themes (e.g. Forge is compact/angular, Aether is refined/soft)', () => {
-      expect(themePalettes.forge.geometry.radiusCard).toBe('8px');
-      expect(themePalettes.forge.geometry.radiusButton).toBe('6px');
+      expect(themePalettes.forge.geometry.radiusCard).toBe('0.375rem');
+      expect(themePalettes.forge.geometry.radiusButton).toBe('0.25rem');
 
-      expect(themePalettes.aether.geometry.radiusCard).toBe('16px');
-      expect(themePalettes.aether.geometry.radiusButton).toBe('12px');
+      expect(themePalettes.aether.geometry.radiusCard).toBe('1.125rem');
+      expect(themePalettes.aether.geometry.radiusButton).toBe('0.75rem');
 
-      expect(themePalettes.prism.geometry.radiusCard).toBe('6px');
+      expect(themePalettes.prism.geometry.radiusCard).toBe('0.5rem');
       expect(themePalettes.prism.typography.headingWeight).toBe('700');
     });
   });

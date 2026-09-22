@@ -1773,6 +1773,320 @@
   color: #94A3B8 !important;
 }
 
+/* ==========================================================================
+   THEME IDENTITY: MAIN SIDEBAR, HEADER, AUTOPILOT NAVIGATOR & LOGIN
+   ========================================================================== */
+
+/* --- 1. MAIN SIDEBAR --- */
+/* Lumen Sidebar */
+[data-theme="lumen"] #main-sidebar,
+[data-theme="lumen"] .main-sidebar {
+  background: radial-gradient(130% 90% at 50% 0%, rgba(28, 38, 54, 0.6) 0%, rgba(13, 17, 23, 0.98) 75%), #0D1117 !important;
+  border-right: 1px solid rgba(56, 189, 248, 0.14) !important;
+  box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.03), 4px 0 24px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="lumen"] .sidebar-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%) !important;
+}
+
+[data-theme="lumen"] .sidebar-profile-btn {
+  background: rgba(20, 26, 38, 0.75) !important;
+  border: 1px solid rgba(56, 189, 248, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="lumen"] .sidebar-profile-btn:hover {
+  background: rgba(26, 35, 50, 0.9) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 12px -2px rgba(56, 189, 248, 0.2) !important;
+}
+
+[data-theme="lumen"] .sidebar-section-header {
+  color: #7DD3FC !important;
+  opacity: 0.75;
+  letter-spacing: 0.06em;
+}
+
+[data-theme="lumen"] .sidebar-nav-item:hover:not(.sidebar-nav-item-active) {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="lumen"] .sidebar-nav-item-active {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0.06) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 14px -2px rgba(14, 165, 233, 0.25) !important;
+  color: #F0F9FF !important;
+}
+
+[data-theme="lumen"] .sidebar-active-bar {
+  background: #38BDF8 !important;
+  box-shadow: 0 0 10px #38BDF8, 0 0 18px rgba(56, 189, 248, 0.6) !important;
+}
+
+[data-theme="lumen"] .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: rgba(13, 17, 23, 0.95) !important;
+}
+
+/* Aero Sidebar */
+[data-theme="aero"] #main-sidebar,
+[data-theme="aero"] .main-sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(234, 245, 255, 0.82) 100%) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  border-right: 1px solid rgba(186, 230, 253, 0.85) !important;
+  box-shadow: inset -1px 0 0 0 rgba(255, 255, 255, 0.8), 4px 0 20px -4px rgba(14, 165, 233, 0.08) !important;
+}
+
+[data-theme="aero"] .sidebar-header {
+  border-bottom: 1px solid rgba(186, 230, 253, 0.8) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, transparent 100%) !important;
+}
+
+[data-theme="aero"] .sidebar-profile-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(186, 230, 253, 0.9) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 6px rgba(14, 165, 233, 0.08) !important;
+}
+
+[data-theme="aero"] .sidebar-profile-btn:hover {
+  background: #FFFFFF !important;
+  border-color: rgba(56, 189, 248, 0.8) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 4px 12px rgba(14, 165, 233, 0.15) !important;
+}
+
+[data-theme="aero"] .sidebar-section-header {
+  color: #0284C7 !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+[data-theme="aero"] .sidebar-nav-item {
+  color: #334155 !important;
+}
+
+[data-theme="aero"] .sidebar-nav-item:hover:not(.sidebar-nav-item-active) {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #0F172A !important;
+}
+
+[data-theme="aero"] .sidebar-nav-item-active {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.7) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 8px rgba(14, 165, 233, 0.16) !important;
+  color: #0369A1 !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="aero"] .sidebar-active-bar {
+  background: #0284C7 !important;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.4) !important;
+}
+
+[data-theme="aero"] .sidebar-footer {
+  border-top: 1px solid rgba(186, 230, 253, 0.8) !important;
+  background: rgba(240, 249, 255, 0.8) !important;
+}
+
+
+/* --- 2. MAIN HEADER --- */
+/* Lumen Header */
+[data-theme="lumen"] #main-header,
+[data-theme="lumen"] .main-header {
+  position: relative;
+  background: linear-gradient(180deg, rgba(22, 29, 41, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15) !important;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="lumen"] #main-header::after,
+[data-theme="lumen"] .main-header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.4) 30%, rgba(56, 189, 248, 0.4) 70%, transparent 100%);
+  pointer-events: none;
+}
+
+[data-theme="lumen"] .main-header-menu-btn,
+[data-theme="lumen"] .main-header-account-btn {
+  background: rgba(20, 26, 38, 0.8) !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  color: #E2E8F0 !important;
+}
+
+[data-theme="lumen"] .main-header-menu-btn:hover,
+[data-theme="lumen"] .main-header-account-btn:hover {
+  background: rgba(28, 38, 54, 0.95) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 12px -2px rgba(56, 189, 248, 0.25) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="lumen"] .main-header-popover {
+  background: radial-gradient(130% 110% at 50% 0%, rgba(30, 42, 58, 0.95) 0%, rgba(14, 19, 28, 0.98) 100%), #0D1117 !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 16px 36px -4px rgba(0, 0, 0, 0.8), 0 0 20px -4px rgba(56, 189, 248, 0.18) !important;
+}
+
+/* Aero Header */
+[data-theme="aero"] #main-header,
+[data-theme="aero"] .main-header {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.88) 100%) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(186, 230, 253, 0.85) !important;
+  box-shadow: 0 4px 16px -2px rgba(14, 165, 233, 0.08) !important;
+}
+
+[data-theme="aero"] #main-header::after,
+[data-theme="aero"] .main-header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(186, 230, 253, 0.9) 25%, rgba(56, 189, 248, 0.6) 50%, rgba(186, 230, 253, 0.9) 75%, transparent 100%);
+  pointer-events: none;
+}
+
+[data-theme="aero"] .main-header-menu-btn,
+[data-theme="aero"] .main-header-account-btn {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(186, 230, 253, 0.9) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 6px rgba(14, 165, 233, 0.08) !important;
+  color: #1E293B !important;
+}
+
+[data-theme="aero"] .main-header-menu-btn:hover,
+[data-theme="aero"] .main-header-account-btn:hover {
+  background: #FFFFFF !important;
+  border-color: rgba(56, 189, 248, 0.8) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 4px 12px rgba(14, 165, 233, 0.16) !important;
+  color: #0369A1 !important;
+}
+
+[data-theme="aero"] .main-header-popover {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(186, 230, 253, 0.95) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 16px 32px -4px rgba(14, 165, 233, 0.18) !important;
+}
+
+
+/* --- 3. MHC AUTOPILOT NAVIGATOR --- */
+/* Lumen MHC Autopilot Navigator */
+[data-theme="lumen"] #mhc-autopilot-navigator,
+[data-theme="lumen"] .mhc-autopilot-navigator {
+  background: radial-gradient(140% 100% at 50% 0%, rgba(28, 38, 54, 0.55) 0%, rgba(13, 17, 23, 0.98) 75%), #0D1117 !important;
+  border-left: 1px solid rgba(56, 189, 248, 0.15) !important;
+  border-top: 1px solid rgba(56, 189, 248, 0.15) !important;
+  box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.03), -4px 0 24px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="lumen"] .mhc-navigator-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="lumen"] .mhc-readiness-badge {
+  background: rgba(20, 26, 38, 0.85) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  color: #38BDF8 !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="lumen"] .mhc-schedule-item-active,
+[data-theme="lumen"] .mhc-schedule-subitem-active {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.24) 0%, rgba(14, 165, 233, 0.07) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.45) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 14px -2px rgba(14, 165, 233, 0.3) !important;
+  color: #F0F9FF !important;
+}
+
+/* Aero MHC Autopilot Navigator */
+[data-theme="aero"] #mhc-autopilot-navigator,
+[data-theme="aero"] .mhc-autopilot-navigator {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(234, 245, 255, 0.82) 100%) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  border-left: 1px solid rgba(186, 230, 253, 0.85) !important;
+  border-top: 1px solid rgba(186, 230, 253, 0.85) !important;
+  box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.8), -4px 0 20px -4px rgba(14, 165, 233, 0.08) !important;
+}
+
+[data-theme="aero"] .mhc-navigator-header {
+  border-bottom: 1px solid rgba(186, 230, 253, 0.8) !important;
+}
+
+[data-theme="aero"] .mhc-readiness-badge {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(56, 189, 248, 0.6) !important;
+  color: #0284C7 !important;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.12), inset 0 1px 0 #FFFFFF !important;
+}
+
+[data-theme="aero"] .mhc-schedule-item-active,
+[data-theme="aero"] .mhc-schedule-subitem-active {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.75) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 8px rgba(14, 165, 233, 0.16) !important;
+  color: #0369A1 !important;
+  font-weight: 600 !important;
+}
+
+
+/* --- 4. LOGIN CARD --- */
+/* Lumen Login Card */
+[data-theme="lumen"] #login-card,
+[data-theme="lumen"] .login-card-container {
+  background: radial-gradient(130% 110% at 50% 0%, rgba(30, 42, 58, 0.85) 0%, rgba(14, 19, 28, 0.98) 75%), #0D1117 !important;
+  border: 1px solid rgba(56, 189, 248, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 24px 48px -12px rgba(0, 0, 0, 0.85), 0 0 32px -4px rgba(56, 189, 248, 0.2) !important;
+}
+
+[data-theme="lumen"] #login-card input {
+  background: rgba(18, 24, 34, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="lumen"] #login-card input:focus {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 0 12px -2px rgba(56, 189, 248, 0.35) !important;
+}
+
+/* Aero Login Card */
+[data-theme="aero"] #login-card,
+[data-theme="aero"] .login-card-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 249, 255, 0.86) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(186, 230, 253, 0.9) !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 24px 48px -12px rgba(14, 165, 233, 0.16), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="aero"] #login-card input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(186, 230, 253, 0.9) !important;
+  color: #0F172A !important;
+}
+
+[data-theme="aero"] #login-card input:focus {
+  border-color: rgba(56, 189, 248, 0.9) !important;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.25) !important;
+}
+
 /* Print styles for Executive Engineering Reports */
 @media print {
   body {

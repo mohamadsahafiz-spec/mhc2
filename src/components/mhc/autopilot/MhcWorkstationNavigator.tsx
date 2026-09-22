@@ -27,20 +27,20 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
   isDiscardVisible
 }) => {
   return (
-    <aside className="w-full md:w-64 lg:w-72 shrink-0 p-4 border-t md:border-t-0 md:border-l flex flex-col justify-between overflow-y-auto bg-[var(--surface-workspace)] border-[var(--border-default)]">
+    <aside id="mhc-autopilot-navigator" className="mhc-autopilot-navigator w-full md:w-64 lg:w-72 shrink-0 p-4 border-t md:border-t-0 md:border-l flex flex-col justify-between overflow-y-auto bg-[var(--surface-workspace)] border-[var(--border-default)]">
       <div className="space-y-4">
         {/* Header & Overall Status */}
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
+        <div id="mhc-navigator-header" className="mhc-navigator-header flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
           <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] font-bold">
             SCHEDULE INDEX
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-primary)]">
+          <span className="mhc-readiness-badge text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-[var(--border-default)] bg-[var(--surface-surface)] text-[var(--text-primary)]">
             {readiness.readinessScore}% READY
           </span>
         </div>
 
         {/* Schedule Activity Tree */}
-        <div className="space-y-1.5">
+        <div className="mhc-schedule-tree space-y-1.5">
           {MHC_WORKFLOW_SCHEDULE.map((dayGroup) => {
             const isParent = dayGroup.subItems && dayGroup.subItems.length > 0;
             const actStatus = isParent 
@@ -57,9 +57,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                   onClick={() => {
                     if (!isParent) onJumpToActivity(dayGroup.code);
                   }}
-                  className={`w-full text-left p-1.5 rounded-lg text-[11px] border flex items-center justify-between transition-all ${
+                  className={`mhc-schedule-item w-full text-left p-1.5 rounded-lg text-[11px] border flex items-center justify-between transition-all ${
                     isCurrentActive
-                      ? 'bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] ring-1 ring-[var(--border-active)] shadow-xs font-semibold'
+                      ? 'mhc-schedule-item-active bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] ring-1 ring-[var(--border-active)] shadow-xs font-semibold'
                       : actStatus === 'COMPLETED'
                       ? 'bg-[var(--surface-surface)]/60 border-[var(--border-subtle)] text-emerald-600 dark:text-emerald-400 hover:bg-[var(--surface-surface)] hover:text-[var(--text-primary)] cursor-pointer'
                       : actStatus === 'NEEDS_REVIEW'
@@ -99,9 +99,9 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
                           whileTap={subStatus !== 'LOCKED' ? mechanicalPressConfig.subtleTap : undefined}
                           disabled={subStatus === 'LOCKED'}
                           onClick={() => onJumpToActivity(sub.code)}
-                          className={`w-full text-left px-2 py-1 rounded text-[10px] font-mono flex items-center justify-between border transition-all ${
+                          className={`mhc-schedule-subitem w-full text-left px-2 py-1 rounded text-[10px] font-mono flex items-center justify-between border transition-all ${
                             isSubActive
-                              ? 'bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] font-bold shadow-xs'
+                              ? 'mhc-schedule-subitem-active bg-[var(--surface-raised)] border-[var(--border-active)] text-[var(--text-primary)] font-bold shadow-xs'
                               : subStatus === 'COMPLETED'
                               ? 'bg-transparent border-transparent text-emerald-600 dark:text-emerald-400 hover:bg-[var(--surface-surface)] cursor-pointer'
                               : subStatus === 'NEEDS_REVIEW'

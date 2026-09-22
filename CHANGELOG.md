@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v3.4.7 — FSOS Core Chrome Theme Identity (2026-09-22)
+
+### Core Chrome & Surface Visual Differentiation
+- **Interactive Chrome Visual Identity**: Unmistakably differentiated the four highest-frequency interactive surfaces (Main Sidebar, MHC Autopilot Navigator, Main Header, and Login Experience) across Precision, Lumen, and Aero themes while strictly preserving layout geometry, navigation structures, and domain logic.
+- **Login Experience Multi-Theme Support**: Completely eliminated binary `isDark` branching in `LoginPage` and `LoginBackground`. Precision renders the disciplined dark engineering grid with amber beam; Lumen renders deep dusk graphite glass with cyan horizon illumination and atmospheric radial glows; Aero renders translucent daylight sky glass, organic specular reflections, and sky blue accents.
+- **Main Sidebar Expression**: Lumen sidebar features dusk graphite radial horizon illumination, specular borders, and luminous cyan active indicators; Aero sidebar features translucent daylight sky glass with blur/saturation depth, crisp border contours, and glossy active pills; Precision remains the authoritative dark engineering console.
+- **Main Header & Popovers**: Styled header bars and popover menus with theme-specific materials — Lumen dusk horizon edge light line (`::after`) with specular button highlights; Aero translucent sky glass with organic border styling.
+- **MHC Autopilot Navigator**: Enhanced schedule index and activity progress trees with dusk engineered-glass depth in Lumen and glossy daylight capsules in Aero.
+- **Strict Logic & PDF Pipeline Isolation**: 100% preservation of all semiconductor inspection algorithms, laser calculations, AGC/stage calibrations, machine passport records, and official PDF rendering stationery.
+
 ## v3.4.6 — FSOS Lumen Official Report Toolbar (2026-09-22)
 
 ### Lumen Official MHC PDF Report Toolbar & Controls

@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface LoginBackgroundProps {
-  isDark: boolean;
+  isDark?: boolean;
 }
 
-export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark }) => {
+export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark: propIsDark }) => {
+  const { activeTheme, effectiveTheme } = useTheme();
+  const isDark = propIsDark !== undefined ? propIsDark : effectiveTheme === 'dark';
+  const isLumen = activeTheme === 'lumen';
+  const isAero = activeTheme === 'aero';
   const prefersReducedMotion = useReducedMotion();
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,35 +32,40 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark }) => {
 
   return (
     <div
+      id="login-background"
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0"
+      className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0 login-background-container"
       aria-hidden="true"
     >
       {/* Interactive Ambient Spotlight */}
       <div
-        className="absolute inset-0 transition-opacity duration-700 ease-out"
+        className="absolute inset-0 transition-opacity duration-700 ease-out login-ambient-spotlight"
         style={{
-          background: isDark
+          background: isAero
+            ? `radial-gradient(750px circle at ${mousePos.x}% ${mousePos.y}%, rgba(186, 230, 253, 0.55), rgba(224, 242, 254, 0.2) 50%, transparent 80%)`
+            : isLumen
+            ? `radial-gradient(700px circle at ${mousePos.x}% ${mousePos.y}%, rgba(56, 189, 248, 0.16), rgba(30, 41, 59, 0.35) 45%, transparent 75%)`
+            : isDark
             ? `radial-gradient(650px circle at ${mousePos.x}% ${mousePos.y}%, rgba(30, 41, 59, 0.35), transparent 70%)`
             : `radial-gradient(650px circle at ${mousePos.x}% ${mousePos.y}%, rgba(226, 232, 240, 0.7), transparent 70%)`
         }}
       />
 
       {/* SVG Fine Engineering Grid */}
-      <svg className="absolute inset-0 w-full h-full opacity-40 dark:opacity-30" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 w-full h-full opacity-40 dark:opacity-30 login-grid-svg" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="fsos-dense-grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path
               d="M 40 0 L 0 0 0 40"
               fill="none"
-              stroke={isDark ? '#2A3441' : '#CBD5E1'}
+              stroke={isAero ? '#93C5FD' : isLumen ? '#1E293B' : isDark ? '#2A3441' : '#CBD5E1'}
               strokeWidth="0.5"
               strokeDasharray="2,4"
             />
-            <circle cx="0" cy="0" r="1" fill={isDark ? '#475569' : '#94A3B8'} />
-            <circle cx="40" cy="0" r="1" fill={isDark ? '#475569' : '#94A3B8'} />
-            <circle cx="0" cy="40" r="1" fill={isDark ? '#475569' : '#94A3B8'} />
-            <circle cx="40" cy="40" r="1" fill={isDark ? '#475569' : '#94A3B8'} />
+            <circle cx="0" cy="0" r="1" fill={isAero ? '#60A5FA' : isLumen ? '#38BDF8' : isDark ? '#475569' : '#94A3B8'} />
+            <circle cx="40" cy="0" r="1" fill={isAero ? '#60A5FA' : isLumen ? '#38BDF8' : isDark ? '#475569' : '#94A3B8'} />
+            <circle cx="0" cy="40" r="1" fill={isAero ? '#60A5FA' : isLumen ? '#38BDF8' : isDark ? '#475569' : '#94A3B8'} />
+            <circle cx="40" cy="40" r="1" fill={isAero ? '#60A5FA' : isLumen ? '#38BDF8' : isDark ? '#475569' : '#94A3B8'} />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#fsos-dense-grid)" />
@@ -72,9 +82,13 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark }) => {
             ease: 'linear',
             repeatDelay: 1.5
           }}
-          className="absolute left-0 right-0 h-24 pointer-events-none opacity-25 dark:opacity-20"
+          className="absolute left-0 right-0 h-24 pointer-events-none opacity-25 dark:opacity-20 login-scan-beam"
           style={{
-            background: isDark
+            background: isAero
+              ? 'linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.15) 50%, rgba(14, 165, 233, 0.3) 98%, #0284C7 100%, transparent)'
+              : isLumen
+              ? 'linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.12) 50%, rgba(56, 189, 248, 0.35) 98%, #38BDF8 100%, transparent)'
+              : isDark
               ? 'linear-gradient(180deg, transparent, rgba(56, 189, 248, 0.08) 50%, rgba(56, 189, 248, 0.25) 98%, #38BDF8 100%, transparent)'
               : 'linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.03) 50%, rgba(15, 23, 42, 0.1) 98%, #0F172A 100%, transparent)'
           }}
@@ -82,25 +96,25 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark }) => {
       )}
 
       {/* Corner Precision Optical Crosshairs & Technical Metadata */}
-      <div className="absolute top-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80">
-        <span className="text-slate-500 font-semibold">EO-TECHNICS</span>
+      <div className="absolute top-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">EO-TECHNICS</span>
         <span>/</span>
         <span>FSOS PRECISION SYSTEM</span>
       </div>
 
-      <div className="absolute top-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80">
+      <div className="absolute top-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
         <span>GRID: CALIBRATED</span>
         <span>·</span>
         <span>SESSION: LOCAL</span>
       </div>
 
-      <div className="absolute bottom-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80">
+      <div className="absolute bottom-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
         <span>CLEANROOM CERTIFIED</span>
         <span>·</span>
         <span>LAT: 03°08&apos;N 101°41&apos;E</span>
       </div>
 
-      <div className="absolute bottom-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80">
+      <div className="absolute bottom-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
         <span>SECURITY: LOCAL-FIRST</span>
         <span>·</span>
         <span>REV: 2026.09</span>
@@ -114,3 +128,4 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark }) => {
     </div>
   );
 };
+
