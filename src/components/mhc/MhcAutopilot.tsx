@@ -672,7 +672,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className="fixed inset-0 z-50 p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center overflow-y-auto">
+    <div className="fixed inset-0 z-50 p-2 sm:p-4 md:p-6 mhc-autopilot-backdrop bg-slate-950/80 backdrop-blur-md flex items-start justify-center overflow-y-auto">
       
       {/* Toast Notification */}
       <AnimatePresence>
@@ -682,7 +682,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[var(--color-success)] text-slate-950 font-semibold text-xs shadow-xl flex items-center gap-2 border border-emerald-400 pointer-events-auto"
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[var(--color-success)] text-white font-semibold text-xs shadow-xl flex items-center gap-2 border border-emerald-400 pointer-events-auto"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{notification}</span>
@@ -695,11 +695,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
         variants={createFadeSlideVariants({ direction: 'up', distance: 'component', prefersReducedMotion: shouldReduceMotion })}
         initial="hidden"
         animate="visible"
-        className={`w-full max-w-7xl min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-3rem)] my-auto rounded-xl border shadow-xl flex flex-col overflow-hidden ${
-          isDark 
-            ? 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-2xl shadow-black/40' 
-            : 'bg-[var(--surface-surface)] border-[var(--border-default)] text-[var(--text-primary)] shadow-lg shadow-slate-200/50'
-        }`}
+        className="w-full max-w-7xl min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-3rem)] my-auto rounded-xl border flex flex-col overflow-hidden bg-surface border-theme-default text-theme-primary rounded-card shadow-theme-modal"
       >
         {/* Workstation Industrial Header */}
         <MhcWorkstationHeader
@@ -822,11 +818,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className={`relative w-full max-w-lg rounded-xl border shadow-xl p-5 space-y-4 ${
-                isDark
-                  ? 'bg-[var(--surface-surface)] border-[var(--border-strong)] text-[var(--text-primary)]'
-                  : 'bg-white border-slate-300 text-slate-900 shadow-slate-900/10'
-              }`}
+              className="relative w-full max-w-lg rounded-xl border p-5 space-y-4 bg-surface border-theme-strong text-theme-primary rounded-modal shadow-theme-modal"
             >
               {/* Close Button */}
               <motion.button
@@ -836,7 +828,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   setShowReviewCompletionModal(false);
                   setIsConfirmingCompletion(false);
                 }}
-                className="absolute top-3.5 right-3.5 p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-workspace)] transition-colors cursor-pointer"
+                className="absolute top-3.5 right-3.5 p-1 rounded text-theme-muted hover:text-theme-primary hover:bg-workspace transition-colors cursor-pointer"
                 title="Dismiss modal and return to workspace"
               >
                 <X className="w-4 h-4" />
@@ -851,30 +843,28 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
                     PDF EXPORT GENERATED
                   </span>
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  <h3 className="text-base font-bold text-theme-primary">
                     MHC Report Ready for Review
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <p className="text-xs text-theme-muted leading-relaxed">
                     The official MHC Report PDF has been compiled. Please review the generated document before finalizing this MHC session.
                   </p>
                 </div>
               </div>
 
               {/* Information / Status Box */}
-              <div className={`p-3 rounded border text-xs space-y-1.5 font-mono ${
-                isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className="p-3 rounded border text-xs space-y-1.5 font-mono bg-workspace border-theme-subtle">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">CURRENT STATUS:</span>
+                  <span className="text-theme-muted">CURRENT STATUS:</span>
                   <span className="font-bold text-amber-400">IN_PROGRESS (Pending Sign-Off)</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">EQUIPMENT:</span>
-                  <span className="text-[var(--text-primary)] font-semibold">{effectiveSession?.machineModel} • {effectiveSession?.machineSerialNumber}</span>
+                  <span className="text-theme-muted">EQUIPMENT:</span>
+                  <span className="text-theme-primary font-semibold">{effectiveSession?.machineModel} • {effectiveSession?.machineSerialNumber}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">FACILITY:</span>
-                  <span className="text-[var(--text-primary)] font-semibold">{effectiveSession?.customerName} ({effectiveSession?.plantName})</span>
+                  <span className="text-theme-muted">FACILITY:</span>
+                  <span className="text-theme-primary font-semibold">{effectiveSession?.customerName} ({effectiveSession?.plantName})</span>
                 </div>
               </div>
 
@@ -890,7 +880,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     <ShieldCheck className="w-4 h-4 shrink-0" />
                     <span>Confirm Authoritative Session Completion</span>
                   </div>
-                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  <p className="text-xs text-theme-secondary leading-relaxed">
                     Completing this MHC will finalize Buyoff, set status to <strong className="text-emerald-400">COMPLETED</strong>, and archive the active session.
                   </p>
                   <div className="flex items-center gap-2 pt-1 font-mono">
@@ -906,7 +896,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     <motion.button
                       whileTap={mechanicalPressConfig.subtleTap}
                       onClick={() => setIsConfirmingCompletion(false)}
-                      className="px-3 py-1.5 rounded-lg bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] text-[var(--text-secondary)] text-xs border border-[var(--border-default)] cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-surface hover:bg-workspace text-theme-secondary text-xs border border-theme-default cursor-pointer"
                     >
                       Cancel
                     </motion.button>
@@ -921,7 +911,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                     id="btn-modal-review-report"
                     whileTap={mechanicalPressConfig.subtleTap}
                     onClick={handleModalReviewReport}
-                    className="px-4 py-2 rounded-lg bg-[var(--surface-workspace)] hover:bg-[var(--surface-raised)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-workspace hover:bg-raised text-theme-secondary hover:text-theme-primary border border-theme-default font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-cyan-400" />
                     <span>REVIEW REPORT</span>
@@ -965,11 +955,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className={`w-full max-w-lg rounded-xl border shadow-xl p-5 space-y-4 ${
-                isDark
-                  ? 'bg-[var(--surface-surface)] border-rose-900/50 text-[var(--text-primary)]'
-                  : 'bg-white border-rose-200 text-slate-900 shadow-slate-900/10'
-              }`}
+              className="w-full max-w-lg rounded-xl border p-5 space-y-4 bg-surface border-rose-500/40 text-theme-primary rounded-modal shadow-theme-modal"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -981,34 +967,32 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
                     DRAFT SESSION REMOVAL
                   </span>
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  <h3 className="text-base font-bold text-theme-primary">
                     Discard this MHC draft session?
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <p className="text-xs text-theme-muted leading-relaxed">
                     The session progress will be removed and cannot be resumed.
                   </p>
                 </div>
               </div>
 
               {/* Information / Progress Box */}
-              <div className={`p-3 rounded border text-xs space-y-1.5 font-mono ${
-                isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-subtle)]' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className="p-3 rounded border text-xs space-y-1.5 font-mono bg-workspace border-theme-subtle">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">SESSION ID:</span>
-                  <span className="font-bold text-[var(--text-primary)]">{sessionToDiscard.id}</span>
+                  <span className="text-theme-muted">SESSION ID:</span>
+                  <span className="font-bold text-theme-primary">{sessionToDiscard.id}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">EQUIPMENT:</span>
-                  <span className="text-[var(--text-primary)] font-semibold">{sessionToDiscard.machineModel} ({sessionToDiscard.machineSerialNumber})</span>
+                  <span className="text-theme-muted">EQUIPMENT:</span>
+                  <span className="text-theme-primary font-semibold">{sessionToDiscard.machineModel} ({sessionToDiscard.machineSerialNumber})</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">CUSTOMER:</span>
-                  <span className="text-[var(--text-primary)] font-semibold">{sessionToDiscard.customerName} • {sessionToDiscard.plantName}</span>
+                  <span className="text-theme-muted">CUSTOMER:</span>
+                  <span className="text-theme-primary font-semibold">{sessionToDiscard.customerName} • {sessionToDiscard.plantName}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">STARTED:</span>
-                  <span className="text-[var(--text-secondary)]">{sessionToDiscard.startDate} {sessionToDiscard.startTime}</span>
+                  <span className="text-theme-muted">STARTED:</span>
+                  <span className="text-theme-secondary">{sessionToDiscard.startDate} {sessionToDiscard.startTime}</span>
                 </div>
 
                 {(() => {
@@ -1023,7 +1007,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                       </span>
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)]">
+                    <div className="pt-2 border-t border-theme-subtle text-[11px] text-theme-muted">
                       Empty session with no recorded inspection data.
                     </div>
                   );
@@ -1038,11 +1022,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
                   whileTap={mechanicalPressConfig.subtleTap}
                   disabled={isDiscarding}
                   onClick={() => setSessionToDiscard(null)}
-                  className={`px-3.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
-                    isDark
-                      ? 'bg-[var(--surface-surface)] hover:bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-secondary)]'
-                      : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
-                  }`}
+                  className="px-3.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer bg-surface hover:bg-workspace border-theme-default text-theme-secondary"
                 >
                   Cancel
                 </motion.button>

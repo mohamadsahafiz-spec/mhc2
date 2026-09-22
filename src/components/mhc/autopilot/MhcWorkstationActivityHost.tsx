@@ -312,9 +312,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                 />
               </div>
             ) : progress.currentActivityCode === '10' ? (
-              <div className={`p-5 rounded-xl border space-y-4 ${
-                isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className="p-5 rounded-xl border space-y-4 bg-workspace border-theme-default">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -341,9 +339,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                     </p>
                   </div>
                 ) : (
-                  <div className={`p-4 rounded-lg border space-y-3 ${
-                    isDark ? 'bg-[var(--surface-raised)] border-[var(--border-strong)]' : 'bg-white border-slate-300'
-                  }`}>
+                  <div className="p-4 rounded-lg border space-y-3 bg-raised border-theme-strong">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="font-bold text-[var(--text-primary)]">SESSION AUDIT SUMMARY</span>
                       <span className="text-emerald-400 font-bold">{readiness.readinessScore}% READINESS</span>
@@ -392,11 +388,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                       }
                     }}
                     placeholder={isReadOnlyMode ? "Read-only mode active..." : "Enter final customer acceptance remarks or handover notes..."}
-                    className={`w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all ${
-                      isDark
-                        ? 'bg-[var(--surface-workspace)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--border-strong)]'
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
-                    }`}
+                    className="w-full px-3 py-2 rounded-lg border text-xs outline-none transition-all bg-workspace border-theme-default text-theme-primary focus:border-theme-strong"
                   />
                 </div>
 
@@ -462,9 +454,7 @@ export const MhcWorkstationActivityHost: React.FC<MhcWorkstationActivityHostProp
                 </div>
               </div>
             ) : (
-              <div className={`p-4 rounded-lg border space-y-4 ${
-                isDark ? 'bg-[var(--surface-workspace)] border-[var(--border-default)]' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className="p-4 rounded-lg border space-y-4 bg-workspace border-theme-default">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">

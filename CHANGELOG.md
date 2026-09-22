@@ -1,5 +1,13 @@
 # FSOS CHANGELOG
 
+## v3.4.3 — FSOS Frutiger Aero Autopilot Visual System Propagation (2026-09-22)
+
+### Frutiger Aero Autopilot Propagation
+- **MHC Autopilot Shell & Workstation Normalization**: Normalized `MhcAutopilot` workstation container, outer backdrop, and review/discard modals to semantic theme classes (`bg-surface`, `bg-raised`, `bg-workspace`, `border-theme-default`, `border-theme-strong`, `rounded-card`, `shadow-theme-modal`), completely eliminating hardcoded light branches.
+- **Activity Host Container & Component Alignment**: Refactored `MhcWorkstationActivityHost` main inspection container, progress tracker, step navigation bar, activity 10 final buyoff container, and fallback inspection wrappers to semantic surface tokens.
+- **Aero Glass CSS Propagation**: Extended Frutiger Aero CSS definitions in `src/index.css` to cover arbitrary surface variable classes (`bg-[var(--surface-surface)]`, `bg-[var(--surface-raised)]`, `bg-[var(--surface-workspace)]`), border tokens, and the Autopilot workstation backdrop with authentic translucent frosted glass and specular highlights.
+- **Strict Domain Logic & PDF Isolation**: Maintained 100% preservation of all semiconductor inspection workflows, laser calculations, AGC/stage calibrations, machine passport data structures, and official PDF generation pipelines.
+
 ## v3.4.2 — FSOS Frutiger Aero Visual System & Readability Correction (2026-09-21)
 
 ### Frutiger Aero Visual System & Readability Correction
