@@ -1,5 +1,32 @@
 # FSOS CHANGELOG
 
+## v3.4.10 — FSOS Aero Procedural Cloud Atmosphere (2026-09-22)
+
+### Aero Procedural Animated Daylight Cloud Atmosphere
+- **Living Daylight Sky & Procedural Cloud Formations**: Replaced the subtle air-current shader with a rich, single-pass procedural cloud atmosphere in `CanvasShaderBackground.tsx`.
+- **Multi-Layer Atmospheric Depth & Parallax**:
+  - **Volumetric Cumulus Masses**: Lower-altitude, billowy cloud formations driven by 4-octave rotational FBM and dual-domain warping, generating natural continuous deformation and slow drift ($V_1 = (0.013, 0.0025)$).
+  - **High-Altitude Cirrus Wisps**: Parallax-drifting wispy cirrus layer ($V_2 = (0.022, -0.004)$) elongated along prevailing upper-atmosphere wind vectors.
+- **Sunlit Volumetric Shading**: Directional solar lighting with soft tropospheric blue ambient shadows (`#A8D5F7`), dense vapor white centers (`#F0F9FF`), and radiant sunlit highlights (`#FFFFFF`) against a daytime azure sky (`#2E8AE0` / `#60B8F2` / `#C2E3FA`).
+- **Pristine Foreground UI Legibility**: Cloud density and lighting calibrated to provide an unmistakable visual identity in open canvas areas while preserving 100% readability of dark text, tables, telemetry, and frosted glass cards.
+- **Strict Scope Isolation**: Precision and Lumen shaders, theme logic, LoginBackground, Header, Sidebar, and domain services remain completely unchanged.
+
+## v3.4.9 — FSOS Living Procedural Atmospheric Shaders (2026-09-22)
+
+### Authenticated Application Canvas Procedural WebGL Shaders
+- **Genuinely Animated Procedural WebGL Background**: Integrated a lightweight, single-pass GPU fragment shader behind the authenticated application workspace that delivers living, continuous atmospheric motion tailored to each theme identity.
+- **Three Distinct Theme Shader Identities**:
+  - **Precision**: Coherent quantum lattice and anisotropic phase topography in deep slate-graphite (`#111315`), with orthogonal phase contours, micro-geometric interference harmonics, and 3% amber coherence highlights.
+  - **Lumen**: Volumetric horizon cyan dusk wave drift over deep obsidian canvas (`#07080A`), featuring smooth sinusoidal horizon breathing, rolling curved dusk wave fronts, and ethereal sky-cyan twilight gradients.
+  - **Aero**: Stratospheric daylight air mass streamlines over luminous tropospheric azure sky (`#E0F4FD` / `#BAE6FD` / `#7DD3FC`), featuring continuous multi-frequency air currents, prismatic sunlight dispersion, and specular daylight ripples.
+- **Visual Subordination & Readability**: Engineered low-contrast relative luminance curves ensuring foreground tables, telemetry, forms, navigation chrome, and technical cards maintain pristine 100% readability.
+- **Field-Hardware Performance & Battery Efficiency**:
+  - Single fullscreen quad pass using analytical GLSL math.
+  - Automatic render throttling/pausing when the document or tab is hidden (`document.hidden`).
+  - Device pixel ratio capped at 1.25 for optimal mobile and field-service laptop GPU efficiency.
+  - Full respect for reduced-motion preferences (`prefersReducedMotion`), transitioning into a tranquil slow baseline drift.
+- **Strict Scope Isolation**: Zero modifications to LoginBackground, Header, Sidebar, theme switcher logic, PDF generation pipeline, machine health algorithms, or application data persistence.
+
 ## v3.4.8 — FSOS Theme Switcher Thumbnail Redesign (2026-09-22)
 
 ### Header Theme Switcher Visual Thumbnail Redesign

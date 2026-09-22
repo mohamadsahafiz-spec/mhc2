@@ -6,9 +6,9 @@ describe('Authoritative Changelog Parser', () => {
     const entries = getAuthoritativeChangelog();
     expect(entries.length).toBeGreaterThanOrEqual(200);
 
-    // Latest entry should be v3.4.8
+    // Latest entry should be v3.4.10
     const first = entries[0];
-    expect(first.version).toBe('v3.4.8');
+    expect(first.version).toBe('v3.4.10');
     expect(first.date).toBeTruthy();
     expect(first.title).toBeTruthy();
     expect(first.sections.length).toBeGreaterThan(0);
