@@ -37,6 +37,7 @@ import {
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
+import { ThemeThumbnail } from '../common/ThemeThumbnail';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { APP_VERSION, APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
 import { mechanicalPressConfig, motionTimings, motionEasings } from '../../theme/motion';
@@ -101,22 +102,16 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       id: 'precision' as const,
       name: 'Precision',
       category: 'Dark Baseline',
-      description: 'Calm industrial graphite canvas with restrained technical accents.',
-      iconColor: 'text-indigo-400',
     },
     {
       id: 'lumen' as const,
       name: 'Lumen',
       category: 'Luminous Dark',
-      description: 'Deep obsidian dusk with atmospheric radial depth, cyan hairlines, and luminous edge highlights.',
-      iconColor: 'text-sky-400',
     },
     {
       id: 'aero' as const,
       name: 'Frutiger Aero',
       category: 'Aero Glass',
-      description: 'Radiant atmospheric azure sky, organic translucent glass surfaces, and glossy specular reflections.',
-      iconColor: 'text-cyan-400',
     },
   ], []);
 
@@ -614,8 +609,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </p>
               </div>
 
-              {/* Theme Selector Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {/* Visual-First 3-Theme Identity Cards (Full-Bleed Presentation) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {THEME_OPTIONS.map((opt) => {
                   const isSelected = activeTheme === opt.id;
                   return (
@@ -623,39 +618,47 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       key={opt.id}
                       type="button"
                       whileTap={prefersReducedMotion ? undefined : mechanicalPressConfig.subtleTap}
+                      whileHover={prefersReducedMotion ? undefined : { y: -2 }}
                       onClick={() => setTheme(opt.id)}
-                      className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-colors ${
+                      className={`group relative h-48 sm:h-52 rounded-2xl overflow-hidden text-left flex flex-col justify-between p-3 transition-all select-none border ${
                         isSelected
-                          ? 'border-[var(--color-primary)] bg-raised ring-1 ring-[var(--color-primary)]/40 shadow-xs'
-                          : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
+                          ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/50 shadow-md'
+                          : 'border-white/10 hover:border-white/25 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-badge border bg-surface border-theme-default">
-                            {opt.id === 'system' ? (
-                              <Monitor className={`w-3.5 h-3.5 ${opt.iconColor}`} />
-                            ) : opt.category === 'Light' ? (
-                              <Sun className={`w-3.5 h-3.5 ${opt.iconColor}`} />
-                            ) : (
-                              <Moon className={`w-3.5 h-3.5 ${opt.iconColor}`} />
-                            )}
-                          </div>
-                          <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-badge bg-surface border border-theme-default text-theme-muted">
-                            {opt.category}
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
-                        )}
+                      {/* Full-Bleed Artwork Background */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <ThemeThumbnail
+                          theme={opt.id}
+                          size="full"
+                          isSelected={isSelected}
+                          className="w-full h-full rounded-none border-0"
+                        />
                       </div>
-                      <div>
-                        <h3 className="text-sm font-theme-heading flex items-center gap-1.5 text-theme-primary">
+
+                      {/* Top-Left Category Badge (Frosted Translucent Chip) */}
+                      <div className="relative z-10 flex items-center justify-between">
+                        <span className="inline-flex items-center text-[11px] font-mono px-2.5 py-1 rounded-full bg-black/55 backdrop-blur-md border border-white/15 text-white/90 shadow-xs">
+                          {opt.category}
+                        </span>
+                      </div>
+
+                      {/* Bottom Overlaid Info Panel (Glass Floating Card) */}
+                      <div className="relative z-10 bg-[#0B0F17]/85 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-lg flex items-center justify-between">
+                        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight font-theme-heading">
                           {opt.name}
                         </h3>
-                        <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
-                          {opt.description}
-                        </p>
+
+                        {isSelected ? (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/50 text-[11px] font-mono font-semibold text-[var(--color-primary)] shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.3)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                            <span>Active</span>
+                          </div>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full bg-white/10 group-hover:bg-white/20 border border-white/20 text-white/90 text-[11px] font-mono font-medium transition-colors">
+                            Select
+                          </span>
+                        )}
                       </div>
                     </motion.button>
                   );

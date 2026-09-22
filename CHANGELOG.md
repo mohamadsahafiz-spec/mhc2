@@ -1,5 +1,43 @@
 # FSOS CHANGELOG
 
+## v3.5.2 — FSOS Sidebar Sync Relocation & Header Declutter (2026-09-22)
+
+### Sync Status Indicator Relocation
+- **Relocated Sync Indicator from Header to Sidebar Footer**:
+  - Moved the `SyncStatusIndicator` out of the Top Bar / Header to eliminate unnecessary header clutter and streamline the top bar navigation experience.
+  - Positioned the Sync status cleanly at the bottom of the Sidebar above system status, providing continuous visibility of Cloud Replica Sync state.
+- **Enhanced Popover Placement Flexibility**:
+  - Added `placement="top-left"` and `fullWidth` support to `SyncStatusIndicator` ensuring the sync control popover opens smoothly upwards above the sidebar footer without screen clipping.
+  - Preserved 100% of the underlying `SyncEngine` state, real-time subscriptions, manual sync trigger, device switching, and D1 server replica metrics.
+
+## v3.5.1 — FSOS Full-Bleed Theme Presentation & Switch Control (2026-09-22)
+
+### Theme Selector Visual Composition & Positioning Correction
+- **Resolved Container Positioning Bug**: Corrected conflicting `absolute ... relative` positioning declarations in `ThemeThumbnail.tsx`, allowing Precision, Lumen, and Aero artworks to expand to 100% full-bleed height and width without clipping.
+- **Settings Full-Bleed Food-Card Presentation**:
+  - Transformed Settings theme cards into full-bleed visual canvases showcasing the entire atmospheric depth of Precision, Lumen, and Aero.
+  - Positioned category chips at top-left with frosted translucent blur and clean glass bottom info panels displaying bold theme names and glowing Active/Select buttons.
+- **Header 3-Theme Switch Control**:
+  - Replaced thumbnail-style switcher with a dedicated compact 3-theme pill switch (`HeaderThemeSwitch.tsx`).
+  - Implemented smooth sliding active pill indicator with rich depth shadows, ambient glow, and distinct miniature atmospheric glyphs for Precision, Lumen, and Aero.
+- **Strict Logic & Workflow Continuity**:
+  - 100% preservation of `ThemeContext`, `ThemeMode`, active theme state, localStorage persistence, and backend/frontend workflows.
+
+## v3.5.0 — FSOS Visual-First Theme Identity Refresh (2026-09-22)
+
+### Theme Selector Visual-First Identity Refresh
+- **Consistent Visual-First 3-Theme Treatment**: Replaced text-heavy cards and generic page thumbnails across both Header and Settings with a unified, visual-first identity representation:
+  - **Precision**: Deep industrial graphite canvas (`#111315`), fine technical grid markings, calibrated reticle crosshairs, and glowing amber laser focal diode (`#F59E0B`).
+  - **Lumen**: Deep obsidian night canvas (`#07080A`), volumetric radial dusk horizon, crisp multi-point star sparkles, and luminous cyan crescent/horizon arc with cyan drop glow (`#38BDF8`).
+  - **Aero**: Radiant daylight sky gradient, organic multi-layered puffy cumulus clouds with atmospheric blue shadow underbellies, and glowing golden sun disc (`#FBBF24` / `#FEF08A`) with daylight specular reflections.
+- **Settings Theme & Visual Identity Card Refresh**:
+  - Removed dense descriptive text paragraphs from the Settings theme selector cards.
+  - Rendered widescreen atmospheric preview capsules for each theme alongside clean theme names and active status indicators.
+- **Header Pilot Switcher Visual Refresh**:
+  - Updated Header theme switcher with atmospheric theme pills featuring rich atmospheric elements (amber laser reticle, starry cyan horizon, sunlit clouds).
+- **Strict Scope & Logic Preservation**:
+  - 100% preservation of `ThemeContext`, `ThemeMode`, `activeTheme`, `setTheme`, localStorage persistence, and shader rendering pipelines. Zero regressions across domain workflows.
+
 ## v3.4.10 — FSOS Aero Procedural Cloud Atmosphere (2026-09-22)
 
 ### Aero Procedural Animated Daylight Cloud Atmosphere

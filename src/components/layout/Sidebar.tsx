@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { NavigationTab, EngineerProfile, WorkspaceMode } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
+import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
 import { APP_VERSION } from '../../constants/version';
 import { 
   motionTimings, 
@@ -247,11 +248,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </nav>
 
-        {/* 4. Subtle System Status Footer */}
-        <div id="main-sidebar-footer" className="sidebar-footer px-3.5 py-2.5 border-t border-theme-default text-[10px] font-mono flex items-center justify-between shrink-0 bg-surface text-theme-muted">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="truncate">FSOS Core • Ready</span>
+        {/* 4. Real Cloud Sync Status & System Footer */}
+        <div id="main-sidebar-footer" className="sidebar-footer p-2.5 border-t border-theme-default flex flex-col gap-2 shrink-0 bg-surface">
+          <SyncStatusIndicator isDark={isDark} placement="top-left" fullWidth={true} />
+          <div className="flex items-center justify-between px-1 text-[10px] font-mono text-theme-muted">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">FSOS Core • Ready</span>
+            </div>
+            <span>{APP_VERSION}</span>
           </div>
         </div>
       </div>

@@ -64,18 +64,18 @@ describe('FSOS Application Shell Architecture Contract', () => {
     const allowedTopBarElements = [
       'sidebar_toggle',
       'page_title',
-      'sync_status',
+      'theme_switch',
       'account_menu'
     ];
 
-    // Prohibited top-bar controls (relocated to proper workflows/Settings or removed)
+    // Prohibited top-bar controls (relocated to proper workflows/Sidebar/Settings or removed)
     const prohibitedTopBarElements = [
-      'theme_toggle',
       'global_search_input',
       'workspace_mode_selector',
       'permanent_directive_banner',
       'new_mhc_shortcut_button',
-      'notification_bell'
+      'notification_bell',
+      'sync_status_header_clutter'
     ];
 
     expect(allowedTopBarElements.length).toBe(4);

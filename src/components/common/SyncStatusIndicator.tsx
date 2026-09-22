@@ -5,9 +5,17 @@ import { SyncState } from '../../types/sync';
 
 interface SyncStatusIndicatorProps {
   isDark?: boolean;
+  placement?: 'bottom-right' | 'top-left' | 'top-right';
+  fullWidth?: boolean;
+  className?: string;
 }
 
-export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ isDark = true }) => {
+export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ 
+  isDark = true,
+  placement = 'bottom-right',
+  fullWidth = false,
+  className = '',
+}) => {
   const [syncState, setSyncState] = useState<SyncState>(SyncEngine.getState());
   const [showPopover, setShowPopover] = useState(false);
   const [customDeviceName, setCustomDeviceName] = useState(syncState.deviceId);
@@ -96,20 +104,39 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ isDark
     }
   };
 
+  const getPopoverPlacementClass = () => {
+    switch (placement) {
+      case 'top-left':
+        return 'bottom-full left-0 mb-2';
+      case 'top-right':
+        return 'bottom-full right-0 mb-2';
+      case 'bottom-right':
+      default:
+        return 'top-full right-0 mt-2';
+    }
+  };
+
   return (
-    <div className="relative inline-block" ref={popoverRef}>
+    <div className={`relative ${fullWidth ? 'w-full block' : 'inline-block'} ${className}`} ref={popoverRef}>
       <button
         onClick={() => setShowPopover(!showPopover)}
         title={`FSOS Automatic Cloud Protection (${syncState.deviceId})`}
-        className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-button border transition-all cursor-pointer bg-raised border-theme-default text-theme-primary hover:bg-surface hover:border-theme-strong font-theme-label"
+        className={`flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-button border transition-all cursor-pointer bg-raised border-theme-default text-theme-primary hover:bg-surface hover:border-theme-strong font-theme-label ${
+          fullWidth ? 'w-full justify-between' : ''
+        }`}
       >
-        <Cloud className={`w-3.5 h-3.5 ${syncState.online ? 'text-[var(--color-primary)]' : 'text-theme-muted'}`} />
+        <div className="flex items-center gap-2 overflow-hidden truncate">
+          <Cloud className={`w-3.5 h-3.5 shrink-0 ${syncState.online ? 'text-[var(--color-primary)]' : 'text-theme-muted'}`} />
+          {fullWidth && (
+            <span className="text-[11px] font-mono text-theme-secondary truncate">Cloud Sync</span>
+          )}
+        </div>
         {getStatusBadge()}
       </button>
 
       {/* Sync Control Popover */}
       {showPopover && (
-        <div className="absolute right-0 mt-2 w-72 rounded-modal border shadow-theme-popover backdrop-theme-surface p-3.5 z-50 bg-raised border-theme-default text-theme-primary">
+        <div className={`absolute ${getPopoverPlacementClass()} w-72 rounded-modal border shadow-theme-popover backdrop-theme-surface p-3.5 z-50 bg-raised border-theme-default text-theme-primary`}>
           {/* Popover Header */}
           <div className="flex items-center justify-between pb-2.5 border-b border-theme-subtle mb-3">
             <div className="flex items-center gap-2">

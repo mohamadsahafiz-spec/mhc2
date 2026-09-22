@@ -11,9 +11,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { NavigationTab, SystemUser } from '../../types';
 import { useTheme, NamedTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
-import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
-import { RubberSegment } from '../common/RubberSegment';
-import { ThemeThumbnail } from '../common/ThemeThumbnail';
+import { HeaderThemeSwitch } from './HeaderThemeSwitch';
 import { 
   motionTimings, 
   motionEasings, 
@@ -134,38 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 2. Minimal Global Actions & Status */}
       <div className="flex items-center gap-2.5 shrink-0">
         {/* Compact Theme Pilot Switcher (Precision | Lumen | Aero) */}
-        <RubberSegment
-          options={[
-            {
-              value: 'precision',
-              label: <ThemeThumbnail theme="precision" isSelected={activeTheme === 'precision'} />,
-              ariaLabel: 'Precision Theme',
-              title: 'Precision (Industrial Dark)',
-            },
-            {
-              value: 'lumen',
-              label: <ThemeThumbnail theme="lumen" isSelected={activeTheme === 'lumen'} />,
-              ariaLabel: 'Lumen Theme',
-              title: 'Lumen (Luminous Obsidian)',
-            },
-            {
-              value: 'aero',
-              label: <ThemeThumbnail theme="aero" isSelected={activeTheme === 'aero'} />,
-              ariaLabel: 'Frutiger Aero Theme',
-              title: 'Frutiger Aero (Atmospheric Sky Glass)',
-            },
-          ]}
-          value={activeTheme}
-          onChange={(val) => setTheme(val as NamedTheme)}
-          size="custom"
-          equalSlots={true}
-          slotClassName="p-0.5"
-          className="shadow-2xs p-0.5 gap-1 bg-raised border-theme-default"
-          ariaLabel="Theme Selector"
-        />
-
-        {/* Real Sync Status */}
-        <SyncStatusIndicator isDark={isDark} />
+        <HeaderThemeSwitch activeTheme={activeTheme} onThemeChange={setTheme} />
 
         {/* Account Menu */}
         <div className="relative" ref={userMenuRef}>
