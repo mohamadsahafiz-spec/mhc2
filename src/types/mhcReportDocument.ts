@@ -535,6 +535,8 @@ export interface MhcReportLaserProductProfileData {
     bottomPass?: boolean;
     overallPass?: boolean;
     viaImageDataUrl?: string;
+    topViaImageDataUrl?: string;
+    bottomViaImageDataUrl?: string;
   };
   laser2Via?: {
     topWidthUm?: number | null;
@@ -543,6 +545,8 @@ export interface MhcReportLaserProductProfileData {
     bottomPass?: boolean;
     overallPass?: boolean;
     viaImageDataUrl?: string;
+    topViaImageDataUrl?: string;
+    bottomViaImageDataUrl?: string;
   };
   hasViaRecord?: boolean;
   isCurrentMhcVia?: boolean;
@@ -571,6 +575,8 @@ export interface MhcReportProductViaQualityData {
     bottomPass?: boolean;
     overallPass?: boolean;
     viaImageDataUrl?: string;
+    topViaImageDataUrl?: string;
+    bottomViaImageDataUrl?: string;
   };
   laser2Via?: {
     topWidthUm?: number | null;
@@ -579,6 +585,8 @@ export interface MhcReportProductViaQualityData {
     bottomPass?: boolean;
     overallPass?: boolean;
     viaImageDataUrl?: string;
+    topViaImageDataUrl?: string;
+    bottomViaImageDataUrl?: string;
   };
   hasViaRecord?: boolean;
 }

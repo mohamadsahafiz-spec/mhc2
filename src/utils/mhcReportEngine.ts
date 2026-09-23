@@ -1718,6 +1718,12 @@ export function buildMhcReportDocument(
         ...currentMhcLaser1Via,
         viaImageDataUrl: currentMhcLaser1Via.viaImageDataUrl
           ? ImageStore.resolveImage(currentMhcLaser1Via.viaImageDataUrl) || currentMhcLaser1Via.viaImageDataUrl
+          : undefined,
+        topViaImageDataUrl: (currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl)
+          ? ImageStore.resolveImage(currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl!) || (currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl)
+          : undefined,
+        bottomViaImageDataUrl: currentMhcLaser1Via.bottomViaImageDataUrl
+          ? ImageStore.resolveImage(currentMhcLaser1Via.bottomViaImageDataUrl) || currentMhcLaser1Via.bottomViaImageDataUrl
           : undefined
       }
     : undefined;
@@ -1727,6 +1733,12 @@ export function buildMhcReportDocument(
         ...currentMhcLaser2Via,
         viaImageDataUrl: currentMhcLaser2Via.viaImageDataUrl
           ? ImageStore.resolveImage(currentMhcLaser2Via.viaImageDataUrl) || currentMhcLaser2Via.viaImageDataUrl
+          : undefined,
+        topViaImageDataUrl: (currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl)
+          ? ImageStore.resolveImage(currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl!) || (currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl)
+          : undefined,
+        bottomViaImageDataUrl: currentMhcLaser2Via.bottomViaImageDataUrl
+          ? ImageStore.resolveImage(currentMhcLaser2Via.bottomViaImageDataUrl) || currentMhcLaser2Via.bottomViaImageDataUrl
           : undefined
       }
     : undefined;

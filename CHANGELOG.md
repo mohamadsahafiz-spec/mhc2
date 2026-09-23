@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v3.6.4 — FSOS Autopilot Dual Via Evidence & Quality Inspection Alignment (2026-09-23)
+
+### Autopilot Product & Process Dual Via Quality Evidence
+- **Dual-Image Via Evidence Alignment**:
+  - Replaced the legacy single "Via Micrograph / SEM Profile" container in Autopilot Product & Process (`MhcProductProcessActivity.tsx`) with separate, dedicated `Top Via` and `Bottom Via` inspection slots.
+  - Added discrete upload, replace, and removal handlers for both Top Via and Bottom Via evidence on Laser 1 (Head A) and Laser 2 (Head B).
+  - Maintained complete backward compatibility with historical single-image sessions by preserving fallback mapping to `viaImageDataUrl`.
+- **Integrated ProductProcessViaGalleryModal Inspection**:
+  - Reused the approved `<ProductProcessViaGalleryModal />` and GSAP-powered `<AccordionGallery />` in Autopilot.
+  - Clicking either Top Via or Bottom Via thumbnail opens the full interactive animated inspection modal with the active laser's dual via evidence, tolerance indicators, and verdict details.
+- **SEM Generation Removal**:
+  - Completely removed the synthetic "Generate SEM" button, handlers, and generation code path from Autopilot Product & Process.
+  - Enforced real uploaded/stored physical evidence exclusively for all inspection records.
+- **Authoritative Report Resolution**:
+  - Updated `mhcReportEngine.ts` and `mhcReportDocument.ts` to hydrate and resolve both `topViaImageDataUrl` and `bottomViaImageDataUrl` into Section 12 of the executive MHC PDF report.
+
 ## v3.6.3 — FSOS Product & Process Dual Via Animated Gallery (2026-09-23)
 
 ### Product & Process Dual Via Quality Evidence & Animated Gallery

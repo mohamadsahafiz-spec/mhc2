@@ -1010,6 +1010,8 @@ describe('mhcReportEngine', () => {
       laser1Via: {
         topWidthUm: 51.2,
         bottomWidthUm: 41.5,
+        topViaImageDataUrl: 'data:image/svg+xml;base64,mockL1TopVia',
+        bottomViaImageDataUrl: 'data:image/svg+xml;base64,mockL1BottomVia',
         topPass: true,
         bottomPass: true,
         overallPass: true
@@ -1017,6 +1019,8 @@ describe('mhcReportEngine', () => {
       laser2Via: {
         topWidthUm: 49.8,
         bottomWidthUm: 39.7,
+        topViaImageDataUrl: 'data:image/svg+xml;base64,mockL2TopVia',
+        bottomViaImageDataUrl: 'data:image/svg+xml;base64,mockL2BottomVia',
         topPass: true,
         bottomPass: true,
         overallPass: true
@@ -1029,7 +1033,11 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['12'].title).toBe('Product Process & Via Quality');
     expect(doc.sections['12'].data.viaSpec?.topTargetUm).toBe(50);
     expect(doc.sections['12'].data.laser1Via?.topWidthUm).toBe(51.2);
+    expect(doc.sections['12'].data.laser1Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,mockL1TopVia');
+    expect(doc.sections['12'].data.laser1Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,mockL1BottomVia');
     expect(doc.sections['12'].data.laser2Via?.topWidthUm).toBe(49.8);
+    expect(doc.sections['12'].data.laser2Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,mockL2TopVia');
+    expect(doc.sections['12'].data.laser2Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,mockL2BottomVia');
     expect(doc.sections['12'].data.overallResult).toBe('PASS');
   });
 

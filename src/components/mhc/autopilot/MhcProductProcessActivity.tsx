@@ -5,7 +5,6 @@ import {
   XCircle,
   Upload,
   Eye,
-  Sparkles,
   Sliders,
   Layers,
   Info,
@@ -29,7 +28,7 @@ import { getLocalDateString } from '../../../utils/timeUtils';
 import { Card } from '../../common/Card';
 import { Badge } from '../../common/Badge';
 import { Button } from '../../common/Button';
-import { Modal } from '../../common/Modal';
+import { ProductProcessViaGalleryModal } from '../../modules/ProductProcessViaGalleryModal';
 import { advanceAutopilotActivity, flagDownstreamNeedsReview } from '../../../utils/mhcAutopilotBrain';
 
 const DEFAULT_SPEC: ViaSpecification = {
@@ -161,7 +160,15 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
 
   const [record, setRecord] = useState<ProductProcessRecord>(initialRecord);
   const [activeHead, setActiveHead] = useState<'lh1' | 'lh2'>('lh1');
-  const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
+  const [galleryModalState, setGalleryModalState] = useState<{
+    isOpen: boolean;
+    laser: 'laser1' | 'laser2';
+    view: 'top' | 'bottom';
+  }>({
+    isOpen: false,
+    laser: 'laser1',
+    view: 'top'
+  });
 
   // Reactive subscription to ImageStore to re-render when IndexedDB hydration finishes
   const [imageStoreVersion, setImageStoreVersion] = useState(0);
@@ -255,65 +262,65 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     }));
   };
 
-  // Micrograph Upload
-  const handleImageUpload = (head: 'lh1' | 'lh2', e: React.ChangeEvent<HTMLInputElement>) => {
+  // Dedicated Top / Bottom Via Image Upload
+  const handleImageUpload = (
+    head: 'lh1' | 'lh2',
+    view: 'top' | 'bottom',
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (isReadOnly || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
       const key = head === 'lh1' ? 'laser1Via' : 'laser2Via';
-      setRecord(prev => ({
-        ...prev,
-        [key]: {
-          ...(prev[key] || { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false }),
-          viaImageDataUrl: result
-        }
-      }));
-      if (showNotification) showNotification(`Uploaded via micrograph for ${head === 'lh1' ? 'Laser 1' : 'Laser 2'}`);
+      setRecord(prev => {
+        const currentVia = prev[key] || {
+          topWidthUm: null,
+          bottomWidthUm: null,
+          topPass: false,
+          bottomPass: false,
+          overallPass: false
+        };
+        const updatedVia: ViaQualityReading = {
+          ...currentVia,
+          ...(view === 'top'
+            ? { topViaImageDataUrl: result, viaImageDataUrl: result }
+            : { bottomViaImageDataUrl: result, viaImageDataUrl: currentVia.topViaImageDataUrl || result })
+        };
+        return {
+          ...prev,
+          [key]: updatedVia
+        };
+      });
+      if (showNotification) {
+        showNotification(`Uploaded ${view === 'top' ? 'Top' : 'Bottom'} Via image for ${head === 'lh1' ? 'Laser 1' : 'Laser 2'}`);
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  // Generate Synthetic Via Micrographs (Cross-section SEM simulation)
-  const handleGenerateSyntheticViaImage = (head: 'lh1' | 'lh2') => {
+  // Dedicated Top / Bottom Via Image Remove
+  const handleImageRemove = (head: 'lh1' | 'lh2', view: 'top' | 'bottom') => {
     if (isReadOnly) return;
     const key = head === 'lh1' ? 'laser1Via' : 'laser2Via';
-    const reading = record[key];
-    const topW = reading?.topWidthUm ?? 51.0;
-    const botW = reading?.bottomWidthUm ?? 23.0;
-
-    // Build crisp cross-section SVG
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
-      <rect width="300" height="200" fill="#0f172a"/>
-      <!-- Substrate layers -->
-      <rect x="20" y="30" width="260" height="25" fill="#334155" opacity="0.8"/>
-      <rect x="20" y="55" width="260" height="90" fill="#1e293b" opacity="0.9"/>
-      <rect x="20" y="145" width="260" height="25" fill="#334155" opacity="0.8"/>
-      <!-- Drilled Via Hole (Trapezoid) -->
-      <polygon points="${150 - topW * 1.5},30 ${150 + topW * 1.5},30 ${150 + botW * 1.5},145 ${150 - botW * 1.5},145" fill="#020617"/>
-      <!-- Laser recast & contour lines -->
-      <path d="M ${150 - topW * 1.5} 30 L ${150 - botW * 1.5} 145" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,2"/>
-      <path d="M ${150 + topW * 1.5} 30 L ${150 + botW * 1.5} 145" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,2"/>
-      <!-- Copper bottom landing pad -->
-      <rect x="${150 - botW * 2.2}" y="145" width="${botW * 4.4}" height="10" fill="#f59e0b" opacity="0.75"/>
-      <!-- Measurement callouts -->
-      <text x="150" y="24" fill="#38bdf8" font-family="monospace" font-size="11" text-anchor="middle" font-weight="bold">TOP: ${topW.toFixed(1)} µm</text>
-      <text x="150" y="165" fill="#f59e0b" font-family="monospace" font-size="11" text-anchor="middle" font-weight="bold">BOTTOM: ${botW.toFixed(1)} µm</text>
-      <text x="150" y="185" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">SEM DRILL PROFILE • ${head.toUpperCase()}</text>
-    </svg>`;
-
-    const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-
-    setRecord(prev => ({
-      ...prev,
-      [key]: {
-        ...(prev[key] || { topWidthUm: topW, bottomWidthUm: botW, topPass: true, bottomPass: true, overallPass: true }),
-        viaImageDataUrl: dataUrl
-      }
-    }));
-
-    if (showNotification) showNotification(`Generated synthetic via profile for ${head === 'lh1' ? 'Laser 1' : 'Laser 2'}`);
+    setRecord(prev => {
+      const currentVia = prev[key];
+      if (!currentVia) return prev;
+      const updatedVia: ViaQualityReading = {
+        ...currentVia,
+        ...(view === 'top'
+          ? { topViaImageDataUrl: undefined, viaImageDataUrl: currentVia.bottomViaImageDataUrl }
+          : { bottomViaImageDataUrl: undefined })
+      };
+      return {
+        ...prev,
+        [key]: updatedVia
+      };
+    });
+    if (showNotification) {
+      showNotification(`Removed ${view === 'top' ? 'Top' : 'Bottom'} Via image for ${head === 'lh1' ? 'Laser 1' : 'Laser 2'}`);
+    }
   };
 
   // Save Draft
@@ -396,11 +403,16 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           : 'Activity Product & Process / Via COMPLETED ✓ Advanced to Day 4 Recommendations.'
       );
     }
-    // Note: onUpdateSession has already persisted the session with currentActivityCode = '07' (IN_PROGRESS).
   };
 
   const isCurrentCompleted = session.autopilotProgress?.activityStatuses?.[activeCode] === 'COMPLETED';
   const activeReading = activeHead === 'lh1' ? evaluatedRecord.laser1Via : evaluatedRecord.laser2Via;
+
+  const rawTopUrl = activeReading?.topViaImageDataUrl || activeReading?.viaImageDataUrl;
+  const topImgUrl = rawTopUrl ? ImageStore.resolveImage(rawTopUrl) || rawTopUrl : undefined;
+
+  const rawBottomUrl = activeReading?.bottomViaImageDataUrl;
+  const bottomImgUrl = rawBottomUrl ? ImageStore.resolveImage(rawBottomUrl) || rawBottomUrl : undefined;
 
   return (
     <div className="p-4 sm:p-6 rounded-2xl border space-y-6 bg-[var(--surface-surface)] border-[var(--border-default)] shadow-xs">
@@ -739,64 +751,151 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
           </div>
         </div>
 
-        {/* Right: Micrograph / SEM Cross-Section */}
+        {/* Right: Dual Via Inspection Evidence (Top Via & Bottom Via) */}
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-[var(--text-primary)]">
-              Via Micrograph / SEM Profile
+            <h4 className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-emerald-500" />
+              {activeHead === 'lh1' ? 'Laser 1 (Head A)' : 'Laser 2 (Head B)'} Via Evidence
             </h4>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleGenerateSyntheticViaImage(activeHead)}
-              disabled={isReadOnly}
-              className="text-[11px] h-7 px-2 border-dashed border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+              onClick={() => setGalleryModalState({
+                isOpen: true,
+                laser: activeHead === 'lh1' ? 'laser1' : 'laser2',
+                view: 'top'
+              })}
+              className="text-[11px] h-7 px-2.5 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer flex items-center gap-1 font-medium"
             >
-              <Sparkles className="w-3 h-3 mr-1" />
-              Generate SEM
+              <Eye className="w-3 h-3" />
+              Inspect Gallery
             </Button>
           </div>
 
-          <div className="w-full aspect-video rounded-xl border border-[var(--border-default)] bg-slate-900 overflow-hidden relative group flex items-center justify-center">
-            {activeReading?.viaImageDataUrl ? (
-              <img
-                src={ImageStore.resolveImage(activeReading.viaImageDataUrl)}
-                alt="Via Profile"
-                className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="text-center p-4 text-slate-500">
-                <FileCheck className="w-8 h-8 mx-auto mb-1 stroke-1 opacity-50" />
-                <span className="text-xs">No micrograph uploaded</span>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Top Via Slot */}
+            <div className="space-y-1.5 flex flex-col">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold font-mono text-emerald-500 dark:text-emerald-400">
+                  Top Via
+                </span>
+                {topImgUrl && !isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove(activeHead, 'top')}
+                    className="text-[10px] text-rose-500 hover:text-rose-400 font-mono transition-colors cursor-pointer"
+                    title="Remove Top Via Image"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
-            )}
 
-            {activeReading?.viaImageDataUrl && (
-              <button
-                type="button"
-                onClick={() => setPreviewImage({
-                  title: `${activeHead === 'lh1' ? 'Laser 1' : 'Laser 2'} Via Micrograph`,
-                  url: ImageStore.resolveImage(activeReading.viaImageDataUrl!)
+              <div
+                onClick={() => setGalleryModalState({
+                  isOpen: true,
+                  laser: activeHead === 'lh1' ? 'laser1' : 'laser2',
+                  view: 'top'
                 })}
-                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1 font-medium cursor-pointer"
+                className="w-full aspect-square rounded-xl border border-[var(--border-default)] hover:border-emerald-500/60 bg-slate-900/90 overflow-hidden relative group flex items-center justify-center cursor-pointer transition-all shadow-inner"
+                title="Click to inspect Top Via in animated gallery"
               >
-                <Eye className="w-4 h-4" /> Enlarge
-              </button>
-            )}
-          </div>
+                {topImgUrl ? (
+                  <>
+                    <img
+                      src={topImgUrl}
+                      alt={`${activeHead === 'lh1' ? 'Laser 1' : 'Laser 2'} Top Via`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] gap-1 font-medium">
+                      <Eye className="w-4 h-4 text-emerald-300" />
+                      <span>Inspect</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-2 text-slate-500">
+                    <FileCheck className="w-6 h-6 mx-auto mb-1 stroke-1 opacity-50" />
+                    <span className="text-[10px] block">No image</span>
+                  </div>
+                )}
+              </div>
 
-          <label className="block w-full text-center py-1.5 px-3 rounded-lg border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors">
-            <Upload className="w-3 h-3 inline mr-1.5 text-[var(--color-primary)]" />
-            Upload Micrograph Image
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleImageUpload(activeHead, e)}
-              disabled={isReadOnly}
-            />
-          </label>
+              <label className="block w-full text-center py-1 px-2 rounded-lg border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors">
+                <Upload className="w-2.5 h-2.5 inline mr-1 text-[var(--color-primary)]" />
+                {topImgUrl ? 'Replace Top' : 'Upload Top'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(activeHead, 'top', e)}
+                  disabled={isReadOnly}
+                />
+              </label>
+            </div>
+
+            {/* Bottom Via Slot */}
+            <div className="space-y-1.5 flex flex-col">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold font-mono text-cyan-500 dark:text-cyan-400">
+                  Bottom Via
+                </span>
+                {bottomImgUrl && !isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove(activeHead, 'bottom')}
+                    className="text-[10px] text-rose-500 hover:text-rose-400 font-mono transition-colors cursor-pointer"
+                    title="Remove Bottom Via Image"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div
+                onClick={() => setGalleryModalState({
+                  isOpen: true,
+                  laser: activeHead === 'lh1' ? 'laser1' : 'laser2',
+                  view: 'bottom'
+                })}
+                className="w-full aspect-square rounded-xl border border-[var(--border-default)] hover:border-cyan-500/60 bg-slate-900/90 overflow-hidden relative group flex items-center justify-center cursor-pointer transition-all shadow-inner"
+                title="Click to inspect Bottom Via in animated gallery"
+              >
+                {bottomImgUrl ? (
+                  <>
+                    <img
+                      src={bottomImgUrl}
+                      alt={`${activeHead === 'lh1' ? 'Laser 1' : 'Laser 2'} Bottom Via`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] gap-1 font-medium">
+                      <Eye className="w-4 h-4 text-cyan-300" />
+                      <span>Inspect</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-2 text-slate-500">
+                    <FileCheck className="w-6 h-6 mx-auto mb-1 stroke-1 opacity-50" />
+                    <span className="text-[10px] block">No image</span>
+                  </div>
+                )}
+              </div>
+
+              <label className="block w-full text-center py-1 px-2 rounded-lg border border-[var(--border-default)] hover:bg-[var(--surface-raised)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors">
+                <Upload className="w-2.5 h-2.5 inline mr-1 text-[var(--color-primary)]" />
+                {bottomImgUrl ? 'Replace Btm' : 'Upload Btm'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(activeHead, 'bottom', e)}
+                  disabled={isReadOnly}
+                />
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -853,23 +952,19 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         </div>
       </div>
 
-      {/* Enlarge Micrograph Modal */}
-      {previewImage && (
-        <Modal
-          isOpen={Boolean(previewImage)}
-          onClose={() => setPreviewImage(null)}
-          title={previewImage.title}
-        >
-          <div className="p-4 flex flex-col items-center justify-center">
-            <img
-              src={previewImage.url}
-              alt={previewImage.title}
-              className="max-h-[70vh] rounded-lg shadow-lg object-contain border border-[var(--border-default)]"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        </Modal>
+      {/* Product & Process Via Quality Inspection Gallery Modal */}
+      {galleryModalState.isOpen && evaluatedRecord && (
+        <ProductProcessViaGalleryModal
+          isOpen={galleryModalState.isOpen}
+          onClose={() => setGalleryModalState(prev => ({ ...prev, isOpen: false }))}
+          record={evaluatedRecord}
+          initialLaser={galleryModalState.laser}
+          initialView={galleryModalState.view}
+          machineModel={machine?.model}
+          machineNumber={machine?.machineNumber}
+        />
       )}
     </div>
   );
 };
+
