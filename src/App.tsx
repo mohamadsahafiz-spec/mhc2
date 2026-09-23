@@ -525,20 +525,21 @@ function AppLayout() {
           onLogout={handleLogout}
         />
 
-        <main className={`flex-1 overflow-y-auto ${
-          (activeTab === 'mhc' || activeTab.startsWith('mhc_'))
-            ? 'p-2 sm:p-3 max-w-none w-full'
-            : 'p-4 md:p-6 max-w-7xl w-full mx-auto'
-        }`}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
-              className="w-full"
-            >
+        <main id="main-workspace-scroll" className="flex-1 overflow-y-auto w-full min-w-0">
+          <div className={`w-full ${
+            (activeTab === 'mhc' || activeTab.startsWith('mhc_'))
+              ? 'p-2 sm:p-3 max-w-none'
+              : 'p-4 md:p-6 max-w-7xl mx-auto'
+          }`}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+                className="w-full"
+              >
               {activeTab === 'start_page' && (
                 <StartPageModule
                   onNavigate={setActiveTab}
@@ -680,6 +681,7 @@ function AppLayout() {
               )}
             </motion.div>
           </AnimatePresence>
+          </div>
         </main>
       </div>
     </div>

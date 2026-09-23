@@ -121,7 +121,8 @@ describe('FSOS Application Shell Architecture Contract', () => {
       rootShell: 'h-screen flex overflow-hidden',
       sidebarContainer: 'w-60 border-r flex flex-col h-screen sticky top-0 shrink-0 overflow-hidden',
       workspaceArea: 'flex-1 flex flex-col min-w-0 h-screen overflow-hidden',
-      mainContentPane: 'flex-1 overflow-y-auto'
+      workspaceScrollContainer: 'flex-1 overflow-y-auto w-full min-w-0',
+      contentWidthWrapper: 'w-full max-w-7xl mx-auto'
     };
 
     expect(shellLayoutRules.rootShell).toContain('h-screen');
@@ -129,6 +130,9 @@ describe('FSOS Application Shell Architecture Contract', () => {
     expect(shellLayoutRules.sidebarContainer).toContain('h-screen');
     expect(shellLayoutRules.workspaceArea).toContain('h-screen');
     expect(shellLayoutRules.workspaceArea).toContain('overflow-hidden');
-    expect(shellLayoutRules.mainContentPane).toContain('overflow-y-auto');
+    expect(shellLayoutRules.workspaceScrollContainer).toContain('overflow-y-auto');
+    expect(shellLayoutRules.workspaceScrollContainer).toContain('w-full');
+    expect(shellLayoutRules.contentWidthWrapper).toContain('max-w-7xl');
+    expect(shellLayoutRules.contentWidthWrapper).toContain('mx-auto');
   });
 });

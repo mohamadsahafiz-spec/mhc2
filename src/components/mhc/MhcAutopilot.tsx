@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -671,7 +672,7 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
 
   const shouldReduceMotion = useReducedMotion();
 
-  return (
+  const content = (
     <div className="fixed inset-0 z-50 p-2 sm:p-4 md:p-6 mhc-autopilot-backdrop bg-slate-950/80 backdrop-blur-md flex items-start justify-center overflow-y-auto">
       
       {/* Toast Notification */}
@@ -1045,4 +1046,9 @@ export const MhcAutopilot: React.FC<MhcAutopilotProps> = ({
       </AnimatePresence>
     </div>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+  return content;
 };

@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v3.5.8 — FSOS Workspace Scroll & Full-Viewport Autopilot (2026-09-23)
+
+### Full Workspace Scroll & Viewport-Level Autopilot Overlay
+- **Full Workspace Scroll Container**:
+  - Re-architected `<main>` as a full-width viewport scroll container (`flex-1 overflow-y-auto w-full min-w-0`) spanning 100% of the area to the right of the Sidebar.
+  - Decoupled `max-w-7xl mx-auto` to an inner content wrapper, eliminating dead mouse-wheel scroll zones on outer gutters.
+  - Moved the vertical scrollbar to the far-right edge of the viewport, eliminating the 1280px vertical dividing line through the workspace.
+- **Full-Viewport MHC Autopilot Presentation**:
+  - Rendered `MhcAutopilot` via a React Portal (`createPortal(content, document.body)`) to escape workspace stacking context and motion transform constraints.
+  - Restored full-viewport backdrop darkening and backdrop-blur covering the Sidebar, Header, and full screen seamlessly.
+- **Preserved Invariants**:
+  - Maintained full-height sticky Sidebar and pinned bottom Hamster Sync indicator.
+  - Preserved standalone 64px hamster wheel, real-state dynamic animations, and unclipped 224px popover geometry.
+
 ## v3.5.7 — FSOS Sticky Sidebar Viewport & Shell Geometry (2026-09-23)
 
 ### Sticky Sidebar Viewport & Independent Shell Scrolling
