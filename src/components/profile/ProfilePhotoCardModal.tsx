@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, 
   Upload, 
@@ -9,8 +8,7 @@ import {
   X, 
   ShieldCheck, 
   User as UserIcon,
-  Sparkles,
-  Sliders
+  Sparkles
 } from 'lucide-react';
 import { SystemUser, UserStatus } from '../../types';
 import { getInitials } from '../common/UserAvatar';
@@ -80,7 +78,7 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
   const modalContent = (
     <div 
       id="profile-photo-card-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -95,26 +93,28 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
         data-testid="profile-card-file-input"
       />
 
-      <div className="flex flex-col items-center gap-4 max-w-full">
-        {/* The Expandable Interactive Photo Card (Uiverse-inspired corner interaction) */}
+      <div className="flex flex-col items-center gap-3.5 max-w-full">
+        {/* The Expandable Interactive Photo Card (Full-Image Portrait Presentation at 30-50% scale increase) */}
         <div 
           onMouseEnter={() => setIsCornerRevealed(true)}
           onMouseLeave={() => setIsCornerRevealed(false)}
-          className={`profile-photo-card group relative w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 rounded-3xl overflow-hidden border shadow-2xl transition-all duration-300 select-none ${
+          className={`profile-photo-card group relative w-[320px] sm:w-[420px] md:w-[480px] lg:w-[520px] max-w-[92vw] max-h-[82vh] rounded-3xl overflow-hidden border shadow-2xl transition-all duration-300 select-none flex items-center justify-center ${
             isDark 
-              ? 'bg-[#181C22] border-[#343D49] shadow-black/80' 
-              : 'bg-slate-900 border-slate-700 shadow-slate-900/50'
+              ? 'bg-[#0F1216] border-[#343D49] shadow-black/90' 
+              : 'bg-slate-950 border-slate-700 shadow-slate-950/70'
           }`}
         >
-          {/* Card Media Surface (Enlarged High-Resolution Photo or Stylized Initials) */}
+          {/* Card Media Surface (Full Original Image without Cropping, Contain-Fitted) */}
           {hasCustomAvatar ? (
-            <img
-              src={user.avatarUrl}
-              alt={fullName}
-              className="w-full h-full object-cover select-none transition-transform duration-700 group-hover:scale-105"
-            />
+            <div className="w-full h-full flex items-center justify-center bg-black/50 overflow-hidden">
+              <img
+                src={user.avatarUrl}
+                alt={fullName}
+                className="w-full h-auto max-h-[82vh] object-contain select-none transition-transform duration-700 group-hover:scale-[1.02]"
+              />
+            </div>
           ) : (
-            <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-6 text-center overflow-hidden">
+            <div className="w-full h-88 sm:h-104 md:h-116 relative flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-6 text-center overflow-hidden">
               {/* Subtle technical background grid */}
               <div 
                 className="absolute inset-0 opacity-15 pointer-events-none"
@@ -123,31 +123,31 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
                   backgroundSize: '24px 24px'
                 }}
               />
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center shadow-inner relative z-10 transition-transform duration-500 group-hover:scale-110">
-                <span className="text-4xl sm:text-5xl font-mono font-bold tracking-tight text-white">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center shadow-inner relative z-10 transition-transform duration-500 group-hover:scale-110">
+                <span className="text-5xl sm:text-6xl font-mono font-bold tracking-tight text-white">
                   {initials}
                 </span>
               </div>
-              <p className="mt-3 text-xs text-indigo-200/70 font-mono relative z-10">
+              <p className="mt-4 text-xs text-indigo-200/70 font-mono relative z-10">
                 Default Initials Avatar
               </p>
             </div>
           )}
 
           {/* Top-Right Header Overlay: Close Button */}
-          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+          <div className="absolute top-3.5 right-3.5 z-30 flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
               aria-label="Close profile photo card"
-              className="p-2 rounded-full bg-black/50 hover:bg-black/80 text-white/80 hover:text-white border border-white/20 backdrop-blur-md transition-all cursor-pointer shadow-lg hover:scale-105"
+              className="p-2 rounded-full bg-black/60 hover:bg-black/85 text-white/80 hover:text-white border border-white/20 backdrop-blur-md transition-all cursor-pointer shadow-lg hover:scale-105"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Bottom-Right Plaque: Engineer Identity */}
-          <div className="absolute bottom-3 right-3 z-20 max-w-[62%] p-2.5 sm:p-3 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-md text-white shadow-xl pointer-events-none transition-all duration-300 group-hover:bg-black/75">
+          <div className="absolute bottom-3.5 right-3.5 z-20 max-w-[62%] p-2.5 sm:p-3 rounded-2xl bg-black/65 border border-white/15 backdrop-blur-md text-white shadow-xl pointer-events-none transition-all duration-300 group-hover:bg-black/80">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className={`w-2 h-2 rounded-full ${getStatusColor(status)} shrink-0`} />
               <p className="text-xs sm:text-sm font-semibold truncate leading-tight">{fullName}</p>
@@ -160,7 +160,7 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
           </div>
 
           {/* Uiverse-Inspired Nested Sliding Corner Controls (Bottom-Left) */}
-          <div className="absolute bottom-0 left-0 z-30 p-2.5 sm:p-3">
+          <div className="absolute bottom-0 left-0 z-30 p-3 sm:p-3.5">
             {/* Sliding Corner Menu Box Container */}
             <div className={`flex flex-col gap-2 transition-all duration-300 ease-out ${
               isCornerRevealed 
@@ -172,7 +172,7 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
                 type="button"
                 id="btn-card-change-photo"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-indigo-500/25 active:scale-98"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-indigo-500/25 active:scale-98"
                 title={hasCustomAvatar ? 'Change Photo' : 'Upload Photo'}
               >
                 <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-white" />
@@ -190,7 +190,7 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
                     onRestoreInitials();
                     onClose();
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white border border-amber-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-amber-500/25 active:scale-98"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white border border-amber-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-amber-500/25 active:scale-98"
                   title="Restore Default Initials"
                 >
                   <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-white" />
@@ -207,7 +207,7 @@ export const ProfilePhotoCardModal: React.FC<ProfilePhotoCardModalProps> = ({
                     onRemovePhoto();
                     onClose();
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white border border-rose-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-rose-500/25 active:scale-98"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white border border-rose-400/40 backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer hover:scale-102 hover:shadow-rose-500/25 active:scale-98"
                   title="Remove Photo"
                 >
                   <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-white" />

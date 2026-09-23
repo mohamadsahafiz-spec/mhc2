@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v3.5.10 — FSOS Profile Photo Full-Image Presentation (2026-09-23)
+
+### Full-Image Portrait Presentation & Aspect Ratio Preservation
+- **Uncropped Full Portrait Presentation**:
+  - Removed constrained square card geometry in `ProfilePhotoCardModal` and transitioned to an uncropped, contain-fitted portrait presentation (`object-contain max-h-[82vh]`).
+  - Preserved the authentic aspect ratio of uploaded portrait photos without cropping hair, chin, or side boundaries.
+- **Expanded Presentation Scale (30–50% Increase)**:
+  - Sized the interactive card frame up to `w-[320px] sm:w-[420px] md:w-[480px] lg:w-[520px] max-w-[92vw] max-h-[82vh]`, delivering an enlarged, crystal-clear presentation of facial details while staying safely bounded within the viewport.
+- **Preserved Sliding Corner Actions & Invariants**:
+  - Retained the Uiverse-inspired bottom-left sliding controls (**Change Photo**, **Restore Default Initials**, and **Remove Photo**) and bottom-right engineer identity badge.
+  - Preserved modal dismissal (backdrop click, Escape, X button) and all underlying profile data/upload logic.
+
 ## v3.5.9 — FSOS Expandable Profile Photo Card (2026-09-23)
 
 ### Expandable Profile Photo Card & Corner Actions

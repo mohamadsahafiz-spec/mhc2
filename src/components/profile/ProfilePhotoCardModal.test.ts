@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { SystemUser } from '../../types';
 import { getInitials } from '../common/UserAvatar';
 
-describe('ProfilePhotoCardModal Usability & Actions (v3.5.9)', () => {
+describe('ProfilePhotoCardModal Usability & Actions (v3.5.10)', () => {
   const mockUserWithPhoto: SystemUser = {
     id: 'usr-001',
     employeeId: 'EMP-EO-8801',
@@ -64,16 +64,19 @@ describe('ProfilePhotoCardModal Usability & Actions (v3.5.9)', () => {
     expect(currentUser.avatarUrl).toBeUndefined();
   });
 
-  it('validates interactive card geometry and styling invariants', () => {
+  it('validates full-image uncropped presentation and expanded sizing geometry (v3.5.10)', () => {
     const cardDesignRules = {
       shape: 'rounded-3xl overflow-hidden',
-      sizing: 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96',
+      sizing: 'w-[320px] sm:w-[420px] md:w-[480px] lg:w-[520px] max-w-[92vw] max-h-[82vh]',
+      fitting: 'object-contain',
       cornerInteraction: 'bottom-left nested reveal',
-      backdrop: 'fixed inset-0 z-50 bg-black/80 backdrop-blur-md'
+      backdrop: 'fixed inset-0 z-50 bg-black/85 backdrop-blur-md'
     };
 
     expect(cardDesignRules.shape).toContain('rounded-3xl');
-    expect(cardDesignRules.sizing).toContain('md:w-96');
+    expect(cardDesignRules.sizing).toContain('lg:w-[520px]');
+    expect(cardDesignRules.sizing).toContain('max-h-[82vh]');
+    expect(cardDesignRules.fitting).toBe('object-contain');
     expect(cardDesignRules.backdrop).toContain('backdrop-blur-md');
   });
 });
