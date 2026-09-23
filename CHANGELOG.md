@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v3.5.9 — FSOS Expandable Profile Photo Card (2026-09-23)
+
+### Expandable Profile Photo Card & Corner Actions
+- **Interactive Enlarged Profile Photo Card**:
+  - Replaced the compact popover on the Profile page with an expandable high-resolution photo card modal (`ProfilePhotoCardModal`).
+  - Clicking the engineer's avatar opens a prominent centered card (`w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96`) with high-resolution image rendering or stylized initial typography.
+  - Placed engineer identity metadata (Name, Employee ID, Role, Status) in a bottom-right frosted glass plaque.
+- **Uiverse-Inspired Corner Sliding Actions**:
+  - Adapted sliding corner controls to the bottom-left corner of the photo card, revealing seamless management options on hover/focus.
+  - Implemented full action workflow: **Change Photo** (upload file), **Restore Default Initials**, and **Remove Photo**.
+  - Retained natural dismissibility via outer backdrop click, escape key, or top-right close control.
+- **Preserved Core Invariants**:
+  - Preserved existing avatar upload limits (JPG, PNG, WEBP up to 5MB), persistence lifecycle, and user profile data schema.
+  - Left Sidebar, Header, theme system, and Hamster Sync completely untouched.
+
 ## v3.5.8 — FSOS Workspace Scroll & Full-Viewport Autopilot (2026-09-23)
 
 ### Full Workspace Scroll & Viewport-Level Autopilot Overlay

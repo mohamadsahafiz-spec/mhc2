@@ -34,6 +34,7 @@ import { Button } from '../common/Button';
 import { CANONICAL_TIMEZONES } from '../../constants/timezones';
 import { ServiceCoverageMap } from '../profile/ServiceCoverageMap';
 import { ManageCoverageModal } from '../profile/ManageCoverageModal';
+import { ProfilePhotoCardModal } from '../profile/ProfilePhotoCardModal';
 
 interface ProfileModuleProps {
   activeUser: SystemUser;
@@ -66,47 +67,19 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
   const [formData, setFormData] = useState<SystemUser>({ ...activeUser });
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [isPhotoCardOpen, setIsPhotoCardOpen] = useState(false);
 
   // Service Coverage Assignment State
   const [isManageCoverageOpen, setIsManageCoverageOpen] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync state when activeUser prop changes
   useEffect(() => {
     setFormData({ ...activeUser });
   }, [activeUser]);
 
-  // Close photo popover on outside click or escape
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (photoMenuRef.current && !photoMenuRef.current.contains(e.target as Node)) {
-        setShowPhotoMenu(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowPhotoMenu(false);
-      }
-    };
-    if (showPhotoMenu) {
-      document.addEventListener('mousedown', handleOutsideClick);
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showPhotoMenu]);
-
-  // Stage Photo Upload into form lifecycle
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Stage Photo Upload from File into form lifecycle
+  const handleFileSelected = (file: File) => {
     setPhotoError(null);
-
-    if (!file) return;
 
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
       setPhotoError('Invalid image format. Supported formats: JPG, PNG, WEBP.');
@@ -124,19 +97,17 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
       const updated = { ...formData, avatarUrl: url };
       setFormData(updated);
       onUpdateUser(updated);
-      setShowPhotoMenu(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     };
     reader.readAsDataURL(file);
   };
 
-  // Stage Remove Photo into form lifecycle
+  // Stage Remove Photo / Restore Default Initials into form lifecycle
   const handleRemovePhoto = () => {
     const updated = { ...formData, avatarUrl: undefined };
     setFormData(updated);
     onUpdateUser(updated);
-    setShowPhotoMenu(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -218,15 +189,13 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
       >
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            {/* Interactive Profile Photo */}
-            <div className="relative shrink-0" ref={photoMenuRef}>
+            {/* Interactive Profile Photo (Opens Expandable Photo Card) */}
+            <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={() => setShowPhotoMenu(!showPhotoMenu)}
-                aria-haspopup="true"
-                aria-expanded={showPhotoMenu}
-                aria-label="Manage profile photo"
-                className={`relative group rounded-full p-0.5 border cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-slate-400 ${
+                onClick={() => setIsPhotoCardOpen(true)}
+                aria-label="View and manage profile photo card"
+                className={`relative group rounded-full p-0.5 border cursor-pointer transition-all duration-150 focus:outline-hidden focus:ring-2 focus:ring-slate-400 ${
                   isDark 
                     ? 'border-[#2B323A] hover:border-slate-500 bg-[#1C2026]' 
                     : 'border-slate-200 hover:border-slate-300 bg-slate-100'
@@ -237,77 +206,9 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
                 {/* Subtle Camera Hover Indicator */}
                 <div className="absolute inset-0 rounded-full bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-slate-200 text-[10px] font-medium p-1">
                   <Camera className="w-4 h-4 text-slate-300" />
-                  <span className="text-[9px]">Edit</span>
+                  <span className="text-[9px]">Expand</span>
                 </div>
               </button>
-
-              {/* Photo Action Popover Menu */}
-              {showPhotoMenu && (
-                <div 
-                  role="menu"
-                  aria-orientation="vertical"
-                  className={`absolute left-0 mt-2 w-52 rounded-md border shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 ${
-                    isDark 
-                      ? 'bg-[#1C2026] border-[#2B323A] text-slate-200' 
-                      : 'bg-white border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <div className="px-2.5 py-1.5 border-b border-slate-200 dark:border-slate-800 mb-1">
-                    <p className="text-[11px] font-semibold">Profile Photo</p>
-                    <p className="text-[9px] text-slate-400 font-mono">JPG, PNG, WEBP • Max 5MB</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setShowPhotoMenu(false);
-                      fileInputRef.current?.click();
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-2 transition-colors ${
-                      isDark ? 'hover:bg-[#242A32] text-slate-200' : 'hover:bg-slate-100 text-slate-800'
-                    }`}
-                  >
-                    <Upload className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{formData.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
-                  </button>
-
-                  {formData.avatarUrl && (
-                    <>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={handleRemovePhoto}
-                        className={`w-full text-left px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-2 transition-colors ${
-                          isDark ? 'hover:bg-[#242A32] text-slate-200' : 'hover:bg-slate-100 text-slate-800'
-                        }`}
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Restore Default Initials</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={handleRemovePhoto}
-                        className="w-full text-left px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-2 transition-colors text-rose-500 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Remove Photo</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                aria-hidden="true"
-              />
             </div>
 
             {/* Core Identity Details */}
@@ -850,6 +751,17 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
         customers={customers}
         assignedPlantIds={currentAssignedIds}
         onSaveCoverage={handleSaveCoverage}
+      />
+
+      {/* Expandable Profile Photo Card Modal */}
+      <ProfilePhotoCardModal
+        isOpen={isPhotoCardOpen}
+        onClose={() => setIsPhotoCardOpen(false)}
+        user={formData}
+        onUploadPhoto={handleFileSelected}
+        onRestoreInitials={handleRemovePhoto}
+        onRemovePhoto={handleRemovePhoto}
+        isDark={isDark}
       />
     </div>
   );
