@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v3.6.2 — FSOS Focus Image Animated Inspection Gallery (2026-09-23)
+
+### Focus Wafer-Position Animated Accordion Inspection Gallery
+- **Interactive Focus Optical Inspection Gallery**:
+  - Reused the approved React Bits `<AccordionGallery />` component with GSAP perspective expansion for Focus wafer-position images.
+  - Clicking any Focus wafer position (`+3`, `+2`, `+1`, `0` [BEST], `-1`, `-2`, `-3`) thumbnail opens a centered high-resolution inspection modal.
+  - Loads the complete 7-position dummy wafer drill sequence for the selected laser head (Laser 1 / Head A or Laser 2 / Head B).
+- **Comprehensive Optics Telemetry & Ergonomics**:
+  - Preserves real existing Focus wafer images and microscope drill observations, drill crater diameter (µm), mask name, laser excitation parameter (2W@50kHz + 2 shots), and optimal focus verdict.
+  - Inactive panels maintain subtle dimmed/grayscale treatment while the active wafer position expands dynamically.
+  - Full keyboard navigation (← →, Home, End, Esc), backdrop dismissal, and `prefers-reduced-motion` compliance.
+  - Quick laser head switcher tab allows alternating between Laser 1 (Head A) and Laser 2 (Head B) without leaving inspection mode.
+
 ## v3.6.1 — FSOS Beam Profile Animated Gallery & Muted Identity (2026-09-23)
 
 ### Beam Profile Animated Accordion Image Preview

@@ -35,6 +35,7 @@ import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { useTheme } from '../../context/ThemeContext';
+import { FocusGalleryModal } from './FocusGalleryModal';
 
 interface MachineFocusOptimizationWorkspaceProps {
   machine: Machine;
@@ -150,6 +151,29 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<FocusOptimizationRecord | null>(null);
   const [previewImage, setPreviewImage] = useState<{ title: string; src: string } | null>(null);
+  const [galleryModalState, setGalleryModalState] = useState<{
+    isOpen: boolean;
+    record: FocusOptimizationRecord | null;
+    laser: 'laser1' | 'laser2';
+    position?: FocusWaferPosition;
+  }>({
+    isOpen: false,
+    record: null,
+    laser: 'laser1'
+  });
+
+  const handleOpenGallery = (
+    record: FocusOptimizationRecord,
+    laser: 'laser1' | 'laser2',
+    position?: FocusWaferPosition
+  ) => {
+    setGalleryModalState({
+      isOpen: true,
+      record,
+      laser,
+      position
+    });
+  };
 
   // Form State for New Check
   const [formDate, setFormDate] = useState<string>(getLocalDateString());
@@ -412,9 +436,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                         Laser 1 (Head A) — Dummy Wafer Sequence
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-500">
-                      Mask: {latestRecord.laser1?.maskName || 'Width Square Mask'}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
+                        Mask: {latestRecord.laser1?.maskName || 'Width Square Mask'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenGallery(latestRecord, 'laser1')}
+                        className="text-[11px] text-amber-400/90 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Inspect Laser 1 Gallery</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
@@ -423,17 +457,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                       const imgUrl = resolveImg(item?.imageDataUrl);
                       const isCenter = pos === '0';
                       return (
-                        <div
+                        <button
                           key={`l1_${pos}`}
-                          onClick={() => imgUrl && setPreviewImage({ title: `Laser 1 — Position ${pos} Wafer Drill`, src: imgUrl })}
-                          className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 ${
+                          type="button"
+                          onClick={() => handleOpenGallery(latestRecord, 'laser1', pos)}
+                          title={`Click to inspect Laser 1 Position ${pos} in animated gallery`}
+                          className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${
                             isCenter
                               ? isDark
-                                ? 'bg-emerald-950/40 border-emerald-500/50'
-                                : 'bg-emerald-50 border-emerald-300'
+                                ? 'bg-emerald-950/40 border-emerald-500/50 hover:border-amber-500/50'
+                                : 'bg-emerald-50 border-emerald-300 hover:border-amber-500/50'
                               : isDark
-                              ? 'bg-slate-900/80 border-slate-800'
-                              : 'bg-white border-slate-200'
+                              ? 'bg-slate-900/80 border-slate-800 hover:border-amber-500/50 hover:bg-slate-900'
+                              : 'bg-white border-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -447,18 +483,21 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                             )}
                           </div>
 
-                          <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80">
+                          <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80 relative group">
                             {imgUrl ? (
                               <img
                                 src={imgUrl}
                                 alt={`Laser 1 ${pos}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
                               />
                             ) : (
                               <ImageIcon className="w-5 h-5 text-slate-600" />
                             )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-3.5 h-3.5 text-amber-300" />
+                            </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -475,9 +514,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                         Laser 2 (Head B) — Dummy Wafer Sequence
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-500">
-                      Mask: {latestRecord.laser2?.maskName || 'Width Square Mask'}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
+                        Mask: {latestRecord.laser2?.maskName || 'Width Square Mask'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenGallery(latestRecord, 'laser2')}
+                        className="text-[11px] text-cyan-400/90 hover:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Inspect Laser 2 Gallery</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
@@ -486,17 +535,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                       const imgUrl = resolveImg(item?.imageDataUrl);
                       const isCenter = pos === '0';
                       return (
-                        <div
+                        <button
                           key={`l2_${pos}`}
-                          onClick={() => imgUrl && setPreviewImage({ title: `Laser 2 — Position ${pos} Wafer Drill`, src: imgUrl })}
-                          className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 ${
+                          type="button"
+                          onClick={() => handleOpenGallery(latestRecord, 'laser2', pos)}
+                          title={`Click to inspect Laser 2 Position ${pos} in animated gallery`}
+                          className={`p-2 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 ${
                             isCenter
                               ? isDark
-                                ? 'bg-emerald-950/40 border-emerald-500/50'
-                                : 'bg-emerald-50 border-emerald-300'
+                                ? 'bg-emerald-950/40 border-emerald-500/50 hover:border-cyan-500/50'
+                                : 'bg-emerald-50 border-emerald-300 hover:border-cyan-500/50'
                               : isDark
-                              ? 'bg-slate-900/80 border-slate-800'
-                              : 'bg-white border-slate-200'
+                              ? 'bg-slate-900/80 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900'
+                              : 'bg-white border-slate-200 hover:border-cyan-500/50 hover:bg-cyan-50/30'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -510,18 +561,21 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
                             )}
                           </div>
 
-                          <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80">
+                          <div className="w-full aspect-square rounded bg-slate-950 flex items-center justify-center overflow-hidden border border-slate-800/80 relative group">
                             {imgUrl ? (
                               <img
                                 src={imgUrl}
                                 alt={`Laser 2 ${pos}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
                               />
                             ) : (
                               <ImageIcon className="w-5 h-5 text-slate-600" />
                             )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-3.5 h-3.5 text-cyan-300" />
+                            </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -797,27 +851,45 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
 
             {/* Laser 1 Grid in modal */}
             <div className={`p-3 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
-              <span className="font-bold text-xs text-amber-500 block mb-2">Laser 1 (Head A) — Dummy Wafer Sequence</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-xs text-amber-500">Laser 1 (Head A) — Dummy Wafer Sequence</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(selectedRecordDetail, 'laser1')}
+                  className="text-[11px] text-amber-400/90 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Inspect Laser 1 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
                 {FOCUS_WAFER_POSITIONS.map((pos) => {
                   const item = selectedRecordDetail.laser1?.positions?.[pos];
                   const imgUrl = resolveImg(item?.imageDataUrl);
                   return (
-                    <div key={`modal_detail_l1_${pos}`} className={`p-1.5 rounded-lg border text-center ${
-                      isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
-                    }`}>
+                    <button
+                      key={`modal_detail_l1_${pos}`}
+                      type="button"
+                      onClick={() => handleOpenGallery(selectedRecordDetail, 'laser1', pos)}
+                      title={`Click to inspect Laser 1 Position ${pos}`}
+                      className={`p-1.5 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 hover:border-amber-500/50 ${
+                        isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
+                      }`}
+                    >
                       <span className="text-[10px] font-mono font-bold text-slate-400 block mb-1">{pos}</span>
                       <div
-                        onClick={() => imgUrl && setPreviewImage({ title: `Laser 1 — Position ${pos} Wafer Drill`, src: imgUrl })}
-                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 cursor-pointer"
+                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 relative group"
                       >
                         {imgUrl ? (
-                          <img src={imgUrl} alt={`L1 ${pos}`} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={`L1 ${pos}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                         ) : (
                           <ImageIcon className="w-4 h-4 text-slate-600" />
                         )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye className="w-3 h-3 text-amber-300" />
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -825,27 +897,45 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
 
             {/* Laser 2 Grid in modal */}
             <div className={`p-3 rounded-xl border ${isDark ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
-              <span className="font-bold text-xs text-cyan-500 block mb-2">Laser 2 (Head B) — Dummy Wafer Sequence</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-xs text-cyan-500">Laser 2 (Head B) — Dummy Wafer Sequence</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(selectedRecordDetail, 'laser2')}
+                  className="text-[11px] text-cyan-400/90 hover:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Inspect Laser 2 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
                 {FOCUS_WAFER_POSITIONS.map((pos) => {
                   const item = selectedRecordDetail.laser2?.positions?.[pos];
                   const imgUrl = resolveImg(item?.imageDataUrl);
                   return (
-                    <div key={`modal_detail_l2_${pos}`} className={`p-1.5 rounded-lg border text-center ${
-                      isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
-                    }`}>
+                    <button
+                      key={`modal_detail_l2_${pos}`}
+                      type="button"
+                      onClick={() => handleOpenGallery(selectedRecordDetail, 'laser2', pos)}
+                      title={`Click to inspect Laser 2 Position ${pos}`}
+                      className={`p-1.5 rounded-lg border text-center cursor-pointer transition-all hover:scale-105 hover:border-cyan-500/50 ${
+                        isDark ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'
+                      }`}
+                    >
                       <span className="text-[10px] font-mono font-bold text-slate-400 block mb-1">{pos}</span>
                       <div
-                        onClick={() => imgUrl && setPreviewImage({ title: `Laser 2 — Position ${pos} Wafer Drill`, src: imgUrl })}
-                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 cursor-pointer"
+                        className="w-full aspect-square rounded bg-black flex items-center justify-center overflow-hidden border border-slate-800 relative group"
                       >
                         {imgUrl ? (
-                          <img src={imgUrl} alt={`L2 ${pos}`} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={`L2 ${pos}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                         ) : (
                           <ImageIcon className="w-4 h-4 text-slate-600" />
                         )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye className="w-3 h-3 text-cyan-300" />
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -867,7 +957,7 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
         </Modal>
       )}
 
-      {/* Image Preview Modal */}
+      {/* Image Preview Modal (Fallback) */}
       {previewImage && (
         <Modal
           isOpen={!!previewImage}
@@ -885,6 +975,19 @@ export const MachineFocusOptimizationWorkspace: React.FC<MachineFocusOptimizatio
             </p>
           </div>
         </Modal>
+      )}
+
+      {/* Focus Animated Accordion Gallery Modal */}
+      {galleryModalState.isOpen && galleryModalState.record && (
+        <FocusGalleryModal
+          isOpen={galleryModalState.isOpen}
+          onClose={() => setGalleryModalState(prev => ({ ...prev, isOpen: false }))}
+          record={galleryModalState.record}
+          initialLaser={galleryModalState.laser}
+          initialPosition={galleryModalState.position}
+          machineModel={machine.model}
+          machineNumber={machine.machineNumber}
+        />
       )}
     </div>
   );
