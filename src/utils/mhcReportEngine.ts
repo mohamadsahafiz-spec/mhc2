@@ -34,6 +34,7 @@ import {
   MhcReportEvidenceItem,
   MhcReportBuyoffData
 } from '../types';
+import { ViaQualityReading } from '../types/productProcess';
 import { auditMhcSession, getActivityDisposition } from './mhcAutopilotBrain';
 import { LaserEngine } from './laserEngine';
 import { ImageStore } from './imageStore';
@@ -1684,9 +1685,81 @@ export function buildMhcReportDocument(
   const currentMhcLaser2Via = sessionProductProcess?.laser2Via;
   const hasCurrentMhcVia = Boolean(currentMhcLaser1Via || currentMhcLaser2Via);
 
+  // Merge session via quality reading with authoritative passport baseline
+  const mergeViaQualityReading = (
+    sessionVia?: ViaQualityReading,
+    passportVia?: ViaQualityReading
+  ): {
+    topWidthUm?: number | null;
+    bottomWidthUm?: number | null;
+    topPass?: boolean;
+    bottomPass?: boolean;
+    overallPass?: boolean;
+    viaImageDataUrl?: string;
+    topViaImageDataUrl?: string;
+    bottomViaImageDataUrl?: string;
+  } | undefined => {
+    // Only resolve if session has a productProcessRecord or a via reading
+    if (!sessionVia && !sessionProductProcess) {
+      return undefined;
+    }
+    if (!sessionVia && !passportVia) {
+      return undefined;
+    }
+
+    const topWidthUm = (sessionVia?.topWidthUm !== undefined && sessionVia?.topWidthUm !== null)
+      ? sessionVia.topWidthUm
+      : (passportVia?.topWidthUm ?? null);
+
+    const bottomWidthUm = (sessionVia?.bottomWidthUm !== undefined && sessionVia?.bottomWidthUm !== null)
+      ? sessionVia.bottomWidthUm
+      : (passportVia?.bottomWidthUm ?? null);
+
+    const topPass = sessionVia?.topPass ?? passportVia?.topPass ?? false;
+    const bottomPass = sessionVia?.bottomPass ?? passportVia?.bottomPass ?? false;
+    const overallPass = sessionVia?.overallPass ?? passportVia?.overallPass ?? false;
+
+    // Top Via: Session Top -> Session Legacy -> Passport Top -> Passport Legacy
+    const sessionTopRaw = sessionVia?.topViaImageDataUrl || sessionVia?.viaImageDataUrl;
+    const passportTopRaw = passportVia?.topViaImageDataUrl || passportVia?.viaImageDataUrl;
+    const rawTop = sessionTopRaw || passportTopRaw;
+    const resolvedTop = rawTop ? (ImageStore.resolveImage(rawTop) || rawTop) : undefined;
+
+    // Bottom Via: Strictly session Bottom -> passport Bottom (no fallback to Top or Legacy)
+    const sessionBottomRaw = sessionVia?.bottomViaImageDataUrl;
+    const passportBottomRaw = passportVia?.bottomViaImageDataUrl;
+    const rawBottom = sessionBottomRaw || passportBottomRaw;
+    const resolvedBottom = rawBottom ? (ImageStore.resolveImage(rawBottom) || rawBottom) : undefined;
+
+    // Legacy viaImageDataUrl: preserved for backward compatibility
+    const rawLegacy = sessionVia?.viaImageDataUrl || passportVia?.viaImageDataUrl;
+    const resolvedLegacy = rawLegacy ? (ImageStore.resolveImage(rawLegacy) || rawLegacy) : undefined;
+
+    return {
+      topWidthUm,
+      bottomWidthUm,
+      topPass,
+      bottomPass,
+      overallPass,
+      viaImageDataUrl: resolvedLegacy,
+      topViaImageDataUrl: resolvedTop,
+      bottomViaImageDataUrl: resolvedBottom
+    };
+  };
+
+  const resolvedLaser1Via = mergeViaQualityReading(
+    currentMhcLaser1Via,
+    passportProductProcess?.laser1Via
+  );
+
+  const resolvedLaser2Via = mergeViaQualityReading(
+    currentMhcLaser2Via,
+    passportProductProcess?.laser2Via
+  );
+
   // Derive laser allocation strictly from recorded data without defaulting blindly to 'lh1'
-  const hasL1Via = Boolean(currentMhcLaser1Via);
-  const hasL2Via = Boolean(currentMhcLaser2Via);
+  const hasL1Via = Boolean(resolvedLaser1Via);
+  const hasL2Via = Boolean(resolvedLaser2Via);
   const derivedLaserId = stageProfile?.laserId || (
     hasL1Via && hasL2Via
       ? 'both'
@@ -1705,43 +1778,12 @@ export function buildMhcReportDocument(
     stageQuality?.visualVerification ||
     stageQuality?.padQuality ||
     stageQuality?.notes ||
-    currentMhcLaser1Via ||
-    currentMhcLaser2Via
+    resolvedLaser1Via ||
+    resolvedLaser2Via
   );
 
   const qualityResult = stageQuality?.result || (sessionProductProcess ? (sessionProductProcess.overallResult === 'PASS' ? 'PASS' : 'FAIL') : 'NOT_COLLECTED');
   const isQualityPass = qualityResult === 'PASS';
-
-  // Hydrate via microscope image URLs from ImageStore if stored as IDB keys
-  const resolvedLaser1Via = currentMhcLaser1Via
-    ? {
-        ...currentMhcLaser1Via,
-        viaImageDataUrl: currentMhcLaser1Via.viaImageDataUrl
-          ? ImageStore.resolveImage(currentMhcLaser1Via.viaImageDataUrl) || currentMhcLaser1Via.viaImageDataUrl
-          : undefined,
-        topViaImageDataUrl: (currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl)
-          ? ImageStore.resolveImage(currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl!) || (currentMhcLaser1Via.topViaImageDataUrl || currentMhcLaser1Via.viaImageDataUrl)
-          : undefined,
-        bottomViaImageDataUrl: currentMhcLaser1Via.bottomViaImageDataUrl
-          ? ImageStore.resolveImage(currentMhcLaser1Via.bottomViaImageDataUrl) || currentMhcLaser1Via.bottomViaImageDataUrl
-          : undefined
-      }
-    : undefined;
-
-  const resolvedLaser2Via = currentMhcLaser2Via
-    ? {
-        ...currentMhcLaser2Via,
-        viaImageDataUrl: currentMhcLaser2Via.viaImageDataUrl
-          ? ImageStore.resolveImage(currentMhcLaser2Via.viaImageDataUrl) || currentMhcLaser2Via.viaImageDataUrl
-          : undefined,
-        topViaImageDataUrl: (currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl)
-          ? ImageStore.resolveImage(currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl!) || (currentMhcLaser2Via.topViaImageDataUrl || currentMhcLaser2Via.viaImageDataUrl)
-          : undefined,
-        bottomViaImageDataUrl: currentMhcLaser2Via.bottomViaImageDataUrl
-          ? ImageStore.resolveImage(currentMhcLaser2Via.bottomViaImageDataUrl) || currentMhcLaser2Via.bottomViaImageDataUrl
-          : undefined
-      }
-    : undefined;
 
   const laserProductProfileData: MhcReportLaserProductProfileData = {
     status: (hasProfileData || hasQualityData) ? 'COMPLETE' : 'NOT_COLLECTED',
@@ -1764,7 +1806,7 @@ export function buildMhcReportDocument(
 
     // Microvia Quality Data
     sampleId: stageQuality?.sampleId || sessionProductProcess?.lotPanel || latestProductProcess?.lotPanel || undefined,
-    viaDiameterUm: stageQuality?.viaDiameterUm ?? currentMhcLaser1Via?.topWidthUm ?? undefined,
+    viaDiameterUm: stageQuality?.viaDiameterUm ?? resolvedLaser1Via?.topWidthUm ?? undefined,
     viaShape: stageQuality?.viaShape || undefined,
     viaOffsetUm: stageQuality?.viaOffsetUm !== undefined && stageQuality?.viaOffsetUm !== null ? stageQuality.viaOffsetUm : undefined,
     padQuality: stageQuality?.padQuality || undefined,
@@ -1774,7 +1816,7 @@ export function buildMhcReportDocument(
     notes: stageQuality?.notes || sessionProductProcess?.engineerRemarks || latestProductProcess?.engineerRemarks || undefined,
     laser1Via: resolvedLaser1Via,
     laser2Via: resolvedLaser2Via,
-    hasViaRecord: Boolean(currentMhcLaser1Via || currentMhcLaser2Via),
+    hasViaRecord: Boolean(resolvedLaser1Via || resolvedLaser2Via),
     isCurrentMhcVia: Boolean(hasCurrentMhcVia || stageQuality?.viaDiameterUm)
   };
 

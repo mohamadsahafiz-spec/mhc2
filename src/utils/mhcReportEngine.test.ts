@@ -1041,6 +1041,219 @@ describe('mhcReportEngine', () => {
     expect(doc.sections['12'].data.overallResult).toBe('PASS');
   });
 
+  describe('Section 12 Dual-Via Evidence Propagation (v3.6.7)', () => {
+    const basePassportMachine: any = {
+      id: 'MC-PASSPORT-01',
+      model: 'UV Drill Dual Laser',
+      serialNumber: 'MC230040',
+      productProcessRecords: [
+        {
+          id: 'PP-PASSPORT-01',
+          date: '2026-09-01',
+          productName: 'FCBGA 18-Layer Passport Baseline',
+          recipeName: 'REC-ABF-18L',
+          lotPanel: 'LOT-PASSPORT / PNL-01',
+          viaSpec: { topTargetUm: 50, topToleranceUm: 10, bottomTargetUm: 25, bottomToleranceUm: 10 },
+          laser1Via: {
+            topWidthUm: 50.5,
+            bottomWidthUm: 24.8,
+            topViaImageDataUrl: 'data:image/png;base64,passportL1TopImg',
+            bottomViaImageDataUrl: 'data:image/png;base64,passportL1BottomImg',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          laser2Via: {
+            topWidthUm: 49.5,
+            bottomWidthUm: 24.2,
+            topViaImageDataUrl: 'data:image/png;base64,passportL2TopImg',
+            bottomViaImageDataUrl: 'data:image/png;base64,passportL2BottomImg',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          overallResult: 'PASS'
+        }
+      ]
+    };
+
+    it('1. Session has Top Via only + Passport has Top/Bottom → report receives session Top + Passport Bottom', () => {
+      const session = createDummySession('SESS-TOP-ONLY');
+      session.machineId = 'MC-PASSPORT-01';
+      session.productProcessRecord = {
+        id: 'PP-SESS-TOP-ONLY',
+        date: '2026-09-23',
+        productName: 'FCBGA 18-Layer',
+        recipeName: 'REC-ABF-18L',
+        laser1Via: {
+          topWidthUm: 51.0,
+          bottomWidthUm: 24.8,
+          topViaImageDataUrl: 'data:image/png;base64,sessionL1TopImg',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [basePassportMachine] });
+      const sec12 = doc.sections['12'].data;
+
+      // Session Top takes precedence over Passport Top
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBe('data:image/png;base64,sessionL1TopImg');
+      // Missing Session Bottom inherits Passport Bottom
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,passportL1BottomImg');
+    });
+
+    it('2. Session has Bottom Via only + Passport has Top/Bottom → report preserves session Bottom + Passport Top', () => {
+      const session = createDummySession('SESS-BOT-ONLY');
+      session.machineId = 'MC-PASSPORT-01';
+      session.productProcessRecord = {
+        id: 'PP-SESS-BOT-ONLY',
+        date: '2026-09-23',
+        productName: 'FCBGA 18-Layer',
+        recipeName: 'REC-ABF-18L',
+        laser1Via: {
+          topWidthUm: 50.5,
+          bottomWidthUm: 25.2,
+          bottomViaImageDataUrl: 'data:image/png;base64,sessionL1BottomImg',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [basePassportMachine] });
+      const sec12 = doc.sections['12'].data;
+
+      // Missing Session Top inherits Passport Top
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBe('data:image/png;base64,passportL1TopImg');
+      // Session Bottom takes precedence over Passport Bottom
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,sessionL1BottomImg');
+    });
+
+    it('3. Session has both Top and Bottom → report preserves both session values', () => {
+      const session = createDummySession('SESS-BOTH');
+      session.machineId = 'MC-PASSPORT-01';
+      session.productProcessRecord = {
+        id: 'PP-SESS-BOTH',
+        date: '2026-09-23',
+        productName: 'FCBGA 18-Layer',
+        recipeName: 'REC-ABF-18L',
+        laser1Via: {
+          topWidthUm: 52.0,
+          bottomWidthUm: 24.0,
+          topViaImageDataUrl: 'data:image/png;base64,sessionL1TopCustom',
+          bottomViaImageDataUrl: 'data:image/png;base64,sessionL1BottomCustom',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [basePassportMachine] });
+      const sec12 = doc.sections['12'].data;
+
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBe('data:image/png;base64,sessionL1TopCustom');
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,sessionL1BottomCustom');
+    });
+
+    it('4. Legacy session with only viaImageDataUrl → report maps it to Top Via and keeps Bottom undefined if not in passport', () => {
+      const machineWithoutVia: any = {
+        id: 'MC-NO-VIA',
+        productProcessRecords: []
+      };
+      const session = createDummySession('SESS-LEGACY-SINGLE');
+      session.machineId = 'MC-NO-VIA';
+      session.productProcessRecord = {
+        id: 'PP-LEGACY-SINGLE',
+        date: '2026-08-10',
+        productName: 'Legacy PCB',
+        recipeName: 'REC-LEGACY',
+        laser1Via: {
+          topWidthUm: 50.0,
+          bottomWidthUm: 25.0,
+          viaImageDataUrl: 'data:image/png;base64,legacySingleViaMicrograph',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [machineWithoutVia] });
+      const sec12 = doc.sections['12'].data;
+
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBe('data:image/png;base64,legacySingleViaMicrograph');
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBeUndefined();
+    });
+
+    it('5. Laser 1 and Laser 2 are handled independently', () => {
+      const session = createDummySession('SESS-DUAL-HEAD-INDEPENDENT');
+      session.machineId = 'MC-PASSPORT-01';
+      session.productProcessRecord = {
+        id: 'PP-DUAL-HEAD-INDEPENDENT',
+        date: '2026-09-23',
+        productName: 'FCBGA 18-Layer',
+        recipeName: 'REC-ABF-18L',
+        laser1Via: {
+          topWidthUm: 51.0,
+          bottomWidthUm: 24.5,
+          topViaImageDataUrl: 'data:image/png;base64,customL1Top',
+          bottomViaImageDataUrl: 'data:image/png;base64,customL1Bottom',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        },
+        laser2Via: {
+          topWidthUm: 48.9,
+          bottomWidthUm: 23.5,
+          topViaImageDataUrl: 'data:image/png;base64,customL2Top',
+          bottomViaImageDataUrl: 'data:image/png;base64,customL2Bottom',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [basePassportMachine] });
+      const sec12 = doc.sections['12'].data;
+
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBe('data:image/png;base64,customL1Top');
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,customL1Bottom');
+      expect(sec12.laser2Via?.topViaImageDataUrl).toBe('data:image/png;base64,customL2Top');
+      expect(sec12.laser2Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,customL2Bottom');
+    });
+
+    it('6. No Bottom → Top cross-contamination occurs', () => {
+      const machineWithoutVia: any = {
+        id: 'MC-EMPTY',
+        productProcessRecords: []
+      };
+      const session = createDummySession('SESS-NO-CROSS-CONTAM');
+      session.machineId = 'MC-EMPTY';
+      session.productProcessRecord = {
+        id: 'PP-NO-CROSS-CONTAM',
+        date: '2026-09-23',
+        productName: 'FCBGA 18-Layer',
+        recipeName: 'REC-ABF-18L',
+        laser1Via: {
+          topWidthUm: 50.0,
+          bottomWidthUm: 25.0,
+          bottomViaImageDataUrl: 'data:image/png;base64,isolatedBottomOnly',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any;
+
+      const doc = buildMhcReportDocument(session, undefined, { machines: [machineWithoutVia] });
+      const sec12 = doc.sections['12'].data;
+
+      expect(sec12.laser1Via?.bottomViaImageDataUrl).toBe('data:image/png;base64,isolatedBottomOnly');
+      expect(sec12.laser1Via?.topViaImageDataUrl).toBeUndefined();
+      expect(sec12.laser1Via?.viaImageDataUrl).toBeUndefined();
+    });
+  });
+
   it('should preserve authoritative Focus Optimization date distinct from MHC inspection date', () => {
     const session = createDummySession('SESS-FOCUS-DATE');
     session.startDate = '2026-08-20';

@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v3.6.7 — FSOS Full PDF Bottom Via Data Propagation (2026-09-23)
+
+### Full MHC PDF Section 12 Dual-Via Evidence Chain
+- **Property-Level Via Merging in Report Document Engine**:
+  - Fixed Section 12 data assembly in `src/utils/mhcReportEngine.ts` to property-merge active session Via evidence with authoritative Machine Passport Via records for Laser 1 and Laser 2.
+  - Resolved `bottomViaImageDataUrl` independently so Bottom Via micrographs reliably propagate to the PDF document without relying on or collapsing into legacy single-image fields.
+  - Preserved session-specific measurements and evidence over passport defaults when present, while seamlessly inheriting baseline images when session data is partial.
+  - Retained strict backward compatibility for legacy records with single `viaImageDataUrl`.
+  - Maintained complete isolation between Top Via and Bottom Via slots with zero cross-contamination.
+
 ## v3.6.6 — FSOS Dual-Via Evidence Chain & Section 12 Hero (2026-09-23)
 
 ### Autopilot State & Dual-Via Evidence Chain
