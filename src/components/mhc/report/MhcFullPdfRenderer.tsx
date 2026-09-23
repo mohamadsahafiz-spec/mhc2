@@ -33,6 +33,7 @@ import { LaserEngine } from '../../../utils/laserEngine';
 import { ImageStore } from '../../../utils/imageStore';
 import { ProductProcessEngine } from '../../../utils/productProcessEngine';
 import { TemperatureGraph } from '../../common/TemperatureGraph';
+import { LatticeLoader } from '../../common/LatticeLoader';
 
 export interface MhcFullPdfRendererProps {
   session: MHCSession;
@@ -654,10 +655,31 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
             id="btn-download-mhc-pdf"
             disabled={isGeneratingPdf}
             onClick={handleDownloadPdf}
-            className="btn-download-mhc-pdf px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50"
+            className="btn-download-mhc-pdf px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-95 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer ring-2 ring-emerald-400/50 min-h-[36px]"
           >
-            <Download className="w-4 h-4" />
-            <span>{isGeneratingPdf ? downloadProgress || 'Generating PDF...' : 'Download Official MHC PDF'}</span>
+            {isGeneratingPdf ? (
+              <LatticeLoader
+                status="working"
+                label="Downloading"
+                doneLabel="Downloaded in"
+                errorLabel="Failed after"
+                pattern="orbit"
+                grid={3}
+                shape="round"
+                cellSize={4}
+                gap={2}
+                fontSize={12}
+                color="#020617"
+                doneColor="#020617"
+                errorColor="#ef4444"
+                showTimer={true}
+              />
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                <span>Download Official MHC PDF</span>
+              </>
+            )}
           </button>
 
           {onProceedToBuyoff && (

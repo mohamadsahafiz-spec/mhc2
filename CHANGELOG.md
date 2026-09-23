@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v3.6.0 — FSOS Official MHC PDF Download Loader (2026-09-23)
+
+### React Bits LatticeLoader for Official MHC PDF Download
+- **Polished Interactive LatticeLoader**:
+  - Replaced the basic progress text animation inside the "Download Official MHC PDF" button with the React Bits `LatticeLoader` component.
+  - Rendered a compact 3x3 orbiting lattice grid in emerald/slate ink matching the authenticated FSOS theme styling.
+  - Displayed the active working label **"Downloading"** alongside a live high-precision stopwatch timer (0.0s → final elapsed time).
+- **Smooth Lifecycle Transitions & Accessibility**:
+  - Automatically restored the standard button state upon PDF generation completion or error.
+  - Maintained accessible screen reader announcements and graceful `prefers-reduced-motion` fallbacks.
+- **Preserved Invariants**:
+  - Kept jsPDF / html2canvas-pro multi-page rendering engine, DOM coordinate math, ImageStore hydration, error handlers, and report data generation completely unchanged.
+
 ## v3.5.10 — FSOS Profile Photo Full-Image Presentation (2026-09-23)
 
 ### Full-Image Portrait Presentation & Aspect Ratio Preservation
