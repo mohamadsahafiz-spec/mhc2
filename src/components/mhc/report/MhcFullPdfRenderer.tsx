@@ -3063,144 +3063,154 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                     </table>
                   </div>
 
-                  {/* 3. Via Quality Measurements & Cross-Section Evidence */}
+                  {/* 3. Via Quality Measurements Table (Full Width) */}
                   <div className="space-y-2 pt-1 border-t border-slate-200">
-                    <div className="grid grid-cols-12 gap-3 items-stretch">
-                      {/* Left: Dual-Head Via Table */}
-                      <div className="col-span-7 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5 flex flex-col justify-between">
-                        <div className="text-[9.5px] text-slate-600 font-bold uppercase font-mono">
-                          VIA DRILLING MEASUREMENTS &amp; SPECIFICATION
-                        </div>
-                        <table className="w-full text-left text-[11px] border-collapse">
-                          <thead>
-                            <tr className="border-b border-slate-200 font-mono text-[9.5px] text-slate-600 font-bold">
-                              <th className="py-1">LASER HEAD</th>
-                              <th className="py-1 text-center">TOP DIA.</th>
-                              <th className="py-1 text-center">BOT DIA.</th>
-                              <th className="py-1 text-center">TAPER</th>
-                              <th className="py-1 text-right">VERDICT</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-mono">
-                            {(() => {
-                              const qData = sections['12']?.data;
-                              const viaSpec = qData?.viaSpec;
-                              const topSpecStr = viaSpec ? ProductProcessEngine.getFormattedTopSpec(viaSpec) : '—';
-                              const botSpecStr = viaSpec ? ProductProcessEngine.getFormattedBottomSpec(viaSpec) : '—';
-                              const taperSpecStr = viaSpec ? ProductProcessEngine.getFormattedTaperSpec(viaSpec) : '—';
-
-                              const lh1Top = qData?.laser1Via?.topWidthUm ?? (qData?.viaDiameterUm !== undefined ? qData.viaDiameterUm : null);
-                              const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? null;
-                              const lh1Taper = lh1Top !== null && lh1Bot !== null ? `${((lh1Bot / lh1Top) * 100).toFixed(1)}%` : '-';
-                              const lh1Pass = qData?.laser1Via?.overallPass !== undefined ? (qData.laser1Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
-
-                              const lh2Top = qData?.laser2Via?.topWidthUm ?? null;
-                              const lh2Bot = qData?.laser2Via?.bottomWidthUm ?? null;
-                              const lh2Taper = lh2Top !== null && lh2Bot !== null ? `${((lh2Bot / lh2Top) * 100).toFixed(1)}%` : '-';
-                              const lh2Pass = qData?.laser2Via?.overallPass !== undefined ? (qData.laser2Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
-
-                              return (
-                                <>
-                                  <tr className="bg-slate-50/80 text-[10.5px] text-slate-600 font-mono">
-                                    <td className="py-1.5 font-bold text-slate-700 font-sans">
-                                      Acceptance Spec
-                                    </td>
-                                    <td className="py-1.5 text-center font-bold text-cyan-800">
-                                      {topSpecStr}
-                                    </td>
-                                    <td className="py-1.5 text-center font-bold text-cyan-800">
-                                      {botSpecStr}
-                                    </td>
-                                    <td className="py-1.5 text-center font-bold text-cyan-800">
-                                      {taperSpecStr}
-                                    </td>
-                                    <td className="py-1.5 text-right font-sans text-[9px] text-slate-500 font-medium">
-                                      Engineering Spec
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="py-2 font-bold text-slate-800">Laser Head 1 (LH1)</td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh1Top !== null ? `${lh1Top.toFixed(1)} µm` : '-'}
-                                    </td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh1Bot !== null ? `${lh1Bot.toFixed(1)} µm` : '-'}
-                                    </td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh1Taper}
-                                    </td>
-                                    <td className="py-2 text-right font-bold">
-                                      {renderStatusBadge(lh1Pass)}
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="py-2 font-bold text-slate-800">Laser Head 2 (LH2)</td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh2Top !== null ? `${lh2Top.toFixed(1)} µm` : '-'}
-                                    </td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh2Bot !== null ? `${lh2Bot.toFixed(1)} µm` : '-'}
-                                    </td>
-                                    <td className="py-2 text-center text-slate-700">
-                                      {lh2Taper}
-                                    </td>
-                                    <td className="py-2 text-right font-bold">
-                                      {renderStatusBadge(lh2Pass)}
-                                    </td>
-                                  </tr>
-                                </>
-                              );
-                            })()}
-                          </tbody>
-                        </table>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
+                      <div className="text-[9.5px] text-slate-600 font-bold uppercase font-mono">
+                        VIA DRILLING MEASUREMENTS &amp; SPECIFICATION
                       </div>
-
-                      {/* Right: Actual Cross-Section Microscope Images (Top & Bottom Via) */}
-                      <div className="col-span-5 p-2 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1">
-                        <div className="text-[9px] text-slate-600 font-bold uppercase font-mono">
-                          VIA CROSS-SECTION EVIDENCE
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5">
+                      <table className="w-full text-left text-[11px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 font-mono text-[9.5px] text-slate-600 font-bold">
+                            <th className="py-1">LASER HEAD</th>
+                            <th className="py-1 text-center">TOP DIA.</th>
+                            <th className="py-1 text-center">BOT DIA.</th>
+                            <th className="py-1 text-center">TAPER</th>
+                            <th className="py-1 text-right">VERDICT</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-mono">
                           {(() => {
                             const qData = sections['12']?.data;
-                            const resolveImg = (src?: string) => src ? (ImageStore.resolveImage(src) || src) : undefined;
+                            const viaSpec = qData?.viaSpec;
+                            const topSpecStr = viaSpec ? ProductProcessEngine.getFormattedTopSpec(viaSpec) : '—';
+                            const botSpecStr = viaSpec ? ProductProcessEngine.getFormattedBottomSpec(viaSpec) : '—';
+                            const taperSpecStr = viaSpec ? ProductProcessEngine.getFormattedTaperSpec(viaSpec) : '—';
 
-                            const l1Top = resolveImg(qData?.laser1Via?.topViaImageDataUrl || qData?.laser1Via?.viaImageDataUrl);
-                            const l1Bottom = resolveImg(qData?.laser1Via?.bottomViaImageDataUrl);
-                            const l2Top = resolveImg(qData?.laser2Via?.topViaImageDataUrl || qData?.laser2Via?.viaImageDataUrl);
-                            const l2Bottom = resolveImg(qData?.laser2Via?.bottomViaImageDataUrl);
+                            const lh1Top = qData?.laser1Via?.topWidthUm ?? (qData?.viaDiameterUm !== undefined ? qData.viaDiameterUm : null);
+                            const lh1Bot = qData?.laser1Via?.bottomWidthUm ?? null;
+                            const lh1Taper = lh1Top !== null && lh1Bot !== null ? `${((lh1Bot / lh1Top) * 100).toFixed(1)}%` : '-';
+                            const lh1Pass = qData?.laser1Via?.overallPass !== undefined ? (qData.laser1Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
 
-                            const slots = [
-                              { label: 'LH1 Top Via', img: l1Top, alt: 'Laser Head 1 (LH1) Top Via' },
-                              { label: 'LH1 Bottom Via', img: l1Bottom, alt: 'Laser Head 1 (LH1) Bottom Via' },
-                              { label: 'LH2 Top Via', img: l2Top, alt: 'Laser Head 2 (LH2) Top Via' },
-                              { label: 'LH2 Bottom Via', img: l2Bottom, alt: 'Laser Head 2 (LH2) Bottom Via' },
-                            ];
+                            const lh2Top = qData?.laser2Via?.topWidthUm ?? null;
+                            const lh2Bot = qData?.laser2Via?.bottomWidthUm ?? null;
+                            const lh2Taper = lh2Top !== null && lh2Bot !== null ? `${((lh2Bot / lh2Top) * 100).toFixed(1)}%` : '-';
+                            const lh2Pass = qData?.laser2Via?.overallPass !== undefined ? (qData.laser2Via.overallPass ? 'PASS' : 'FAIL') : (qData?.overallResult && qData.overallResult !== 'NOT_COLLECTED' ? qData.overallResult : 'NOT_COLLECTED');
 
-                            return slots.map((slot, idx) => (
-                              <div key={idx} className="text-center space-y-0.5">
-                                <div className="w-full h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
-                                  {slot.img ? (
-                                    <img
-                                      src={slot.img}
-                                      alt={slot.alt}
-                                      className="w-full h-full object-contain"
-                                      crossOrigin="anonymous"
-                                    />
-                                  ) : (
-                                    <div className="text-[8px] font-mono text-slate-500 flex flex-col items-center gap-0.5">
-                                      <Camera className="w-3 h-3 text-slate-600" />
-                                      <span>No Image</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <span className="text-[8px] font-mono text-slate-700 font-bold block truncate">
+                            return (
+                              <>
+                                <tr className="bg-slate-50/80 text-[10.5px] text-slate-600 font-mono">
+                                  <td className="py-1.5 font-bold text-slate-700 font-sans">
+                                    Acceptance Spec
+                                  </td>
+                                  <td className="py-1.5 text-center font-bold text-cyan-800">
+                                    {topSpecStr}
+                                  </td>
+                                  <td className="py-1.5 text-center font-bold text-cyan-800">
+                                    {botSpecStr}
+                                  </td>
+                                  <td className="py-1.5 text-center font-bold text-cyan-800">
+                                    {taperSpecStr}
+                                  </td>
+                                  <td className="py-1.5 text-right font-sans text-[9px] text-slate-500 font-medium">
+                                    Engineering Spec
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="py-2 font-bold text-slate-800">Laser Head 1 (LH1)</td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh1Top !== null ? `${lh1Top.toFixed(1)} µm` : '-'}
+                                  </td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh1Bot !== null ? `${lh1Bot.toFixed(1)} µm` : '-'}
+                                  </td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh1Taper}
+                                  </td>
+                                  <td className="py-2 text-right font-bold">
+                                    {renderStatusBadge(lh1Pass)}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="py-2 font-bold text-slate-800">Laser Head 2 (LH2)</td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh2Top !== null ? `${lh2Top.toFixed(1)} µm` : '-'}
+                                  </td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh2Bot !== null ? `${lh2Bot.toFixed(1)} µm` : '-'}
+                                  </td>
+                                  <td className="py-2 text-center text-slate-700">
+                                    {lh2Taper}
+                                  </td>
+                                  <td className="py-2 text-right font-bold">
+                                    {renderStatusBadge(lh2Pass)}
+                                  </td>
+                                </tr>
+                              </>
+                            );
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* 4. Full-Width Via Cross-Section Evidence Hero */}
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] text-slate-700 font-bold uppercase font-mono flex items-center gap-1.5">
+                          <Camera className="w-3.5 h-3.5 text-cyan-600" />
+                          <span>VIA DRILLING CROSS-SECTION EVIDENCE</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-500">Optical / SEM Micrograph Verification</span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2.5">
+                        {(() => {
+                          const qData = sections['12']?.data;
+                          const resolveImg = (src?: string) => src ? (ImageStore.resolveImage(src) || src) : undefined;
+
+                          const l1Top = resolveImg(qData?.laser1Via?.topViaImageDataUrl || qData?.laser1Via?.viaImageDataUrl);
+                          const l1Bottom = resolveImg(qData?.laser1Via?.bottomViaImageDataUrl);
+                          const l2Top = resolveImg(qData?.laser2Via?.topViaImageDataUrl || qData?.laser2Via?.viaImageDataUrl);
+                          const l2Bottom = resolveImg(qData?.laser2Via?.bottomViaImageDataUrl);
+
+                          const slots = [
+                            { laser: 'LASER HEAD 1', label: 'LH1 Top Via', img: l1Top, alt: 'Laser Head 1 (LH1) Top Via', badge: 'TOP VIA', badgeColor: 'bg-emerald-100 text-emerald-800' },
+                            { laser: 'LASER HEAD 1', label: 'LH1 Bottom Via', img: l1Bottom, alt: 'Laser Head 1 (LH1) Bottom Via', badge: 'BOTTOM VIA', badgeColor: 'bg-cyan-100 text-cyan-800' },
+                            { laser: 'LASER HEAD 2', label: 'LH2 Top Via', img: l2Top, alt: 'Laser Head 2 (LH2) Top Via', badge: 'TOP VIA', badgeColor: 'bg-emerald-100 text-emerald-800' },
+                            { laser: 'LASER HEAD 2', label: 'LH2 Bottom Via', img: l2Bottom, alt: 'Laser Head 2 (LH2) Bottom Via', badge: 'BOTTOM VIA', badgeColor: 'bg-cyan-100 text-cyan-800' },
+                          ];
+
+                          return slots.map((slot, idx) => (
+                            <div key={idx} className="flex flex-col rounded-lg border border-slate-200 overflow-hidden bg-slate-50/50">
+                              <div className="bg-slate-100 px-2 py-1 border-b border-slate-200 flex items-center justify-between">
+                                <span className="text-[8.5px] font-bold font-mono text-slate-700">{slot.laser}</span>
+                                <span className={`text-[7.5px] font-mono font-bold px-1 py-0.2 rounded ${slot.badgeColor}`}>
+                                  {slot.badge}
+                                </span>
+                              </div>
+                              <div className="w-full h-24 bg-slate-950 flex items-center justify-center relative overflow-hidden">
+                                {slot.img ? (
+                                  <img
+                                    src={slot.img}
+                                    alt={slot.alt}
+                                    className="w-full h-full object-contain"
+                                    crossOrigin="anonymous"
+                                  />
+                                ) : (
+                                  <div className="text-[8.5px] font-mono text-slate-500 flex flex-col items-center gap-1">
+                                    <Camera className="w-3.5 h-3.5 text-slate-600" />
+                                    <span>No Evidence</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="py-1 px-1.5 text-center bg-white border-t border-slate-100">
+                                <span className="text-[8.5px] font-mono text-slate-700 font-semibold block truncate">
                                   {slot.label}
                                 </span>
                               </div>
-                            ));
-                          })()}
-                        </div>
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

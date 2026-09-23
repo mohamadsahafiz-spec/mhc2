@@ -55,140 +55,140 @@ export interface MhcProductProcessActivityProps {
   activeCode?: string;
 }
 
+// Authoritative helper to merge session and passport records with field-by-field Via preservation
+export function resolveAuthoritativeProductProcessRecord(
+  session: Partial<MHCSession>,
+  machine?: Machine | null
+): ProductProcessRecord {
+  const passportRecords = machine?.productProcessRecords || [];
+  const sortedPassportRecords = [...passportRecords].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const passportRecord = sortedPassportRecords[0];
+  const sessionRecordId = `PP-SESSION-${session.id || Date.now()}`;
+
+  const mergeVia = (
+    sessionVia?: ViaQualityReading,
+    passportVia?: ViaQualityReading
+  ): ViaQualityReading => {
+    if (!sessionVia && !passportVia) {
+      return { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false };
+    }
+    const topWidthUm = (sessionVia?.topWidthUm !== undefined && sessionVia?.topWidthUm !== null)
+      ? sessionVia.topWidthUm
+      : (passportVia?.topWidthUm ?? null);
+    const bottomWidthUm = (sessionVia?.bottomWidthUm !== undefined && sessionVia?.bottomWidthUm !== null)
+      ? sessionVia.bottomWidthUm
+      : (passportVia?.bottomWidthUm ?? null);
+
+    const topImg = sessionVia?.topViaImageDataUrl ?? passportVia?.topViaImageDataUrl ?? (sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl);
+    const bottomImg = sessionVia?.bottomViaImageDataUrl ?? passportVia?.bottomViaImageDataUrl;
+    const legacyImg = sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl;
+
+    return {
+      topWidthUm,
+      bottomWidthUm,
+      topViaImageDataUrl: topImg,
+      bottomViaImageDataUrl: bottomImg,
+      viaImageDataUrl: legacyImg,
+      topPass: sessionVia?.topPass ?? passportVia?.topPass ?? false,
+      bottomPass: sessionVia?.bottomPass ?? passportVia?.bottomPass ?? false,
+      overallPass: sessionVia?.overallPass ?? passportVia?.overallPass ?? false
+    };
+  };
+
+  if (session.productProcessRecord) {
+    const isDirectPassportRef = passportRecord && session.productProcessRecord.id === passportRecord.id;
+    const baseRec = isDirectPassportRef
+      ? JSON.parse(JSON.stringify(session.productProcessRecord))
+      : session.productProcessRecord;
+
+    const hydrated = ImageStore.hydrateImagesSync(baseRec);
+    const merged: ProductProcessRecord = {
+      ...hydrated,
+      id: isDirectPassportRef ? sessionRecordId : hydrated.id,
+      date: hydrated.date || session.startDate || getLocalDateString(),
+      productName: hydrated.productName || passportRecord?.productName || session.stage02_laserProfile?.productName || '',
+      recipeName: hydrated.recipeName || passportRecord?.recipeName || session.stage02_laserProfile?.recipeProgram || '',
+      lotPanel: hydrated.lotPanel || passportRecord?.lotPanel || '',
+      laser1PowerOffsetPercent: (hydrated.laser1PowerOffsetPercent !== undefined && hydrated.laser1PowerOffsetPercent !== null)
+        ? hydrated.laser1PowerOffsetPercent
+        : (passportRecord?.laser1PowerOffsetPercent !== undefined && passportRecord?.laser1PowerOffsetPercent !== null ? passportRecord.laser1PowerOffsetPercent : null),
+      laser2PowerOffsetPercent: (hydrated.laser2PowerOffsetPercent !== undefined && hydrated.laser2PowerOffsetPercent !== null)
+        ? hydrated.laser2PowerOffsetPercent
+        : (passportRecord?.laser2PowerOffsetPercent !== undefined && passportRecord?.laser2PowerOffsetPercent !== null ? passportRecord.laser2PowerOffsetPercent : null),
+      viaSpec: hydrated.viaSpec || passportRecord?.viaSpec || { ...DEFAULT_SPEC },
+      phase1: hydrated.phase1 || passportRecord?.phase1 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
+      phase2: hydrated.phase2 || passportRecord?.phase2 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
+      laser1Via: mergeVia(hydrated.laser1Via, passportRecord?.laser1Via),
+      laser2Via: mergeVia(hydrated.laser2Via, passportRecord?.laser2Via)
+    };
+    return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(merged));
+  }
+
+  if (passportRecord) {
+    const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(passportRecord));
+    cloned.id = sessionRecordId;
+    cloned.date = session.startDate || getLocalDateString();
+    cloned.createdAt = new Date().toISOString();
+    return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
+  }
+
+  const base: ProductProcessRecord = {
+    id: sessionRecordId,
+    date: session.startDate || getLocalDateString(),
+    productName: session.stage02_laserProfile?.productName || '',
+    recipeName: session.stage02_laserProfile?.recipeProgram || '',
+    lotPanel: '',
+    engineerRemarks: '',
+    laser1PowerOffsetPercent: null,
+    laser2PowerOffsetPercent: null,
+    viaSpec: { ...DEFAULT_SPEC },
+    phase1: {
+      powerWatts: null,
+      frequencyKhz: null,
+      shotCount: null,
+      maskMm: null,
+      defocusMm: null
+    },
+    phase2: {
+      powerWatts: null,
+      frequencyKhz: null,
+      shotCount: null,
+      maskMm: null,
+      defocusMm: null
+    },
+    laser1Via: {
+      topWidthUm: null,
+      bottomWidthUm: null,
+      topPass: false,
+      bottomPass: false,
+      overallPass: false
+    },
+    laser2Via: {
+      topWidthUm: null,
+      bottomWidthUm: null,
+      topPass: false,
+      bottomPass: false,
+      overallPass: false
+    },
+    overallResult: 'FAIL',
+    createdAt: new Date().toISOString()
+  };
+  return ProductProcessEngine.evaluateRecord(base);
+}
+
 export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps> = ({
   session,
   machine,
   isReadOnly = false,
   onUpdateSession,
   onCompleteActivity,
-  isDark,
+  isDark = true,
   showNotification,
   activeCode = '06_via'
 }) => {
-  // Determine initial authoritative record
-  const initialRecord = useMemo<ProductProcessRecord>(() => {
-    const passportRecords = machine?.productProcessRecords || [];
-    const sortedPassportRecords = [...passportRecords].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    const passportRecord = sortedPassportRecords[0];
-    const sessionRecordId = `PP-SESSION-${session.id || Date.now()}`;
-
-    if (session.productProcessRecord) {
-      // Guard against direct passport reference aliasing from legacy sessions
-      const isDirectPassportRef = passportRecord && session.productProcessRecord.id === passportRecord.id;
-      const baseRec = isDirectPassportRef
-        ? JSON.parse(JSON.stringify(session.productProcessRecord))
-        : session.productProcessRecord;
-
-      const mergeVia = (
-        sessionVia?: ViaQualityReading,
-        passportVia?: ViaQualityReading
-      ): ViaQualityReading => {
-        if (!sessionVia && !passportVia) {
-          return { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false };
-        }
-        const topWidthUm = (sessionVia?.topWidthUm !== undefined && sessionVia?.topWidthUm !== null)
-          ? sessionVia.topWidthUm
-          : (passportVia?.topWidthUm ?? null);
-        const bottomWidthUm = (sessionVia?.bottomWidthUm !== undefined && sessionVia?.bottomWidthUm !== null)
-          ? sessionVia.bottomWidthUm
-          : (passportVia?.bottomWidthUm ?? null);
-
-        const topImg = sessionVia?.topViaImageDataUrl ?? passportVia?.topViaImageDataUrl ?? (sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl);
-        const bottomImg = sessionVia?.bottomViaImageDataUrl ?? passportVia?.bottomViaImageDataUrl;
-        const legacyImg = sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl;
-
-        return {
-          topWidthUm,
-          bottomWidthUm,
-          topViaImageDataUrl: topImg,
-          bottomViaImageDataUrl: bottomImg,
-          viaImageDataUrl: legacyImg,
-          topPass: sessionVia?.topPass ?? passportVia?.topPass ?? false,
-          bottomPass: sessionVia?.bottomPass ?? passportVia?.bottomPass ?? false,
-          overallPass: sessionVia?.overallPass ?? passportVia?.overallPass ?? false
-        };
-      };
-
-      const hydrated = ImageStore.hydrateImagesSync(baseRec);
-      const merged: ProductProcessRecord = {
-        ...hydrated,
-        id: isDirectPassportRef ? sessionRecordId : hydrated.id,
-        date: hydrated.date || session.startDate || getLocalDateString(),
-        productName: hydrated.productName || passportRecord?.productName || session.stage02_laserProfile?.productName || '',
-        recipeName: hydrated.recipeName || passportRecord?.recipeName || session.stage02_laserProfile?.recipeProgram || '',
-        lotPanel: hydrated.lotPanel || passportRecord?.lotPanel || '',
-        laser1PowerOffsetPercent: (hydrated.laser1PowerOffsetPercent !== undefined && hydrated.laser1PowerOffsetPercent !== null)
-          ? hydrated.laser1PowerOffsetPercent
-          : (passportRecord?.laser1PowerOffsetPercent !== undefined && passportRecord?.laser1PowerOffsetPercent !== null ? passportRecord.laser1PowerOffsetPercent : null),
-        laser2PowerOffsetPercent: (hydrated.laser2PowerOffsetPercent !== undefined && hydrated.laser2PowerOffsetPercent !== null)
-          ? hydrated.laser2PowerOffsetPercent
-          : (passportRecord?.laser2PowerOffsetPercent !== undefined && passportRecord?.laser2PowerOffsetPercent !== null ? passportRecord.laser2PowerOffsetPercent : null),
-        viaSpec: hydrated.viaSpec || passportRecord?.viaSpec || { ...DEFAULT_SPEC },
-        phase1: hydrated.phase1 || passportRecord?.phase1 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
-        phase2: hydrated.phase2 || passportRecord?.phase2 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
-        laser1Via: mergeVia(hydrated.laser1Via, passportRecord?.laser1Via),
-        laser2Via: mergeVia(hydrated.laser2Via, passportRecord?.laser2Via)
-      };
-      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(merged));
-    }
-
-    if (passportRecord) {
-      // Deep clone Machine Passport record to seed Product/Recipe/Process info without mutating Passport
-      const cloned: ProductProcessRecord = JSON.parse(JSON.stringify(passportRecord));
-      cloned.id = sessionRecordId;
-      cloned.date = session.startDate || getLocalDateString();
-      cloned.createdAt = new Date().toISOString();
-      return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(cloned));
-    }
-
-    // Default baseline record when genuinely absent from Machine Passport
-    const base: ProductProcessRecord = {
-      id: sessionRecordId,
-      date: session.startDate || getLocalDateString(),
-      productName: session.stage02_laserProfile?.productName || '',
-      recipeName: session.stage02_laserProfile?.recipeProgram || '',
-      lotPanel: '',
-      engineerRemarks: '',
-      laser1PowerOffsetPercent: null,
-      laser2PowerOffsetPercent: null,
-      viaSpec: { ...DEFAULT_SPEC },
-      phase1: {
-        powerWatts: null,
-        frequencyKhz: null,
-        shotCount: null,
-        maskMm: null,
-        defocusMm: null
-      },
-      phase2: {
-        powerWatts: null,
-        frequencyKhz: null,
-        shotCount: null,
-        maskMm: null,
-        defocusMm: null
-      },
-      laser1Via: {
-        topWidthUm: null,
-        bottomWidthUm: null,
-        topPass: false,
-        bottomPass: false,
-        overallPass: false
-      },
-      laser2Via: {
-        topWidthUm: null,
-        bottomWidthUm: null,
-        topPass: false,
-        bottomPass: false,
-        overallPass: false
-      },
-      overallResult: 'FAIL',
-      createdAt: new Date().toISOString()
-    };
-    return ProductProcessEngine.evaluateRecord(base);
-  }, [session, machine]);
-
-  const [record, setRecord] = useState<ProductProcessRecord>(initialRecord);
+  const [record, setRecord] = useState<ProductProcessRecord>(() => resolveAuthoritativeProductProcessRecord(session, machine));
   const [activeHead, setActiveHead] = useState<'lh1' | 'lh2'>('lh1');
   const [galleryModalState, setGalleryModalState] = useState<{
     isOpen: boolean;
@@ -209,12 +209,15 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
     return unsub;
   }, []);
 
-  // Sync state if session updates externally or ImageStore finishes IDB hydration
+  // Sync state if session updates externally or machine changes
   useEffect(() => {
-    if (session.productProcessRecord) {
-      setRecord(ImageStore.hydrateImagesSync(session.productProcessRecord));
-    }
-  }, [session.productProcessRecord, imageStoreVersion]);
+    setRecord(resolveAuthoritativeProductProcessRecord(session, machine));
+  }, [session.id, session.productProcessRecord, machine]);
+
+  // When imageStoreVersion increments (async IDB load completes), hydrate existing state without resetting uncommitted edits
+  useEffect(() => {
+    setRecord(prev => ImageStore.hydrateImagesSync(prev));
+  }, [imageStoreVersion]);
 
   // Recalculate evaluation when measurements or specs change
   const evaluatedRecord = useMemo<ProductProcessRecord>(() => {

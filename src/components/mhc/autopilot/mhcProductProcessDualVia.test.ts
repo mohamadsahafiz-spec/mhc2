@@ -1,8 +1,137 @@
 import { describe, it, expect } from 'vitest';
 import { ProductProcessEngine } from '../../../utils/productProcessEngine';
 import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
+import { resolveAuthoritativeProductProcessRecord } from './MhcProductProcessActivity';
+import type { Machine, MHCSession } from '../../../types';
 
-describe('FSOS Autopilot Product & Process Dual-Via Alignment (v3.6.5)', () => {
+describe('FSOS Autopilot Product & Process Dual-Via Alignment (v3.6.6)', () => {
+  it('propagates MC Passport topViaImageDataUrl and bottomViaImageDataUrl to Autopilot initial record', () => {
+    const mockMachine: Partial<Machine> = {
+      id: 'MC-2026-001',
+      serialNumber: 'SN-998822',
+      productProcessRecords: [
+        {
+          id: 'pp-passport-01',
+          date: '2026-09-20',
+          productName: 'FCBGA 16-Layer Passport Record',
+          recipeName: 'REC-ABF-PASSPORT',
+          lotPanel: 'LOT-PASSPORT-01',
+          viaSpec: {
+            topTargetUm: 50,
+            topToleranceUm: 10,
+            bottomTargetUm: 25,
+            bottomToleranceUm: 10,
+            minTaperPercent: 40,
+            taperSpecText: '≥ 40%'
+          },
+          laser1Via: {
+            topWidthUm: 51.5,
+            bottomWidthUm: 24.2,
+            topViaImageDataUrl: 'data:image/svg+xml;base64,passportL1Top',
+            bottomViaImageDataUrl: 'data:image/svg+xml;base64,passportL1Bottom',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          laser2Via: {
+            topWidthUm: 49.8,
+            bottomWidthUm: 23.9,
+            topViaImageDataUrl: 'data:image/svg+xml;base64,passportL2Top',
+            bottomViaImageDataUrl: 'data:image/svg+xml;base64,passportL2Bottom',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          overallResult: 'PASS'
+        } as any
+      ]
+    };
+
+    const mockSession: Partial<MHCSession> = {
+      id: 'SESS-001',
+      startDate: '2026-09-23'
+    };
+
+    const resolved = resolveAuthoritativeProductProcessRecord(mockSession, mockMachine as Machine);
+
+    expect(resolved.productName).toBe('FCBGA 16-Layer Passport Record');
+    expect(resolved.laser1Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL1Top');
+    expect(resolved.laser1Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL1Bottom');
+    expect(resolved.laser2Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL2Top');
+    expect(resolved.laser2Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL2Bottom');
+  });
+
+  it('preserves MC Passport Bottom Via when session has partial session.productProcessRecord without bottom image', () => {
+    const mockMachine: Partial<Machine> = {
+      id: 'MC-2026-002',
+      productProcessRecords: [
+        {
+          id: 'pp-passport-02',
+          date: '2026-09-21',
+          productName: 'Substrate BGA',
+          recipeName: 'REC-BGA-02',
+          lotPanel: 'LOT-BGA-02',
+          laser1Via: {
+            topWidthUm: 52.0,
+            bottomWidthUm: 24.0,
+            topViaImageDataUrl: 'data:image/svg+xml;base64,passportTopImg',
+            bottomViaImageDataUrl: 'data:image/svg+xml;base64,passportBottomImg',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          laser2Via: {
+            topWidthUm: 50.0,
+            bottomWidthUm: 23.5,
+            topViaImageDataUrl: 'data:image/svg+xml;base64,passportL2TopImg',
+            bottomViaImageDataUrl: 'data:image/svg+xml;base64,passportL2BottomImg',
+            topPass: true,
+            bottomPass: true,
+            overallPass: true
+          },
+          overallResult: 'PASS'
+        } as any
+      ]
+    };
+
+    const mockSessionWithPartialRec: Partial<MHCSession> = {
+      id: 'SESS-002',
+      startDate: '2026-09-23',
+      productProcessRecord: {
+        id: 'pp-partial-session',
+        date: '2026-09-23',
+        productName: 'Substrate BGA',
+        recipeName: 'REC-BGA-02',
+        lotPanel: 'LOT-BGA-02',
+        laser1Via: {
+          topWidthUm: 52.0,
+          bottomWidthUm: 24.0,
+          topViaImageDataUrl: 'data:image/svg+xml;base64,newUploadedTopImg',
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        },
+        laser2Via: {
+          topWidthUm: 50.0,
+          bottomWidthUm: 23.5,
+          topPass: true,
+          bottomPass: true,
+          overallPass: true
+        }
+      } as any
+    };
+
+    const resolved = resolveAuthoritativeProductProcessRecord(mockSessionWithPartialRec, mockMachine as Machine);
+
+    // Laser 1 has new uploaded top, but inherits passport bottom
+    expect(resolved.laser1Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,newUploadedTopImg');
+    expect(resolved.laser1Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,passportBottomImg');
+
+    // Laser 2 inherits both top and bottom from passport
+    expect(resolved.laser2Via?.topViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL2TopImg');
+    expect(resolved.laser2Via?.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,passportL2BottomImg');
+  });
+
   it('supports separate Top Via and Bottom Via evidence per laser in Autopilot sessions', () => {
     const sessionRecord: any = {
       id: 'autopilot-pp-01',

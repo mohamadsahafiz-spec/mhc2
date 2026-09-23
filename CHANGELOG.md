@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v3.6.6 — FSOS Dual-Via Evidence Chain & Section 12 Hero (2026-09-23)
+
+### Autopilot State & Dual-Via Evidence Chain
+- **Authoritative Autopilot Record Synchronization**:
+  - Replaced ad-hoc `useEffect` setter with `resolveAuthoritativeProductProcessRecord`, ensuring Machine Passport `topViaImageDataUrl` and `bottomViaImageDataUrl` are never overwritten by unhydrated or partial session objects during mounting or external updates.
+  - In-place ImageStore cache hydration via `ImageStore.subscribe` without resetting user inputs or dropping dual-via properties.
+- **Strict Independence Verification**:
+  - Verified independent upload, replace, and removal paths for Top Via and Bottom Via on both Laser 1 and Laser 2.
+
+### Full MHC PDF Section 12 Visual Evidence Hero
+- **Full-Width Section 12 Redesign**:
+  - Transformed Section 12 from a cramped side column into a full-width measurement and evidence layout.
+  - Replaced the narrow 2×2 sidebar with a prominent 4-card horizontal evidence hero section spanning the full width of Page 9 (`LH1 Top Via`, `LH1 Bottom Via`, `LH2 Top Via`, `LH2 Bottom Via`).
+  - Added high-contrast dark micrograph display stages, laser head badges, and distinct Top/Bottom Via color indicators.
+  - Maintained complete single-page budget on Page 9 with zero overflow.
+
 ## v3.6.5 — FSOS Dual Via Evidence Chain & PDF Alignment (2026-09-23)
 
 ### Autopilot State & Dual-Via Evidence Chain
