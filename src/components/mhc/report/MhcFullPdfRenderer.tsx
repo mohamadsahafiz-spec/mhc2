@@ -3155,57 +3155,50 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                         </table>
                       </div>
 
-                      {/* Right: Actual Cross-Section Microscope Images */}
-                      <div className="col-span-5 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1.5">
-                        <div className="text-[9.5px] text-slate-600 font-bold uppercase font-mono">
+                      {/* Right: Actual Cross-Section Microscope Images (Top & Bottom Via) */}
+                      <div className="col-span-5 p-2 rounded-lg bg-white border border-slate-200 shadow-xs space-y-1">
+                        <div className="text-[9px] text-slate-600 font-bold uppercase font-mono">
                           VIA CROSS-SECTION EVIDENCE
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           {(() => {
                             const qData = sections['12']?.data;
-                            const l1Img = qData?.laser1Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser1Via.viaImageDataUrl) || qData.laser1Via.viaImageDataUrl) : undefined;
-                            const l2Img = qData?.laser2Via?.viaImageDataUrl ? (ImageStore.resolveImage(qData.laser2Via.viaImageDataUrl) || qData.laser2Via.viaImageDataUrl) : undefined;
+                            const resolveImg = (src?: string) => src ? (ImageStore.resolveImage(src) || src) : undefined;
 
-                            return (
-                              <>
-                                <div className="text-center space-y-1">
-                                  <div className="w-full aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
-                                    {l1Img ? (
-                                      <img
-                                        src={l1Img}
-                                        alt="Laser Head 1 (LH1) Via"
-                                        className="w-full h-full object-contain"
-                                        crossOrigin="anonymous"
-                                      />
-                                    ) : (
-                                      <div className="text-[9px] font-mono text-slate-500 flex flex-col items-center gap-1">
-                                        <Camera className="w-4 h-4 text-slate-600" />
-                                        <span>No Image</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className="text-[9px] font-mono text-slate-700 font-bold block">Laser Head 1 (LH1)</span>
+                            const l1Top = resolveImg(qData?.laser1Via?.topViaImageDataUrl || qData?.laser1Via?.viaImageDataUrl);
+                            const l1Bottom = resolveImg(qData?.laser1Via?.bottomViaImageDataUrl);
+                            const l2Top = resolveImg(qData?.laser2Via?.topViaImageDataUrl || qData?.laser2Via?.viaImageDataUrl);
+                            const l2Bottom = resolveImg(qData?.laser2Via?.bottomViaImageDataUrl);
+
+                            const slots = [
+                              { label: 'LH1 Top Via', img: l1Top, alt: 'Laser Head 1 (LH1) Top Via' },
+                              { label: 'LH1 Bottom Via', img: l1Bottom, alt: 'Laser Head 1 (LH1) Bottom Via' },
+                              { label: 'LH2 Top Via', img: l2Top, alt: 'Laser Head 2 (LH2) Top Via' },
+                              { label: 'LH2 Bottom Via', img: l2Bottom, alt: 'Laser Head 2 (LH2) Bottom Via' },
+                            ];
+
+                            return slots.map((slot, idx) => (
+                              <div key={idx} className="text-center space-y-0.5">
+                                <div className="w-full h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                                  {slot.img ? (
+                                    <img
+                                      src={slot.img}
+                                      alt={slot.alt}
+                                      className="w-full h-full object-contain"
+                                      crossOrigin="anonymous"
+                                    />
+                                  ) : (
+                                    <div className="text-[8px] font-mono text-slate-500 flex flex-col items-center gap-0.5">
+                                      <Camera className="w-3 h-3 text-slate-600" />
+                                      <span>No Image</span>
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="text-center space-y-1">
-                                  <div className="w-full aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
-                                    {l2Img ? (
-                                      <img
-                                        src={l2Img}
-                                        alt="Laser Head 2 (LH2) Via"
-                                        className="w-full h-full object-contain"
-                                        crossOrigin="anonymous"
-                                      />
-                                    ) : (
-                                      <div className="text-[9px] font-mono text-slate-500 flex flex-col items-center gap-1">
-                                        <Camera className="w-4 h-4 text-slate-600" />
-                                        <span>No Image</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className="text-[9px] font-mono text-slate-700 font-bold block">Laser Head 2 (LH2)</span>
-                                </div>
-                              </>
-                            );
+                                <span className="text-[8px] font-mono text-slate-700 font-bold block truncate">
+                                  {slot.label}
+                                </span>
+                              </div>
+                            ));
                           })()}
                         </div>
                       </div>

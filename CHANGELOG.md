@@ -1,5 +1,22 @@
 # FSOS CHANGELOG
 
+## v3.6.5 — FSOS Dual Via Evidence Chain & PDF Alignment (2026-09-23)
+
+### Autopilot State & Dual-Via Evidence Chain
+- **Property-Level Autopilot Hydration**:
+  - Replaced whole-object Via fallbacks in `MhcProductProcessActivity.tsx` with field-by-field property merging for Laser 1 and Laser 2.
+  - Correctly inherits `bottomViaImageDataUrl` from the Machine Passport record when seeding or reviving an active Autopilot session.
+- **Strict Evidence Slot Isolation**:
+  - Top Via and Bottom Via upload/remove handlers in Autopilot now update exclusively their respective `topViaImageDataUrl` and `bottomViaImageDataUrl` fields.
+  - Eliminated legacy `viaImageDataUrl` cross-pollination during upload/removal operations so Bottom Via never overwrites Top Via.
+- **ProductProcessEngine Decoupled Evaluation**:
+  - Updated `evaluateVia` in `productProcessEngine.ts` to prevent Bottom Via images from becoming the resolved Top Via image.
+  - Preserved backward compatibility for historical single-image records containing only `viaImageDataUrl`.
+- **Full MHC PDF Section 12 Dual-Via 2×2 Evidence Grid**:
+  - Updated `MhcFullPdfRenderer.tsx` Section 12 to consume both `topViaImageDataUrl` and `bottomViaImageDataUrl` for LH1 and LH2.
+  - Designed a compact 2×2 evidence grid (`LH1 Top Via`, `LH1 Bottom Via`, `LH2 Top Via`, `LH2 Bottom Via`) respecting the Page 9 single-page budget.
+  - Implemented graceful legacy single-image rendering into the primary slot.
+
 ## v3.6.4 — FSOS Autopilot Dual Via Evidence & Quality Inspection Alignment (2026-09-23)
 
 ### Autopilot Product & Process Dual Via Quality Evidence

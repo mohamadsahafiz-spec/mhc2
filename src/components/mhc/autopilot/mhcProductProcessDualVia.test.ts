@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { ProductProcessRecord } from '../../../types/productProcess';
 import { ProductProcessEngine } from '../../../utils/productProcessEngine';
 import { buildMhcReportDocument } from '../../../utils/mhcReportEngine';
 
-describe('FSOS Autopilot Product & Process Dual-Via Alignment (v3.6.4)', () => {
+describe('FSOS Autopilot Product & Process Dual-Via Alignment (v3.6.5)', () => {
   it('supports separate Top Via and Bottom Via evidence per laser in Autopilot sessions', () => {
     const sessionRecord: any = {
       id: 'autopilot-pp-01',
@@ -51,6 +50,46 @@ describe('FSOS Autopilot Product & Process Dual-Via Alignment (v3.6.4)', () => {
 
     // Overall verdict
     expect(evaluated.overallResult).toBe('PASS');
+  });
+
+  it('guarantees Bottom Via does NOT contaminate Top Via when uploading only Bottom Via', () => {
+    const bottomOnlyRecord: any = {
+      id: 'pp-bottom-only',
+      date: '2026-09-23',
+      productName: 'FCBGA Substrate',
+      recipeName: 'REC-01',
+      lotPanel: 'LOT-01',
+      laser1Via: {
+        topWidthUm: 50.0,
+        bottomWidthUm: 25.0,
+        bottomViaImageDataUrl: 'data:image/svg+xml;base64,bottomEvidenceOnly'
+      }
+    };
+
+    const evaluated = ProductProcessEngine.evaluateRecord(bottomOnlyRecord);
+    expect(evaluated.laser1Via.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,bottomEvidenceOnly');
+    expect(evaluated.laser1Via.topViaImageDataUrl).toBeUndefined();
+    expect(evaluated.laser1Via.viaImageDataUrl).toBeUndefined();
+  });
+
+  it('guarantees removing Top Via does NOT copy Bottom Via into Top Via', () => {
+    const topRemovedRecord: any = {
+      id: 'pp-top-removed',
+      date: '2026-09-23',
+      productName: 'FCBGA Substrate',
+      recipeName: 'REC-01',
+      lotPanel: 'LOT-01',
+      laser1Via: {
+        topWidthUm: 50.0,
+        bottomWidthUm: 25.0,
+        topViaImageDataUrl: undefined,
+        bottomViaImageDataUrl: 'data:image/svg+xml;base64,bottomEvidencePersists'
+      }
+    };
+
+    const evaluated = ProductProcessEngine.evaluateRecord(topRemovedRecord);
+    expect(evaluated.laser1Via.topViaImageDataUrl).toBeUndefined();
+    expect(evaluated.laser1Via.bottomViaImageDataUrl).toBe('data:image/svg+xml;base64,bottomEvidencePersists');
   });
 
   it('maintains backward compatibility with legacy Autopilot sessions having single viaImageDataUrl', () => {

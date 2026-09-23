@@ -81,6 +81,36 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         ? JSON.parse(JSON.stringify(session.productProcessRecord))
         : session.productProcessRecord;
 
+      const mergeVia = (
+        sessionVia?: ViaQualityReading,
+        passportVia?: ViaQualityReading
+      ): ViaQualityReading => {
+        if (!sessionVia && !passportVia) {
+          return { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false };
+        }
+        const topWidthUm = (sessionVia?.topWidthUm !== undefined && sessionVia?.topWidthUm !== null)
+          ? sessionVia.topWidthUm
+          : (passportVia?.topWidthUm ?? null);
+        const bottomWidthUm = (sessionVia?.bottomWidthUm !== undefined && sessionVia?.bottomWidthUm !== null)
+          ? sessionVia.bottomWidthUm
+          : (passportVia?.bottomWidthUm ?? null);
+
+        const topImg = sessionVia?.topViaImageDataUrl ?? passportVia?.topViaImageDataUrl ?? (sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl);
+        const bottomImg = sessionVia?.bottomViaImageDataUrl ?? passportVia?.bottomViaImageDataUrl;
+        const legacyImg = sessionVia?.viaImageDataUrl ?? passportVia?.viaImageDataUrl;
+
+        return {
+          topWidthUm,
+          bottomWidthUm,
+          topViaImageDataUrl: topImg,
+          bottomViaImageDataUrl: bottomImg,
+          viaImageDataUrl: legacyImg,
+          topPass: sessionVia?.topPass ?? passportVia?.topPass ?? false,
+          bottomPass: sessionVia?.bottomPass ?? passportVia?.bottomPass ?? false,
+          overallPass: sessionVia?.overallPass ?? passportVia?.overallPass ?? false
+        };
+      };
+
       const hydrated = ImageStore.hydrateImagesSync(baseRec);
       const merged: ProductProcessRecord = {
         ...hydrated,
@@ -98,8 +128,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         viaSpec: hydrated.viaSpec || passportRecord?.viaSpec || { ...DEFAULT_SPEC },
         phase1: hydrated.phase1 || passportRecord?.phase1 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
         phase2: hydrated.phase2 || passportRecord?.phase2 || { powerWatts: null, frequencyKhz: null, shotCount: null, maskMm: null, defocusMm: null },
-        laser1Via: hydrated.laser1Via || passportRecord?.laser1Via || { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false },
-        laser2Via: hydrated.laser2Via || passportRecord?.laser2Via || { topWidthUm: null, bottomWidthUm: null, topPass: false, bottomPass: false, overallPass: false }
+        laser1Via: mergeVia(hydrated.laser1Via, passportRecord?.laser1Via),
+        laser2Via: mergeVia(hydrated.laser2Via, passportRecord?.laser2Via)
       };
       return ImageStore.hydrateImagesSync(ProductProcessEngine.evaluateRecord(merged));
     }
@@ -285,8 +315,8 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
         const updatedVia: ViaQualityReading = {
           ...currentVia,
           ...(view === 'top'
-            ? { topViaImageDataUrl: result, viaImageDataUrl: result }
-            : { bottomViaImageDataUrl: result, viaImageDataUrl: currentVia.topViaImageDataUrl || result })
+            ? { topViaImageDataUrl: result }
+            : { bottomViaImageDataUrl: result })
         };
         return {
           ...prev,
@@ -310,7 +340,7 @@ export const MhcProductProcessActivity: React.FC<MhcProductProcessActivityProps>
       const updatedVia: ViaQualityReading = {
         ...currentVia,
         ...(view === 'top'
-          ? { topViaImageDataUrl: undefined, viaImageDataUrl: currentVia.bottomViaImageDataUrl }
+          ? { topViaImageDataUrl: undefined }
           : { bottomViaImageDataUrl: undefined })
       };
       return {

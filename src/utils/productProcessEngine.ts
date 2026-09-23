@@ -91,11 +91,13 @@ export class ProductProcessEngine {
     const bottomPass = this.evalBottomWidth(bottomWidthUm, spec);
     const overallPass = topPass && bottomPass;
 
-    const resolvedTop = topViaImageDataUrl || imageDataUrl;
+    // A legacy record contains only imageDataUrl without distinct top/bottom fields
+    const isLegacySingleImage = !!imageDataUrl && topViaImageDataUrl === undefined && bottomViaImageDataUrl === undefined;
+    const resolvedTop = topViaImageDataUrl !== undefined ? topViaImageDataUrl : (isLegacySingleImage ? imageDataUrl : undefined);
     const resolvedBottom = bottomViaImageDataUrl;
 
     return {
-      viaImageDataUrl: imageDataUrl || resolvedTop,
+      viaImageDataUrl: isLegacySingleImage ? imageDataUrl : resolvedTop,
       topViaImageDataUrl: resolvedTop,
       bottomViaImageDataUrl: resolvedBottom,
       topWidthUm,
