@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   PanelLeftClose,
-  Activity,
   ShieldCheck
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -9,6 +8,7 @@ import { NavigationTab, EngineerProfile, WorkspaceMode } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
+import { FsosMutedLogo } from '../common/FsosMutedLogo';
 import { APP_VERSION } from '../../constants/version';
 import { 
   motionTimings, 
@@ -139,9 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* 1. Header Branding & Collapse Action */}
         <div id="main-sidebar-header" className="sidebar-header h-14 px-3.5 border-b border-theme-default flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-badge flex items-center justify-center font-mono font-bold text-xs shrink-0 bg-raised text-theme-primary border border-theme-default">
-              <Activity className="w-3.5 h-3.5" />
-            </div>
+            <FsosMutedLogo size={28} className="shrink-0" />
             <div className="truncate">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold tracking-tight text-theme-primary">

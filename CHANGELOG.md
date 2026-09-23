@@ -1,5 +1,16 @@
 # FSOS CHANGELOG
 
+## v3.6.1 — FSOS Muted Logo Identity (2026-09-23)
+
+### Muted FSOS Logo Identity Adoption
+- **Authentic Muted Logo Identity (Dark UI)**:
+  - Adopted the Founder-selected **Muted** brand mark variant combining the machine health monitoring waveform and precision engineering gear.
+  - Implemented crisp SVG vector asset (`FsosMutedLogo.tsx`) with restrained industrial matte steel and cool titanium gradients on a subtle dark squircle badge.
+  - Avoided loud cyan/blue glowing halos in strict alignment with FSOS calm industrial design principles.
+- **Consistent Application-Wide Deployment**:
+  - Integrated the new Muted FSOS mark across the main navigation Sidebar header, Login page hero display, and Settings "About FSOS" platform overview.
+  - Preserved existing typographic hierarchy, version badge formatting, and sidebar/header layout geometry.
+
 ## v3.6.0 — FSOS Official MHC PDF Download Loader (2026-09-23)
 
 ### React Bits LatticeLoader for Official MHC PDF Download

@@ -3,7 +3,7 @@ import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Lock, User, ArrowRight, Check, Loader2, CheckCircle2 } from 'lucide-react';
 import { SystemUser, WorkspaceMode, UserSession } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
-import { FSOSWaferMark } from '../common/FSOSWaferMark';
+import { FsosMutedLogo } from '../common/FsosMutedLogo';
 import { LoginBackground } from './LoginBackground';
 
 interface LoginPageProps {
@@ -190,14 +190,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <line x1="75" y1="40" x2="79" y2="40" stroke={isDark ? '#38BDF8' : '#0F172A'} strokeWidth="1" />
               </motion.svg>
 
-              {/* Unconstrained, Crisp FSOS Wafer Mark */}
+              {/* Unconstrained, Crisp FSOS Muted Mark */}
               <motion.div
                 initial={{ scale: prefersReducedMotion ? 1 : 0.88, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: prefersReducedMotion ? 0 : 0.45, ease: [0.16, 1, 0.3, 1] }}
                 className="relative z-10 flex items-center justify-center"
               >
-                <FSOSWaferMark className="w-14 h-14 sm:w-16 sm:h-16" />
+                <FsosMutedLogo size={64} className="w-14 h-14 sm:w-16 sm:h-16" />
               </motion.div>
             </div>
           </div>

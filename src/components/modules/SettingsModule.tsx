@@ -38,6 +38,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { ThemeThumbnail } from '../common/ThemeThumbnail';
+import { FsosMutedLogo } from '../common/FsosMutedLogo';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { APP_VERSION, APP_BUILD_ID, APP_CODENAME } from '../../constants/version';
 import { mechanicalPressConfig, motionTimings, motionEasings } from '../../theme/motion';
@@ -1441,13 +1442,16 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           <div className="space-y-6">
             <div className="p-6 rounded-card border space-y-6 bg-surface border-theme-default text-theme-primary shadow-theme-card">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-theme-primary font-theme-heading">
-                    Field Service Operations System (FSOS)
-                  </h2>
-                  <p className="text-xs mt-1 text-theme-muted font-theme-label">
-                    Precision Engineering & Optical Alignment Platform
-                  </p>
+                <div className="flex items-center gap-3">
+                  <FsosMutedLogo size={40} className="shrink-0" />
+                  <div>
+                    <h2 className="text-base font-semibold text-theme-primary font-theme-heading">
+                      Field Service Operations System (FSOS)
+                    </h2>
+                    <p className="text-xs mt-0.5 text-theme-muted font-theme-label">
+                      Precision Engineering &amp; Optical Alignment Platform
+                    </p>
+                  </div>
                 </div>
                 {onNavigate && (
                   <Button
