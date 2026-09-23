@@ -1,5 +1,17 @@
 # FSOS CHANGELOG
 
+## v3.5.7 — FSOS Sticky Sidebar Viewport & Shell Geometry (2026-09-23)
+
+### Sticky Sidebar Viewport & Independent Shell Scrolling
+- **App Shell Viewport Geometry**:
+  - Replaced the window-level scroll model on the root container (`min-h-screen overflow-x-hidden`) with a strict viewport shell (`h-screen overflow-hidden`).
+  - Restored full viewport height pinning (`h-screen sticky top-0`) to the Navigation Sidebar, ensuring it spans 100% of the viewport height across all themes and modules.
+  - Pinned the bottom Hamster Sync indicator at the bottom of the viewport at all times.
+- **Independent Main-Content Scrolling**:
+  - Encapsulated header and main view within an independent viewport container (`h-screen overflow-hidden`) where `<main>` scrolls smoothly on its own.
+  - Eliminated document-level scrolling leaks when browsing long modules (e.g. Release History / MHC Autopilot).
+  - Preserved approved v3.5.6 standalone Hamster presentation and unclipped popover geometry.
+
 ## v3.5.6 — FSOS Standalone Cloud Sync Hamster & Popover Geometry (2026-09-23)
 
 ### Standalone Hamster Presentation & Popover Viewport Fix

@@ -495,7 +495,7 @@ function AppLayout() {
   }
 
   return (
-    <div className={`min-h-screen flex bg-canvas text-theme-primary transition-colors duration-150 relative overflow-x-hidden`}>
+    <div className={`h-screen flex bg-canvas text-theme-primary transition-colors duration-150 relative overflow-hidden`}>
       {/* Background Animated Procedural Shader */}
       <CanvasShaderBackground activeTheme={activeTheme} prefersReducedMotion={prefersReducedMotion} />
 
@@ -515,7 +515,7 @@ function AppLayout() {
       </AnimatePresence>
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative z-10">
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -525,10 +525,10 @@ function AppLayout() {
           onLogout={handleLogout}
         />
 
-        <main className={`flex-1 ${
+        <main className={`flex-1 overflow-y-auto ${
           (activeTab === 'mhc' || activeTab.startsWith('mhc_'))
-            ? 'p-2 sm:p-3 max-w-none w-full overflow-y-auto'
-            : 'p-4 md:p-6 max-w-7xl w-full mx-auto overflow-y-auto'
+            ? 'p-2 sm:p-3 max-w-none w-full'
+            : 'p-4 md:p-6 max-w-7xl w-full mx-auto'
         }`}>
           <AnimatePresence mode="wait">
             <motion.div

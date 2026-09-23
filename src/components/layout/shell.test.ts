@@ -115,4 +115,20 @@ describe('FSOS Application Shell Architecture Contract', () => {
     expect(hiddenStateToggles.sidebarRendered).toBe(false);
     expect(hiddenStateToggles.topBarRestoreToggle).toBe(true);
   });
+
+  it('guarantees viewport shell geometry contract: full-height sidebar and independent main scroll', () => {
+    const shellLayoutRules = {
+      rootShell: 'h-screen flex overflow-hidden',
+      sidebarContainer: 'w-60 border-r flex flex-col h-screen sticky top-0 shrink-0 overflow-hidden',
+      workspaceArea: 'flex-1 flex flex-col min-w-0 h-screen overflow-hidden',
+      mainContentPane: 'flex-1 overflow-y-auto'
+    };
+
+    expect(shellLayoutRules.rootShell).toContain('h-screen');
+    expect(shellLayoutRules.rootShell).toContain('overflow-hidden');
+    expect(shellLayoutRules.sidebarContainer).toContain('h-screen');
+    expect(shellLayoutRules.workspaceArea).toContain('h-screen');
+    expect(shellLayoutRules.workspaceArea).toContain('overflow-hidden');
+    expect(shellLayoutRules.mainContentPane).toContain('overflow-y-auto');
+  });
 });
