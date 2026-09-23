@@ -1,6 +1,16 @@
 # FSOS CHANGELOG
 
-## v3.6.1 — FSOS Muted Logo Identity (2026-09-23)
+## v3.6.1 — FSOS Beam Profile Animated Gallery & Muted Identity (2026-09-23)
+
+### Beam Profile Animated Accordion Image Preview
+- **Interactive React Bits AccordionGallery**:
+  - Integrated the open-source React Bits `<AccordionGallery />` component with GSAP-powered smooth perspective expansion.
+  - Clicking any checkpoint thumbnail on Laser 1 or Laser 2 opens a high-resolution modal displaying all 8 checkpoints for that laser head (`6A`, `6B`, `6C` masks for Laser 1; `7A`, `7B`, `7C` masks for Laser 2).
+  - Preserved each checkpoint's stage label, measured diameter, specification limit, and PASS/FAIL verdict with instant focus on the selected station.
+- **Engaging Inspection & Ergonomics**:
+  - Rendered inactive panels with restrained grayscale/dimming while the active panel expands to full clear color with parallax drift.
+  - Provided full keyboard controls (Left/Right arrows, Home, End, Esc) and quick laser head switcher inside the popup.
+  - Built-in `prefers-reduced-motion` compliance and backdrop dismissal.
 
 ### Muted FSOS Logo Identity Adoption
 - **Authentic Muted Logo Identity (Dark UI)**:

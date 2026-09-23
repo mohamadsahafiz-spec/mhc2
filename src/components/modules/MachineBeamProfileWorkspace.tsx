@@ -33,6 +33,7 @@ import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { useTheme } from '../../context/ThemeContext';
 import { BeamProfileCheckpointCard } from '../mhc/BeamProfileCheckpointCard';
+import { BeamProfileGalleryModal } from './BeamProfileGalleryModal';
 
 interface MachineBeamProfileWorkspaceProps {
   machine: Machine;
@@ -65,6 +66,25 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<BeamProfileCheckRecord | null>(null);
+  const [galleryModalState, setGalleryModalState] = useState<{
+    isOpen: boolean;
+    record: BeamProfileCheckRecord | null;
+    laser: 'Laser 1' | 'Laser 2';
+    checkpointId?: CheckpointId;
+  }>({
+    isOpen: false,
+    record: null,
+    laser: 'Laser 1'
+  });
+
+  const handleOpenGallery = (record: BeamProfileCheckRecord, laser: 'Laser 1' | 'Laser 2', checkpointId?: CheckpointId) => {
+    setGalleryModalState({
+      isOpen: true,
+      record,
+      laser,
+      checkpointId
+    });
+  };
 
   // Form State for New Check
   const [formDate, setFormDate] = useState<string>(getLocalDateString());
@@ -539,25 +559,44 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
           <div className="space-y-4">
             {/* LASER 1 GALLERY */}
             <div>
-              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sliders className="w-4 h-4" />
-                LASER 1 (HEAD A) CHECKPOINTS
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4" />
+                  LASER 1 (HEAD A) CHECKPOINTS
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(latestRecord, 'Laser 1')}
+                  className="text-[11px] text-amber-400/90 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Inspect Laser 1 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-                {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map(s => {
+                {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map((s, sIdx) => {
                   const r = latestRecord.readings[s.id];
                   const rawUrl = r?.imageDataUrl;
                   const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
-                    <div key={s.id} className={`p-2 rounded-xl border flex flex-col items-center text-center ${
-                      isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative">
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleOpenGallery(latestRecord, 'Laser 1', s.id)}
+                      title={`Click to inspect ${s.stageLabel} in animated gallery`}
+                      className={`p-2 rounded-xl border flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${
+                        isDark ? 'bg-slate-900/80 border-slate-800 hover:border-amber-500/50 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative group">
                         {imgUrl ? (
-                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-slate-600" />
                         )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye className="w-3.5 h-3.5 text-amber-300" />
+                        </div>
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate w-full">{s.stageLabel}</span>
                       <span className="text-[11px] font-mono font-bold text-slate-100 my-0.5">
@@ -568,7 +607,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       }`}>
                         {r?.pass ? 'PASS' : 'FAIL'}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -576,25 +615,44 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 
             {/* LASER 2 GALLERY */}
             <div>
-              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sliders className="w-4 h-4" />
-                LASER 2 (HEAD B) CHECKPOINTS
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4" />
+                  LASER 2 (HEAD B) CHECKPOINTS
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(latestRecord, 'Laser 2')}
+                  className="text-[11px] text-cyan-400/90 hover:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Inspect Laser 2 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-                {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map(s => {
+                {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map((s, sIdx) => {
                   const r = latestRecord.readings[s.id];
                   const rawUrl = r?.imageDataUrl;
                   const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
-                    <div key={s.id} className={`p-2 rounded-xl border flex flex-col items-center text-center ${
-                      isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative">
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleOpenGallery(latestRecord, 'Laser 2', s.id)}
+                      title={`Click to inspect ${s.stageLabel} in animated gallery`}
+                      className={`p-2 rounded-xl border flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.03] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400/50 ${
+                        isDark ? 'bg-slate-900/80 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-cyan-500/50 hover:bg-cyan-50/30'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center mb-1.5 relative group">
                         {imgUrl ? (
-                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-slate-600" />
                         )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye className="w-3.5 h-3.5 text-cyan-300" />
+                        </div>
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate w-full">{s.stageLabel}</span>
                       <span className="text-[11px] font-mono font-bold text-slate-100 my-0.5">
@@ -605,7 +663,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       }`}>
                         {r?.pass ? 'PASS' : 'FAIL'}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -982,15 +1040,31 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
 
             {/* Checkpoints Grid */}
             <div className="space-y-3 font-sans">
-              <h4 className="font-bold text-amber-400">Laser 1 Checkpoints</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-amber-400">Laser 1 Checkpoints</h4>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(selectedRecordDetail, 'Laser 1')}
+                  className="text-[11px] text-amber-400/90 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Inspect Laser 1 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 1').map(s => {
                   const r = selectedRecordDetail.readings[s.id];
                   const rawUrl = r?.imageDataUrl;
                   const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
-                    <div key={s.id} className="p-2 rounded bg-slate-950 border border-slate-800 text-center">
-                      <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden">
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleOpenGallery(selectedRecordDetail, 'Laser 1', s.id)}
+                      title={`Click to inspect ${s.stageLabel}`}
+                      className="p-2 rounded bg-slate-950 border border-slate-800 hover:border-amber-500/50 text-center cursor-pointer transition-all hover:scale-105"
+                    >
+                      <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden relative">
                         {imgUrl && <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate">{s.stageLabel}</span>
@@ -998,20 +1072,36 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       <span className={`text-[8px] font-bold px-1 py-0.2 rounded ${r?.pass ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {r?.pass ? 'PASS' : 'FAIL'}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
 
-              <h4 className="font-bold text-cyan-400 pt-2">Laser 2 Checkpoints</h4>
+              <div className="flex items-center justify-between pt-2">
+                <h4 className="font-bold text-cyan-400">Laser 2 Checkpoints</h4>
+                <button
+                  type="button"
+                  onClick={() => handleOpenGallery(selectedRecordDetail, 'Laser 2')}
+                  className="text-[11px] text-cyan-400/90 hover:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Inspect Laser 2 Gallery</span>
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                 {CHECKPOINT_SPECS.filter(s => s.laser === 'Laser 2').map(s => {
                   const r = selectedRecordDetail.readings[s.id];
                   const rawUrl = r?.imageDataUrl;
                   const imgUrl = rawUrl ? (ImageStore.resolveImage(rawUrl) || (rawUrl.startsWith('idb:') ? undefined : rawUrl)) : undefined;
                   return (
-                    <div key={s.id} className="p-2 rounded bg-slate-950 border border-slate-800 text-center">
-                      <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden">
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleOpenGallery(selectedRecordDetail, 'Laser 2', s.id)}
+                      title={`Click to inspect ${s.stageLabel}`}
+                      className="p-2 rounded bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-center cursor-pointer transition-all hover:scale-105"
+                    >
+                      <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 mx-auto mb-1 overflow-hidden relative">
                         {imgUrl && <img src={imgUrl} alt={s.stageLabel} className="w-full h-full object-cover" />}
                       </div>
                       <span className="text-[10px] font-bold text-slate-300 block truncate">{s.stageLabel}</span>
@@ -1019,7 +1109,7 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
                       <span className={`text-[8px] font-bold px-1 py-0.2 rounded ${r?.pass ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {r?.pass ? 'PASS' : 'FAIL'}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1052,6 +1142,19 @@ export const MachineBeamProfileWorkspace: React.FC<MachineBeamProfileWorkspacePr
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* MODAL 3: ANIMATED ACCORDION GALLERY PREVIEW */}
+      {galleryModalState.isOpen && galleryModalState.record && (
+        <BeamProfileGalleryModal
+          isOpen={galleryModalState.isOpen}
+          onClose={() => setGalleryModalState(prev => ({ ...prev, isOpen: false }))}
+          record={galleryModalState.record}
+          initialLaser={galleryModalState.laser}
+          initialCheckpointId={galleryModalState.checkpointId}
+          machineModel={machine.model}
+          machineNumber={machine.machineNumber}
+        />
       )}
     </div>
   );
