@@ -1,5 +1,19 @@
 # FSOS CHANGELOG
 
+## v3.6.3 — FSOS Product & Process Dual Via Animated Gallery (2026-09-23)
+
+### Product & Process Dual Via Quality Evidence & Animated Gallery
+- **Dual-Image Via Evidence (Top Via & Bottom Via)**:
+  - Expanded Product & Process Via-quality evidence for both Laser 1 (Head A) and Laser 2 (Head B) to support separate Top Via and Bottom Via image slots.
+  - Added dedicated Top Via and Bottom Via upload, thumbnail preview, and removal controls to the Via Quality inspection form card.
+  - Fully backward-compatible with legacy single-image records (`viaImageDataUrl`), gracefully preserving existing customer and test data.
+- **Interactive Accordion Inspection Gallery**:
+  - Reused the approved React Bits `<AccordionGallery />` component with GSAP perspective expansion for Product & Process Via inspection.
+  - Clicking any Top Via or Bottom Via thumbnail opens the centered animated inspection modal with the selected laser's Top & Bottom Via evidence.
+  - Active panel provides enlarged micro-inspection view with drill diameter, target specification, tolerance window, and PASS/FAIL verdict; inactive panel remains subtly dimmed.
+  - Integrated quick laser head toggle (Laser 1 / Laser 2), keyboard navigation (← →, Home, End, Esc), backdrop dismissal, and `prefers-reduced-motion` compliance.
+  - Added direct inspection triggers to the latest record dashboard cards and verification history table.
+
 ## v3.6.2 — FSOS Focus Image Animated Inspection Gallery (2026-09-23)
 
 ### Focus Wafer-Position Animated Accordion Inspection Gallery

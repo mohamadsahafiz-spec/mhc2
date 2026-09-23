@@ -357,7 +357,7 @@ export function stripProductProcessRecordImages(record: any): any {
 
   const cleanVia = (via: any) => {
     if (!via || typeof via !== 'object') return via;
-    const { viaImageDataUrl, ...vRest } = via as any;
+    const { viaImageDataUrl, topViaImageDataUrl, bottomViaImageDataUrl, ...vRest } = via as any;
     return vRest;
   };
 

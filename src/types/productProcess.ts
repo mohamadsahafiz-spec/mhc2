@@ -24,7 +24,9 @@ export interface ViaSpecification {
 }
 
 export interface ViaQualityReading {
-  viaImageDataUrl?: string;
+  viaImageDataUrl?: string; // legacy / primary compatibility
+  topViaImageDataUrl?: string;
+  bottomViaImageDataUrl?: string;
   topWidthUm: number | null;
   bottomWidthUm: number | null;
   topPass: boolean;

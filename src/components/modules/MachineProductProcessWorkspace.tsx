@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2, Zap, Edit3, ShieldCheck } from 'lucide-react';
+import { Plus, Upload, Image as ImageIcon, CheckCircle, CheckCircle2, XCircle, Sliders, Layers, FileText, Trash2, Zap, Edit3, ShieldCheck, Eye } from 'lucide-react';
 import { Machine } from '../../types';
 import { ProductProcessRecord, TOP_VIA_SPEC, BOTTOM_VIA_SPEC, ViaSpecification } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
@@ -11,6 +11,7 @@ import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { ViaQualityInspectionCard } from './ViaQualityInspectionCard';
+import { ProductProcessViaGalleryModal } from './ProductProcessViaGalleryModal';
 
 interface MachineProductProcessWorkspaceProps {
   machine: Machine;
@@ -77,12 +78,44 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
   // Laser 1 Via Quality
   const [l1Top, setL1Top] = useState<string>('');
   const [l1Bottom, setL1Bottom] = useState<string>('');
-  const [l1Image, setL1Image] = useState<string | undefined>(undefined);
+  const [l1TopImage, setL1TopImage] = useState<string | undefined>(undefined);
+  const [l1BottomImage, setL1BottomImage] = useState<string | undefined>(undefined);
 
   // Laser 2 Via Quality
   const [l2Top, setL2Top] = useState<string>('');
   const [l2Bottom, setL2Bottom] = useState<string>('');
-  const [l2Image, setL2Image] = useState<string | undefined>(undefined);
+  const [l2TopImage, setL2TopImage] = useState<string | undefined>(undefined);
+  const [l2BottomImage, setL2BottomImage] = useState<string | undefined>(undefined);
+
+  // Gallery Modal State
+  const [galleryModalState, setGalleryModalState] = useState<{
+    isOpen: boolean;
+    record: ProductProcessRecord | null;
+    laser: 'laser1' | 'laser2';
+    view: 'top' | 'bottom';
+  }>({
+    isOpen: false,
+    record: null,
+    laser: 'laser1',
+    view: 'top'
+  });
+
+  const handleOpenGallery = (
+    rec: ProductProcessRecord,
+    laser: 'laser1' | 'laser2' = 'laser1',
+    view: 'top' | 'bottom' = 'top'
+  ) => {
+    setGalleryModalState({
+      isOpen: true,
+      record: rec,
+      laser,
+      view
+    });
+  };
+
+  const handleCloseGallery = () => {
+    setGalleryModalState(prev => ({ ...prev, isOpen: false }));
+  };
 
   const applyPreset = (presetKey: string) => {
     if (presetKey === 'std50') {
@@ -142,10 +175,12 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
 
     setL1Top('');
     setL1Bottom('');
-    setL1Image(undefined);
+    setL1TopImage(undefined);
+    setL1BottomImage(undefined);
     setL2Top('');
     setL2Bottom('');
-    setL2Image(undefined);
+    setL2TopImage(undefined);
+    setL2BottomImage(undefined);
 
     setIsAddModalOpen(true);
   };
@@ -183,23 +218,30 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
 
     setL1Top(rec.laser1Via?.topWidthUm !== null && rec.laser1Via?.topWidthUm !== undefined ? String(rec.laser1Via.topWidthUm) : '');
     setL1Bottom(rec.laser1Via?.bottomWidthUm !== null && rec.laser1Via?.bottomWidthUm !== undefined ? String(rec.laser1Via.bottomWidthUm) : '');
-    setL1Image(rec.laser1Via?.viaImageDataUrl);
+    setL1TopImage(rec.laser1Via?.topViaImageDataUrl || rec.laser1Via?.viaImageDataUrl);
+    setL1BottomImage(rec.laser1Via?.bottomViaImageDataUrl);
 
     setL2Top(rec.laser2Via?.topWidthUm !== null && rec.laser2Via?.topWidthUm !== undefined ? String(rec.laser2Via.topWidthUm) : '');
     setL2Bottom(rec.laser2Via?.bottomWidthUm !== null && rec.laser2Via?.bottomWidthUm !== undefined ? String(rec.laser2Via.bottomWidthUm) : '');
-    setL2Image(rec.laser2Via?.viaImageDataUrl);
+    setL2TopImage(rec.laser2Via?.topViaImageDataUrl || rec.laser2Via?.viaImageDataUrl);
+    setL2BottomImage(rec.laser2Via?.bottomViaImageDataUrl);
 
     setIsAddModalOpen(true);
   };
 
-  const handleImageUpload = (laser: 1 | 2, file: File) => {
+  const handleImageUpload = (laser: 1 | 2, view: 'top' | 'bottom', file: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       if (dataUrl) {
-        if (laser === 1) setL1Image(dataUrl);
-        else setL2Image(dataUrl);
+        if (laser === 1) {
+          if (view === 'top') setL1TopImage(dataUrl);
+          else setL1BottomImage(dataUrl);
+        } else {
+          if (view === 'top') setL2TopImage(dataUrl);
+          else setL2BottomImage(dataUrl);
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -283,12 +325,16 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
       laser1Via: {
         topWidthUm: l1Top !== '' ? parseFloat(l1Top) : null,
         bottomWidthUm: l1Bottom !== '' ? parseFloat(l1Bottom) : null,
-        viaImageDataUrl: l1Image
+        viaImageDataUrl: l1TopImage || l1BottomImage,
+        topViaImageDataUrl: l1TopImage,
+        bottomViaImageDataUrl: l1BottomImage
       },
       laser2Via: {
         topWidthUm: l2Top !== '' ? parseFloat(l2Top) : null,
         bottomWidthUm: l2Bottom !== '' ? parseFloat(l2Bottom) : null,
-        viaImageDataUrl: l2Image
+        viaImageDataUrl: l2TopImage || l2BottomImage,
+        topViaImageDataUrl: l2TopImage,
+        bottomViaImageDataUrl: l2BottomImage
       }
     };
 
@@ -536,23 +582,80 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                 <span className="font-bold text-amber-400 text-xs uppercase tracking-wider">
                   VIA QUALITY — LASER 1 (HEAD A)
                 </span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  latestRecord.laser1Via.overallPass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                }`}>
-                  {latestRecord.laser1Via.overallPass ? 'PASS' : 'FAIL'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGallery(latestRecord, 'laser1', 'top')}
+                    className="text-[10px] font-mono text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>Inspect Gallery</span>
+                  </button>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    latestRecord.laser1Via.overallPass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {latestRecord.laser1Via.overallPass ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
-                  {ImageStore.resolveImage(latestRecord.laser1Via.viaImageDataUrl) ? (
-                    <img src={ImageStore.resolveImage(latestRecord.laser1Via.viaImageDataUrl)} alt="Laser 1 Via" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="w-8 h-8 text-slate-600" />
-                  )}
+              <div className="flex items-center gap-3">
+                {/* Dual Image Thumbnails: Top Via & Bottom Via */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Top Via */}
+                  <div
+                    onClick={() => handleOpenGallery(latestRecord, 'laser1', 'top')}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
+                    title="Click to inspect Top Via in animated gallery"
+                  >
+                    <div className="w-[68px] h-[68px] rounded-lg bg-slate-900 border border-slate-800 group-hover:border-amber-500/60 overflow-hidden relative flex items-center justify-center transition-all shadow-inner">
+                      {(() => {
+                        const topUrl = latestRecord.laser1Via.topViaImageDataUrl || latestRecord.laser1Via.viaImageDataUrl;
+                        const resolved = topUrl ? ImageStore.resolveImage(topUrl) : undefined;
+                        const src = resolved || ProductProcessEngine.generateSyntheticViaSvg('Laser 1', latestRecord.laser1Via.topWidthUm ?? 51, latestRecord.laser1Via.bottomWidthUm ?? 23, '#f59e0b', 'top');
+                        return (
+                          <>
+                            <img src={src} alt="Laser 1 Top Via" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-4 h-4 text-amber-300" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-amber-400/90 group-hover:text-amber-300 transition-colors">
+                      Top Via
+                    </span>
+                  </div>
+
+                  {/* Bottom Via */}
+                  <div
+                    onClick={() => handleOpenGallery(latestRecord, 'laser1', 'bottom')}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
+                    title="Click to inspect Bottom Via in animated gallery"
+                  >
+                    <div className="w-[68px] h-[68px] rounded-lg bg-slate-900 border border-slate-800 group-hover:border-amber-500/60 overflow-hidden relative flex items-center justify-center transition-all shadow-inner">
+                      {(() => {
+                        const bottomUrl = latestRecord.laser1Via.bottomViaImageDataUrl;
+                        const resolved = bottomUrl ? ImageStore.resolveImage(bottomUrl) : undefined;
+                        const src = resolved || ProductProcessEngine.generateSyntheticViaSvg('Laser 1', latestRecord.laser1Via.topWidthUm ?? 51, latestRecord.laser1Via.bottomWidthUm ?? 23, '#f59e0b', 'bottom');
+                        return (
+                          <>
+                            <img src={src} alt="Laser 1 Bottom Via" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-4 h-4 text-amber-300" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-amber-400/90 group-hover:text-amber-300 transition-colors">
+                      Bottom Via
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 text-xs font-mono flex-1">
+                <div className="space-y-1.5 text-xs font-mono flex-1">
                   <div className="flex justify-between items-center p-2 rounded bg-slate-900/60 border border-slate-800">
                     <div>
                       <span className="text-slate-400 text-[10px] block">Top Drill Width</span>
@@ -588,23 +691,80 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                 <span className="font-bold text-cyan-400 text-xs uppercase tracking-wider">
                   VIA QUALITY — LASER 2 (HEAD B)
                 </span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  latestRecord.laser2Via.overallPass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
-                }`}>
-                  {latestRecord.laser2Via.overallPass ? 'PASS' : 'FAIL'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGallery(latestRecord, 'laser2', 'top')}
+                    className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>Inspect Gallery</span>
+                  </button>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    latestRecord.laser2Via.overallPass ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {latestRecord.laser2Via.overallPass ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
-                  {ImageStore.resolveImage(latestRecord.laser2Via.viaImageDataUrl) ? (
-                    <img src={ImageStore.resolveImage(latestRecord.laser2Via.viaImageDataUrl)} alt="Laser 2 Via" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="w-8 h-8 text-slate-600" />
-                  )}
+              <div className="flex items-center gap-3">
+                {/* Dual Image Thumbnails: Top Via & Bottom Via */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Top Via */}
+                  <div
+                    onClick={() => handleOpenGallery(latestRecord, 'laser2', 'top')}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
+                    title="Click to inspect Top Via in animated gallery"
+                  >
+                    <div className="w-[68px] h-[68px] rounded-lg bg-slate-900 border border-slate-800 group-hover:border-cyan-500/60 overflow-hidden relative flex items-center justify-center transition-all shadow-inner">
+                      {(() => {
+                        const topUrl = latestRecord.laser2Via.topViaImageDataUrl || latestRecord.laser2Via.viaImageDataUrl;
+                        const resolved = topUrl ? ImageStore.resolveImage(topUrl) : undefined;
+                        const src = resolved || ProductProcessEngine.generateSyntheticViaSvg('Laser 2', latestRecord.laser2Via.topWidthUm ?? 51, latestRecord.laser2Via.bottomWidthUm ?? 23, '#38bdf8', 'top');
+                        return (
+                          <>
+                            <img src={src} alt="Laser 2 Top Via" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-4 h-4 text-cyan-300" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-cyan-400/90 group-hover:text-cyan-300 transition-colors">
+                      Top Via
+                    </span>
+                  </div>
+
+                  {/* Bottom Via */}
+                  <div
+                    onClick={() => handleOpenGallery(latestRecord, 'laser2', 'bottom')}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
+                    title="Click to inspect Bottom Via in animated gallery"
+                  >
+                    <div className="w-[68px] h-[68px] rounded-lg bg-slate-900 border border-slate-800 group-hover:border-cyan-500/60 overflow-hidden relative flex items-center justify-center transition-all shadow-inner">
+                      {(() => {
+                        const bottomUrl = latestRecord.laser2Via.bottomViaImageDataUrl;
+                        const resolved = bottomUrl ? ImageStore.resolveImage(bottomUrl) : undefined;
+                        const src = resolved || ProductProcessEngine.generateSyntheticViaSvg('Laser 2', latestRecord.laser2Via.topWidthUm ?? 51, latestRecord.laser2Via.bottomWidthUm ?? 23, '#38bdf8', 'bottom');
+                        return (
+                          <>
+                            <img src={src} alt="Laser 2 Bottom Via" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-4 h-4 text-cyan-300" />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-cyan-400/90 group-hover:text-cyan-300 transition-colors">
+                      Bottom Via
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 text-xs font-mono flex-1">
+                <div className="space-y-1.5 text-xs font-mono flex-1">
                   <div className="flex justify-between items-center p-2 rounded bg-slate-900/60 border border-slate-800">
                     <div>
                       <span className="text-slate-400 text-[10px] block">Top Drill Width</span>
@@ -1229,12 +1389,15 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                 themeColor="amber"
                 topWidth={l1Top}
                 bottomWidth={l1Bottom}
-                imageDataUrl={l1Image}
+                topImageDataUrl={l1TopImage}
+                bottomImageDataUrl={l1BottomImage}
                 viaSpec={currentViaSpec}
                 onTopWidthChange={setL1Top}
                 onBottomWidthChange={setL1Bottom}
-                onImageUpload={(file) => handleImageUpload(1, file)}
-                onImageRemove={() => setL1Image(undefined)}
+                onTopImageUpload={(file) => handleImageUpload(1, 'top', file)}
+                onTopImageRemove={() => setL1TopImage(undefined)}
+                onBottomImageUpload={(file) => handleImageUpload(1, 'bottom', file)}
+                onBottomImageRemove={() => setL1BottomImage(undefined)}
                 isDark={isDark}
               />
               <ViaQualityInspectionCard
@@ -1243,12 +1406,15 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
                 themeColor="cyan"
                 topWidth={l2Top}
                 bottomWidth={l2Bottom}
-                imageDataUrl={l2Image}
+                topImageDataUrl={l2TopImage}
+                bottomImageDataUrl={l2BottomImage}
                 viaSpec={currentViaSpec}
                 onTopWidthChange={setL2Top}
                 onBottomWidthChange={setL2Bottom}
-                onImageUpload={(file) => handleImageUpload(2, file)}
-                onImageRemove={() => setL2Image(undefined)}
+                onTopImageUpload={(file) => handleImageUpload(2, 'top', file)}
+                onTopImageRemove={() => setL2TopImage(undefined)}
+                onBottomImageUpload={(file) => handleImageUpload(2, 'bottom', file)}
+                onBottomImageRemove={() => setL2BottomImage(undefined)}
                 isDark={isDark}
               />
             </div>
@@ -1352,6 +1518,19 @@ export const MachineProductProcessWorkspace: React.FC<MachineProductProcessWorks
           </div>
         </div>
       </Modal>
+
+      {/* Product & Process Via Quality Inspection Gallery Modal */}
+      {galleryModalState.record && (
+        <ProductProcessViaGalleryModal
+          isOpen={galleryModalState.isOpen}
+          onClose={handleCloseGallery}
+          record={galleryModalState.record}
+          initialLaser={galleryModalState.laser}
+          initialView={galleryModalState.view}
+          machineModel={machine.model}
+          machineNumber={machine.machineNumber}
+        />
+      )}
     </div>
   );
 };

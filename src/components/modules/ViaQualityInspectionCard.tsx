@@ -1,23 +1,30 @@
 import React, { useRef } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Upload, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-react';
-import { ViaSpecification, TOP_VIA_SPEC, BOTTOM_VIA_SPEC } from '../../types/productProcess';
+import { motion, useReducedMotion } from 'motion/react';
+import { Image as ImageIcon } from 'lucide-react';
+import { ViaSpecification } from '../../types/productProcess';
 import { ProductProcessEngine } from '../../utils/productProcessEngine';
 import { ImageStore } from '../../utils/imageStore';
 import { motionTimings, motionEasings, mechanicalPressConfig } from '../../theme/motion';
 
-interface ViaQualityInspectionCardProps {
+export interface ViaQualityInspectionCardProps {
   laser: 1 | 2;
   title: string;
   themeColor: 'amber' | 'cyan';
   topWidth: string;
   bottomWidth: string;
-  imageDataUrl?: string;
+  topImageDataUrl?: string;
+  bottomImageDataUrl?: string;
+  imageDataUrl?: string; // fallback
   viaSpec?: ViaSpecification;
   onTopWidthChange: (val: string) => void;
   onBottomWidthChange: (val: string) => void;
-  onImageUpload: (file: File) => void;
-  onImageRemove: () => void;
+  onTopImageUpload?: (file: File) => void;
+  onTopImageRemove?: () => void;
+  onBottomImageUpload?: (file: File) => void;
+  onBottomImageRemove?: () => void;
+  // legacy props
+  onImageUpload?: (file: File) => void;
+  onImageRemove?: () => void;
   isDark?: boolean;
 }
 
@@ -27,16 +34,31 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
   themeColor,
   topWidth,
   bottomWidth,
+  topImageDataUrl,
+  bottomImageDataUrl,
   imageDataUrl,
   viaSpec,
   onTopWidthChange,
   onBottomWidthChange,
+  onTopImageUpload,
+  onTopImageRemove,
+  onBottomImageUpload,
+  onBottomImageRemove,
   onImageUpload,
   onImageRemove,
   isDark = true
 }) => {
   const shouldReduceMotion = Boolean(useReducedMotion());
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const topFileInputRef = useRef<HTMLInputElement>(null);
+  const bottomFileInputRef = useRef<HTMLInputElement>(null);
+
+  const effectiveTopImage = topImageDataUrl || imageDataUrl;
+  const effectiveBottomImage = bottomImageDataUrl;
+
+  const handleTopUpload = onTopImageUpload || onImageUpload;
+  const handleTopRemove = onTopImageRemove || onImageRemove;
+  const handleBottomUpload = onBottomImageUpload;
+  const handleBottomRemove = onBottomImageRemove;
 
   const topVal = topWidth.trim() !== '' ? parseFloat(topWidth) : null;
   const bottomVal = bottomWidth.trim() !== '' ? parseFloat(bottomWidth) : null;
@@ -58,6 +80,93 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
   const bottomSpecFormatted = ProductProcessEngine.getFormattedBottomSpec(viaSpec);
 
   const isAmber = themeColor === 'amber';
+
+  const renderImageBox = (
+    label: string,
+    imgSrc: string | undefined,
+    inputRef: React.RefObject<HTMLInputElement | null>,
+    onUpload?: (file: File) => void,
+    onRemove?: () => void
+  ) => {
+    const displaySrc = imgSrc?.startsWith('idb:') ? ImageStore.resolveImage(imgSrc) : imgSrc;
+
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div
+          className={`w-[52px] h-[52px] rounded-lg border relative overflow-hidden flex flex-col items-center justify-center group ${
+            isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-300'
+          }`}
+        >
+          {displaySrc ? (
+            <motion.div
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
+              className="w-full h-full relative"
+            >
+              <img
+                src={displaySrc}
+                alt={`${title} ${label}`}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="text-[9px] text-cyan-300 font-bold hover:underline cursor-pointer"
+                  title={`Replace ${label}`}
+                >
+                  Replace
+                </button>
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={onRemove}
+                    className="text-[9px] text-rose-400 hover:underline cursor-pointer"
+                    title={`Remove ${label}`}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ) : imgSrc?.startsWith('idb:') ? (
+            <div className="w-full h-full flex items-center justify-center text-slate-500 text-[8px] font-mono">
+              Loading
+            </div>
+          ) : (
+            <motion.button
+              type="button"
+              whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
+              onClick={() => inputRef.current?.click()}
+              className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer"
+              title={`Upload ${label}`}
+            >
+              <ImageIcon className="w-4 h-4 mb-0.5" />
+              <span className="text-[7.5px] font-bold uppercase tracking-wider text-slate-400">Add Pic</span>
+            </motion.button>
+          )}
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && onUpload) {
+                onUpload(file);
+                e.target.value = '';
+              }
+            }}
+          />
+        </div>
+        <span className="text-[9px] font-mono font-bold text-slate-400 tracking-tight">
+          {label}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -126,83 +235,12 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
         </div>
       </div>
 
-      {/* Main Body: Compact Image Box + Measurement Inputs */}
-      <div className="flex items-center gap-3">
-        {/* Compact Evidence Image Box (52x52px) */}
-        <div className="shrink-0">
-          <div
-            className={`w-[52px] h-[52px] rounded-lg border relative overflow-hidden flex flex-col items-center justify-center group ${
-              isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-300'
-            }`}
-          >
-            {(() => {
-              const displaySrc = imageDataUrl?.startsWith('idb:') 
-                ? ImageStore.resolveImage(imageDataUrl) 
-                : imageDataUrl;
-              return displaySrc ? (
-                <motion.div
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
-                  animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-                  transition={{ duration: motionTimings.quick, ease: motionEasings.responsive }}
-                  className="w-full h-full relative"
-                >
-                  <img
-                    src={displaySrc}
-                    alt={`${title} Via`}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Overlay on hover to replace or remove */}
-                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-[9px] text-cyan-300 font-bold hover:underline"
-                      title="Replace image"
-                    >
-                      Replace
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onImageRemove}
-                      className="text-[9px] text-rose-400 hover:underline"
-                      title="Remove image"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </motion.div>
-              ) : imageDataUrl?.startsWith('idb:') ? (
-                <div className="w-full h-full flex items-center justify-center text-slate-500 text-[8px] font-mono">
-                  Loading
-                </div>
-              ) : (
-                <motion.button
-                  type="button"
-                  whileTap={shouldReduceMotion ? undefined : mechanicalPressConfig.subtleTap}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-full flex flex-col items-center justify-center p-1 text-slate-500 hover:text-cyan-400 transition-colors"
-                  title="Upload micro-inspection image"
-                >
-                  <ImageIcon className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Add Pic</span>
-                </motion.button>
-              );
-            })()}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  onImageUpload(file);
-                  // Reset input so same file can be chosen again if needed
-                  e.target.value = '';
-                }
-              }}
-            />
-          </div>
+      {/* Main Body: Dual Image Slots + Measurement Inputs */}
+      <div className="flex items-start gap-3">
+        {/* Dual Evidence Image Boxes (Top Via + Bottom Via) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {renderImageBox('Top Via', effectiveTopImage, topFileInputRef, handleTopUpload, handleTopRemove)}
+          {renderImageBox('Bottom Via', effectiveBottomImage, bottomFileInputRef, handleBottomUpload, handleBottomRemove)}
         </div>
 
         {/* Measurement Inputs Grid: Top and Bottom Width */}
@@ -313,3 +351,5 @@ export const ViaQualityInspectionCard: React.FC<ViaQualityInspectionCardProps> =
     </div>
   );
 };
+
+export default ViaQualityInspectionCard;
