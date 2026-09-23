@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v3.5.6 — FSOS Standalone Cloud Sync Hamster & Popover Geometry (2026-09-23)
+
+### Standalone Hamster Presentation & Popover Viewport Fix
+- **Standalone Hamster Visual**:
+  - Removed the surrounding square border, background box, and padding container from around the hamster wheel.
+  - Sized up the hamster wheel diameter to 64px for a bold, crisp, natural standalone presentation in the sidebar footer.
+  - Maintained full clickability with smooth micro-interaction feedback (`hover:scale-105 active:scale-95`).
+  - Preserved authentic real-state reactions: green static rest for synced/idle, orange dynamic running animation for active sync.
+- **Unclipped Sync Popover Geometry**:
+  - Center-aligned the popover directly above the hamster with exact 224px width bounds.
+  - Eliminated any sidebar clipping or horizontal overflow, providing clean 8px lateral clearance on both sides of the 240px navigation rail.
+  - Full visibility preserved for Current Device, Switch Device Presets, Last Cloud Sync, Pending Queue, Cloud D1 Replica, and Sync Now actions.
+
 ## v3.5.5 — FSOS Cloud Sync Compact Hamster UI (2026-09-22)
 
 ### Compact Cloud Sync Presentation & Hamster Wheel Indicator

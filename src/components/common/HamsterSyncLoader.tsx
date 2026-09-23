@@ -3,13 +3,13 @@ import React from 'react';
 export interface HamsterSyncLoaderProps {
   status: 'synced' | 'syncing' | 'pending' | 'offline';
   className?: string;
-  size?: number; // pixel size for wheel diameter, defaults to 44
+  size?: number; // pixel size for wheel diameter, defaults to 64
 }
 
 export const HamsterSyncLoader: React.FC<HamsterSyncLoaderProps> = ({
   status,
   className = '',
-  size = 44,
+  size = 64,
 }) => {
   const isSyncing = status === 'syncing';
   const stateClass = isSyncing 

@@ -13,7 +13,7 @@ interface SyncStatusIndicatorProps {
 
 export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ 
   isDark = true,
-  placement = 'top-left',
+  placement = 'top-center',
   fullWidth = false,
   className = '',
 }) => {
@@ -108,11 +108,11 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   const getPopoverPlacementClass = () => {
     switch (placement) {
       case 'top-left':
-        return 'bottom-full left-0 mb-2';
+        return 'bottom-full left-0 mb-3';
       case 'top-right':
-        return 'bottom-full right-0 mb-2';
+        return 'bottom-full right-0 mb-3';
       case 'top-center':
-        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-3';
       case 'bottom-right':
       default:
         return 'top-full right-0 mt-2';
@@ -121,23 +121,24 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`} ref={popoverRef}>
-      {/* Compact Hamster Visual Sync Trigger */}
+      {/* Standalone Hamster Visual Sync Trigger */}
       <button
         id="cloud-sync-hamster-btn"
+        type="button"
         onClick={() => setShowPopover(!showPopover)}
         title={`FSOS Cloud Sync (${syncState.deviceId}) — ${syncState.status}`}
         aria-label={`Cloud Sync status: ${syncState.status}. Click for device and sync controls.`}
-        className="p-1 rounded-xl border border-theme-subtle/70 hover:border-theme-strong bg-raised/60 hover:bg-raised transition-all cursor-pointer flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-primary)] shadow-sm group"
+        className="bg-transparent border-0 p-0 cursor-pointer flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-full hover:scale-105 active:scale-95 transition-transform group"
       >
         <HamsterSyncLoader 
           status={syncState.status} 
-          size={44}
+          size={64}
         />
       </button>
 
-      {/* Sync Control Popover (Fits perfectly within sidebar bounds) */}
+      {/* Sync Control Popover (Fits perfectly within sidebar bounds without clipping) */}
       {showPopover && (
-        <div className={`absolute ${getPopoverPlacementClass()} w-[232px] rounded-modal border shadow-theme-popover backdrop-theme-surface p-3 z-50 bg-raised border-theme-default text-theme-primary`}>
+        <div className={`absolute ${getPopoverPlacementClass()} w-[224px] rounded-modal border shadow-theme-popover backdrop-theme-surface p-3 z-50 bg-raised border-theme-default text-theme-primary animate-in fade-in zoom-in-95 duration-150`}>
           {/* Popover Header */}
           <div className="flex items-center justify-between pb-2 border-b border-theme-subtle mb-2.5">
             <div className="flex items-center gap-1.5">

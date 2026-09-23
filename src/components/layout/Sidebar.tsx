@@ -249,8 +249,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* 4. Real Cloud Sync Hamster Footer */}
-        <div id="main-sidebar-footer" className="sidebar-footer p-2 border-t border-theme-default flex items-center justify-center shrink-0 bg-surface">
-          <SyncStatusIndicator isDark={isDark} placement="top-left" />
+        <div id="main-sidebar-footer" className="sidebar-footer py-2 px-3 border-t border-theme-default flex items-center justify-center shrink-0 bg-surface relative">
+          <SyncStatusIndicator isDark={isDark} placement="top-center" />
         </div>
       </div>
     </motion.aside>
