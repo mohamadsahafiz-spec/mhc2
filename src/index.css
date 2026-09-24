@@ -2133,12 +2133,12 @@
 
 [data-theme="aero"] #login-card .login-input-icon,
 [data-theme="aero"] #login-card svg.login-input-icon {
-  color: #1E3A5F !important;
+  color: #0284C7 !important;
 }
 
 [data-theme="lumen"] #login-card .login-input-icon,
 [data-theme="lumen"] #login-card svg.login-input-icon {
-  color: #7DD3FC !important;
+  color: #38BDF8 !important;
 }
 
 [data-theme="precision"] #login-card .login-input-icon,

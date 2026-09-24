@@ -257,8 +257,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             >
               Email / Engineer ID
             </label>
-            <div className="relative">
-              <User className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-secondary transition-colors" />
+            <div className="relative flex items-center">
+              <User className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none z-10 transition-colors" />
               <input
                 id="email-input"
                 type="text"
@@ -280,7 +280,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               Password
             </label>
             <div className="relative flex items-center">
-              <Lock className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-secondary transition-colors" />
+              <Lock className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none z-10 transition-colors" />
               <input
                 id="password-input"
                 type={showPassword ? 'text' : 'password'}
@@ -296,7 +296,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 title={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-2.5 top-2 p-1 rounded-md text-theme-secondary hover:text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+                className="absolute right-2.5 top-2 z-10 p-1 rounded-md text-theme-secondary hover:text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="login-input-icon w-4 h-4 transition-colors" />
