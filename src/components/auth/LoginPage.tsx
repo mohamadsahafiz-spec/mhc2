@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
-import { Lock, User, ArrowRight, Check, Loader2, CheckCircle2 } from 'lucide-react';
+import { Lock, User, ArrowRight, Check, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { SystemUser, WorkspaceMode, UserSession } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { HeaderThemeSwitch } from '../layout/HeaderThemeSwitch';
@@ -47,6 +47,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [selectedUserId, setSelectedUserId] = useState<string>(activeUser?.id || users[0]?.id || 'usr-8801');
   const [emailInput, setEmailInput] = useState<string>(activeUser?.email || defaultUser.email || 'sahafiz@eotechnics.com');
   const [passwordInput, setPasswordInput] = useState<string>('••••••••••••');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [preferredMode, setPreferredMode] = useState<WorkspaceMode>(savedWorkspaceMode || 'MHC_MODE');
   const [loginState, setLoginState] = useState<'idle' | 'authenticating' | 'success'>('idle');
@@ -257,7 +258,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               Email / Engineer ID
             </label>
             <div className="relative">
-              <User className="w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-muted" />
+              <User className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-secondary transition-colors" />
               <input
                 id="email-input"
                 type="text"
@@ -278,17 +279,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             >
               Password
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-muted" />
+            <div className="relative flex items-center">
+              <Lock className="login-input-icon w-4 h-4 absolute left-3 top-3 pointer-events-none text-theme-secondary transition-colors" />
               <input
                 id="password-input"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••••••"
-                className="login-input w-full text-xs rounded-lg pl-9 pr-3 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 bg-workspace border-theme-default text-theme-primary"
+                className="login-input w-full text-xs rounded-lg pl-9 pr-10 py-2.5 border font-mono transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 bg-workspace border-theme-default text-theme-primary"
               />
+              <button
+                type="button"
+                id="password-visibility-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-2.5 top-2 p-1 rounded-md text-theme-secondary hover:text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+              >
+                {showPassword ? (
+                  <EyeOff className="login-input-icon w-4 h-4 transition-colors" />
+                ) : (
+                  <Eye className="login-input-icon w-4 h-4 transition-colors" />
+                )}
+              </button>
             </div>
           </motion.div>
 

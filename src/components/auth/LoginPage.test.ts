@@ -153,5 +153,19 @@ describe('FSOS Login UI & Session Contract', () => {
     expect(loginContent).toContain('id="login-submit-btn"');
     expect(loginContent).toContain('SIGN IN TO WORKSPACE');
   });
+
+  it('verifies password visibility toggle functionality and icon contrast wiring', () => {
+    const loginPagePath = path.resolve(__dirname, 'LoginPage.tsx');
+    const loginContent = fs.readFileSync(loginPagePath, 'utf-8');
+
+    // Verifies Eye and EyeOff imports and toggle button
+    expect(loginContent).toContain('id="password-visibility-toggle"');
+    expect(loginContent).toContain("type={showPassword ? 'text' : 'password'}");
+    expect(loginContent).toContain('setShowPassword(!showPassword)');
+
+    // Verifies input icon contrast classes
+    expect(loginContent).toContain('login-input-icon');
+  });
 });
+
 

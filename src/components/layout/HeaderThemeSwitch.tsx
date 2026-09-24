@@ -46,7 +46,7 @@ export const HeaderThemeSwitch: React.FC<HeaderThemeSwitchProps> = ({
     <div
       role="radiogroup"
       aria-label="Theme Selector"
-      className="relative flex items-center p-0.5 rounded-full bg-[#0B0D11]/90 border border-theme-default shadow-[inset_0_1px_3px_rgba(0,0,0,0.6),0_1px_2px_rgba(255,255,255,0.04)] backdrop-blur-xs select-none"
+      className="header-theme-switch-container relative flex items-center p-0.5 rounded-full border border-theme-default select-none transition-all duration-200"
     >
       {THEME_OPTIONS.map((opt) => {
         const isSelected = activeTheme === opt.id;
@@ -73,14 +73,18 @@ export const HeaderThemeSwitch: React.FC<HeaderThemeSwitchProps> = ({
                     ? { duration: 0 }
                     : { type: 'spring', stiffness: 450, damping: 32 }
                 }
-                className="absolute inset-0 rounded-full border border-white/20 shadow-[0_0_8px_rgba(0,0,0,0.4)] pointer-events-none"
+                className="absolute inset-0 rounded-full pointer-events-none transition-all"
                 style={{
                   boxShadow:
                     opt.id === 'precision'
-                      ? '0 0 10px rgba(245,158,11,0.3), inset 0 1px 1px rgba(255,255,255,0.15)'
+                      ? '0 0 10px rgba(245,158,11,0.35), inset 0 1px 1px rgba(255,255,255,0.15)'
                       : opt.id === 'lumen'
-                      ? '0 0 10px rgba(56,189,248,0.35), inset 0 1px 1px rgba(56,189,248,0.3)'
-                      : '0 0 10px rgba(56,189,248,0.4), inset 0 1px 2px rgba(255,255,255,0.8)',
+                      ? '0 0 10px rgba(56,189,248,0.4), inset 0 1px 1px rgba(56,189,248,0.3)'
+                      : '0 0 10px rgba(14,165,233,0.45), inset 0 1px 2px rgba(255,255,255,0.95)',
+                  border:
+                    opt.id === 'aero'
+                      ? '1px solid rgba(14,165,233,0.8)'
+                      : '1px solid rgba(255,255,255,0.25)',
                 }}
               />
             )}

@@ -1,5 +1,15 @@
 # FSOS CHANGELOG
 
+## v3.6.11 — FSOS Login Controls Theme Consistency & Password Visibility (2026-09-24)
+
+### Login UX & Theme Polish
+- **Theme Switcher Consistency**:
+  - Maintained unified pill radio interaction across all 3 themes (Precision, Lumen, and Aero) with theme-aware container aesthetics and glassmorphism.
+- **Email & Password Icon Contrast**:
+  - Enhanced theme-aware contrast for Email (`User`) and Password (`Lock`) icons across Precision, Lumen, and Aero daylight modes.
+- **Password Visibility Toggle**:
+  - Added interactive eye toggle (`Eye` / `EyeOff`) to show and hide masked password text while preserving all local-first authentication flows.
+
 ## v3.6.10 — FSOS Theme Canvas Shader GLSL Compatibility (2026-09-24)
 
 ### WebGL Fragment Shader Compatibility & Fix
