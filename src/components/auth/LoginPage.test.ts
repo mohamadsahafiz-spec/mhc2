@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { WorkspaceMode, SystemUser } from '../../types';
+import { APP_VERSION } from '../../constants/version';
 
 describe('FSOS Login UI & Session Contract', () => {
   const mockUser: SystemUser = {
@@ -96,4 +99,59 @@ describe('FSOS Login UI & Session Contract', () => {
     const isLocalAuth = true;
     expect(isLocalAuth).toBe(true);
   });
+
+  it('verifies all 4 decorative corner telemetry labels are removed from LoginBackground', () => {
+    const bgPath = path.resolve(__dirname, 'LoginBackground.tsx');
+    const bgContent = fs.readFileSync(bgPath, 'utf-8');
+
+    // Ensure unwanted corner text labels are completely absent
+    expect(bgContent).not.toContain('login-corner-meta');
+    expect(bgContent).not.toContain('GRID: CALIBRATED');
+    expect(bgContent).not.toContain('CLEANROOM CERTIFIED');
+    expect(bgContent).not.toContain('SECURITY: LOCAL-FIRST');
+    expect(bgContent).not.toContain('FSOS PRECISION SYSTEM');
+
+    // Ensure essential background atmosphere is preserved
+    expect(bgContent).toContain('ThemeCanvasShader');
+    expect(bgContent).toContain('login-ambient-spotlight');
+    expect(bgContent).toContain('fsos-dense-grid');
+    expect(bgContent).toContain('login-scan-beam');
+  });
+
+  it('verifies authoritative FSOS version is rendered on the login screen without duplication', () => {
+    const loginPagePath = path.resolve(__dirname, 'LoginPage.tsx');
+    const loginContent = fs.readFileSync(loginPagePath, 'utf-8');
+
+    // Verifies authoritative import from constants/version
+    expect(loginContent).toContain("import { APP_VERSION } from '../../constants/version';");
+    expect(loginContent).toContain('FSOS {APP_VERSION}');
+
+    // Ensures APP_VERSION is valid format
+    expect(APP_VERSION).toMatch(/^v\d+\.\d+\.\d+$/);
+  });
+
+  it('verifies pre-login theme switcher integration and persistence wiring', () => {
+    const loginPagePath = path.resolve(__dirname, 'LoginPage.tsx');
+    const loginContent = fs.readFileSync(loginPagePath, 'utf-8');
+
+    // HeaderThemeSwitch integration
+    expect(loginContent).toContain("import { HeaderThemeSwitch } from '../layout/HeaderThemeSwitch';");
+    expect(loginContent).toContain('<HeaderThemeSwitch activeTheme={activeTheme} onThemeChange={setTheme} />');
+
+    // Reuses standard ThemeContext
+    expect(loginContent).toContain("const { effectiveTheme, activeTheme, setTheme } = useTheme();");
+  });
+
+  it('verifies login form controls remain fully structured and accessible', () => {
+    const loginPagePath = path.resolve(__dirname, 'LoginPage.tsx');
+    const loginContent = fs.readFileSync(loginPagePath, 'utf-8');
+
+    expect(loginContent).toContain('id="account-select"');
+    expect(loginContent).toContain('id="email-input"');
+    expect(loginContent).toContain('id="password-input"');
+    expect(loginContent).toContain('role="radiogroup"');
+    expect(loginContent).toContain('id="login-submit-btn"');
+    expect(loginContent).toContain('SIGN IN TO WORKSPACE');
+  });
 });
+

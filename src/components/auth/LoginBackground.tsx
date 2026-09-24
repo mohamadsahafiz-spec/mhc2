@@ -99,36 +99,6 @@ export const LoginBackground: React.FC<LoginBackgroundProps> = ({ isDark: propIs
         />
       )}
 
-      {/* Corner Precision Optical Crosshairs & Technical Metadata */}
-      <div className="absolute top-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
-        <span className="text-slate-500 dark:text-slate-400 font-semibold">EO-TECHNICS</span>
-        <span>/</span>
-        <span>FSOS PRECISION SYSTEM</span>
-      </div>
-
-      <div className="absolute top-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
-        <span>GRID: CALIBRATED</span>
-        <span>·</span>
-        <span>SESSION: LOCAL</span>
-      </div>
-
-      <div className="absolute bottom-6 left-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
-        <span>CLEANROOM CERTIFIED</span>
-        <span>·</span>
-        <span>LAT: 03°08&apos;N 101°41&apos;E</span>
-      </div>
-
-      <div className="absolute bottom-6 right-8 hidden md:flex items-center gap-2 text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-600/80 login-corner-meta">
-        <span>SECURITY: LOCAL-FIRST</span>
-        <span>·</span>
-        <span>REV: 2026.09</span>
-      </div>
-
-      {/* Viewport Corner Registration Marks */}
-      <div className="absolute top-3 left-3 text-slate-300 dark:text-slate-700 font-mono text-xs">+</div>
-      <div className="absolute top-3 right-3 text-slate-300 dark:text-slate-700 font-mono text-xs">+</div>
-      <div className="absolute bottom-3 left-3 text-slate-300 dark:text-slate-700 font-mono text-xs">+</div>
-      <div className="absolute bottom-3 right-3 text-slate-300 dark:text-slate-700 font-mono text-xs">+</div>
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Lock, User, ArrowRight, Check, Loader2, CheckCircle2 } from 'lucide-react';
 import { SystemUser, WorkspaceMode, UserSession } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { HeaderThemeSwitch } from '../layout/HeaderThemeSwitch';
+import { APP_VERSION } from '../../constants/version';
 import { FsosMutedLogo } from '../common/FsosMutedLogo';
 import { LoginBackground } from './LoginBackground';
 
@@ -21,7 +23,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginSuccess,
   savedWorkspaceMode = 'MHC_MODE'
 }) => {
-  const { effectiveTheme, activeTheme } = useTheme();
+  const { effectiveTheme, activeTheme, setTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = useReducedMotion();
 
@@ -146,6 +148,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors duration-200 select-none bg-canvas text-theme-primary">
       {/* Animated Precision Environment Background */}
       <LoginBackground isDark={isDark} />
+
+      {/* Top Header Floating Controls (Theme Selector) */}
+      <header className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2">
+        <HeaderThemeSwitch activeTheme={activeTheme} onThemeChange={setTheme} />
+      </header>
 
       {/* Main Login Composition Panel */}
       <motion.div
@@ -432,13 +439,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </motion.div>
         </form>
 
-        {/* Footer Technical Metadata */}
+        {/* Footer Technical Metadata & Authoritative Version */}
         <motion.div 
           variants={itemVariants}
           className="mt-6 pt-4 border-t border-theme-subtle flex items-center justify-between text-[11px] font-mono text-theme-muted"
         >
-          <span>EO TECHNICS</span>
-          <span>CERTIFIED OPERATING SYSTEM</span>
+          <span className="font-semibold tracking-wider">EO TECHNICS</span>
+          <span className="font-medium tracking-wide">FSOS {APP_VERSION}</span>
         </motion.div>
       </motion.div>
     </div>

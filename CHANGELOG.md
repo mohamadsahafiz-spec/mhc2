@@ -1,5 +1,20 @@
 # FSOS CHANGELOG
 
+## v3.6.9 — FSOS Login UX Architecture & Theme Switcher (2026-09-24)
+
+### Login Page Cleanup & Pre-Auth UX Enhancement
+- **Corner Labels & Decorative Visual Noise Removal**:
+  - Removed all 4 decorative corner telemetry text elements (`EO-TECHNICS / FSOS PRECISION SYSTEM`, `GRID: CALIBRATED · SESSION: LOCAL`, `CLEANROOM CERTIFIED · LAT...`, `SECURITY: LOCAL-FIRST · REV...`) and corner crosshair tags from `LoginBackground`.
+  - Preserved full interactive shader canvas, calibrated precision background grid, and ambient mechanical scan beam.
+- **Authoritative Pre-Login Version Identification**:
+  - Integrated the single authoritative application version (`APP_VERSION`) directly into the subordinate login card footer.
+  - Enables field engineers to identify the active FSOS build without requiring workspace sign-in.
+- **Pre-Login Theme Control & Persistence**:
+  - Integrated `HeaderThemeSwitch` at the top right of the login screen to allow seamless switching between Precision, Lumen, and Aero themes before signing in.
+  - Reused the standard FSOS `ThemeContext` and theme token system; theme selection persists cleanly into the active engineer workspace.
+- **Login Card Aesthetics & Theme-Aware Contrast**:
+  - Polished login form controls, dropdown select elements, workspace mode radio toggles, and submit button across Precision, Lumen, and Aero themes.
+
 ## v3.6.8 — FSOS Aero Theme Autopilot Visual Consistency (2026-09-23)
 
 ### Aero Theme Autopilot Visual Consistency & Readability
