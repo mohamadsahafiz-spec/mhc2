@@ -212,20 +212,12 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
           return (
             <div 
               key={lh.id || `lh-card-${idx}`}
-              className={`p-5 rounded-2xl border space-y-4 transition-all ${
-                currentVerified
-                  ? 'bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/20' 
-                  : 'bg-[var(--surface-surface)] border-[var(--border-default)]'
-              }`}
+              className="p-5 rounded-2xl border space-y-4 transition-all bg-[var(--surface-surface)] border-[var(--border-default)]"
             >
               {/* CARD TITLE & VERIFIED BADGE */}
               <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
-                    currentVerified 
-                      ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30' 
-                      : 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30'
-                  }`}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                     LH{idx + 1}
                   </div>
                   <div>
@@ -383,11 +375,7 @@ export const MhcLaserHoursActivity: React.FC<MhcLaserHoursActivityProps> = ({
       </div>
 
       {/* VERIFICATION PROGRESS & COMPLETION GATE */}
-      <div className={`p-5 rounded-2xl border space-y-4 ${
-        isAllVerified
-          ? 'bg-emerald-500/10 border-emerald-500/40'
-          : 'bg-[var(--surface-raised)] border-[var(--border-default)]'
-      }`}>
+      <div className="p-5 rounded-2xl border space-y-4 bg-[var(--surface-raised)] border-[var(--border-default)]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">

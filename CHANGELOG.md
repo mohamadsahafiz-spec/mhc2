@@ -1,5 +1,18 @@
 # FSOS CHANGELOG
 
+## v3.6.8 — FSOS Aero Theme Autopilot Visual Consistency (2026-09-23)
+
+### Aero Theme Autopilot Visual Consistency & Readability
+- **Activity 01 (Laser Hours) Clean Aero Surface Architecture**:
+  - Eliminated unintended large-area green background tints and container rings from the Laser Head cards and Completion Readiness container.
+  - Aligned Activity 01 with the standard Aero visual design tokens (`bg-[var(--surface-surface)]` and `bg-[var(--surface-raised)]`) used across Activities 02–11.
+  - Aligned the Laser Head indicator badge (`LH1`, `LH2`) with the primary system accent token (`bg-[var(--color-primary)]/15 text-[var(--color-primary)]`) across verification states.
+  - Fully preserved legitimate status colors including `VERIFIED`/`UNVERIFIED` badges, lifecycle health status dots, delta hours indicators, readiness completion tallies, and engineering action buttons.
+- **Schedule Index Selected Row Text Contrast**:
+  - Corrected selected Schedule Index row text styling in Aero mode to high-contrast deep navy blue (`text-sky-950 dark:text-sky-950 font-bold`, `text-sky-800 dark:text-sky-800`, `text-sky-700 dark:text-sky-700`).
+  - Added CSS rule overrides for `.mhc-schedule-item-active` and `.mhc-schedule-subitem-active` under `[data-theme="aero"]` to guarantee dark text legibility against the light sky gradient button background across both light and dark display modes.
+  - Preserved selected-row background, cyan glow, pulsing active dot indicator, completion states, and navigation structure.
+
 ## v3.6.7 — FSOS Full PDF Bottom Via Data Propagation (2026-09-23)
 
 ### Full MHC PDF Section 12 Dual-Via Evidence Chain

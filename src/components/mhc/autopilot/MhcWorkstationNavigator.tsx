@@ -120,10 +120,10 @@ export const MhcWorkstationNavigator: React.FC<MhcWorkstationNavigatorProps> = (
           
           // Active step row
           activeRowBg: 'bg-sky-500/10 border-sky-500/45 shadow-[0_1px_8px_rgba(14,165,233,0.15)]',
-          activeText: 'text-sky-900 dark:text-sky-100 font-semibold',
-          activeSecondaryText: 'text-sky-700 dark:text-sky-300 font-mono',
-          activeDayText: 'text-sky-600 dark:text-sky-400 font-mono',
-          activeDot: 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.8)] ring-2 ring-sky-300/60',
+          activeText: 'text-sky-950 dark:text-sky-950 font-bold',
+          activeSecondaryText: 'text-sky-800 dark:text-sky-800 font-mono font-bold',
+          activeDayText: 'text-sky-700 dark:text-sky-700 font-mono font-bold',
+          activeDot: 'bg-sky-600 shadow-[0_0_8px_rgba(2,132,199,0.8)] ring-2 ring-sky-300/80',
           
           // Completed step row
           completedText: 'text-slate-800 dark:text-slate-200 font-medium',
