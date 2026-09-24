@@ -1,5 +1,12 @@
 # FSOS CHANGELOG
 
+## v3.6.10 — FSOS Theme Canvas Shader GLSL Compatibility (2026-09-24)
+
+### WebGL Fragment Shader Compatibility & Fix
+- **Eliminated `fwidth` Shader Compilation Errors**:
+  - Replaced unsupported `fwidth(...)` calls in `ThemeCanvasShader` with exact analytical screen-space pixel derivatives (`vec2(1.0 / (gridSize * u_resolution.y))`).
+  - Resolved `'fwidth': no matching overloaded function found` WebGL compiler errors across browsers and platforms while preserving identical pixel-crisp grid visual rendering for Precision, Lumen, and Aero themes.
+
 ## v3.6.9 — FSOS Login UX Architecture & Theme Switcher (2026-09-24)
 
 ### Login Page Cleanup & Pre-Auth UX Enhancement

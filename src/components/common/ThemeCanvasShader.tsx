@@ -50,13 +50,15 @@ vec3 renderPrecision(vec2 uv, float t) {
   
   // Fine orthogonal wafer matrix
   float gridSize = 0.08;
-  vec2 grid = abs(fract(aspectUV / gridSize - 0.5) - 0.5) / fwidth(aspectUV / gridSize);
+  vec2 gridDeriv = vec2(1.0 / (gridSize * u_resolution.y));
+  vec2 grid = abs(fract(aspectUV / gridSize - 0.5) - 0.5) / gridDeriv;
   float line = min(grid.x, grid.y);
   float gridMask = 1.0 - min(line, 1.0);
   
   // Major grid subdivisions
   float majorGridSize = 0.40;
-  vec2 majorGrid = abs(fract(aspectUV / majorGridSize - 0.5) - 0.5) / fwidth(aspectUV / majorGridSize);
+  vec2 majorGridDeriv = vec2(1.0 / (majorGridSize * u_resolution.y));
+  vec2 majorGrid = abs(fract(aspectUV / majorGridSize - 0.5) - 0.5) / majorGridDeriv;
   float majorLine = min(majorGrid.x, majorGrid.y);
   float majorGridMask = 1.0 - min(majorLine, 1.0);
   
