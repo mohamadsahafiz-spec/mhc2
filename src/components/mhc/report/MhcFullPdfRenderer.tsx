@@ -2573,29 +2573,87 @@ export const MhcFullPdfRenderer: React.FC<MhcFullPdfRendererProps> = ({
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-[9.5px] text-slate-500 font-bold font-sans">
-                        <th className="py-1.5 font-bold">AGC IDENTIFIER</th>
+                        <th className="py-1.5 font-bold">AGC IDENTIFIER / ACTIVE INDEX</th>
                         <th className="py-1.5 font-bold">X DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 font-bold">Y DEVIATION RANGE [MEASURED]</th>
                         <th className="py-1.5 text-right font-bold">VERDICT</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                      {sections['10'].data.agcs.map(agc => (
-                        <tr key={agc.agcId}>
-                          <td className="py-2.5 font-bold font-sans text-slate-800">{agc.agcName}</td>
-                          <td className="py-2.5 text-slate-700">
-                            {agc.xMinUm !== null && agc.xMinUm !== undefined && agc.xMaxUm !== null && agc.xMaxUm !== undefined
+                      {(() => {
+                        const activeRows: Array<{
+                          key: string;
+                          name: string;
+                          xRange: string;
+                          yRange: string;
+                          verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' | 'NOT_COLLECTED';
+                        }> = [];
+
+                        sections['10'].data.agcs.forEach(agc => {
+                          const activeIndices = (agc.indices || []).filter(idx => idx.isSelected);
+                          if (activeIndices.length > 0) {
+                            activeIndices.forEach(idx => {
+                              const xMin = idx.xMinUm ?? idx.xUm;
+                              const xMax = idx.xMaxUm ?? idx.xUm;
+                              const yMin = idx.yMinUm ?? idx.yUm;
+                              const yMax = idx.yMaxUm ?? idx.yUm;
+
+                              const xRange = (xMin !== null && xMin !== undefined && xMax !== null && xMax !== undefined)
+                                ? `${xMin > 0 ? `+${xMin.toFixed(2)}` : xMin.toFixed(2)} to ${xMax > 0 ? `+${xMax.toFixed(2)}` : xMax.toFixed(2)} µm`
+                                : '—';
+
+                              const yRange = (yMin !== null && yMin !== undefined && yMax !== null && yMax !== undefined)
+                                ? `${yMin > 0 ? `+${yMin.toFixed(2)}` : yMin.toFixed(2)} to ${yMax > 0 ? `+${yMax.toFixed(2)}` : yMax.toFixed(2)} µm`
+                                : '—';
+
+                              activeRows.push({
+                                key: `${agc.agcId}_idx_${idx.indexNum}`,
+                                name: `${agc.agcName} — Index ${idx.indexNum}`,
+                                xRange,
+                                yRange,
+                                verdict: idx.verdict
+                              });
+                            });
+                          } else if (agc.verdict !== 'UNANSWERED') {
+                            // Legacy or single-head fallback
+                            const xRange = (agc.xMinUm !== null && agc.xMinUm !== undefined && agc.xMaxUm !== null && agc.xMaxUm !== undefined)
                               ? `${agc.xMinUm > 0 ? `+${agc.xMinUm.toFixed(2)}` : agc.xMinUm.toFixed(2)} to ${agc.xMaxUm > 0 ? `+${agc.xMaxUm.toFixed(2)}` : agc.xMaxUm.toFixed(2)} µm`
-                              : '—'}
-                          </td>
-                          <td className="py-2.5 text-slate-700">
-                            {agc.yMinUm !== null && agc.yMinUm !== undefined && agc.yMaxUm !== null && agc.yMaxUm !== undefined
+                              : '—';
+
+                            const yRange = (agc.yMinUm !== null && agc.yMinUm !== undefined && agc.yMaxUm !== null && agc.yMaxUm !== undefined)
                               ? `${agc.yMinUm > 0 ? `+${agc.yMinUm.toFixed(2)}` : agc.yMinUm.toFixed(2)} to ${agc.yMaxUm > 0 ? `+${agc.yMaxUm.toFixed(2)}` : agc.yMaxUm.toFixed(2)} µm`
-                              : '—'}
-                          </td>
-                          <td className="py-2.5 text-right">{renderStatusBadge(agc.verdict)}</td>
-                        </tr>
-                      ))}
+                              : '—';
+
+                            activeRows.push({
+                              key: agc.agcId,
+                              name: agc.agcName,
+                              xRange,
+                              yRange,
+                              verdict: agc.verdict
+                            });
+                          }
+                        });
+
+                        if (activeRows.length === 0) {
+                          return (
+                            <tr>
+                              <td className="py-2 font-bold font-sans text-slate-800">AGC 1 / AGC 2</td>
+                              <td className="py-2 text-slate-400 italic">—</td>
+                              <td className="py-2 text-slate-400 italic">—</td>
+                              <td className="py-2 text-right">{renderStatusBadge('UNANSWERED')}</td>
+                            </tr>
+                          );
+                        }
+
+                        return activeRows.map(row => (
+                          <tr key={row.key}>
+                            <td className="py-1.5 font-bold font-sans text-slate-800">{row.name}</td>
+                            <td className="py-1.5 text-slate-700">{row.xRange}</td>
+                            <td className="py-1.5 text-slate-700">{row.yRange}</td>
+                            <td className="py-1.5 text-right">{renderStatusBadge(row.verdict)}</td>
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
                   </table>
 

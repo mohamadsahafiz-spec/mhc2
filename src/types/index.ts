@@ -744,8 +744,16 @@ export interface MHCStageCalibrationResult {
 
 export interface MHCAgcIndexItem {
   indexNum: number; // 0, 1, 2, 3, 4, 5
-  xUm: number | null;
-  yUm: number | null;
+  isSelected?: boolean;
+  xMinUm?: number | null;
+  xMaxUm?: number | null;
+  yMinUm?: number | null;
+  yMaxUm?: number | null;
+  maxAbsXUm?: number;
+  maxAbsYUm?: number;
+  maxDevUm?: number;
+  xUm?: number | null;
+  yUm?: number | null;
   specToleranceUm: number; // 3.0
   verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
   engineerNote?: string;

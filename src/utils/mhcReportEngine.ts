@@ -1538,15 +1538,46 @@ export function buildMhcReportDocument(
     { id: 'agc1', defaultName: 'AGC 1', data: agc1Data },
     { id: 'agc2', defaultName: 'AGC 2', data: agc2Data }
   ].map(({ id, defaultName, data }) => {
-    const indices = (data?.indices || []).map(idx => ({
-      indexNum: idx.indexNum,
-      xUm: idx.xUm,
-      yUm: idx.yUm,
-      verdict: idx.verdict === 'PASS' ? ('PASS' as const) : idx.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const)
-    }));
+    const rawIndices = data?.indices || [];
+    const indices = rawIndices.map(idx => {
+      const isSelected = idx.isSelected !== undefined
+        ? idx.isSelected
+        : (
+            (idx.xMinUm !== null && idx.xMinUm !== undefined) ||
+            (idx.xMaxUm !== null && idx.xMaxUm !== undefined) ||
+            (idx.xUm !== null && idx.xUm !== undefined) ||
+            (idx.yMinUm !== null && idx.yMinUm !== undefined) ||
+            (idx.yMaxUm !== null && idx.yMaxUm !== undefined) ||
+            (idx.yUm !== null && idx.yUm !== undefined)
+          );
 
-    const validXs = indices.filter(i => i.xUm !== null && i.xUm !== undefined).map(i => i.xUm!);
-    const validYs = indices.filter(i => i.yUm !== null && i.yUm !== undefined).map(i => i.yUm!);
+      const xMin = idx.xMinUm ?? idx.xUm ?? null;
+      const xMax = idx.xMaxUm ?? idx.xUm ?? null;
+      const yMin = idx.yMinUm ?? idx.yUm ?? null;
+      const yMax = idx.yMaxUm ?? idx.yUm ?? null;
+      const maxAbsX = idx.maxAbsXUm ?? (xMin !== null && xMax !== null ? Math.max(Math.abs(xMin), Math.abs(xMax)) : (idx.xUm !== null && idx.xUm !== undefined ? Math.abs(idx.xUm) : undefined));
+      const maxAbsY = idx.maxAbsYUm ?? (yMin !== null && yMax !== null ? Math.max(Math.abs(yMin), Math.abs(yMax)) : (idx.yUm !== null && idx.yUm !== undefined ? Math.abs(idx.yUm) : undefined));
+      const maxDev = idx.maxDevUm ?? (maxAbsX !== undefined && maxAbsY !== undefined ? Math.max(maxAbsX, maxAbsY) : undefined);
+
+      return {
+        indexNum: idx.indexNum,
+        isSelected,
+        xMinUm: xMin,
+        xMaxUm: xMax,
+        yMinUm: yMin,
+        yMaxUm: yMax,
+        maxAbsXUm: maxAbsX,
+        maxAbsYUm: maxAbsY,
+        maxDevUm: maxDev,
+        xUm: idx.xUm ?? xMax ?? xMin ?? null,
+        yUm: idx.yUm ?? yMax ?? yMin ?? null,
+        verdict: idx.verdict === 'PASS' ? ('PASS' as const) : idx.verdict === 'OUT_OF_SPEC' ? ('OUT_OF_SPEC' as const) : ('UNANSWERED' as const)
+      };
+    });
+
+    const activeIndices = indices.filter(i => i.isSelected);
+    const validXs = activeIndices.flatMap(i => [i.xMinUm, i.xMaxUm]).filter((val): val is number => val !== null && val !== undefined);
+    const validYs = activeIndices.flatMap(i => [i.yMinUm, i.yMaxUm]).filter((val): val is number => val !== null && val !== undefined);
 
     const xMin = data?.xMinUm ?? (validXs.length > 0 ? Math.min(...validXs) : undefined);
     const xMax = data?.xMaxUm ?? (validXs.length > 0 ? Math.max(...validXs) : undefined);

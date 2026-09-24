@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Target, 
   CheckCircle2, 
   AlertTriangle, 
   XCircle, 
   Upload, 
-  Image as ImageIcon, 
   Trash2, 
   ArrowRight, 
   Info, 
   Layers, 
   Check, 
   RefreshCw,
-  Ruler,
-  Clock
+  Clock,
+  Sliders
 } from 'lucide-react';
 import { Machine, MHCSession, MHCAgcResult, MHCAgcIndexItem } from '../../../types';
 import { advanceAutopilotActivity, flagDownstreamNeedsReview, dispositionAutopilotActivity } from '../../../utils/mhcAutopilotBrain';
@@ -38,7 +36,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   isReadOnly,
   onUpdateSession,
   onCompleteActivity,
-  isDark,
+  isDark: _isDark,
   showNotification,
   activeCode = '05_agc1'
 }) => {
@@ -58,10 +56,13 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
     return session.agcData || {};
   }, [session.agcData]);
 
-  // Form State for Indices 0 through 5
-  // We keep string states for each index X and Y to allow smooth typing
-  const [indexXInputs, setIndexXInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
-  const [indexYInputs, setIndexYInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
+  // Form State for Selected Indices and Min/Max values (Indices 0 through 5)
+  // For new calibrations, none are selected by default
+  const [selectedIndices, setSelectedIndices] = useState<boolean[]>(Array(INDEX_COUNT).fill(false));
+  const [indexXMinInputs, setIndexXMinInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
+  const [indexXMaxInputs, setIndexXMaxInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
+  const [indexYMinInputs, setIndexYMinInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
+  const [indexYMaxInputs, setIndexYMaxInputs] = useState<string[]>(Array(INDEX_COUNT).fill(''));
   const [indexNotes, setIndexNotes] = useState<string[]>(Array(INDEX_COUNT).fill(''));
   const [overallNote, setOverallNote] = useState<string>('');
   const [evidenceImage, setEvidenceImage] = useState<string>('');
@@ -71,8 +72,45 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   useEffect(() => {
     const rec = agcData[activeAgcId];
     if (rec && rec.indices && rec.indices.length === INDEX_COUNT) {
-      setIndexXInputs(rec.indices.map(idx => (idx.xUm !== null && idx.xUm !== undefined ? String(idx.xUm) : '')));
-      setIndexYInputs(rec.indices.map(idx => (idx.yUm !== null && idx.yUm !== undefined ? String(idx.yUm) : '')));
+      const hasExplicitSelection = rec.indices.some(idx => idx.isSelected !== undefined);
+      if (hasExplicitSelection) {
+        setSelectedIndices(rec.indices.map(idx => !!idx.isSelected));
+      } else {
+        // Legacy fallback: selected if any coordinate was populated
+        setSelectedIndices(rec.indices.map(idx => 
+          (idx.xMinUm !== null && idx.xMinUm !== undefined) ||
+          (idx.xMaxUm !== null && idx.xMaxUm !== undefined) ||
+          (idx.xUm !== null && idx.xUm !== undefined) ||
+          (idx.yMinUm !== null && idx.yMinUm !== undefined) ||
+          (idx.yMaxUm !== null && idx.yMaxUm !== undefined) ||
+          (idx.yUm !== null && idx.yUm !== undefined)
+        ));
+      }
+
+      setIndexXMinInputs(rec.indices.map(idx => {
+        if (idx.xMinUm !== null && idx.xMinUm !== undefined) return String(idx.xMinUm);
+        if (idx.xUm !== null && idx.xUm !== undefined) return String(idx.xUm);
+        return '';
+      }));
+
+      setIndexXMaxInputs(rec.indices.map(idx => {
+        if (idx.xMaxUm !== null && idx.xMaxUm !== undefined) return String(idx.xMaxUm);
+        if (idx.xUm !== null && idx.xUm !== undefined) return String(idx.xUm);
+        return '';
+      }));
+
+      setIndexYMinInputs(rec.indices.map(idx => {
+        if (idx.yMinUm !== null && idx.yMinUm !== undefined) return String(idx.yMinUm);
+        if (idx.yUm !== null && idx.yUm !== undefined) return String(idx.yUm);
+        return '';
+      }));
+
+      setIndexYMaxInputs(rec.indices.map(idx => {
+        if (idx.yMaxUm !== null && idx.yMaxUm !== undefined) return String(idx.yMaxUm);
+        if (idx.yUm !== null && idx.yUm !== undefined) return String(idx.yUm);
+        return '';
+      }));
+
       setIndexNotes(rec.indices.map(idx => idx.engineerNote || ''));
       setOverallNote(rec.engineerNote || '');
       const rawImg = rec.evidenceImage || '';
@@ -86,8 +124,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
         setSelectedDisposition('ACCEPTED_DEVIATION');
       }
     } else {
-      setIndexXInputs(Array(INDEX_COUNT).fill(''));
-      setIndexYInputs(Array(INDEX_COUNT).fill(''));
+      setSelectedIndices(Array(INDEX_COUNT).fill(false));
+      setIndexXMinInputs(Array(INDEX_COUNT).fill(''));
+      setIndexXMaxInputs(Array(INDEX_COUNT).fill(''));
+      setIndexYMinInputs(Array(INDEX_COUNT).fill(''));
+      setIndexYMaxInputs(Array(INDEX_COUNT).fill(''));
       setIndexNotes(Array(INDEX_COUNT).fill(''));
       setOverallNote('');
       setEvidenceImage('');
@@ -104,14 +145,35 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   // Compute parsed numeric indices
   const parsedIndices = useMemo(() => {
     return Array.from({ length: INDEX_COUNT }, (_, i) => {
-      const x = parseNum(indexXInputs[i]);
-      const y = parseNum(indexYInputs[i]);
-      const isXValid = x !== null;
-      const isYValid = y !== null;
-      const isComplete = isXValid && isYValid;
-      const isXOut = isXValid && Math.abs(x) > SPEC_TOLERANCE_UM;
-      const isYOut = isYValid && Math.abs(y) > SPEC_TOLERANCE_UM;
-      const isOut = isXOut || isYOut;
+      const isSelected = selectedIndices[i];
+      const xMin = parseNum(indexXMinInputs[i]);
+      const xMax = parseNum(indexXMaxInputs[i]);
+      const yMin = parseNum(indexYMinInputs[i]);
+      const yMax = parseNum(indexYMaxInputs[i]);
+
+      if (!isSelected) {
+        return {
+          indexNum: i,
+          isSelected: false,
+          xMinUm: null,
+          xMaxUm: null,
+          yMinUm: null,
+          yMaxUm: null,
+          maxAbsX: null,
+          maxAbsY: null,
+          maxDev: null,
+          isComplete: false,
+          isOut: false,
+          verdict: 'UNANSWERED' as const,
+          note: indexNotes[i]
+        };
+      }
+
+      const isComplete = xMin !== null && xMax !== null && yMin !== null && yMax !== null;
+      const maxAbsX = (xMin !== null && xMax !== null) ? Math.max(Math.abs(xMin), Math.abs(xMax)) : null;
+      const maxAbsY = (yMin !== null && yMax !== null) ? Math.max(Math.abs(yMin), Math.abs(yMax)) : null;
+      const maxDev = (maxAbsX !== null && maxAbsY !== null) ? Math.max(maxAbsX, maxAbsY) : null;
+      const isOut = maxDev !== null && maxDev > SPEC_TOLERANCE_UM;
 
       let verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED' = 'UNANSWERED';
       if (isComplete) {
@@ -120,62 +182,60 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
 
       return {
         indexNum: i,
-        xUm: x,
-        yUm: y,
-        isXValid,
-        isYValid,
+        isSelected: true,
+        xMinUm: xMin,
+        xMaxUm: xMax,
+        yMinUm: yMin,
+        yMaxUm: yMax,
+        maxAbsX,
+        maxAbsY,
+        maxDev,
         isComplete,
         isOut,
         verdict,
         note: indexNotes[i]
       };
     });
-  }, [indexXInputs, indexYInputs, indexNotes]);
+  }, [selectedIndices, indexXMinInputs, indexXMaxInputs, indexYMinInputs, indexYMaxInputs, indexNotes]);
 
-  // Aggregate checks
-  const hasAllValues = useMemo(() => {
-    return parsedIndices.every(idx => idx.isComplete);
+  // Selected Active Indices
+  const selectedParsedIndices = useMemo(() => {
+    return parsedIndices.filter(idx => idx.isSelected);
   }, [parsedIndices]);
 
-  const isAnyOutOfSpec = useMemo(() => {
-    return parsedIndices.some(idx => idx.isOut);
-  }, [parsedIndices]);
+  const hasSelectedIndices = selectedParsedIndices.length > 0;
+  const hasAllValues = hasSelectedIndices && selectedParsedIndices.every(idx => idx.isComplete);
+  const isAnyOutOfSpec = selectedParsedIndices.some(idx => idx.isOut);
 
   const xMin = useMemo(() => {
-    const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => idx.xUm!);
-    if (validXs.length === 0) return null;
-    return Math.min(...validXs);
-  }, [parsedIndices]);
+    const xs = selectedParsedIndices.filter(i => i.xMinUm !== null).map(i => i.xMinUm!);
+    return xs.length > 0 ? Math.min(...xs) : null;
+  }, [selectedParsedIndices]);
 
   const xMax = useMemo(() => {
-    const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => idx.xUm!);
-    if (validXs.length === 0) return null;
-    return Math.max(...validXs);
-  }, [parsedIndices]);
+    const xs = selectedParsedIndices.filter(i => i.xMaxUm !== null).map(i => i.xMaxUm!);
+    return xs.length > 0 ? Math.max(...xs) : null;
+  }, [selectedParsedIndices]);
 
   const yMin = useMemo(() => {
-    const validYs = parsedIndices.filter(idx => idx.isYValid).map(idx => idx.yUm!);
-    if (validYs.length === 0) return null;
-    return Math.min(...validYs);
-  }, [parsedIndices]);
+    const ys = selectedParsedIndices.filter(i => i.yMinUm !== null).map(i => i.yMinUm!);
+    return ys.length > 0 ? Math.min(...ys) : null;
+  }, [selectedParsedIndices]);
 
   const yMax = useMemo(() => {
-    const validYs = parsedIndices.filter(idx => idx.isYValid).map(idx => idx.yUm!);
-    if (validYs.length === 0) return null;
-    return Math.max(...validYs);
-  }, [parsedIndices]);
+    const ys = selectedParsedIndices.filter(i => i.yMaxUm !== null).map(i => i.yMaxUm!);
+    return ys.length > 0 ? Math.max(...ys) : null;
+  }, [selectedParsedIndices]);
 
   const maxAbsX = useMemo(() => {
-    const validXs = parsedIndices.filter(idx => idx.isXValid).map(idx => Math.abs(idx.xUm!));
-    if (validXs.length === 0) return null;
-    return Math.max(...validXs);
-  }, [parsedIndices]);
+    const vals = selectedParsedIndices.filter(i => i.maxAbsX !== null).map(i => i.maxAbsX!);
+    return vals.length > 0 ? Math.max(...vals) : null;
+  }, [selectedParsedIndices]);
 
   const maxAbsY = useMemo(() => {
-    const validYs = parsedIndices.filter(idx => idx.isYValid).map(idx => Math.abs(idx.yUm!));
-    if (validYs.length === 0) return null;
-    return Math.max(...validYs);
-  }, [parsedIndices]);
+    const vals = selectedParsedIndices.filter(i => i.maxAbsY !== null).map(i => i.maxAbsY!);
+    return vals.length > 0 ? Math.max(...vals) : null;
+  }, [selectedParsedIndices]);
 
   const overallMaxDev = useMemo(() => {
     if (maxAbsX === null && maxAbsY === null) return null;
@@ -187,17 +247,56 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
     return isAnyOutOfSpec ? 'OUT_OF_SPEC' : 'PASS';
   }, [hasAllValues, isAnyOutOfSpec]);
 
+  // Selection Handlers
+  const toggleIndexSelection = (index: number) => {
+    if (isReadOnly) return;
+    setSelectedIndices(prev => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const applyPresetSelection = (preset: '0_and_3' | '1_and_3' | 'all' | 'none') => {
+    if (isReadOnly) return;
+    if (preset === '0_and_3') {
+      setSelectedIndices([true, false, false, true, false, false]);
+    } else if (preset === '1_and_3') {
+      setSelectedIndices([false, true, false, true, false, false]);
+    } else if (preset === 'all') {
+      setSelectedIndices([true, true, true, true, true, true]);
+    } else if (preset === 'none') {
+      setSelectedIndices([false, false, false, false, false, false]);
+    }
+  };
+
   // Input Handlers
-  const handleXChange = (index: number, val: string) => {
-    setIndexXInputs(prev => {
+  const handleXMinChange = (index: number, val: string) => {
+    setIndexXMinInputs(prev => {
       const next = [...prev];
       next[index] = val;
       return next;
     });
   };
 
-  const handleYChange = (index: number, val: string) => {
-    setIndexYInputs(prev => {
+  const handleXMaxChange = (index: number, val: string) => {
+    setIndexXMaxInputs(prev => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  };
+
+  const handleYMinChange = (index: number, val: string) => {
+    setIndexYMinInputs(prev => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  };
+
+  const handleYMaxChange = (index: number, val: string) => {
+    setIndexYMaxInputs(prev => {
       const next = [...prev];
       next[index] = val;
       return next;
@@ -222,8 +321,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   };
 
   const handleReset = () => {
-    setIndexXInputs(Array(INDEX_COUNT).fill(''));
-    setIndexYInputs(Array(INDEX_COUNT).fill(''));
+    setSelectedIndices(Array(INDEX_COUNT).fill(false));
+    setIndexXMinInputs(Array(INDEX_COUNT).fill(''));
+    setIndexXMaxInputs(Array(INDEX_COUNT).fill(''));
+    setIndexYMinInputs(Array(INDEX_COUNT).fill(''));
+    setIndexYMaxInputs(Array(INDEX_COUNT).fill(''));
     setIndexNotes(Array(INDEX_COUNT).fill(''));
     setOverallNote('');
     setEvidenceImage('');
@@ -234,13 +336,26 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
   const saveAgcResult = (
     disposition: 'PASS' | 'ACCEPTED_DEVIATION' | 'CONDITIONAL_PASS' | 'WARNING' | 'FAIL'
   ) => {
+    if (!hasAllValues || !hasSelectedIndices) {
+      if (showNotification) showNotification('Please select active indices and enter complete readings to save.');
+      return;
+    }
+
     const agcCode = activeAgcId === 'agc1' ? '05_agc1' : '05_agc2';
     const agcName = activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2';
 
     const indexItems: MHCAgcIndexItem[] = parsedIndices.map(idx => ({
       indexNum: idx.indexNum,
-      xUm: idx.xUm,
-      yUm: idx.yUm,
+      isSelected: idx.isSelected,
+      xMinUm: idx.xMinUm,
+      xMaxUm: idx.xMaxUm,
+      yMinUm: idx.yMinUm,
+      yMaxUm: idx.yMaxUm,
+      maxAbsXUm: idx.maxAbsX ?? undefined,
+      maxAbsYUm: idx.maxAbsY ?? undefined,
+      maxDevUm: idx.maxDev ?? undefined,
+      xUm: idx.xMaxUm ?? idx.xMinUm,
+      yUm: idx.yMaxUm ?? idx.yMinUm,
       specToleranceUm: SPEC_TOLERANCE_UM,
       verdict: idx.verdict,
       engineerNote: idx.note || undefined
@@ -300,7 +415,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
       updatedSession = dispositionAutopilotActivity(
         updatedSession,
         agcCode,
-        overallNote || `Accepted by engineer: ${disposition}. Scanner max deviation ${overallMaxDev?.toFixed(2)} µm.`,
+        overallNote || `Accepted by engineer: ${disposition}. Scanner max deviation ${overallMaxDev?.toFixed(2)} µm across ${selectedParsedIndices.length} active indices.`,
         session.engineerName || 'Lead Field Engineer',
         `Engineer Disposition: ${disposition}`,
         disposition
@@ -319,73 +434,91 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
         if (isBothPass) {
           showNotification(`AGC 1 & AGC 2 saved with Engineer Disposition (${disposition}). Advanced to Day 3 Temperature & Evidence.`);
         } else {
-          showNotification(`${agcName} saved as ${disposition}. Advanced to Day 3 Temperature & Evidence (Finding recorded for Readiness Review).`);
+          showNotification(`AGC calibration saved with Engineer Disposition (${disposition}). Review flagged items.`);
         }
       }
-      // Note: onUpdateSession has already persisted the session with currentActivityCode = '06' (IN_PROGRESS).
-      // We do not call onCompleteActivity here to avoid triggering duplicate advance in MhcAutopilot.
+      onCompleteActivity(updatedSession);
     } else {
       if (showNotification) {
-        showNotification(`${agcName} Disposition (${disposition}) recorded. Switching to ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'}...`);
+        showNotification(`${agcName} calibrated (${disposition}). Please calibrate ${otherAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'} scanner.`);
       }
       setActiveAgcId(otherAgcId);
     }
   };
 
-  const getAgcTabStatus = (agcIdKey: 'agc1' | 'agc2') => {
-    const rec = agcData[agcIdKey];
-    if (!rec || rec.status === 'NOT_STARTED') {
-      return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-500/20 text-slate-400">PENDING</span>;
+  const getAgcTabStatus = (id: 'agc1' | 'agc2') => {
+    const rec = agcData[id];
+    if (!rec || rec.status === 'NOT_STARTED' || rec.verdict === 'UNANSWERED') {
+      return (
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-raised text-theme-muted border border-theme-default">
+          NOT CALIBRATED
+        </span>
+      );
     }
-    if (rec.status === 'COMPLETED' && rec.verdict === 'PASS') {
-      return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1"><Check className="w-3 h-3" /> PASS</span>;
+    if (rec.verdict === 'PASS') {
+      return (
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+          PASS ({rec.overallMaxDevUm ? `${rec.overallMaxDevUm.toFixed(2)}µm` : 'OK'})
+        </span>
+      );
     }
-    if (rec.verdict === 'OUT_OF_SPEC' || rec.status === 'NEEDS_REVIEW') {
-      return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> OUT OF SPEC</span>;
+    if (rec.verdict === 'OUT_OF_SPEC') {
+      return (
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold flex items-center gap-1">
+          <XCircle className="w-3 h-3 text-rose-500" />
+          OUT OF SPEC ({rec.overallMaxDevUm ? `${rec.overallMaxDevUm.toFixed(2)}µm` : 'FAIL'})
+        </span>
+      );
     }
-    return <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">IN PROGRESS</span>;
+    return null;
   };
 
-  const formatSignedUm = (val: number | null | undefined): string => {
+  const formatSignedUm = (val: number | null): string => {
     if (val === null || val === undefined) return '—';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(2)} µm`;
+    return val > 0 ? `+${val.toFixed(2)} µm` : `${val.toFixed(2)} µm`;
   };
 
   return (
-    <div className="p-4 sm:p-6 rounded-card border space-y-6 bg-surface border-theme-default">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-theme-default">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
-            <Target className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
-                DAY 3 • 05
-              </span>
-              <h2 className="text-lg font-bold text-theme-primary">AGC Calibration Autopilot</h2>
+    <div className="space-y-6">
+      {/* Activity Header Banner */}
+      <div className="p-4 rounded-card border border-theme-default bg-surface space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme-default pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400">
+              <Sliders className="w-5 h-5" />
             </div>
-            <p className="text-xs text-theme-secondary mt-0.5">
-              Automatic Gain Compensation index calibration check (Tolerance: ±3.0 µm across Indices 0–5)
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400">§10 · AUTOPILOT ACTIVITY 05</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-raised text-theme-muted border border-theme-default">
+                  DAY 2 CALIBRATION
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-theme-primary">
+                AGC / Scanner Calibration (Active Indices Min/Max)
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-theme-muted">TOLERANCE:</span>
+            <span className="text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20">
+              ±{SPEC_TOLERANCE_UM.toFixed(1)} µm
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-raised p-1.5 rounded-xl border border-theme-default text-xs font-medium">
-          <span className="text-theme-muted pl-2">Benchmark Spec:</span>
-          <span className="px-2 py-1 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-mono font-bold border border-cyan-500/20 flex items-center gap-1">
-            <Ruler className="w-3.5 h-3.5" /> ±3.0 µm
-          </span>
-        </div>
+        <p className="text-xs text-theme-secondary leading-relaxed">
+          Galvo scanner &amp; Automatic Grid Calibration (AGC) positional verification. Select only the indices calibrated (e.g. Index 0 + 3, Index 1 + 3, or all active indices). Record signed X Min/Max and Y Min/Max deviations. Unselected indices require no readings and are excluded from evaluation and report output.
+        </p>
       </div>
 
-      {/* AGC Head Navigation Tabs (AGC 1 vs AGC 2) */}
-      <div className="grid grid-cols-2 gap-3">
-        {(['agc1', 'agc2'] as const).map(agcIdKey => {
+      {/* Scanner Head Selector Tabs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {(['agc1', 'agc2'] as const).map((agcIdKey) => {
           const isActive = activeAgcId === agcIdKey;
-          const label = agcIdKey === 'agc1' ? 'AGC 1 Calibration (Head 1 Scanner)' : 'AGC 2 Calibration (Head 2 Scanner)';
+          const label = agcIdKey === 'agc1' ? 'AGC 1 — Head 1 Scanner' : 'AGC 2 — Head 2 Scanner';
           const code = agcIdKey === 'agc1' ? '05_agc1' : '05_agc2';
 
           return (
@@ -393,10 +526,10 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
               key={agcIdKey}
               type="button"
               onClick={() => setActiveAgcId(agcIdKey)}
-              className={`p-3.5 rounded-card border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer ${
+              className={`p-3.5 rounded-card border text-left flex items-center justify-between transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-cyan-500/10 border-cyan-500/60 ring-1 ring-cyan-500/30'
-                  : 'bg-raised border-theme-default hover:border-theme-strong'
+                  ? 'bg-surface border-cyan-500 ring-2 ring-cyan-500/30 shadow-md'
+                  : 'bg-raised border-theme-default hover:border-theme-strong text-theme-secondary'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -414,86 +547,219 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
 
       {/* Main Workspace for Active AGC Head */}
       <div className="p-5 rounded-card border space-y-6 bg-raised border-theme-default">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-theme-primary flex items-center gap-2">
-            <span>{activeAgcId === 'agc1' ? 'AGC 1 (Head 1 Scanner)' : 'AGC 2 (Head 2 Scanner)'} Index 0–5 Data Entry</span>
-            {agcData[activeAgcId]?.status === 'COMPLETED' && agcData[activeAgcId]?.verdict === 'PASS' && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Authoritative Record
-              </span>
-            )}
-          </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-base text-theme-primary flex items-center gap-2">
+              <span>{activeAgcId === 'agc1' ? 'AGC 1 (Head 1 Scanner)' : 'AGC 2 (Head 2 Scanner)'} Active Calibrated Indices</span>
+              {agcData[activeAgcId]?.status === 'COMPLETED' && agcData[activeAgcId]?.verdict === 'PASS' && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Authoritative Record
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-theme-muted mt-0.5">
+              Select only indices that were physically calibrated. Unselected indices are excluded from validation.
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={isReadOnly}
-            className="text-xs font-semibold text-theme-muted hover:text-theme-primary flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Re-enter Readings
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={isReadOnly}
+              className="text-xs font-semibold text-theme-muted hover:text-theme-primary flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Re-enter Readings
+            </button>
+          </div>
         </div>
 
-        {/* Index 0–5 Input Table Grid */}
+        {/* Index Quick Selection Toolbar */}
+        <div className="p-3 rounded-lg border border-theme-default bg-workspace flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-theme-secondary font-mono">ACTIVE INDICES:</span>
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+              {selectedParsedIndices.length} of 6 selected
+            </span>
+          </div>
+
+          {!isReadOnly && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-theme-muted uppercase font-mono mr-1">Quick Select:</span>
+              <button
+                type="button"
+                onClick={() => applyPresetSelection('0_and_3')}
+                className="px-2 py-1 rounded text-xs font-mono font-semibold bg-raised hover:bg-surface border border-theme-default text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
+              >
+                Indices 0 &amp; 3
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetSelection('1_and_3')}
+                className="px-2 py-1 rounded text-xs font-mono font-semibold bg-raised hover:bg-surface border border-theme-default text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
+              >
+                Indices 1 &amp; 3
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetSelection('all')}
+                className="px-2 py-1 rounded text-xs font-mono font-semibold bg-raised hover:bg-surface border border-theme-default text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
+              >
+                All 0–5
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetSelection('none')}
+                className="px-2 py-1 rounded text-xs font-mono font-semibold bg-raised hover:bg-surface border border-theme-default text-theme-muted hover:text-rose-500 transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Index 0–5 Input Table Grid (Min/Max signed inputs) */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b text-theme-muted font-semibold uppercase tracking-wider border-theme-default bg-workspace">
-                <th className="py-2.5 px-3">AGC Index</th>
-                <th className="py-2.5 px-3">Final X Result (µm)</th>
-                <th className="py-2.5 px-3">Final Y Result (µm)</th>
-                <th className="py-2.5 px-3">Spec Limit</th>
+                <th className="py-2.5 px-3">Calibrate? / Index</th>
+                <th className="py-2.5 px-3">X Deviation Range (µm)</th>
+                <th className="py-2.5 px-3">Y Deviation Range (µm)</th>
+                <th className="py-2.5 px-3">Max Dev</th>
+                <th className="py-2.5 px-3">Tolerance</th>
                 <th className="py-2.5 px-3">Index Verdict</th>
               </tr>
             </thead>
             <tbody className="divide-y border-theme-default divide-theme-default">
               {parsedIndices.map((idxItem) => {
                 const i = idxItem.indexNum;
+                const isSelected = idxItem.isSelected;
+
                 return (
-                  <tr key={i} className="hover:bg-workspace/50 transition-colors">
-                    {/* Index Label */}
-                    <td className="py-3 px-3 font-mono font-bold text-theme-primary">
-                      Index {i}
+                  <tr 
+                    key={i} 
+                    className={`transition-colors ${
+                      isSelected 
+                        ? 'hover:bg-workspace/50 bg-workspace/20' 
+                        : 'opacity-40 bg-workspace/5 hover:opacity-60'
+                    }`}
+                  >
+                    {/* Index Selection & Label */}
+                    <td className="py-3 px-3">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleIndexSelection(i)}
+                          disabled={isReadOnly}
+                          className="w-4 h-4 rounded border-theme-default text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                        />
+                        <span className={`font-mono font-bold text-xs ${isSelected ? 'text-theme-primary' : 'text-theme-muted'}`}>
+                          Index {i}
+                        </span>
+                      </label>
                     </td>
 
-                    {/* Final X Input */}
+                    {/* X Range Min / Max Inputs */}
                     <td className="py-2 px-3">
-                      <div className="relative max-w-[140px]">
-                        <input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g. 1.20"
-                          value={indexXInputs[i]}
-                          onChange={(e) => handleXChange(i, e.target.value)}
-                          disabled={isReadOnly}
-                          className={`w-full px-2.5 py-1.5 rounded-lg border font-mono text-xs transition-all ${
-                            idxItem.isXValid && Math.abs(idxItem.xUm!) > SPEC_TOLERANCE_UM
-                              ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
-                              : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
-                          }`}
-                        />
-                        <span className="absolute right-2 top-2 text-[10px] text-theme-muted font-mono">µm</span>
-                      </div>
+                      {isSelected ? (
+                        <div className="flex items-center gap-1.5 max-w-[200px]">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="X Min"
+                              value={indexXMinInputs[i]}
+                              onChange={(e) => handleXMinChange(i, e.target.value)}
+                              disabled={isReadOnly}
+                              className={`w-full px-2 py-1.5 rounded-lg border font-mono text-xs transition-all ${
+                                idxItem.xMinUm !== null && Math.abs(idxItem.xMinUm) > SPEC_TOLERANCE_UM
+                                  ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                                  : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
+                              }`}
+                            />
+                            <span className="absolute right-1.5 top-1.5 text-[9px] text-theme-muted font-mono pointer-events-none">µm</span>
+                          </div>
+                          <span className="text-theme-muted font-mono text-[11px] shrink-0">to</span>
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="X Max"
+                              value={indexXMaxInputs[i]}
+                              onChange={(e) => handleXMaxChange(i, e.target.value)}
+                              disabled={isReadOnly}
+                              className={`w-full px-2 py-1.5 rounded-lg border font-mono text-xs transition-all ${
+                                idxItem.xMaxUm !== null && Math.abs(idxItem.xMaxUm) > SPEC_TOLERANCE_UM
+                                  ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                                  : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
+                              }`}
+                            />
+                            <span className="absolute right-1.5 top-1.5 text-[9px] text-theme-muted font-mono pointer-events-none">µm</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-theme-muted font-mono text-xs italic">Excluded</span>
+                      )}
                     </td>
 
-                    {/* Final Y Input */}
+                    {/* Y Range Min / Max Inputs */}
                     <td className="py-2 px-3">
-                      <div className="relative max-w-[140px]">
-                        <input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g. -0.90"
-                          value={indexYInputs[i]}
-                          onChange={(e) => handleYChange(i, e.target.value)}
-                          disabled={isReadOnly}
-                          className={`w-full px-2.5 py-1.5 rounded-lg border font-mono text-xs transition-all ${
-                            idxItem.isYValid && Math.abs(idxItem.yUm!) > SPEC_TOLERANCE_UM
-                              ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
-                              : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
-                          }`}
-                        />
-                        <span className="absolute right-2 top-2 text-[10px] text-theme-muted font-mono">µm</span>
-                      </div>
+                      {isSelected ? (
+                        <div className="flex items-center gap-1.5 max-w-[200px]">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Y Min"
+                              value={indexYMinInputs[i]}
+                              onChange={(e) => handleYMinChange(i, e.target.value)}
+                              disabled={isReadOnly}
+                              className={`w-full px-2 py-1.5 rounded-lg border font-mono text-xs transition-all ${
+                                idxItem.yMinUm !== null && Math.abs(idxItem.yMinUm) > SPEC_TOLERANCE_UM
+                                  ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                                  : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
+                              }`}
+                            />
+                            <span className="absolute right-1.5 top-1.5 text-[9px] text-theme-muted font-mono pointer-events-none">µm</span>
+                          </div>
+                          <span className="text-theme-muted font-mono text-[11px] shrink-0">to</span>
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Y Max"
+                              value={indexYMaxInputs[i]}
+                              onChange={(e) => handleYMaxChange(i, e.target.value)}
+                              disabled={isReadOnly}
+                              className={`w-full px-2 py-1.5 rounded-lg border font-mono text-xs transition-all ${
+                                idxItem.yMaxUm !== null && Math.abs(idxItem.yMaxUm) > SPEC_TOLERANCE_UM
+                                  ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 focus:ring-rose-500'
+                                  : 'bg-workspace border-theme-default text-theme-primary focus:border-cyan-500'
+                              }`}
+                            />
+                            <span className="absolute right-1.5 top-1.5 text-[9px] text-theme-muted font-mono pointer-events-none">µm</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-theme-muted font-mono text-xs italic">Excluded</span>
+                      )}
+                    </td>
+
+                    {/* Max Dev */}
+                    <td className="py-3 px-3 font-mono">
+                      {isSelected ? (
+                        idxItem.maxDev !== null ? (
+                          <span className={`font-bold ${idxItem.maxDev > SPEC_TOLERANCE_UM ? 'text-rose-600 dark:text-rose-400' : 'text-cyan-600 dark:text-cyan-400'}`}>
+                            {idxItem.maxDev.toFixed(2)} µm
+                          </span>
+                        ) : (
+                          <span className="text-theme-muted">—</span>
+                        )
+                      ) : (
+                        <span className="text-theme-muted">—</span>
+                      )}
                     </td>
 
                     {/* Spec Limit */}
@@ -503,18 +769,18 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
 
                     {/* Index Verdict */}
                     <td className="py-3 px-3">
-                      {idxItem.verdict === 'PASS' && (
+                      {!isSelected ? (
+                        <span className="text-[11px] text-theme-muted italic">Not Calibrated</span>
+                      ) : idxItem.verdict === 'PASS' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] border border-emerald-500/20">
                           <CheckCircle2 className="w-3 h-3 text-emerald-500" /> PASS
                         </span>
-                      )}
-                      {idxItem.verdict === 'OUT_OF_SPEC' && (
+                      ) : idxItem.verdict === 'OUT_OF_SPEC' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-[11px] border border-rose-500/30">
                           <XCircle className="w-3 h-3 text-rose-500" /> OUT OF SPEC
                         </span>
-                      )}
-                      {idxItem.verdict === 'UNANSWERED' && (
-                        <span className="text-[11px] text-theme-muted italic">Awaiting readings</span>
+                      ) : (
+                        <span className="text-[11px] text-theme-muted italic">Enter readings</span>
                       )}
                     </td>
                   </tr>
@@ -597,7 +863,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
               {overallMaxDev !== null ? `${overallMaxDev.toFixed(2)} µm` : '—'}
             </div>
             <div className="text-[10px] text-theme-muted mt-1 font-mono">
-              Across Indices 0–5 (±3.0 µm Limit)
+              {hasSelectedIndices ? `Across ${selectedParsedIndices.length} Active Indices (±3.0 µm Limit)` : 'Select indices to calibrate'}
             </div>
           </div>
 
@@ -626,12 +892,18 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
               {liveVerdict === 'UNANSWERED' && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-raised text-theme-muted font-bold text-xs border border-theme-default">
                   <Info className="w-4 h-4 text-theme-muted" />
-                  <span>INCOMPLETE</span>
+                  <span>{!hasSelectedIndices ? 'NO INDICES SELECTED' : 'INCOMPLETE'}</span>
                 </div>
               )}
             </div>
             <div className="text-[10px] text-theme-muted mt-1">
-              {liveVerdict === 'PASS' ? 'Ready to confirm' : liveVerdict === 'OUT_OF_SPEC' ? 'Scanner issue flagged' : 'Enter all 12 values'}
+              {!hasSelectedIndices 
+                ? 'Select calibrated indices above' 
+                : liveVerdict === 'PASS' 
+                  ? 'Ready to confirm' 
+                  : liveVerdict === 'OUT_OF_SPEC' 
+                    ? 'Scanner issue flagged' 
+                    : 'Enter all active index values'}
             </div>
           </div>
         </div>
@@ -672,7 +944,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
               <span>Scanner calibration outside specification — scanner condition requires engineering attention.</span>
             </div>
             <p className="text-rose-600/90 dark:text-rose-300/90 pl-7 leading-relaxed">
-              One or more AGC index deviation readings exceed the ±3.0 µm limit ({overallMaxDev?.toFixed(2)} µm max deviation). Pass cannot be granted without physical scanner calibration correction.
+              One or more active AGC index deviation readings exceed the ±3.0 µm limit ({overallMaxDev?.toFixed(2)} µm max deviation). Pass cannot be granted without physical scanner calibration correction.
             </p>
             <div className="ml-7 pt-1 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
               <Clock className="w-4 h-4 text-amber-500 shrink-0" />
@@ -687,7 +959,9 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
           <div className="p-4 rounded-card bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             <div>
-              <span className="font-bold text-emerald-600 dark:text-emerald-300">PASS — All 6 AGC Indices Within Specification</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-300">
+                PASS — All {selectedParsedIndices.length} Calibrated AGC Indices Within Specification
+              </span>
               <p className="text-emerald-600/80 dark:text-emerald-300/80 mt-0.5">
                 Maximum scanner index deviation is {overallMaxDev?.toFixed(2)} µm (Tolerance benchmark: ±3.0 µm). Ready to record authoritative result.
               </p>
@@ -705,7 +979,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
             </label>
             <textarea
               rows={3}
-              placeholder="e.g. AGC gain table re-loaded on run 2. All 6 indices verified."
+              placeholder="e.g. AGC gain table re-loaded on run 2. Selected indices 0 & 3 verified."
               value={overallNote}
               onChange={e => setOverallNote(e.target.value)}
               disabled={isReadOnly}
@@ -810,7 +1084,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
                   <span className="text-xs font-bold font-mono">ACCEPTED DEVIATION</span>
                   {selectedDisposition === 'ACCEPTED_DEVIATION' && <Check className="w-3.5 h-3.5 text-cyan-500" />}
                 </div>
-                <span className="text-[10px] text-theme-muted mt-1">Accept Drift & Proceed</span>
+                <span className="text-[10px] text-theme-muted mt-1">Accept Drift &amp; Proceed</span>
               </button>
 
               <button
@@ -856,7 +1130,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
             Active Scanner: <span className="font-bold text-theme-primary">{activeAgcId === 'agc1' ? 'AGC 1 (Head 1 Scanner)' : 'AGC 2 (Head 2 Scanner)'}</span>
             {hasAllValues && (
               <span className="ml-2 text-cyan-600 dark:text-cyan-400 font-semibold">
-                • Disposition: {selectedDisposition}
+                • Disposition: {selectedDisposition} ({selectedParsedIndices.length} indices)
               </span>
             )}
           </div>
@@ -877,7 +1151,7 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm & Save {activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'} ({selectedDisposition})</span>
+                <span>Confirm &amp; Save {activeAgcId === 'agc1' ? 'AGC 1' : 'AGC 2'} ({selectedDisposition})</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             )}
@@ -888,7 +1162,11 @@ export const MhcAgcActivity: React.FC<MhcAgcActivityProps> = ({
                 disabled
                 className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-raised text-theme-muted font-bold text-xs border border-theme-default cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <span>Enter All 12 Index Readings (0–5) to Save</span>
+                <span>
+                  {!hasSelectedIndices 
+                    ? 'Select at Least 1 Calibrated Index to Save' 
+                    : `Enter All Readings for ${selectedParsedIndices.length} Selected Indices to Save`}
+                </span>
               </button>
             )}
           </div>

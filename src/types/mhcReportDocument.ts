@@ -440,8 +440,16 @@ export interface MhcReportAgcData {
     agcName: string;
     indices: Array<{
       indexNum: number;
-      xUm: number | null;
-      yUm: number | null;
+      isSelected?: boolean;
+      xMinUm?: number | null;
+      xMaxUm?: number | null;
+      yMinUm?: number | null;
+      yMaxUm?: number | null;
+      maxAbsXUm?: number;
+      maxAbsYUm?: number;
+      maxDevUm?: number;
+      xUm?: number | null;
+      yUm?: number | null;
       verdict: 'PASS' | 'OUT_OF_SPEC' | 'UNANSWERED';
     }>;
     xMinUm?: number;

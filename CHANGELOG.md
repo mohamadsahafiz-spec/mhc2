@@ -1,5 +1,22 @@
 # FSOS CHANGELOG
 
+## v3.7.1 — FSOS AGC 05 Active Indices & Min/Max Calibration Model (2026-09-24)
+
+### Autopilot Calibration & Report Enhancements
+- **AGC Active Index Selection Model**:
+  - Unlocked flexible index calibration across Indices 0–5, allowing any combination (e.g. `0 + 3`, `1 + 3`, or full set).
+  - New calibrations initialize with no indices selected by default, preventing false passes or mandatory 6-index lockouts.
+  - Unselected indices are dimmed, excluded from readings, and disregarded during PASS calculation, validation, and report output.
+  - Quick preset selection tools (`Indices 0 & 3`, `Indices 1 & 3`, `All 0–5`, `Clear`) and interactive row checkboxes provide rapid calibration workflow.
+- **Signed Min/Max Data Structure**:
+  - Replaced single X/Y points with signed 4-field Min/Max telemetry (`X Min`, `X Max`, `Y Min`, `Y Max`) matching Stage Calibration architecture.
+  - Real-time deviation calculations evaluate `maxAbsX`, `maxAbsY`, and `overallMaxDev` against the ±3.0 µm AGC specification limit.
+- **Section 10 PDF Report Granularity**:
+  - Full MHC PDF Section 10 now generates distinct rows specifically for each active calibrated index (`AGC 1 — Index 0`, `AGC 1 — Index 3`).
+  - Formats signed measured ranges (`+0.40 to +1.20 µm`) with respective pass/fail verdicts, suppressing unused indices.
+- **Safe Backward Compatibility**:
+  - Guaranteed robust fallback parsing for legacy session records storing single `xUm`/`yUm` coordinates.
+
 ## v3.7.0 — FSOS Login Controls Theme Consistency & Aero Icon Visibility (2026-09-24)
 
 ### Login UX & Theme Polish
