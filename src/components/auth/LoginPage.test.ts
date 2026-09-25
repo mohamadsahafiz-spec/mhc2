@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { WorkspaceMode, SystemUser } from '../../types';
+import { SystemUser } from '../../types';
 import { APP_VERSION } from '../../constants/version';
 
 describe('FSOS Login UI & Session Contract', () => {
@@ -22,28 +22,7 @@ describe('FSOS Login UI & Session Contract', () => {
     avatarUrl: 'https://example.com/avatar.jpg'
   };
 
-  it('verifies default workspace modes and labels', () => {
-    const modes: WorkspaceMode[] = ['MHC_MODE', 'FOUNDER_MODE'];
-    expect(modes).toContain('MHC_MODE');
-    expect(modes).toContain('FOUNDER_MODE');
-
-    const modeLabels: Record<WorkspaceMode, { title: string; subtitle: string }> = {
-      MHC_MODE: {
-        title: 'MHC Mode',
-        subtitle: 'Focused Health Check'
-      },
-      FOUNDER_MODE: {
-        title: 'Founder Mode',
-        subtitle: 'Complete Platform'
-      }
-    };
-
-    expect(modeLabels.MHC_MODE.title).toBe('MHC Mode');
-    expect(modeLabels.FOUNDER_MODE.title).toBe('Founder Mode');
-  });
-
-  it('verifies session generation payload matches FSOS contract', () => {
-    const initialMode: WorkspaceMode = 'MHC_MODE';
+  it('verifies workspace mode selector is removed from login while preserving session contract', () => {
     const session = {
       isAuthenticated: true,
       userId: mockUser.id,
@@ -53,14 +32,32 @@ describe('FSOS Login UI & Session Contract', () => {
       company: mockUser.company || 'EO Technics',
       department: mockUser.department || 'Field Engineering',
       operationalStatus: mockUser.status || 'Active',
-      lastLogin: new Date().toISOString(),
-      workspaceMode: initialMode
+      lastLogin: new Date().toISOString()
     };
 
     expect(session.isAuthenticated).toBe(true);
     expect(session.userId).toBe('usr-test-1');
     expect(session.engineerName).toBe('Test Engineer');
-    expect(session.workspaceMode).toBe('MHC_MODE');
+    expect(session.company).toBe('EO Technics');
+    expect(session.profilePhoto).toBe('https://example.com/avatar.jpg');
+  });
+
+  it('verifies session generation payload matches FSOS contract', () => {
+    const session = {
+      isAuthenticated: true,
+      userId: mockUser.id,
+      engineerName: mockUser.fullName,
+      profilePhoto: mockUser.avatarUrl,
+      role: mockUser.role,
+      company: mockUser.company || 'EO Technics',
+      department: mockUser.department || 'Field Engineering',
+      operationalStatus: mockUser.status || 'Active',
+      lastLogin: new Date().toISOString()
+    };
+
+    expect(session.isAuthenticated).toBe(true);
+    expect(session.userId).toBe('usr-test-1');
+    expect(session.engineerName).toBe('Test Engineer');
     expect(session.company).toBe('EO Technics');
     expect(session.profilePhoto).toBe('https://example.com/avatar.jpg');
   });
@@ -149,7 +146,8 @@ describe('FSOS Login UI & Session Contract', () => {
     expect(loginContent).toContain('id="account-select"');
     expect(loginContent).toContain('id="email-input"');
     expect(loginContent).toContain('id="password-input"');
-    expect(loginContent).toContain('role="radiogroup"');
+    expect(loginContent).not.toContain('login-mode-container');
+    expect(loginContent).not.toContain('Target Workspace Mode');
     expect(loginContent).toContain('id="login-submit-btn"');
     expect(loginContent).toContain('SIGN IN TO WORKSPACE');
   });

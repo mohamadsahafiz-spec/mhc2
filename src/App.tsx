@@ -20,7 +20,6 @@ import {
   EngineerProfile,
   NotificationItem,
   SystemUser,
-  WorkspaceMode,
   UserSession
 } from './types';
 import { StorageService } from './utils/persistence';
@@ -53,14 +52,10 @@ function AppLayout() {
   const isDark = effectiveTheme === 'dark';
   const prefersReducedMotion = Boolean(useReducedMotion());
 
-  // Auth & Workspace Mode State
+  // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const authSession = StorageService.getAuth();
     return Boolean(authSession && authSession.isAuthenticated);
-  });
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(() => {
-    const authSession = StorageService.getAuth();
-    return authSession?.workspaceMode || StorageService.getWorkspaceMode() || 'MHC_MODE';
   });
 
   // Operational State initialized synchronously from StorageService
@@ -152,6 +147,30 @@ function AppLayout() {
       });
     });
 
+    const applyProfileState = (prof: EngineerProfile) => {
+      setProfile(prof);
+      setActiveUser(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          fullName: prof.name || prev.fullName,
+          email: prof.email || prev.email,
+          employeeId: prof.badge || (prof as any).employeeId || prev.employeeId,
+          company: prof.company || prev.company,
+          role: (prof.role as any) || prev.role,
+          department: prof.department || prev.department,
+          avatarUrl: prof.avatarUrl ?? prev.avatarUrl
+        };
+      });
+    };
+
+    const handleRemoteProfileUpdate = (e: Event) => {
+      const updatedProfile = (e as CustomEvent).detail || StorageService.getProfile();
+      applyProfileState(updatedProfile);
+    };
+
+    window.addEventListener('fsos_profile_remote_update', handleRemoteProfileUpdate);
+
     // 3. Subscribe to SyncEngine remote updates to synchronize React UI without clobbering images
     const unsubscribeSync = SyncEngine.subscribe((state) => {
       if (state.status === 'synced') {
@@ -168,6 +187,7 @@ function AppLayout() {
           setContracts(StorageService.getContracts());
           setTasks(StorageService.getTasks());
           setAlerts(StorageService.getAlerts());
+          applyProfileState(StorageService.getProfile());
         } catch (err) {
           console.warn('[App] Sync update error:', err);
         }
@@ -176,15 +196,15 @@ function AppLayout() {
 
     return () => {
       isMounted = false;
+      window.removeEventListener('fsos_profile_remote_update', handleRemoteProfileUpdate);
       unsubscribeImageStore();
       unsubscribeSync();
     };
   }, []);
 
-  // Auth & Workspace Mode Handlers
+  // Auth Handlers
   const handleLoginSuccess = (session: UserSession) => {
     setIsAuthenticated(true);
-    setWorkspaceMode(session.workspaceMode);
     StorageService.saveAuth(session);
     
     const matchedUser = users.find(u => u.id === session.userId);
@@ -192,31 +212,12 @@ function AppLayout() {
       setActiveUser(matchedUser);
     }
 
-    if (session.workspaceMode === 'MHC_MODE') {
-      setActiveTab('start_page');
-    }
+    setActiveTab('start_page');
   };
 
   const handleLogout = () => {
     StorageService.clearAuth();
     setIsAuthenticated(false);
-  };
-
-  const handleModeChange = (newMode: WorkspaceMode) => {
-    setWorkspaceMode(newMode);
-    StorageService.saveWorkspaceMode(newMode);
-    const currentAuth = StorageService.getAuth();
-    if (currentAuth) {
-      StorageService.saveAuth({ ...currentAuth, workspaceMode: newMode });
-    }
-
-    // Auto-redirect to start page if current active tab is not visible in MHC Mode
-    if (newMode === 'MHC_MODE') {
-      const mhcAllowedTabs: NavigationTab[] = ['start_page', 'machines', 'mhc_autopilot', 'mhc', 'mhc_history', 'profile', 'customers', 'contracts', 'analytics', 'settings'];
-      if (!mhcAllowedTabs.includes(activeTab)) {
-        setActiveTab('start_page');
-      }
-    }
   };
 
   const handleSetActiveUser = (user: SystemUser) => {
@@ -228,7 +229,8 @@ function AppLayout() {
       department: user.department,
       email: user.email,
       phone: user.phone,
-      avatarUrl: user.avatarUrl
+      avatarUrl: user.avatarUrl,
+      badge: user.employeeId
     };
     setProfile(newProfile);
     StorageService.saveProfile(newProfile);
@@ -270,7 +272,8 @@ function AppLayout() {
         department: newProfile.department,
         email: newProfile.email || activeUser.email,
         phone: newProfile.phone || activeUser.phone,
-        avatarUrl: newProfile.avatarUrl || activeUser.avatarUrl
+        avatarUrl: newProfile.avatarUrl || activeUser.avatarUrl,
+        employeeId: newProfile.badge || activeUser.employeeId
       };
       setActiveUser(updatedActive);
       const updatedUsers = users.map(u => u.id === activeUser.id ? updatedActive : u);
@@ -485,7 +488,6 @@ function AppLayout() {
       <LoginPage
         users={users}
         activeUser={activeUser}
-        savedWorkspaceMode={workspaceMode}
         onLoginSuccess={handleLoginSuccess}
         onLogin={(selectedUser) => {
           setActiveUser(selectedUser);
@@ -509,7 +511,6 @@ function AppLayout() {
             onToggleSidebar={handleToggleSidebar}
             urgentAlertsCount={alerts.filter((a) => a.severity === 'CRITICAL').length}
             profile={profile}
-            workspaceMode={workspaceMode}
           />
         )}
       </AnimatePresence>
@@ -659,7 +660,6 @@ function AppLayout() {
                 <ProfileModule
                   activeUser={activeUser}
                   currentUserRole={activeUser.role}
-                  workspaceMode={workspaceMode}
                   plants={plants}
                   customers={customers}
                   onUpdateUser={handleUpdateUser}

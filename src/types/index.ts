@@ -52,7 +52,7 @@ export interface UserSession {
   department: string;
   operationalStatus: string;
   lastLogin: string;
-  workspaceMode: WorkspaceMode;
+  workspaceMode?: WorkspaceMode;
 }
 
 export type UserRole =
@@ -403,6 +403,9 @@ export interface EngineerProfile {
   email?: string;
   phone?: string;
   avatarUrl?: string;
+  badge?: string;
+  updatedAt?: string;
+  version?: number;
 }
 
 export type NotificationCategory =

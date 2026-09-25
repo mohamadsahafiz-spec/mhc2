@@ -1,9 +1,11 @@
 import { APP_VERSION } from './constants/version';
+import { LaserEngine } from './utils/laserEngine';
 
 export interface Env {
   DB?: any;
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
   APP_VERSION?: string;
+  LMS_SYNC_SECRET?: string;
   CF_VERSION_METADATA?: {
     id: string;
     tag: string;
@@ -26,7 +28,7 @@ const activeDevices = new Set<string>();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, X-LMS-Auth-Token",
 };
 
 function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array } {
@@ -228,6 +230,95 @@ export default {
               totalServerRecords
             });
           }
+        }
+
+        // Endpoint: POST /api/lms/sync (LMS v2 Ingestion Receiver)
+        if (path === "/api/lms/sync" || path === "/api/lms/sync/") {
+          if (request.method !== "POST") {
+            return json({ error: "Method not allowed. POST required." }, 405);
+          }
+
+          // 1. Authenticate with LMS Shared Secret
+          const authHeader = request.headers.get("Authorization") || "";
+          const lmsHeaderToken = request.headers.get("X-LMS-Auth-Token") || "";
+          const expectedSecret = env?.LMS_SYNC_SECRET || "fsos-lms-sync-key-2026";
+
+          const tokenFromBearer = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : "";
+          const suppliedToken = lmsHeaderToken.trim() || tokenFromBearer;
+
+          if (!suppliedToken || suppliedToken !== expectedSecret) {
+            return json({ error: "Unauthorized: Invalid or missing LMS authentication token." }, 401);
+          }
+
+          // 2. Parse request payload
+          const bodyText = await request.text().catch(() => "");
+          if (!bodyText || bodyText.trim().length === 0) {
+            return json({ error: "Bad Request: Empty payload received." }, 400);
+          }
+
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          // 3. Query existing active FSOS machines from D1
+          const existingRows = await db.prepare(
+            "SELECT data FROM records WHERE table_name = 'machines' AND is_deleted = 0"
+          ).all();
+
+          const existingMachines: any[] = [];
+          if (Array.isArray(existingRows?.results)) {
+            for (const row of existingRows.results) {
+              if (row?.data) {
+                try {
+                  const parsedM = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+                  if (parsedM && parsedM.id) {
+                    existingMachines.push(parsedM);
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+
+          // 4. Map & Merge using LaserEngine
+          let mergeResult: any;
+          try {
+            mergeResult = LaserEngine.parseAndMapLaserMonitorJson(bodyText, existingMachines, []);
+          } catch (err: any) {
+            return json({
+              error: `Failed to process LMS payload: ${err.message || String(err)}`
+            }, 400);
+          }
+
+          // 5. Update only matched machines in D1 records table
+          const updatedMachines = mergeResult.importedMachineList || [];
+          const nowIso = new Date().toISOString();
+          const version = Date.now();
+
+          for (const m of updatedMachines) {
+            const key = `machines:${m.id}`;
+            const dataStr = JSON.stringify(m);
+            await db.prepare(
+              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(key) DO UPDATE SET
+                 data = excluded.data,
+                 updated_at = excluded.updated_at,
+                 device_id = excluded.device_id,
+                 version = excluded.version,
+                 is_deleted = excluded.is_deleted`
+            ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-SYNC", version, 0).run();
+          }
+
+          return json({
+            success: true,
+            source: "LMS_v2_SYNC",
+            machinesFound: mergeResult.machinesFound,
+            laserHeadsFound: mergeResult.laserHeadsFound,
+            matchedCount: mergeResult.existingMatched,
+            skippedUnmatched: mergeResult.skippedUnmatched,
+            updatedMachineIds: updatedMachines.map((m: any) => m.id),
+            warnings: mergeResult.warnings,
+            serverTimestamp: nowIso
+          });
         }
 
         if (path === "/api/changes") {

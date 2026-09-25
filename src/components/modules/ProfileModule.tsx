@@ -27,7 +27,7 @@ import {
   X,
   Layers
 } from 'lucide-react';
-import { SystemUser, UserRole, UserStatus, NavigationTab, WorkspaceMode, Plant, Customer } from '../../types';
+import { SystemUser, UserRole, UserStatus, NavigationTab, Plant, Customer } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { Button } from '../common/Button';
@@ -39,7 +39,6 @@ import { ProfilePhotoCardModal } from '../profile/ProfilePhotoCardModal';
 interface ProfileModuleProps {
   activeUser: SystemUser;
   currentUserRole?: UserRole;
-  workspaceMode?: WorkspaceMode;
   plants?: Plant[];
   customers?: Customer[];
   onUpdateUser: (updatedUser: SystemUser) => void;
@@ -49,7 +48,6 @@ interface ProfileModuleProps {
 export const ProfileModule: React.FC<ProfileModuleProps> = ({
   activeUser,
   currentUserRole,
-  workspaceMode,
   plants = [],
   customers = [],
   onUpdateUser,
@@ -58,11 +56,9 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
 
-  // Determine administrative authorization using the existing role & workspace model
+  // Determine administrative authorization using user role
   const effectiveRole = currentUserRole || activeUser.role;
-  const isAuthorizedAdmin = 
-    effectiveRole === 'Administrator' || 
-    workspaceMode === 'FOUNDER_MODE';
+  const isAuthorizedAdmin = effectiveRole === 'Administrator';
 
   const [formData, setFormData] = useState<SystemUser>({ ...activeUser });
   const [photoError, setPhotoError] = useState<string | null>(null);

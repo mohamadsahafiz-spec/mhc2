@@ -1,5 +1,51 @@
 # FSOS CHANGELOG
 
+## v3.7.4 — FSOS LMS Automated Ingestion Sync Receiver (2026-09-25)
+
+### LMS Automated Cloud Synchronization & Receiver
+- **Authenticated LMS Sync Endpoint (`POST /api/lms/sync`)**:
+  - Provisioned a dedicated, authenticated backend ingestion route in Cloudflare Worker (`src/worker.ts`) and Node server (`server.ts`) for external Laser Monitor System (LMS) synchronization.
+  - Secured via shared secret token (`X-LMS-Auth-Token` or `Authorization: Bearer <LMS_SYNC_SECRET>`), rejecting unauthorized or empty payload requests with HTTP 401/400.
+  - Ingests LMS machine & laser lifecycle JSON structures and merges them against existing active FSOS machines in Cloud D1 using the authoritative `LaserEngine.parseAndMapLaserMonitorJson` engine.
+- **Strict Data Authority & Conflict Protection**:
+  - Matches existing FSOS machines strictly by machine ID, machine number, or physical serial number.
+  - Safely rejects unmatched LMS records to prevent stripped machine stubs from polluting the FSOS fleet.
+  - Updates only LMS-authoritative laser lifecycle telemetry (`baseLaserHour`, `baseTimestamp`, `ratedLife`, `warningLife`, `runtimeState`, merged `calibrationHistory`).
+  - Strictly preserves 100% of FSOS-owned specifications and records (`mhcSpecs`, `productProcessRecords`, Top/Bottom Via micrographs, beam profiles, focus optimizations, and maintenance logs).
+- **Fan-Out via Existing Cloud D1 Sync Pipeline**:
+  - Persists merged machine records directly into the Cloud D1 `records` table with `device_id = 'LMS-SYNC'`.
+  - Automatically fans out to all active engineer devices through the existing `GET /api/changes` background sync pipeline without any changes to client-side hamster sync.
+- **UI Streamlining**:
+  - Removed the obsolete manual **Sync LMS** file-picker button from the Machine Passport toolbar.
+
+## v3.7.3 — FSOS Legacy Workspace Mode Deprecation & Streamlining (2026-09-24)
+
+### Legacy Architecture Deprecation & UI Streamlining
+- **Trace & Verification**:
+  - Traced legacy workspace-mode (`MHC_MODE` vs `FOUNDER_MODE` / `OPERATIONS SUITE`) across Settings, Login, Sidebar, Profile, and Application routing.
+  - Confirmed changing Settings workspace mode produced zero active application behavior changes, as `handleModeChange` in `App.tsx` was uncalled and unpropagated.
+  - Confirmed Login target workspace mode had no active effect on the resulting workspace layout, initial tab routing (`start_page`), or operational tools.
+- **Selector & Dead Code Removal**:
+  - Removed "Default Workspace Mode" selector cards (`MHC MODE` / `OPERATIONS SUITE`) from Settings → Application.
+  - Removed "Target Workspace Mode" mechanical radio toggle (`MHC Mode` / `Founder Mode`) from the pre-authentication Login page.
+  - Cleaned up unused supporting state, unreferenced `handleModeChange` routing handler in `App.tsx`, and pruned the obsolete unimported `WorkspaceModeSelector.tsx` component.
+  - Streamlined `Sidebar` navigation directly to the canonical operational hierarchy without redundant mode filtering loops.
+  - Retained strict backward compatibility for persisted `UserSession` and backup schemas.
+
+## v3.7.2 — FSOS Multi-Device Engineer Profile Cloud Synchronization (2026-09-24)
+
+### Cloud Sync & Multi-Device Governance
+- **Engineer Profile Multi-Device Replication**:
+  - Bound `fso_v072_profile` into the authoritative Cloud D1 `/api/sync` and `/api/changes` synchronization pipeline.
+  - Automatically reconciles and synchronizes Engineer identity across devices: Engineer Full Name, Corporate Email, and Badge / Employee ID.
+  - Implemented Last-Write-Wins (LWW) conflict handling with timestamp and version monotonicity, ensuring recent device edits prevail without stale default overwrites.
+  - Real-time cross-device event dispatch (`fsos_profile_remote_update`) immediately updates React interface state, Top Header user avatar/name, Sidebar branding, and My Profile module on remote devices.
+- **Security & Privacy Boundary Enforcement**:
+  - Maintained complete isolation for authentication sessions (`fso_v070_auth`), credentials, and device-local UI theme preferences, keeping credentials strictly non-synced.
+- **Backward Compatibility & Local Continuity**:
+  - Ensured non-synced offline editing seamlessly buffers mutations in `fsos_sync_queue` and flushes upon network reconnection.
+  - Preserved backward compatibility with legacy profile storage lacking explicit badge or version metadata.
+
 ## v3.7.1 — FSOS AGC 05 Active Indices & Min/Max Calibration Model (2026-09-24)
 
 ### Autopilot Calibration & Report Enhancements

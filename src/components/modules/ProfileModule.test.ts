@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SystemUser, UserRole, WorkspaceMode } from '../../types';
+import { SystemUser, UserRole } from '../../types';
 import { CANONICAL_TIMEZONES } from '../../constants/timezones';
 import { StorageService } from '../../utils/persistence';
 
@@ -71,12 +71,13 @@ describe('Profile Usability, Identity Integrity & Permissions (R9-D)', () => {
     expect(sanitizedData.role).toBe('Senior Engineer');
   });
 
-  it('allows Founder Suite workspace mode to perform administrative edits', () => {
-    const workspaceMode: WorkspaceMode = 'FOUNDER_MODE';
-    const role = 'Supervisor' as UserRole;
-
-    const isAuthorizedAdmin = role === 'Administrator' || workspaceMode === 'FOUNDER_MODE';
+  it('enforces administrative authorization strictly for Administrator role', () => {
+    const adminRole = 'Administrator' as UserRole;
+    const isAuthorizedAdmin = adminRole === 'Administrator';
     expect(isAuthorizedAdmin).toBe(true);
+
+    const nonAdminRole = 'Supervisor' as UserRole;
+    expect(nonAdminRole === 'Administrator').toBe(false);
   });
 
   it('validates canonical timezone list integrity and preservation', () => {

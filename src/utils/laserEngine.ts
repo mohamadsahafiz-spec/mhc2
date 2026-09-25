@@ -1408,7 +1408,7 @@ export const LaserEngine = {
         const mergedMachine = {
           ...targetFsosMachine,
           // Authoritative machine identity strictly wins:
-          id: normalizedRaw.id || targetFsosMachine.id,
+          id: (rawItem.id && String(rawItem.id).trim().length > 0) ? normalizedRaw.id : targetFsosMachine.id,
           machineNo: authoritativeMachineNumber,
           machineNumber: authoritativeMachineNumber,
           machineName: normalizedRaw.machineName || targetFsosMachine.machineName || ('Wafer Driller ' + (normalizedRaw.model || targetFsosMachine.model || 'BMD302W')),

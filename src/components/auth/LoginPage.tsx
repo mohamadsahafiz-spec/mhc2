@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Lock, User, ArrowRight, Check, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { SystemUser, WorkspaceMode, UserSession } from '../../types';
+import { SystemUser, UserSession } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { HeaderThemeSwitch } from '../layout/HeaderThemeSwitch';
 import { APP_VERSION } from '../../constants/version';
@@ -11,17 +11,15 @@ import { LoginBackground } from './LoginBackground';
 interface LoginPageProps {
   users?: SystemUser[];
   activeUser?: SystemUser;
-  onLogin?: (selectedUser: SystemUser, rememberMe: boolean, initialMode: WorkspaceMode) => void;
+  onLogin?: (selectedUser: SystemUser, rememberMe?: boolean) => void;
   onLoginSuccess?: (session: UserSession) => void;
-  savedWorkspaceMode?: WorkspaceMode;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   users = [],
   activeUser,
   onLogin,
-  onLoginSuccess,
-  savedWorkspaceMode = 'MHC_MODE'
+  onLoginSuccess
 }) => {
   const { effectiveTheme, activeTheme, setTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -49,7 +47,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [passwordInput, setPasswordInput] = useState<string>('••••••••••••');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
-  const [preferredMode, setPreferredMode] = useState<WorkspaceMode>(savedWorkspaceMode || 'MHC_MODE');
   const [loginState, setLoginState] = useState<'idle' | 'authenticating' | 'success'>('idle');
 
   const handleUserSelect = (userId: string) => {
@@ -74,7 +71,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setTimeout(() => {
         const userToLogin = users.find(u => u.id === selectedUserId) || activeUser || defaultUser;
         if (onLogin) {
-          onLogin(userToLogin, rememberMe, preferredMode);
+          onLogin(userToLogin, rememberMe);
         }
         if (onLoginSuccess) {
           const session: UserSession = {
@@ -87,7 +84,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             department: userToLogin.department || 'Field Engineering',
             operationalStatus: userToLogin.status || 'Active',
             lastLogin: new Date().toISOString(),
-            workspaceMode: preferredMode
+            workspaceMode: 'MHC_MODE'
           };
           onLoginSuccess(session);
         }
@@ -303,78 +300,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 ) : (
                   <Eye className="login-input-icon w-4 h-4 transition-colors" />
                 )}
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Workspace Mode Selection with Animated Mechanical Indicator */}
-          <motion.div variants={itemVariants} className="space-y-1.5 pt-1">
-            <label className="block text-xs font-semibold tracking-wide text-theme-secondary">
-              Target Workspace Mode
-            </label>
-            <div 
-              className="login-mode-container grid grid-cols-2 gap-1.5 p-1 rounded-xl border relative bg-workspace border-theme-default"
-              role="radiogroup" 
-              aria-label="Target Workspace Mode"
-            >
-              {/* MHC Mode Option */}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preferredMode === 'MHC_MODE'}
-                onClick={() => setPreferredMode('MHC_MODE')}
-                className={`login-mode-btn relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
-                  preferredMode === 'MHC_MODE'
-                    ? 'text-theme-primary font-semibold'
-                    : 'text-theme-muted hover:text-theme-primary'
-                }`}
-              >
-                {preferredMode === 'MHC_MODE' && (
-                  <motion.div
-                    layoutId="activeWorkspaceMode"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                    className="login-mode-active-indicator absolute inset-0 rounded-lg border shadow-sm bg-surface border-theme-strong"
-                  />
-                )}
-                <div className="relative z-10 flex items-center justify-between text-xs font-semibold">
-                  <span>MHC Mode</span>
-                  {preferredMode === 'MHC_MODE' && (
-                    <Check className="w-3.5 h-3.5 text-theme-primary" />
-                  )}
-                </div>
-                <span className="relative z-10 text-[10px] text-theme-muted font-normal">
-                  Focused Health Check
-                </span>
-              </button>
-
-              {/* Founder Mode Option */}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preferredMode === 'FOUNDER_MODE'}
-                onClick={() => setPreferredMode('FOUNDER_MODE')}
-                className={`login-mode-btn relative p-2.5 rounded-lg text-left transition-colors flex flex-col gap-0.5 focus:outline-none z-10 ${
-                  preferredMode === 'FOUNDER_MODE'
-                    ? 'text-theme-primary font-semibold'
-                    : 'text-theme-muted hover:text-theme-primary'
-                }`}
-              >
-                {preferredMode === 'FOUNDER_MODE' && (
-                  <motion.div
-                    layoutId="activeWorkspaceMode"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                    className="login-mode-active-indicator absolute inset-0 rounded-lg border shadow-sm bg-surface border-theme-strong"
-                  />
-                )}
-                <div className="relative z-10 flex items-center justify-between text-xs font-semibold">
-                  <span>Founder Mode</span>
-                  {preferredMode === 'FOUNDER_MODE' && (
-                    <Check className="w-3.5 h-3.5 text-theme-primary" />
-                  )}
-                </div>
-                <span className="relative z-10 text-[10px] text-theme-muted font-normal">
-                  Complete Platform
-                </span>
               </button>
             </div>
           </motion.div>

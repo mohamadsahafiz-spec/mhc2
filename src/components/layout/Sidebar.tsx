@@ -4,7 +4,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { NavigationTab, EngineerProfile, WorkspaceMode } from '../../types';
+import { NavigationTab, EngineerProfile } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { SyncStatusIndicator } from '../common/SyncStatusIndicator';
@@ -24,7 +24,6 @@ interface SidebarProps {
   onToggleSidebar: () => void;
   urgentAlertsCount?: number;
   profile?: EngineerProfile;
-  workspaceMode?: WorkspaceMode;
 }
 
 interface NavItem {
@@ -45,12 +44,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onToggleSidebar,
   urgentAlertsCount,
-  profile,
-  workspaceMode = 'MHC_MODE'
+  profile
 }) => {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
-  const isMhcMode = workspaceMode === 'MHC_MODE';
   const prefersReducedMotion = Boolean(useReducedMotion());
 
   if (!isOpen) {
@@ -58,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }
 
   // Navigation Groups with Pure Typography Hierarchy (no redundant icon walls)
-  const rawNavGroups: NavGroup[] = [
+  const navGroups: NavGroup[] = [
     {
       key: 'work',
       title: 'DAILY WORK',
@@ -95,35 +92,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'SYSTEM',
       items: [
         { id: 'profile', label: 'My Profile' },
-        { id: 'users', label: 'Engineers Directory' },
         { id: 'settings', label: 'Settings' },
         { id: 'changelog', label: 'Release History' },
       ]
     }
   ];
-
-  // Filter navigation items based on Workspace Mode
-  const navGroups: NavGroup[] = rawNavGroups.map(group => {
-    if (!isMhcMode) return group;
-
-    let allowedIds: NavigationTab[] = [];
-    if (group.key === 'work') {
-      allowedIds = ['start_page'];
-    } else if (group.key === 'mhc_category') {
-      allowedIds = ['mhc_autopilot', 'mhc_history'];
-    } else if (group.key === 'assets') {
-      allowedIds = ['machines'];
-    } else if (group.key === 'fleet') {
-      allowedIds = ['customers', 'contracts', 'analytics'];
-    } else if (group.key === 'system') {
-      allowedIds = ['profile', 'settings', 'changelog'];
-    }
-
-    return {
-      ...group,
-      items: group.items.filter(item => allowedIds.includes(item.id))
-    };
-  }).filter(group => group.items.length > 0);
 
   return (
     <motion.aside

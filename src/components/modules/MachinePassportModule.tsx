@@ -1856,16 +1856,6 @@ export const MachinePassportModule: React.FC<MachinePassportProps> = ({
                           <Button
                             size="sm"
                             variant="outline"
-                            icon={<Upload className="w-3.5 h-3.5 text-slate-400" />}
-                            onClick={handleTriggerImportFile}
-                            className="text-xs h-8 px-3 font-sans"
-                            title="Import Laser Monitor JSON"
-                          >
-                            Sync LMS
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
                             icon={<Download className="w-3.5 h-3.5 text-slate-400" />}
                             onClick={handleExportJson}
                             className="text-xs h-8 px-3 font-sans"

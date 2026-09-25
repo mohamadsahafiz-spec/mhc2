@@ -22,7 +22,11 @@ export const INITIAL_ENGINEER_PROFILE: EngineerProfile = {
   company: 'EO Technics',
   role: 'Field Service Engineer',
   department: 'Service Operations',
-  avatarUrl: ''
+  email: 'sahafiz@eotechnics.com',
+  badge: 'EMP-EO-8801',
+  avatarUrl: '',
+  updatedAt: '2020-01-01T00:00:00.000Z',
+  version: 1
 };
 
 export const INITIAL_ACTIVE_OPERATOR: SystemUser = {

@@ -205,7 +205,7 @@ function getInitialActiveOperator(): SystemUser {
   const currentProfile = getStorage<EngineerProfile>(KEYS.PROFILE, INITIAL_ENGINEER_PROFILE);
   return {
     id: INITIAL_ACTIVE_OPERATOR.id,
-    employeeId: INITIAL_ACTIVE_OPERATOR.employeeId,
+    employeeId: currentProfile?.badge || (currentProfile as any)?.employeeId || INITIAL_ACTIVE_OPERATOR.employeeId,
     fullName: currentProfile?.name || INITIAL_ACTIVE_OPERATOR.fullName,
     email: currentProfile?.email || INITIAL_ACTIVE_OPERATOR.email,
     phone: currentProfile?.phone || INITIAL_ACTIVE_OPERATOR.phone,
@@ -945,10 +945,25 @@ export const StorageService = {
     setStorage(KEYS.BRANDING, processed);
   },
 
-  getProfile: (): EngineerProfile => getStorage(KEYS.PROFILE, INITIAL_ENGINEER_PROFILE),
+  getProfile: (): EngineerProfile => {
+    const stored = getStorage<EngineerProfile>(KEYS.PROFILE, INITIAL_ENGINEER_PROFILE);
+    if (!stored) return INITIAL_ENGINEER_PROFILE;
+    return {
+      ...INITIAL_ENGINEER_PROFILE,
+      ...stored,
+      badge: stored.badge || (stored as any)?.employeeId || INITIAL_ENGINEER_PROFILE.badge
+    };
+  },
   saveProfile: (data: EngineerProfile) => {
-    const processed = ImageStore.extractAndStoreImagesSync(data, 'profile');
+    const withMeta: EngineerProfile = {
+      ...data,
+      badge: data.badge || (data as any)?.employeeId || INITIAL_ENGINEER_PROFILE.badge,
+      updatedAt: new Date().toISOString(),
+      version: Date.now()
+    };
+    const processed = ImageStore.extractAndStoreImagesSync(withMeta, 'profile');
     setStorage(KEYS.PROFILE, processed);
+    SyncEngine.enqueueChange('profile', 'profile', 'upsert', { ...processed, id: 'profile' });
   },
 
   getNotifications: (): NotificationItem[] => getStorage(KEYS.NOTIFICATIONS, []),
@@ -1170,6 +1185,7 @@ export const StorageService = {
   },
 
   getAllLocalData: (): Record<string, any[]> => {
+    const currentProfile = StorageService.getProfile();
     return {
       machines: getStorage<Machine[]>(KEYS.MACHINES, []),
       mhc_sessions: getStorage<MHCSession[]>(KEYS.MHC_SESSIONS, []),
@@ -1189,7 +1205,13 @@ export const StorageService = {
       mhc_report_drafts: getStorage<MHCReportDraftConfig[]>(KEYS.MHC_REPORT_DRAFTS, []),
       mhc_workspace_templates: getStorage<MhcWorkspaceTemplate[]>(KEYS.MHC_WORKSPACE_TEMPLATES, []),
       mhc_workspace_drafts: getStorage<MhcWorkspaceDraft[]>(KEYS.MHC_WORKSPACE_DRAFTS, []),
-      recommended_parts: getStorage<RecommendedPart[]>(KEYS.RECOMMENDED_PARTS, [])
+      recommended_parts: getStorage<RecommendedPart[]>(KEYS.RECOMMENDED_PARTS, []),
+      profile: [
+        {
+          ...currentProfile,
+          id: 'profile'
+        }
+      ]
     };
   },
 
@@ -1235,6 +1257,37 @@ SyncEngine.registerLocalDataProvider(() => StorageService.getAllLocalData());
 // Register remote update merge handler
 SyncEngine.registerRemoteUpdateCallback((tableName, remoteRecords) => {
   if (!Array.isArray(remoteRecords) || remoteRecords.length === 0) return;
+
+  if (tableName === 'profile') {
+    const latestRec = remoteRecords[remoteRecords.length - 1];
+    if (latestRec && latestRec.data && !latestRec.isDeleted) {
+      const incoming = typeof latestRec.data === 'string' ? JSON.parse(latestRec.data) : latestRec.data;
+      const current = StorageService.getProfile();
+      const incomingVer = Number(incoming.version) || (incoming.updatedAt ? new Date(incoming.updatedAt).getTime() : 0);
+      const currentVer = Number(current.version) || (current.updatedAt ? new Date(current.updatedAt).getTime() : 0);
+
+      if (incomingVer >= currentVer || !current.version || currentVer <= 1) {
+        const updatedProfile: EngineerProfile = {
+          name: incoming.name ?? current.name,
+          company: incoming.company ?? current.company,
+          role: incoming.role ?? current.role,
+          department: incoming.department ?? current.department,
+          email: incoming.email ?? current.email,
+          phone: incoming.phone ?? current.phone,
+          avatarUrl: incoming.avatarUrl ?? current.avatarUrl,
+          badge: incoming.badge ?? incoming.employeeId ?? current.badge,
+          updatedAt: incoming.updatedAt ?? new Date().toISOString(),
+          version: incomingVer || Date.now()
+        };
+        const processed = ImageStore.extractAndStoreImagesSync(updatedProfile, 'profile');
+        setStorage(KEYS.PROFILE, processed);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('fsos_profile_remote_update', { detail: processed }));
+        }
+      }
+    }
+    return;
+  }
 
   const keyMap: Record<string, { key: string; get: () => any[]; extract?: boolean }> = {
     machines: { key: KEYS.MACHINES, get: StorageService.getMachines, extract: true },

@@ -73,7 +73,7 @@ import {
   FSOSCompleteBackupValidationResult,
   FSOSPortableBackupValidationResult
 } from '../../types/backup';
-import { NavigationTab, WorkspaceMode } from '../../types';
+import { NavigationTab } from '../../types';
 
 export type SettingsSection = 
   | 'appearance' 
@@ -119,9 +119,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
   // Application Settings State
-  const [workspaceMode, setWorkspaceModeState] = useState<WorkspaceMode>(() => {
-    return StorageService.getWorkspaceMode() || 'MHC_MODE';
-  });
   const [sidebarCollapsedDefault, setSidebarCollapsedDefault] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       return localStorage.getItem('fsos_sidebar_collapsed') === 'true';
@@ -179,15 +176,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [deduplicationResult, setDeduplicationResult] = useState<MediaDeduplicationResult | null>(null);
 
   // Handlers for Application Settings
-  const handleWorkspaceModeChange = (mode: WorkspaceMode) => {
-    setWorkspaceModeState(mode);
-    StorageService.saveWorkspaceMode(mode);
-    const currentAuth = StorageService.getAuth();
-    if (currentAuth) {
-      StorageService.saveAuth({ ...currentAuth, workspaceMode: mode });
-    }
-  };
-
   const handleSidebarPrefToggle = () => {
     const next = !sidebarCollapsedDefault;
     setSidebarCollapsedDefault(next);
@@ -759,66 +747,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   Application & Workspace Configuration
                 </h2>
                 <p className="text-xs mt-1 text-theme-muted font-theme-label">
-                  Configure default operational behavior and active workspace modes.
+                  Configure default operational behavior and display preferences.
                 </p>
               </div>
 
-              {/* Workspace Mode Setting */}
-              <div className="space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-wider text-theme-muted font-theme-label">
-                  Default Workspace Mode
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <button
-                    type="button"
-                    onClick={() => handleWorkspaceModeChange('MHC_MODE')}
-                    className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-all ${
-                      workspaceMode === 'MHC_MODE'
-                        ? 'border-emerald-500/50 bg-raised ring-1 ring-emerald-500/30'
-                        : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-emerald-400">MHC MODE</span>
-                      {workspaceMode === 'MHC_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">
-                        Machine Health Check Focused
-                      </h4>
-                      <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
-                        Streamlined layout optimized for field technicians performing cleanroom diagnostics, calibration logs, and MHC inspection sessions.
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleWorkspaceModeChange('FOUNDER_MODE')}
-                    className={`p-4 rounded-card border text-left flex flex-col justify-between gap-3 transition-all ${
-                      workspaceMode === 'FOUNDER_MODE'
-                        ? 'border-emerald-500/50 bg-raised ring-1 ring-emerald-500/30'
-                        : 'border-theme-default bg-canvas hover:border-theme-strong hover:bg-raised'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-emerald-400">OPERATIONS SUITE</span>
-                      {workspaceMode === 'FOUNDER_MODE' && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">
-                        Complete Operations Suite
-                      </h4>
-                      <p className="text-xs mt-0.5 leading-relaxed text-theme-muted font-theme-label">
-                        Unlocks complete fleet hierarchies, customer and contract databases, engineer directory, and multi-facility operational analytics.
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               {/* Sidebar Display Preference */}
-              <div className="pt-4 border-t border-theme-subtle space-y-3">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-semibold text-theme-primary font-theme-heading">

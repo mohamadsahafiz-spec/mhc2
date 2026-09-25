@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import { LaserEngine } from "./src/utils/laserEngine";
 
 interface D1Record {
   table: string;
@@ -147,6 +148,79 @@ async function startServer() {
     } catch (err: any) {
       console.error("[Worker API /api/sync Error]:", err);
       return res.status(500).json({ error: err?.message || "Sync execution failed" });
+    }
+  });
+
+  // 1b. Worker API: Inbound LMS Automated Sync (POST /api/lms/sync)
+  app.post(["/api/lms/sync", "/api/lms/sync/"], (req, res) => {
+    try {
+      // 1. Authenticate
+      const authHeader = req.headers["authorization"] || "";
+      const lmsHeaderToken = (req.headers["x-lms-auth-token"] as string) || "";
+      const expectedSecret = process.env.LMS_SYNC_SECRET || "fsos-lms-sync-key-2026";
+
+      const tokenFromBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.substring(7).trim()
+        : "";
+      const suppliedToken = lmsHeaderToken.trim() || tokenFromBearer;
+
+      if (!suppliedToken || suppliedToken !== expectedSecret) {
+        return res.status(401).json({ error: "Unauthorized: Invalid or missing LMS authentication token." });
+      }
+
+      // 2. Parse request payload
+      const payload = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
+      if (!payload || payload.trim() === "{}" || payload.trim().length === 0) {
+        return res.status(400).json({ error: "Bad Request: Empty payload received." });
+      }
+
+      // 3. Query existing active FSOS machines from simulated D1
+      const existingMachines: any[] = [];
+      d1Database.forEach((rec) => {
+        if (rec.table === "machines" && !rec.isDeleted && rec.data) {
+          try {
+            const parsedM = typeof rec.data === "string" ? JSON.parse(rec.data) : rec.data;
+            if (parsedM && parsedM.id) {
+              existingMachines.push(parsedM);
+            }
+          } catch (_) {}
+        }
+      });
+
+      // 4. Map & Merge using LaserEngine
+      const mergeResult = LaserEngine.parseAndMapLaserMonitorJson(payload, existingMachines, []);
+      const updatedMachines = mergeResult.importedMachineList || [];
+      const nowIso = new Date().toISOString();
+      const version = Date.now();
+
+      // 5. Update only matched machines in D1 records table
+      for (const m of updatedMachines) {
+        const key = `machines:${m.id}`;
+        d1Database.set(key, {
+          table: "machines",
+          recordId: m.id,
+          data: m,
+          updatedAt: nowIso,
+          deviceId: "LMS-SYNC",
+          version,
+          isDeleted: false
+        });
+      }
+
+      return res.json({
+        success: true,
+        source: "LMS_v2_SYNC",
+        machinesFound: mergeResult.machinesFound,
+        laserHeadsFound: mergeResult.laserHeadsFound,
+        matchedCount: mergeResult.existingMatched,
+        skippedUnmatched: mergeResult.skippedUnmatched,
+        updatedMachineIds: updatedMachines.map((m: any) => m.id),
+        warnings: mergeResult.warnings,
+        serverTimestamp: nowIso
+      });
+    } catch (err: any) {
+      console.error("[Worker API /api/lms/sync Error]:", err);
+      return res.status(400).json({ error: `Failed to process LMS payload: ${err?.message || String(err)}` });
     }
   });
 
