@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { LaserEngine } from "./src/utils/laserEngine";
 import { pairLmsSyncTimestamps } from "./src/worker";
+import { APP_VERSION } from "./src/constants/version";
 
 interface D1Record {
   table: string;
@@ -70,7 +71,7 @@ async function startServer() {
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+    res.json({ status: "ok", version: APP_VERSION, timestamp: new Date().toISOString() });
   });
 
   // 0. Worker API: Complete Operational Data Purge (ALL /api/purge-all)
