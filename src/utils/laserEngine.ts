@@ -1352,15 +1352,16 @@ export const LaserEngine = {
 
         // Authoritative laser topology: map strictly from rawLasers
         const targetLasers = rawLasers.map((impL: any, impIdx: number) => {
-          // Find matching existing laser head by physical ID or physical serialNo (never generic name/machineNo)
-          const exL = existingLasers.find((tl: any) => {
-            if (impL.id && tl.id && tl.id === impL.id) return true;
+          // Find matching existing laser head by physical ID, physical serialNo, or head index
+          const exL = existingLasers.find((tl: any, tlIdx: number) => {
+            if (impL.id && tl.id && (tl.id === impL.id || tl.id.toLowerCase() === impL.id.toLowerCase())) return true;
             if (impL.serialNo && tl.serialNo &&
                 impL.serialNo.trim().toLowerCase() === tl.serialNo.trim().toLowerCase() &&
                 impL.serialNo.trim().toLowerCase() !== 'sn-0000-l1' &&
                 impL.serialNo.trim().toLowerCase() !== 'sn-unknown-l1') {
               return true;
             }
+            if (tlIdx === impIdx) return true;
             return false;
           });
 
@@ -1377,10 +1378,10 @@ export const LaserEngine = {
 
             return {
               ...impL,
-              id: impL.id || exL.id || `${normalizedRaw.id}-L${impIdx + 1}`,
+              id: exL.id || impL.id || `${targetFsosMachine.id}-L${impIdx + 1}`,
               name: impL.name || exL.name || `Laser Head ${impIdx + 1}`,
-              serialNo: impL.serialNo || exL.serialNo || `${normalizedRaw.serialNo}-L${impIdx + 1}`,
-              baseLaserHour: (impL.baseLaserHour !== null && impL.baseLaserHour !== undefined) ? impL.baseLaserHour : exL.baseLaserHour,
+              serialNo: impL.serialNo || exL.serialNo || `${targetFsosMachine.serialNo || normalizedRaw.serialNo}-L${impIdx + 1}`,
+              baseLaserHour: (impL.baseLaserHour !== null && impL.baseLaserHour !== undefined) ? Number(impL.baseLaserHour) : exL.baseLaserHour,
               baseTimestamp: impL.baseTimestamp || exL.baseTimestamp,
               ratedLife: Number(impL.ratedLife) || Number(exL.ratedLife) || 25000,
               warningLife: Number(impL.warningLife) || Number(exL.warningLife) || 20000,
@@ -1393,9 +1394,9 @@ export const LaserEngine = {
 
           return {
             ...impL,
-            id: impL.id || `${normalizedRaw.id}-L${impIdx + 1}`,
+            id: impL.id || `${targetFsosMachine.id}-L${impIdx + 1}`,
             name: impL.name || `Laser Head ${impIdx + 1}`,
-            serialNo: impL.serialNo || `${normalizedRaw.serialNo}-L${impIdx + 1}`,
+            serialNo: impL.serialNo || `${targetFsosMachine.serialNo || normalizedRaw.serialNo}-L${impIdx + 1}`,
             ratedLife: Number(impL.ratedLife) || 25000,
             warningLife: Number(impL.warningLife) || 20000,
             contingencyCeiling: Number(impL.contingencyCeiling) || 28000,
@@ -1407,8 +1408,8 @@ export const LaserEngine = {
 
         const mergedMachine = {
           ...targetFsosMachine,
-          // Authoritative machine identity strictly wins:
-          id: (rawItem.id && String(rawItem.id).trim().length > 0) ? normalizedRaw.id : targetFsosMachine.id,
+          // Matched machine identity MUST preserve authoritative FSOS primary key:
+          id: targetFsosMachine.id,
           machineNo: authoritativeMachineNumber,
           machineNumber: authoritativeMachineNumber,
           machineName: normalizedRaw.machineName || targetFsosMachine.machineName || ('Wafer Driller ' + (normalizedRaw.model || targetFsosMachine.model || 'BMD302W')),

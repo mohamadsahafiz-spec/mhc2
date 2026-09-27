@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v3.7.6 — FSOS LMS Sync Machine Identity Alignment (2026-09-27)
+
+### LMS Ingestion & Identity Fixes
+- **Preserve Authoritative FSOS Machine & Laser Identity**:
+  - Fixed `LaserEngine.parseAndMapLaserMonitorJson()` to preserve `targetFsosMachine.id` (the authoritative FSOS database primary key) when incoming LMS payloads supply separate LMS-side machine IDs.
+  - Ensured D1 writes during `POST /api/lms/sync` write strictly to `machines:<targetFsosMachine.id>` (e.g. `machines:WD-77972`) rather than creating separate records with foreign LMS IDs.
+  - Aligned laser head mapping to match by physical ID, serial number, and head index, strictly preserving existing FSOS laser head IDs (`WD-77972-L1`).
+  - Verified downstream `/api/changes` fan-out returns updated records under the authoritative FSOS primary key without duplicating or leaving stale records.
+
 ## v3.7.5 — FSOS LMS Automated Ingestion Sync Hardening (2026-09-26)
 
 ### Production Hardening & Security

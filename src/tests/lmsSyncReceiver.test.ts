@@ -369,6 +369,63 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     expect(changeData.lasers[0].baseLaserHour).toBe(22000);
   });
 
+  it('preserves authoritative FSOS machine ID and laser head ID when LMS payload contains separate LMS-side ID', async () => {
+    // Incoming LMS has foreign LMS ID 'lms-mach-99' and laser ID 'LH1', but matching machineNumber 'WLVIA#1'
+    const lmsPayload = {
+      machines: [
+        {
+          id: 'lms-mach-99',
+          machineNumber: 'WLVIA#1',
+          serialNo: 'MC23006',
+          lasers: [
+            {
+              id: 'LH1',
+              baseLaserHour: 10000,
+              baseTimestamp: '2026-09-27T00:00:00.000Z'
+            }
+          ]
+        }
+      ]
+    };
+
+    const req = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+      body: JSON.stringify(lmsPayload)
+    });
+    const res = await worker.fetch(req, mockEnv);
+    expect(res.status).toBe(200);
+
+    const json: any = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.matchedCount).toBe(1);
+    expect(json.updatedMachineIds).toContain('WD-77972');
+    expect(json.updatedMachineIds).not.toContain('lms-mach-99');
+
+    // 1. D1 key remains machines:WD-77972
+    const d1Record = mockDb.records.get('machines:WD-77972');
+    expect(d1Record).toBeDefined();
+    expect(d1Record.record_id).toBe('WD-77972');
+
+    // 2. No duplicate record created with the LMS ID
+    expect(mockDb.records.has('machines:lms-mach-99')).toBe(false);
+
+    // 3. Stored machine data has FSOS primary key and laser head ID
+    const machine = JSON.parse(d1Record.data);
+    expect(machine.id).toBe('WD-77972');
+    expect(machine.lasers[0].id).toBe('WD-77972-L1');
+    expect(machine.lasers[0].baseLaserHour).toBe(10000);
+
+    // 4. Verify /api/changes query returns WD-77972 with 10000 baseLaserHour
+    const changesReq = new Request('https://worker.dev/api/changes?since=0&deviceId=TEST-DEVICE');
+    const changesRes = await worker.fetch(changesReq, mockEnv);
+    const changesJson: any = await changesRes.json();
+    const match = changesJson.changes.find((c: any) => c.recordId === 'WD-77972');
+    expect(match).toBeDefined();
+    const matchData = typeof match.data === 'string' ? JSON.parse(match.data) : match.data;
+    expect(matchData.lasers[0].baseLaserHour).toBe(10000);
+  });
+
   it('correctly pairs baseline timestamps: supplied timestamp retained when provided', async () => {
     // Machine has initial baseLaserHour: 10000, baseTimestamp: '2026-01-01T00:00:00.000Z'
     const payload = {

@@ -106,11 +106,13 @@ export function pairLmsSyncTimestamps(payloadText: string, existingMachines: any
         const rawLId = (rawL.id || "").trim().toLowerCase();
         const rawLSerial = (rawL.serialNo || rawL.serialNumber || "").trim().toLowerCase();
 
-        const exL = exLasers.find((tl: any) => {
+        const rawIdx = rawLasers.indexOf(rawL);
+        const exL = exLasers.find((tl: any, tlIdx: number) => {
           const tlId = (tl.id || "").trim().toLowerCase();
           const tlSerial = (tl.serialNo || tl.serialNumber || "").trim().toLowerCase();
-          if (rawLId && tlId && rawLId === tlId) return true;
+          if (rawLId && tlId && (rawLId === tlId || rawLId.endsWith(tlId) || tlId.endsWith(rawLId))) return true;
           if (rawLSerial && tlSerial && rawLSerial === tlSerial && rawLSerial !== "sn-0000-l1" && rawLSerial !== "sn-unknown-l1") return true;
+          if (tlIdx === rawIdx) return true;
           return false;
         });
 
