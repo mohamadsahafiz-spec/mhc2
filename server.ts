@@ -155,17 +155,17 @@ async function startServer() {
   // 1b. Worker API: Inbound LMS Automated Sync (POST /api/lms/sync)
   app.post(["/api/lms/sync", "/api/lms/sync/"], (req, res) => {
     try {
-      // 1. Authenticate
+      // 1. Authenticate with LMS Shared Secret (Requires configured LMS_SYNC_SECRET)
       const authHeader = req.headers["authorization"] || "";
       const lmsHeaderToken = (req.headers["x-lms-auth-token"] as string) || "";
-      const expectedSecret = process.env.LMS_SYNC_SECRET || "fsos-lms-sync-key-2026";
+      const expectedSecret = process.env.LMS_SYNC_SECRET;
 
       const tokenFromBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
         ? authHeader.substring(7).trim()
         : "";
       const suppliedToken = lmsHeaderToken.trim() || tokenFromBearer;
 
-      if (!suppliedToken || suppliedToken !== expectedSecret) {
+      if (!expectedSecret || !suppliedToken || suppliedToken !== expectedSecret) {
         return res.status(401).json({ error: "Unauthorized: Invalid or missing LMS authentication token." });
       }
 
@@ -225,115 +225,6 @@ async function startServer() {
     } catch (err: any) {
       console.error("[Worker API /api/lms/sync Error]:", err);
       return res.status(400).json({ error: `Failed to process LMS payload: ${err?.message || String(err)}` });
-    }
-  });
-
-  // 1c. Worker API: Inbound LMS Test Verification Trigger (ALL /api/test/lms-sync-verify)
-  app.all(["/api/test/lms-sync-verify", "/api/test/lms-sync-verify/"], (req, res) => {
-    try {
-      // Find or seed a machine in d1Database
-      let targetMachine: any = null;
-      d1Database.forEach((rec) => {
-        if (rec.table === "machines" && !rec.isDeleted && rec.data) {
-          try {
-            const pm = typeof rec.data === "string" ? JSON.parse(rec.data) : rec.data;
-            if (pm && pm.id && Array.isArray(pm.lasers) && pm.lasers.length > 0) {
-              targetMachine = pm;
-            }
-          } catch (_) {}
-        }
-      });
-
-      if (!targetMachine) {
-        targetMachine = {
-          id: "WD-77972",
-          machineNumber: "WLVIA#1",
-          serialNo: "MC23006",
-          model: "BMD250WM",
-          customerName: "Global Cleanroom",
-          mhcSpecs: { laserPower: { targetPowerWatts: 10.5 } },
-          lasers: [
-            { id: "WD-77972-L1", name: "Laser Head 1", serialNo: "MC23006-L1", baseLaserHour: 10000, baseTimestamp: new Date().toISOString() }
-          ]
-        };
-        d1Database.set("machines:WD-77972", {
-          table: "machines",
-          recordId: "WD-77972",
-          data: targetMachine,
-          updatedAt: new Date().toISOString(),
-          deviceId: "SEED",
-          version: Date.now(),
-          isDeleted: false
-        });
-      }
-
-      const currentHour = Number(targetMachine.lasers?.[0]?.baseLaserHour) || 10000;
-      const newHour = currentHour + 250;
-      const targetLaserId = targetMachine.lasers?.[0]?.id || `${targetMachine.id}-L1`;
-      const targetLaserSerial = targetMachine.lasers?.[0]?.serialNo || `${targetMachine.serialNo}-L1`;
-
-      const testPayload = {
-        version: "0.9.0",
-        sourceSystem: "LMS_VERIFICATION_TEST",
-        machines: [
-          {
-            id: targetMachine.id,
-            machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
-            serialNo: targetMachine.serialNo,
-            lasers: [
-              {
-                id: targetLaserId,
-                name: targetMachine.lasers?.[0]?.name || "Laser Head 1",
-                serialNo: targetLaserSerial,
-                baseLaserHour: newHour,
-                baseTimestamp: new Date().toISOString(),
-                ratedLife: 25000,
-                warningLife: 20000
-              }
-            ]
-          }
-        ]
-      };
-
-      const mergeResult = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(testPayload), [targetMachine], []);
-      const updatedMachines = mergeResult.importedMachineList || [];
-      const nowIso = new Date().toISOString();
-      const version = Date.now();
-
-      for (const m of updatedMachines) {
-        const key = `machines:${m.id}`;
-        d1Database.set(key, {
-          table: "machines",
-          recordId: m.id,
-          data: m,
-          updatedAt: nowIso,
-          deviceId: "LMS-SYNC",
-          version,
-          isDeleted: false
-        });
-      }
-
-      return res.json({
-        success: true,
-        verificationType: "LMS_TO_FSOS_VERIFICATION",
-        endpointTested: "POST /api/lms/sync",
-        authenticated: true,
-        machineId: targetMachine.id,
-        machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
-        laserHeadId: targetLaserId,
-        previousBaseLaserHour: currentHour,
-        newBaseLaserHour: newHour,
-        lmsSyncResponse: {
-          success: true,
-          source: "LMS_v2_SYNC",
-          matchedCount: mergeResult.existingMatched,
-          updatedMachineIds: updatedMachines.map((m: any) => m.id),
-          skippedUnmatched: mergeResult.skippedUnmatched
-        },
-        changesQueryUrl: "/api/changes?since=0&deviceId=DEVICE_B"
-      });
-    } catch (err: any) {
-      return res.status(500).json({ error: String(err) });
     }
   });
 

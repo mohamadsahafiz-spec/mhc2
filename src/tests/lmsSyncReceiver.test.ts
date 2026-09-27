@@ -159,6 +159,29 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     });
     const wrongAuthRes = await worker.fetch(wrongAuthReq, mockEnv);
     expect(wrongAuthRes.status).toBe(401);
+
+    // Former hardcoded default secret is rejected
+    const defaultSecretReq = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: {
+        'X-LMS-Auth-Token': 'fsos-lms-sync-key-2026'
+      },
+      body: JSON.stringify({ machines: [] })
+    });
+    const defaultSecretRes = await worker.fetch(defaultSecretReq, mockEnv);
+    expect(defaultSecretRes.status).toBe(401);
+
+    // Unconfigured environment secret rejects all requests
+    const unconfiguredEnv = { DB: mockDb };
+    const unconfiguredReq = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: {
+        'X-LMS-Auth-Token': 'fsos-lms-sync-key-2026'
+      },
+      body: JSON.stringify({ machines: [] })
+    });
+    const unconfiguredRes = await worker.fetch(unconfiguredReq, unconfiguredEnv);
+    expect(unconfiguredRes.status).toBe(401);
   });
 
   it('accepts valid authentication via X-LMS-Auth-Token or Authorization Bearer header', async () => {
@@ -528,19 +551,17 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     expect(content).not.toContain('title="Import Laser Monitor JSON"');
   });
 
-  it('verifies the automated verification trigger endpoint (/api/test/lms-sync-verify)', async () => {
-    const req = new Request('https://worker.dev/api/test/lms-sync-verify', {
+  it('confirms the production test verification endpoint (/api/test/lms-sync-verify) is removed', async () => {
+    const postReq = new Request('https://worker.dev/api/test/lms-sync-verify', {
       method: 'POST'
     });
-    const res = await worker.fetch(req, mockEnv);
-    expect(res.status).toBe(200);
+    const postRes = await worker.fetch(postReq, mockEnv);
+    expect(postRes.status).toBe(404);
 
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.authenticated).toBe(true);
-    expect(json.endpointTested).toBe('POST /api/lms/sync');
-    expect(json.lmsSyncResponse.matchedCount).toBe(1);
-    expect(json.lmsSyncResponse.updatedMachineIds).toContain('WD-77972');
-    expect(json.newBaseLaserHour).toBe(json.previousBaseLaserHour + 250);
+    const getReq = new Request('https://worker.dev/api/test/lms-sync-verify', {
+      method: 'GET'
+    });
+    const getRes = await worker.fetch(getReq, mockEnv);
+    expect(getRes.status).toBe(404);
   });
 });

@@ -1,5 +1,21 @@
 # FSOS CHANGELOG
 
+## v3.7.5 — FSOS LMS Automated Ingestion Sync Hardening (2026-09-26)
+
+### Production Hardening & Security
+- **Strict Authentication Enforcement (`POST /api/lms/sync`)**:
+  - Removed all hardcoded default fallback credentials (`fsos-lms-sync-key-2026`) from `src/worker.ts` and `server.ts`.
+  - Enforced mandatory requirement for `LMS_SYNC_SECRET` environment variable; unconfigured or missing secret immediately rejects incoming requests with HTTP 401.
+  - Rejection verification ensures unauthorized tokens and former default keys can no longer authenticate against the endpoint.
+- **Removed Production Test Endpoint**:
+  - Removed `/api/test/lms-sync-verify` from Worker and server routing to ensure zero test trigger surface in production.
+- **Timestamp Defense-in-Depth (`pairLmsSyncTimestamps`)**:
+  - Retained deterministic timestamp pairing for LMS automated synchronization:
+    - If `baseLaserHour` changes and LMS supplies a `baseTimestamp`, the supplied timestamp is strictly preserved.
+    - If `baseLaserHour` changes and LMS omits `baseTimestamp`, the sync arrival timestamp (`nowIso`) is assigned to prevent inheriting obsolete historical baselines.
+    - If `baseLaserHour` is unchanged, the existing FSOS baseline timestamp is preserved.
+    - Unrelated laser heads (e.g. LH2) and FSOS-owned specifications remain 100% intact.
+
 ## v3.7.4 — FSOS LMS Automated Ingestion Sync Receiver (2026-09-25)
 
 ### LMS Automated Cloud Synchronization & Receiver

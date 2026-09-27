@@ -315,15 +315,15 @@ export default {
             return json({ error: "Method not allowed. POST required." }, 405);
           }
 
-          // 1. Authenticate with LMS Shared Secret
+          // 1. Authenticate with LMS Shared Secret (Requires configured LMS_SYNC_SECRET)
           const authHeader = request.headers.get("Authorization") || "";
           const lmsHeaderToken = request.headers.get("X-LMS-Auth-Token") || "";
-          const expectedSecret = env?.LMS_SYNC_SECRET || "fsos-lms-sync-key-2026";
+          const expectedSecret = env?.LMS_SYNC_SECRET;
 
           const tokenFromBearer = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : "";
           const suppliedToken = lmsHeaderToken.trim() || tokenFromBearer;
 
-          if (!suppliedToken || suppliedToken !== expectedSecret) {
+          if (!expectedSecret || !suppliedToken || suppliedToken !== expectedSecret) {
             return json({ error: "Unauthorized: Invalid or missing LMS authentication token." }, 401);
           }
 
@@ -398,122 +398,6 @@ export default {
             updatedMachineIds: updatedMachines.map((m: any) => m.id),
             warnings: mergeResult.warnings,
             serverTimestamp: nowIso
-          });
-        }
-
-        // Endpoint: ALL /api/test/lms-sync-verify (Development/Testing Verification Trigger)
-        if (path === "/api/test/lms-sync-verify" || path === "/api/test/lms-sync-verify/") {
-          const db = await getDb(env);
-          await ensureD1Table(db);
-
-          // Find or seed a machine in D1
-          const existingRows = await db.prepare(
-            "SELECT data FROM records WHERE table_name = 'machines' AND is_deleted = 0"
-          ).all();
-
-          let targetMachine: any = null;
-          if (Array.isArray(existingRows?.results) && existingRows.results.length > 0) {
-            for (const r of existingRows.results) {
-              if (r?.data) {
-                try {
-                  const pm = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-                  if (pm && pm.id && Array.isArray(pm.lasers) && pm.lasers.length > 0) {
-                    targetMachine = pm;
-                    break;
-                  }
-                } catch (_) {}
-              }
-            }
-          }
-
-          if (!targetMachine) {
-            // Seed a test machine into D1 for verification
-            targetMachine = {
-              id: 'WD-77972',
-              machineNumber: 'WLVIA#1',
-              serialNo: 'MC23006',
-              model: 'BMD250WM',
-              customerName: 'Global Cleanroom',
-              mhcSpecs: { laserPower: { targetPowerWatts: 10.5 } },
-              lasers: [
-                { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 10000, baseTimestamp: new Date().toISOString() }
-              ]
-            };
-            await db.prepare(
-              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
-               VALUES ('machines:WD-77972', 'machines', 'WD-77972', ?, ?, 'SEED', ?, 0)
-               ON CONFLICT(key) DO UPDATE SET data = excluded.data`
-            ).bind(JSON.stringify(targetMachine), new Date().toISOString(), Date.now()).run();
-          }
-
-          const currentHour = Number(targetMachine.lasers?.[0]?.baseLaserHour) || 10000;
-          const newHour = currentHour + 250;
-          const targetLaserId = targetMachine.lasers?.[0]?.id || `${targetMachine.id}-L1`;
-          const targetLaserSerial = targetMachine.lasers?.[0]?.serialNo || `${targetMachine.serialNo}-L1`;
-
-          // Construct controlled LMS payload
-          const testPayload = {
-            version: '0.9.0',
-            sourceSystem: 'LMS_VERIFICATION_TEST',
-            machines: [
-              {
-                id: targetMachine.id,
-                machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
-                serialNo: targetMachine.serialNo,
-                lasers: [
-                  {
-                    id: targetLaserId,
-                    name: targetMachine.lasers?.[0]?.name || 'Laser Head 1',
-                    serialNo: targetLaserSerial,
-                    baseLaserHour: newHour,
-                    baseTimestamp: new Date().toISOString(),
-                    ratedLife: 25000,
-                    warningLife: 20000
-                  }
-                ]
-              }
-            ]
-          };
-
-          const mergeResult = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(testPayload), [targetMachine], []);
-          const updatedMachines = mergeResult.importedMachineList || [];
-          const nowIso = new Date().toISOString();
-          const version = Date.now();
-
-          for (const m of updatedMachines) {
-            const key = `machines:${m.id}`;
-            const dataStr = JSON.stringify(m);
-            await db.prepare(
-              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(key) DO UPDATE SET
-                 data = excluded.data,
-                 updated_at = excluded.updated_at,
-                 device_id = excluded.device_id,
-                 version = excluded.version,
-                 is_deleted = excluded.is_deleted`
-            ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-SYNC", version, 0).run();
-          }
-
-          return json({
-            success: true,
-            status: 200,
-            verificationType: "LMS_TO_FSOS_VERIFICATION",
-            endpointTested: "POST /api/lms/sync",
-            authenticated: true,
-            machineId: targetMachine.id,
-            machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
-            laserHeadId: targetLaserId,
-            previousBaseLaserHour: currentHour,
-            newBaseLaserHour: newHour,
-            lmsSyncResponse: {
-              success: true,
-              source: "LMS_v2_SYNC",
-              matchedCount: mergeResult.existingMatched,
-              updatedMachineIds: updatedMachines.map((m: any) => m.id),
-              skippedUnmatched: mergeResult.skippedUnmatched
-            },
-            changesQueryUrl: "/api/changes?since=0&deviceId=DEVICE_B"
           });
         }
 
