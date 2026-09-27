@@ -1,5 +1,14 @@
 # FSOS CHANGELOG
 
+## v3.7.7 — FSOS LMS Sync Result Contract Hardening (2026-09-27)
+
+### LMS Ingestion & Sync Contract
+- **Explicit LMS Sync Result Reporting**:
+  - Hardened `/api/lms/sync` to explicitly return `matchedCount`, `updatedCount`, `updated: boolean`, and the list of updated FSOS machine IDs (`updatedMachineIds`).
+  - Unmatched incoming payloads explicitly report `matchedCount: 0`, `updatedCount: 0`, `updated: false`, and empty `updatedMachineIds: []` without performing extraneous D1 writes.
+  - D1 database write errors are trapped and reported as explicit `success: false` HTTP 500 failure responses.
+  - Preserved authoritative FSOS machine (`WD-77972`) and laser head (`WD-77972-L1`) identity and existing `/api/changes` emission contracts.
+
 ## v3.7.6 — FSOS LMS Sync Machine Identity Alignment (2026-09-27)
 
 ### LMS Ingestion & Identity Fixes

@@ -7,6 +7,7 @@ import { LaserEngine } from '../utils/laserEngine';
 // In-Memory Simulated D1 Database for Worker testing
 class MockD1Database {
   records: Map<string, any> = new Map();
+  throwOnInsert: boolean = false;
 
   prepare(sql: string) {
     const self = this;
@@ -65,6 +66,9 @@ class MockD1Database {
       },
       async run() {
         if (sql.includes('INSERT INTO records')) {
+          if (self.throwOnInsert) {
+            throw new Error('Simulated D1 Disk/Database Write Failure');
+          }
           const [key, tableName, recordId, data, updatedAt, deviceId, version, isDeleted] = boundParams;
           self.records.set(key, {
             key,
@@ -620,5 +624,158 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     });
     const getRes = await worker.fetch(getReq, mockEnv);
     expect(getRes.status).toBe(404);
+  });
+
+  describe('Contract Hardening: LMS Sync Result Reporting (v3.7.7)', () => {
+    it('A: LMS payload matching WLVIA#1 updates WD-77972 and reports it as updated', async () => {
+      const payload = {
+        machines: [
+          {
+            machineNumber: 'WLVIA#1',
+            lasers: [
+              {
+                id: 'WD-77972-L1',
+                baseLaserHour: 10000,
+                baseTimestamp: '2026-09-27T00:00:00.000Z'
+              }
+            ]
+          }
+        ]
+      };
+
+      const req = new Request('https://worker.dev/api/lms/sync', {
+        method: 'POST',
+        headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+        body: JSON.stringify(payload)
+      });
+      const res = await worker.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+
+      const json: any = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.updated).toBe(true);
+      expect(json.matchedCount).toBeGreaterThanOrEqual(1);
+      expect(json.updatedCount).toBe(1);
+      expect(json.updatedMachineIds).toEqual(['WD-77972']);
+      expect(json.message).toContain('Successfully updated 1 FSOS machine(s)');
+
+      // Verify D1 record updated
+      const d1Record = mockDb.records.get('machines:WD-77972');
+      expect(d1Record).toBeDefined();
+      const machineData = JSON.parse(d1Record.data);
+      expect(machineData.lasers[0].baseLaserHour).toBe(10000);
+    });
+
+    it('B: An unmatched LMS machine reports no successful update', async () => {
+      const payload = {
+        machines: [
+          {
+            machineNumber: 'UNMATCHED-UNKNOWN-MACHINE-999',
+            serialNo: 'UNKNOWN-SN-999',
+            lasers: [
+              {
+                id: 'LH1',
+                baseLaserHour: 5000
+              }
+            ]
+          }
+        ]
+      };
+
+      const req = new Request('https://worker.dev/api/lms/sync', {
+        method: 'POST',
+        headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+        body: JSON.stringify(payload)
+      });
+      const res = await worker.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+
+      const json: any = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.updated).toBe(false);
+      expect(json.matchedCount).toBe(0);
+      expect(json.updatedCount).toBe(0);
+      expect(json.updatedMachineIds).toEqual([]);
+      expect(json.skippedUnmatched).toBe(1);
+      expect(json.message).toBe('No matching FSOS machines found to update.');
+    });
+
+    it('C: A D1/write failure reports failure', async () => {
+      mockDb.throwOnInsert = true;
+
+      const payload = {
+        machines: [
+          {
+            machineNumber: 'WLVIA#1',
+            lasers: [
+              {
+                id: 'WD-77972-L1',
+                baseLaserHour: 10500
+              }
+            ]
+          }
+        ]
+      };
+
+      const req = new Request('https://worker.dev/api/lms/sync', {
+        method: 'POST',
+        headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+        body: JSON.stringify(payload)
+      });
+      const res = await worker.fetch(req, mockEnv);
+      expect(res.status).toBe(500);
+
+      const json: any = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toContain('D1 write failed');
+      expect(json.updatedCount).toBe(0);
+      expect(json.updatedMachineIds).toEqual([]);
+    });
+
+    it('D: Existing authoritative machine/laser identity behavior remains intact', async () => {
+      mockDb.throwOnInsert = false;
+
+      const payload = {
+        machines: [
+          {
+            id: 'FOREIGN-LMS-ID-1234',
+            machineNumber: 'WLVIA#1',
+            lasers: [
+              {
+                id: 'FOREIGN-LH1-ID',
+                baseLaserHour: 11200,
+                baseTimestamp: '2026-09-27T05:00:00.000Z'
+              }
+            ]
+          }
+        ]
+      };
+
+      const req = new Request('https://worker.dev/api/lms/sync', {
+        method: 'POST',
+        headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+        body: JSON.stringify(payload)
+      });
+      const res = await worker.fetch(req, mockEnv);
+      expect(res.status).toBe(200);
+
+      const json: any = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.updatedMachineIds).toEqual(['WD-77972']);
+
+      // 1. Authoritative primary key WD-77972 persisted in D1
+      const d1Record = mockDb.records.get('machines:WD-77972');
+      expect(d1Record).toBeDefined();
+      expect(d1Record.record_id).toBe('WD-77972');
+
+      // 2. Foreign LMS key NOT created in D1
+      expect(mockDb.records.has('machines:FOREIGN-LMS-ID-1234')).toBe(false);
+
+      // 3. Laser head ID remains authoritative WD-77972-L1
+      const machine = JSON.parse(d1Record.data);
+      expect(machine.id).toBe('WD-77972');
+      expect(machine.lasers[0].id).toBe('WD-77972-L1');
+      expect(machine.lasers[0].baseLaserHour).toBe(11200);
+    });
   });
 });

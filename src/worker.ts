@@ -374,31 +374,53 @@ export default {
           // 6. Update only matched machines in D1 records table
           const updatedMachines = mergeResult.importedMachineList || [];
           const version = Date.now();
+          const updatedMachineIds = updatedMachines.map((m: any) => m.id);
 
-          for (const m of updatedMachines) {
-            const key = `machines:${m.id}`;
-            const dataStr = JSON.stringify(m);
-            await db.prepare(
-              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(key) DO UPDATE SET
-                 data = excluded.data,
-                 updated_at = excluded.updated_at,
-                 device_id = excluded.device_id,
-                 version = excluded.version,
-                 is_deleted = excluded.is_deleted`
-            ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-SYNC", version, 0).run();
+          if (updatedMachines.length > 0) {
+            try {
+              for (const m of updatedMachines) {
+                const key = `machines:${m.id}`;
+                const dataStr = JSON.stringify(m);
+                await db.prepare(
+                  `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(key) DO UPDATE SET
+                     data = excluded.data,
+                     updated_at = excluded.updated_at,
+                     device_id = excluded.device_id,
+                     version = excluded.version,
+                     is_deleted = excluded.is_deleted`
+                ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-SYNC", version, 0).run();
+              }
+            } catch (d1Err: any) {
+              console.error("[Worker /api/lms/sync D1 Write Error]:", d1Err);
+              return json({
+                success: false,
+                error: `D1 write failed: ${d1Err?.message || "Database persistence error"}`,
+                matchedCount: mergeResult.existingMatched,
+                updatedCount: 0,
+                updatedMachineIds: [],
+                serverTimestamp: nowIso
+              }, 500);
+            }
           }
+
+          const hasUpdated = updatedMachines.length > 0;
 
           return json({
             success: true,
+            updated: hasUpdated,
             source: "LMS_v2_SYNC",
             machinesFound: mergeResult.machinesFound,
             laserHeadsFound: mergeResult.laserHeadsFound,
             matchedCount: mergeResult.existingMatched,
+            updatedCount: updatedMachines.length,
             skippedUnmatched: mergeResult.skippedUnmatched,
-            updatedMachineIds: updatedMachines.map((m: any) => m.id),
+            updatedMachineIds,
             warnings: mergeResult.warnings,
+            message: hasUpdated
+              ? `Successfully updated ${updatedMachines.length} FSOS machine(s).`
+              : "No matching FSOS machines found to update.",
             serverTimestamp: nowIso
           });
         }

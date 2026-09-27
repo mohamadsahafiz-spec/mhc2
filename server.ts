@@ -199,28 +199,36 @@ async function startServer() {
       const version = Date.now();
 
       // 5. Update only matched machines in D1 records table
-      for (const m of updatedMachines) {
-        const key = `machines:${m.id}`;
-        d1Database.set(key, {
-          table: "machines",
-          recordId: m.id,
-          data: m,
-          updatedAt: nowIso,
-          deviceId: "LMS-SYNC",
-          version,
-          isDeleted: false
-        });
+      if (updatedMachines.length > 0) {
+        for (const m of updatedMachines) {
+          const key = `machines:${m.id}`;
+          d1Database.set(key, {
+            table: "machines",
+            recordId: m.id,
+            data: m,
+            updatedAt: nowIso,
+            deviceId: "LMS-SYNC",
+            version,
+            isDeleted: false
+          });
+        }
       }
 
+      const hasUpdated = updatedMachines.length > 0;
       return res.json({
         success: true,
+        updated: hasUpdated,
         source: "LMS_v2_SYNC",
         machinesFound: mergeResult.machinesFound,
         laserHeadsFound: mergeResult.laserHeadsFound,
         matchedCount: mergeResult.existingMatched,
+        updatedCount: updatedMachines.length,
         skippedUnmatched: mergeResult.skippedUnmatched,
         updatedMachineIds: updatedMachines.map((m: any) => m.id),
         warnings: mergeResult.warnings,
+        message: hasUpdated
+          ? `Successfully updated ${updatedMachines.length} FSOS machine(s).`
+          : "No matching FSOS machines found to update.",
         serverTimestamp: nowIso
       });
     } catch (err: any) {
