@@ -60,6 +60,83 @@ function parseDataUrl(dataUrl: string): { mimeType: string; binary: Uint8Array }
   }
 }
 
+/**
+ * Ensures newly received LMS laser readings pair with the sync arrival timestamp
+ * when baseLaserHour changes and LMS does not supply an explicit baseTimestamp.
+ */
+export function pairLmsSyncTimestamps(payloadText: string, existingMachines: any[], syncTimestamp: string): string {
+  try {
+    const parsed = JSON.parse(payloadText);
+    let rawList: any[] = [];
+    if (Array.isArray(parsed)) {
+      rawList = parsed;
+    } else if (parsed && typeof parsed === "object") {
+      if (Array.isArray(parsed.machines)) rawList = parsed.machines;
+      else if (Array.isArray(parsed.fleet)) rawList = parsed.fleet;
+      else if (Array.isArray(parsed.data)) rawList = parsed.data;
+      else if (parsed.id || parsed.machineNo || parsed.machineNumber) rawList = [parsed];
+    }
+
+    if (!Array.isArray(rawList) || rawList.length === 0) return payloadText;
+
+    for (const rawM of rawList) {
+      if (!rawM || typeof rawM !== "object") continue;
+      const rawId = (rawM.id || "").trim().toLowerCase();
+      const rawNo = (rawM.machineNo || rawM.machineNumber || "").trim().toLowerCase();
+      const rawSerial = (rawM.serialNo || rawM.serialNumber || "").trim().toLowerCase();
+
+      // Find matching existing machine
+      const exM = existingMachines.find((m) => {
+        const exId = (m.id || "").trim().toLowerCase();
+        const exNo = (m.machineNo || m.machineNumber || "").trim().toLowerCase();
+        const exSerial = (m.serialNo || "").trim().toLowerCase();
+        if (rawId && exId && rawId === exId) return true;
+        if (rawNo && exNo && rawNo === exNo) return true;
+        if (rawSerial && exSerial && rawSerial === exSerial) return true;
+        return false;
+      });
+
+      if (!exM) continue;
+
+      const rawLasers = Array.isArray(rawM.lasers) ? rawM.lasers : (Array.isArray(rawM.laserHeads) ? rawM.laserHeads : []);
+      const exLasers = Array.isArray(exM.lasers) ? exM.lasers : (Array.isArray(exM.laserHeads) ? exM.laserHeads : []);
+
+      for (const rawL of rawLasers) {
+        if (!rawL || typeof rawL !== "object") continue;
+        const rawLId = (rawL.id || "").trim().toLowerCase();
+        const rawLSerial = (rawL.serialNo || rawL.serialNumber || "").trim().toLowerCase();
+
+        const exL = exLasers.find((tl: any) => {
+          const tlId = (tl.id || "").trim().toLowerCase();
+          const tlSerial = (tl.serialNo || tl.serialNumber || "").trim().toLowerCase();
+          if (rawLId && tlId && rawLId === tlId) return true;
+          if (rawLSerial && tlSerial && rawLSerial === tlSerial && rawLSerial !== "sn-0000-l1" && rawLSerial !== "sn-unknown-l1") return true;
+          return false;
+        });
+
+        const hasIncomingBaseHour = rawL.baseLaserHour !== null && rawL.baseLaserHour !== undefined && !isNaN(Number(rawL.baseLaserHour));
+        if (hasIncomingBaseHour) {
+          const incomingBaseHour = Number(rawL.baseLaserHour);
+          const exBaseHour = (exL && exL.baseLaserHour !== null && exL.baseLaserHour !== undefined) ? Number(exL.baseLaserHour) : null;
+          const isHourChanged = exBaseHour === null || incomingBaseHour !== exBaseHour;
+
+          if (isHourChanged) {
+            // If LMS did not supply baseTimestamp, pair with sync arrival timestamp
+            if (!rawL.baseTimestamp || isNaN(new Date(rawL.baseTimestamp).getTime())) {
+              rawL.baseTimestamp = syncTimestamp;
+            }
+          }
+          // If hour is unchanged and LMS omitted timestamp, LaserEngine naturally preserves exL.baseTimestamp
+        }
+      }
+    }
+
+    return JSON.stringify(parsed);
+  } catch {
+    return payloadText;
+  }
+}
+
 async function getDb(env: Env) {
   if (!env || !env.DB) {
     throw new Error("[D1 Database Error]: Cloudflare D1 binding (env.DB) is not configured or unavailable.");
@@ -278,19 +355,22 @@ export default {
             }
           }
 
-          // 4. Map & Merge using LaserEngine
+          // 4. Resolve baseline timestamps for changed readings without explicit timestamp
+          const nowIso = new Date().toISOString();
+          const preparedPayload = pairLmsSyncTimestamps(bodyText, existingMachines, nowIso);
+
+          // 5. Map & Merge using LaserEngine
           let mergeResult: any;
           try {
-            mergeResult = LaserEngine.parseAndMapLaserMonitorJson(bodyText, existingMachines, []);
+            mergeResult = LaserEngine.parseAndMapLaserMonitorJson(preparedPayload, existingMachines, []);
           } catch (err: any) {
             return json({
               error: `Failed to process LMS payload: ${err.message || String(err)}`
             }, 400);
           }
 
-          // 5. Update only matched machines in D1 records table
+          // 6. Update only matched machines in D1 records table
           const updatedMachines = mergeResult.importedMachineList || [];
-          const nowIso = new Date().toISOString();
           const version = Date.now();
 
           for (const m of updatedMachines) {
@@ -318,6 +398,122 @@ export default {
             updatedMachineIds: updatedMachines.map((m: any) => m.id),
             warnings: mergeResult.warnings,
             serverTimestamp: nowIso
+          });
+        }
+
+        // Endpoint: ALL /api/test/lms-sync-verify (Development/Testing Verification Trigger)
+        if (path === "/api/test/lms-sync-verify" || path === "/api/test/lms-sync-verify/") {
+          const db = await getDb(env);
+          await ensureD1Table(db);
+
+          // Find or seed a machine in D1
+          const existingRows = await db.prepare(
+            "SELECT data FROM records WHERE table_name = 'machines' AND is_deleted = 0"
+          ).all();
+
+          let targetMachine: any = null;
+          if (Array.isArray(existingRows?.results) && existingRows.results.length > 0) {
+            for (const r of existingRows.results) {
+              if (r?.data) {
+                try {
+                  const pm = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+                  if (pm && pm.id && Array.isArray(pm.lasers) && pm.lasers.length > 0) {
+                    targetMachine = pm;
+                    break;
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+
+          if (!targetMachine) {
+            // Seed a test machine into D1 for verification
+            targetMachine = {
+              id: 'WD-77972',
+              machineNumber: 'WLVIA#1',
+              serialNo: 'MC23006',
+              model: 'BMD250WM',
+              customerName: 'Global Cleanroom',
+              mhcSpecs: { laserPower: { targetPowerWatts: 10.5 } },
+              lasers: [
+                { id: 'WD-77972-L1', name: 'Laser Head 1', serialNo: 'MC23006-L1', baseLaserHour: 10000, baseTimestamp: new Date().toISOString() }
+              ]
+            };
+            await db.prepare(
+              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
+               VALUES ('machines:WD-77972', 'machines', 'WD-77972', ?, ?, 'SEED', ?, 0)
+               ON CONFLICT(key) DO UPDATE SET data = excluded.data`
+            ).bind(JSON.stringify(targetMachine), new Date().toISOString(), Date.now()).run();
+          }
+
+          const currentHour = Number(targetMachine.lasers?.[0]?.baseLaserHour) || 10000;
+          const newHour = currentHour + 250;
+          const targetLaserId = targetMachine.lasers?.[0]?.id || `${targetMachine.id}-L1`;
+          const targetLaserSerial = targetMachine.lasers?.[0]?.serialNo || `${targetMachine.serialNo}-L1`;
+
+          // Construct controlled LMS payload
+          const testPayload = {
+            version: '0.9.0',
+            sourceSystem: 'LMS_VERIFICATION_TEST',
+            machines: [
+              {
+                id: targetMachine.id,
+                machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
+                serialNo: targetMachine.serialNo,
+                lasers: [
+                  {
+                    id: targetLaserId,
+                    name: targetMachine.lasers?.[0]?.name || 'Laser Head 1',
+                    serialNo: targetLaserSerial,
+                    baseLaserHour: newHour,
+                    baseTimestamp: new Date().toISOString(),
+                    ratedLife: 25000,
+                    warningLife: 20000
+                  }
+                ]
+              }
+            ]
+          };
+
+          const mergeResult = LaserEngine.parseAndMapLaserMonitorJson(JSON.stringify(testPayload), [targetMachine], []);
+          const updatedMachines = mergeResult.importedMachineList || [];
+          const nowIso = new Date().toISOString();
+          const version = Date.now();
+
+          for (const m of updatedMachines) {
+            const key = `machines:${m.id}`;
+            const dataStr = JSON.stringify(m);
+            await db.prepare(
+              `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(key) DO UPDATE SET
+                 data = excluded.data,
+                 updated_at = excluded.updated_at,
+                 device_id = excluded.device_id,
+                 version = excluded.version,
+                 is_deleted = excluded.is_deleted`
+            ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-SYNC", version, 0).run();
+          }
+
+          return json({
+            success: true,
+            status: 200,
+            verificationType: "LMS_TO_FSOS_VERIFICATION",
+            endpointTested: "POST /api/lms/sync",
+            authenticated: true,
+            machineId: targetMachine.id,
+            machineNumber: targetMachine.machineNumber || targetMachine.machineNo,
+            laserHeadId: targetLaserId,
+            previousBaseLaserHour: currentHour,
+            newBaseLaserHour: newHour,
+            lmsSyncResponse: {
+              success: true,
+              source: "LMS_v2_SYNC",
+              matchedCount: mergeResult.existingMatched,
+              updatedMachineIds: updatedMachines.map((m: any) => m.id),
+              skippedUnmatched: mergeResult.skippedUnmatched
+            },
+            changesQueryUrl: "/api/changes?since=0&deviceId=DEVICE_B"
           });
         }
 

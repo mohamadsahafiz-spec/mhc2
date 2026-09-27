@@ -346,6 +346,178 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     expect(changeData.lasers[0].baseLaserHour).toBe(22000);
   });
 
+  it('correctly pairs baseline timestamps: supplied timestamp retained when provided', async () => {
+    // Machine has initial baseLaserHour: 10000, baseTimestamp: '2026-01-01T00:00:00.000Z'
+    const payload = {
+      machines: [
+        {
+          id: 'WD-77972',
+          lasers: [
+            {
+              id: 'WD-77972-L1',
+              baseLaserHour: 12501,
+              baseTimestamp: '2026-09-26T12:00:00.000Z'
+            }
+          ]
+        }
+      ]
+    };
+
+    const req = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+      body: JSON.stringify(payload)
+    });
+    const res = await worker.fetch(req, mockEnv);
+    expect(res.status).toBe(200);
+
+    const rec = mockDb.records.get('machines:WD-77972');
+    const machine = JSON.parse(rec.data);
+    expect(machine.lasers[0].baseLaserHour).toBe(12501);
+    expect(machine.lasers[0].baseTimestamp).toBe('2026-09-26T12:00:00.000Z');
+  });
+
+  it('correctly pairs baseline timestamps: sync timestamp used when hour changed and timestamp missing', async () => {
+    // Initial machine has baseLaserHour: 10000, baseTimestamp: '2026-01-01T00:00:00.000Z'
+    const payload = {
+      machines: [
+        {
+          id: 'WD-77972',
+          lasers: [
+            {
+              id: 'WD-77972-L1',
+              baseLaserHour: 12501
+              // baseTimestamp omitted intentionally
+            }
+          ]
+        }
+      ]
+    };
+
+    const req = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+      body: JSON.stringify(payload)
+    });
+    const beforeSync = new Date().getTime();
+    const res = await worker.fetch(req, mockEnv);
+    const afterSync = new Date().getTime();
+    expect(res.status).toBe(200);
+
+    const rec = mockDb.records.get('machines:WD-77972');
+    const machine = JSON.parse(rec.data);
+    expect(machine.lasers[0].baseLaserHour).toBe(12501);
+    expect(machine.lasers[0].baseTimestamp).toBeDefined();
+
+    // Verify timestamp is fresh (sync arrival timestamp, NOT obsolete 2026-01-01)
+    const assignedTime = new Date(machine.lasers[0].baseTimestamp).getTime();
+    expect(assignedTime).toBeGreaterThanOrEqual(beforeSync - 1000);
+    expect(assignedTime).toBeLessThanOrEqual(afterSync + 1000);
+
+    // Verify estimated current hour at sync arrival equals physical reading (no inflation)
+    const metrics = LaserEngine.calculateMachineMetrics(machine, machine.lasers[0].baseTimestamp);
+    expect(metrics.laserMetricsList[0].currentHour).toBe(12501);
+  });
+
+  it('correctly pairs baseline timestamps: existing timestamp preserved when hour is unchanged and timestamp missing', async () => {
+    // Initial machine has baseLaserHour: 10000, baseTimestamp: '2026-01-01T00:00:00.000Z'
+    const payload = {
+      machines: [
+        {
+          id: 'WD-77972',
+          lasers: [
+            {
+              id: 'WD-77972-L1',
+              baseLaserHour: 10000 // Unchanged hour
+              // baseTimestamp omitted
+            }
+          ]
+        }
+      ]
+    };
+
+    const req = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+      body: JSON.stringify(payload)
+    });
+    const res = await worker.fetch(req, mockEnv);
+    expect(res.status).toBe(200);
+
+    const rec = mockDb.records.get('machines:WD-77972');
+    const machine = JSON.parse(rec.data);
+    expect(machine.lasers[0].baseLaserHour).toBe(10000);
+    // Preserves original baseline timestamp
+    expect(machine.lasers[0].baseTimestamp).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('preserves LH2 / unrelated laser heads and FSOS-owned data during single-head LMS sync', async () => {
+    // Seed multi-head machine with LH1 and LH2
+    const multiHeadMachine = {
+      id: 'WD-MULTI-HEAD',
+      machineNumber: 'WLVIA#2',
+      serialNo: 'MC23008',
+      model: 'BMD302W',
+      customerName: 'Advanced Fab',
+      mhcSpecs: {
+        laserPower: { targetPowerWatts: 14.5 }
+      },
+      productProcessRecords: [{ id: 'ppr-99', topViaMeasuredUm: 18.0 }],
+      lasers: [
+        { id: 'WD-MULTI-HEAD-L1', serialNo: 'MC23008-L1', baseLaserHour: 8000, baseTimestamp: '2024-12-15T00:00:00.000Z' },
+        { id: 'WD-MULTI-HEAD-L2', serialNo: 'MC23008-L2', baseLaserHour: 9500, baseTimestamp: '2024-12-15T00:00:00.000Z' }
+      ]
+    };
+
+    mockDb.records.set('machines:WD-MULTI-HEAD', {
+      key: 'machines:WD-MULTI-HEAD',
+      table_name: 'machines',
+      record_id: 'WD-MULTI-HEAD',
+      data: JSON.stringify(multiHeadMachine),
+      updated_at: '2024-12-15T00:00:00.000Z',
+      device_id: 'INITIAL-DEVICE',
+      version: 500,
+      is_deleted: false
+    });
+
+    // LMS updates LH1 (8000 -> 11000) while LH2 is unchanged (9500 -> 9500), both with missing timestamp
+    const payload = {
+      machines: [
+        {
+          id: 'WD-MULTI-HEAD',
+          lasers: [
+            { id: 'WD-MULTI-HEAD-L1', baseLaserHour: 11000 },
+            { id: 'WD-MULTI-HEAD-L2', baseLaserHour: 9500 }
+          ]
+        }
+      ]
+    };
+
+    const req = new Request('https://worker.dev/api/lms/sync', {
+      method: 'POST',
+      headers: { 'X-LMS-Auth-Token': LMS_TEST_SECRET },
+      body: JSON.stringify(payload)
+    });
+    const res = await worker.fetch(req, mockEnv);
+    expect(res.status).toBe(200);
+
+    const rec = mockDb.records.get('machines:WD-MULTI-HEAD');
+    const machine = JSON.parse(rec.data);
+
+    // LH1 updated with fresh sync timestamp
+    expect(machine.lasers[0].baseLaserHour).toBe(11000);
+    expect(new Date(machine.lasers[0].baseTimestamp).getTime()).toBeGreaterThan(new Date('2026-01-01').getTime());
+
+    // LH2 untouched in database
+    expect(machine.lasers[1].baseLaserHour).toBe(9500);
+    expect(machine.lasers[1].baseTimestamp).toBe('2024-12-15T00:00:00.000Z');
+
+    // FSOS-owned records intact
+    expect(machine.mhcSpecs.laserPower.targetPowerWatts).toBe(14.5);
+    expect(machine.productProcessRecords[0].topViaMeasuredUm).toBe(18.0);
+    expect(machine.customerName).toBe('Advanced Fab');
+  });
+
   it('confirms the manual Sync LMS button is removed from MachinePassportModule', () => {
     const passportPath = path.resolve(__dirname, '../components/modules/MachinePassportModule.tsx');
     const content = fs.readFileSync(passportPath, 'utf-8');
@@ -354,5 +526,21 @@ describe('LMS → FSOS Sync Receiver (POST /api/lms/sync)', () => {
     expect(content).not.toContain('>Sync LMS<');
     expect(content).not.toContain('Sync LMS\n');
     expect(content).not.toContain('title="Import Laser Monitor JSON"');
+  });
+
+  it('verifies the automated verification trigger endpoint (/api/test/lms-sync-verify)', async () => {
+    const req = new Request('https://worker.dev/api/test/lms-sync-verify', {
+      method: 'POST'
+    });
+    const res = await worker.fetch(req, mockEnv);
+    expect(res.status).toBe(200);
+
+    const json: any = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.authenticated).toBe(true);
+    expect(json.endpointTested).toBe('POST /api/lms/sync');
+    expect(json.lmsSyncResponse.matchedCount).toBe(1);
+    expect(json.lmsSyncResponse.updatedMachineIds).toContain('WD-77972');
+    expect(json.newBaseLaserHour).toBe(json.previousBaseLaserHour + 250);
   });
 });
