@@ -6,6 +6,7 @@ export interface Env {
   ASSETS?: { fetch: (request: Request) => Promise<Response> };
   APP_VERSION?: string;
   LMS_SYNC_SECRET?: string;
+  LMS_URL?: string;
   CF_VERSION_METADATA?: {
     id: string;
     tag: string;
@@ -137,6 +138,289 @@ export function pairLmsSyncTimestamps(payloadText: string, existingMachines: any
   } catch {
     return payloadText;
   }
+}
+
+export interface LmsPullResult {
+  success: boolean;
+  source: string;
+  matchedCount: number;
+  updatedCount: number;
+  updatedMachineIds: string[];
+  skippedCount: number;
+  unmatched?: Array<{ machine: string; laser: string; reason: string }>;
+  error?: string;
+  statusCode?: number;
+  serverTimestamp: string;
+}
+
+/**
+ * Shared, reusable LMS Laser Hours Pull Operation
+ * Invoked by both manual POST/GET /api/lms/pull and automated 5-minute scheduled cron trigger.
+ */
+export async function pullLmsLaserHours(env: Env, customLmsUrl?: string): Promise<LmsPullResult> {
+  const lmsBaseUrl = customLmsUrl || env?.LMS_URL || "https://lms-worker.mohamadsahafiz.workers.dev";
+  const lmsEndpoint = lmsBaseUrl.replace(/\/+$/, "") + "/api/lms/laser-hours";
+  const secret = env?.LMS_SYNC_SECRET;
+  const nowIso = new Date().toISOString();
+
+  if (!secret) {
+    return {
+      success: false,
+      source: "LMS_PULL",
+      error: "Unauthorized / Configuration Error: LMS_SYNC_SECRET is not configured in FSOS Worker environment.",
+      matchedCount: 0,
+      updatedCount: 0,
+      updatedMachineIds: [],
+      skippedCount: 0,
+      statusCode: 401,
+      serverTimestamp: nowIso
+    };
+  }
+
+  let lmsRes: Response;
+  try {
+    lmsRes = await fetch(lmsEndpoint, {
+      method: "GET",
+      headers: {
+        "X-LMS-Auth-Token": secret,
+        "Authorization": `Bearer ${secret}`,
+        "Accept": "application/json"
+      }
+    });
+  } catch (fetchErr: any) {
+    return {
+      success: false,
+      source: "LMS_PULL",
+      error: `LMS API Read Failure: Failed to reach LMS at ${lmsEndpoint} (${fetchErr?.message || String(fetchErr)})`,
+      matchedCount: 0,
+      updatedCount: 0,
+      updatedMachineIds: [],
+      skippedCount: 0,
+      statusCode: 502,
+      serverTimestamp: nowIso
+    };
+  }
+
+  if (!lmsRes.ok) {
+    const errBody = await lmsRes.text().catch(() => "");
+    if (lmsRes.status === 401 || lmsRes.status === 403) {
+      return {
+        success: false,
+        source: "LMS_PULL",
+        error: `LMS Authentication Failure: LMS rejected authentication token (HTTP ${lmsRes.status}).`,
+        matchedCount: 0,
+        updatedCount: 0,
+        updatedMachineIds: [],
+        skippedCount: 0,
+        statusCode: 401,
+        serverTimestamp: nowIso
+      };
+    }
+    return {
+      success: false,
+      source: "LMS_PULL",
+      error: `LMS API Read Failure: Upstream returned HTTP ${lmsRes.status}: ${errBody || "Unknown Error"}`,
+      matchedCount: 0,
+      updatedCount: 0,
+      updatedMachineIds: [],
+      skippedCount: 0,
+      statusCode: 502,
+      serverTimestamp: nowIso
+    };
+  }
+
+  let lmsPayload: any;
+  try {
+    lmsPayload = await lmsRes.json();
+  } catch (jsonErr: any) {
+    return {
+      success: false,
+      source: "LMS_PULL",
+      error: `LMS API Read Failure: Invalid JSON returned from LMS (${jsonErr?.message || String(jsonErr)})`,
+      matchedCount: 0,
+      updatedCount: 0,
+      updatedMachineIds: [],
+      skippedCount: 0,
+      statusCode: 502,
+      serverTimestamp: nowIso
+    };
+  }
+
+  // Flatten and normalize LMS records
+  const rawRecords: Array<{
+    machineKey: string;
+    laserKey: string;
+    hours: number;
+    timestamp?: string;
+  }> = [];
+
+  if (Array.isArray(lmsPayload)) {
+    for (const item of lmsPayload) {
+      const mKey = String(item.machineNumber || item.machine || item.machineNo || item.machineId || item.serialNo || item.id || "").trim();
+      const lKey = String(item.laserHead || item.laser || item.laserId || item.head || item.name || item.id || item.serialNo || "").trim();
+      const hr = item.baseLaserHour ?? item.operatingHours ?? item.hours ?? item.currentHours ?? item.laserHours ?? item.hour;
+      if (mKey && lKey && hr !== undefined && hr !== null && !isNaN(Number(hr))) {
+        rawRecords.push({ machineKey: mKey, laserKey: lKey, hours: Number(hr), timestamp: item.baseTimestamp || item.timestamp });
+      }
+    }
+  } else if (lmsPayload && typeof lmsPayload === "object") {
+    const list = lmsPayload.records || lmsPayload.laserHours || lmsPayload.items || lmsPayload.data || [];
+    if (Array.isArray(list) && list.length > 0) {
+      for (const item of list) {
+        const mKey = String(item.machineNumber || item.machine || item.machineNo || item.machineId || item.serialNo || item.id || "").trim();
+        const lKey = String(item.laserHead || item.laser || item.laserId || item.head || item.name || item.id || item.serialNo || "").trim();
+        const hr = item.baseLaserHour ?? item.operatingHours ?? item.hours ?? item.currentHours ?? item.laserHours ?? item.hour;
+        if (mKey && lKey && hr !== undefined && hr !== null && !isNaN(Number(hr))) {
+          rawRecords.push({ machineKey: mKey, laserKey: lKey, hours: Number(hr), timestamp: item.baseTimestamp || item.timestamp });
+        }
+      }
+    } else if (Array.isArray(lmsPayload.machines)) {
+      for (const m of lmsPayload.machines) {
+        const mKey = String(m.machineNumber || m.machineNo || m.machine || m.id || m.serialNo || "").trim();
+        const lasers = Array.isArray(m.lasers) ? m.lasers : (Array.isArray(m.laserHeads) ? m.laserHeads : []);
+        for (const l of lasers) {
+          const lKey = String(l.id || l.name || l.serialNo || "").trim();
+          const hr = l.baseLaserHour ?? l.operatingHours ?? l.hours ?? l.currentHours ?? l.laserHours ?? l.hour;
+          if (mKey && lKey && hr !== undefined && hr !== null && !isNaN(Number(hr))) {
+            rawRecords.push({ machineKey: mKey, laserKey: lKey, hours: Number(hr), timestamp: l.baseTimestamp || l.timestamp });
+          }
+        }
+      }
+    }
+  }
+
+  const db = await getDb(env);
+  await ensureD1Table(db);
+
+  const existingRows = await db.prepare(
+    "SELECT data FROM records WHERE table_name = 'machines' AND is_deleted = 0"
+  ).all();
+
+  const existingMachines: any[] = [];
+  if (Array.isArray(existingRows?.results)) {
+    for (const row of existingRows.results) {
+      if (row?.data) {
+        try {
+          const parsedM = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+          if (parsedM && parsedM.id) {
+            existingMachines.push(parsedM);
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  let matchedCount = 0;
+  let skippedCount = 0;
+  const unmatched: Array<{ machine: string; laser: string; reason: string }> = [];
+  const updatedMachinesMap = new Map<string, any>();
+
+  for (const item of rawRecords) {
+    const normM = item.machineKey.toLowerCase();
+    const targetMachine = existingMachines.find((m: any) => {
+      const mId = (m.id || "").trim().toLowerCase();
+      const mNum = (m.machineNumber || m.machineNo || "").trim().toLowerCase();
+      const mSerial = (m.serialNo || m.serialNumber || "").trim().toLowerCase();
+      return mId === normM || mNum === normM || mSerial === normM;
+    });
+
+    if (!targetMachine) {
+      skippedCount++;
+      unmatched.push({ machine: item.machineKey, laser: item.laserKey, reason: "Machine not found in FSOS" });
+      continue;
+    }
+
+    const lasers = Array.isArray(targetMachine.lasers) ? targetMachine.lasers : [];
+    const normL = item.laserKey.toLowerCase();
+    const targetLaser = lasers.find((l: any, lIdx: number) => {
+      const lId = (l.id || "").trim().toLowerCase();
+      const lSerial = (l.serialNo || "").trim().toLowerCase();
+      const lName = (l.name || "").trim().toLowerCase();
+      if (lId === normL || lId.endsWith("-" + normL) || normL.endsWith(lId)) return true;
+      if (lSerial && lSerial === normL && lSerial !== "sn-0000-l1" && lSerial !== "sn-unknown-l1") return true;
+      if (lName && lName === normL) return true;
+      // Check LH1 / L1 / head index
+      const headNumMatch = normL.match(/(?:lh|l|head|laserhead|laser)[-_\s]*(\d+)/i) || normL.match(/^(\d+)$/);
+      if (headNumMatch) {
+        const headIdx = parseInt(headNumMatch[1], 10) - 1;
+        if (headIdx === lIdx) return true;
+      }
+      return false;
+    });
+
+    if (!targetLaser) {
+      skippedCount++;
+      unmatched.push({ machine: item.machineKey, laser: item.laserKey, reason: "Laser head not found on matched FSOS machine" });
+      continue;
+    }
+
+    matchedCount++;
+    const hoursChanged = targetLaser.baseLaserHour !== item.hours;
+    targetLaser.baseLaserHour = item.hours;
+    if (item.timestamp) {
+      targetLaser.baseTimestamp = item.timestamp;
+    } else if (hoursChanged) {
+      targetLaser.baseTimestamp = nowIso;
+    }
+
+    // Sync laserHeads if present
+    if (Array.isArray(targetMachine.laserHeads)) {
+      const lhMatch = targetMachine.laserHeads.find((lh: any) => lh.id === targetLaser.id);
+      if (lhMatch) {
+        lhMatch.baseLaserHour = targetLaser.baseLaserHour;
+        lhMatch.baseTimestamp = targetLaser.baseTimestamp;
+      }
+    }
+
+    targetMachine.lastUpdated = nowIso;
+    updatedMachinesMap.set(targetMachine.id, targetMachine);
+  }
+
+  const updatedMachines = Array.from(updatedMachinesMap.values());
+  const version = Date.now();
+  const updatedMachineIds = updatedMachines.map((m: any) => m.id);
+
+  if (updatedMachines.length > 0) {
+    try {
+      for (const m of updatedMachines) {
+        const key = `machines:${m.id}`;
+        const dataStr = JSON.stringify(m);
+        await db.prepare(
+          `INSERT INTO records (key, table_name, record_id, data, updated_at, device_id, version, is_deleted)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET
+             data = excluded.data,
+             updated_at = excluded.updated_at,
+             device_id = excluded.device_id,
+             version = excluded.version,
+             is_deleted = excluded.is_deleted`
+        ).bind(key, "machines", m.id, dataStr, nowIso, "LMS-PULL", version, 0).run();
+      }
+    } catch (d1Err: any) {
+      return {
+        success: false,
+        source: "LMS_PULL",
+        error: `D1 write failed: ${d1Err?.message || "Database persistence error"}`,
+        matchedCount,
+        updatedCount: 0,
+        updatedMachineIds: [],
+        skippedCount,
+        statusCode: 500,
+        serverTimestamp: nowIso
+      };
+    }
+  }
+
+  return {
+    success: true,
+    source: "LMS_PULL",
+    matchedCount,
+    updatedCount: updatedMachines.length,
+    updatedMachineIds,
+    skippedCount,
+    unmatched,
+    serverTimestamp: nowIso
+  };
 }
 
 async function getDb(env: Env) {
@@ -423,6 +707,13 @@ export default {
               : "No matching FSOS machines found to update.",
             serverTimestamp: nowIso
           });
+        }
+
+        // Endpoint: POST/GET /api/lms/pull (FSOS Inbound Pull from LMS GET /api/lms/laser-hours)
+        if (path === "/api/lms/pull" || path === "/api/lms/pull/") {
+          const customUrl = url.searchParams.get("lmsUrl") || undefined;
+          const result = await pullLmsLaserHours(env, customUrl);
+          return json(result, result.statusCode || (result.success ? 200 : 500));
         }
 
         if (path === "/api/changes") {
@@ -912,5 +1203,25 @@ export default {
     return new Response("FSOS Cloudflare Worker Application Active", {
       headers: { "Content-Type": "text/html", ...corsHeaders }
     });
+  },
+
+  /**
+   * Automated Scheduled Cron Handler
+   * Configured trigger: `triggers.crons = ["* / 5 * * * *"]` (Every 5 minutes)
+   * Automatically polls LMS laser operating hours without calling external HTTP or duplicating logic.
+   */
+  async scheduled(event: any, env: Env, ctx?: any): Promise<void> {
+    try {
+      console.log("[Worker Scheduled LMS Pull]: Triggered automated 5-minute LMS laser hours sync...");
+      const result = await pullLmsLaserHours(env);
+      if (result.success) {
+        console.log(`[Worker Scheduled LMS Pull Success]: Matched: ${result.matchedCount}, Updated: ${result.updatedCount}, Machines: [${result.updatedMachineIds.join(", ")}], Skipped: ${result.skippedCount}`);
+      } else {
+        console.warn(`[Worker Scheduled LMS Pull Warning]: ${result.error || "Non-successful result"}`);
+      }
+    } catch (scheduledErr: any) {
+      // Ensure LMS/API/D1 failure never causes an unhandled rejection breaking Worker execution
+      console.error("[Worker Scheduled LMS Pull Uncaught Error]:", scheduledErr?.message || String(scheduledErr));
+    }
   }
 };

@@ -14,3 +14,6 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "fsos-d1"
 database_id = "5121135f-9336-46a6-88cc-9a2c85caae0b"
+
+[triggers]
+crons = ["*/5 * * * *"]

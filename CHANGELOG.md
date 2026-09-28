@@ -1,5 +1,27 @@
 # FSOS CHANGELOG
 
+## v3.7.9 — FSOS Automated LMS Laser-Hours Polling Schedule (2026-09-27)
+
+### Automated Background Ingestion & Polling
+- **Automated Cloudflare Worker Scheduled Polling (`*/5 * * * *`)**:
+  - Configured Cloudflare cron trigger to automatically poll LMS laser operating hours every 5 minutes.
+  - Exported `scheduled(event, env, ctx)` handler invoking shared, proven `pullLmsLaserHours()` routine without making external HTTP self-calls or duplicating mapping logic.
+  - Fully contained upstream LMS API, authentication, and database persistence errors within the scheduled handler to ensure non-fatal containment and continuity for subsequent cron runs.
+  - Retained manual `/api/lms/pull` endpoint for diagnostic queries and on-demand synchronization.
+  - Preserved strict authoritative FSOS machine (`WD-77972`) and laser head (`WD-77972-L1`) identity and existing `/api/changes` baseline contracts.
+
+## v3.7.8 — FSOS Manual LMS Laser-Hours Pull Integration (2026-09-27)
+
+### LMS Ingestion & Laser-Hours Pull
+- **Manual Inbound LMS Laser-Hours Pull (`/api/lms/pull`)**:
+  - Implemented manual FSOS Worker pull operation calling upstream LMS `GET /api/lms/laser-hours`.
+  - Authenticated using the shared secret read token (`X-LMS-Auth-Token` / `Bearer` with `LMS_SYNC_SECRET`).
+  - Resolved LMS records (`machine` + `laser`) against existing authoritative FSOS machines and laser heads (`WD-77972` + `WD-77972-L1`).
+  - Updated solely the existing laser operating hour field (`baseLaserHour`) while strictly preserving FSOS primary keys and identities.
+  - Safely skipped unmatched records without creating spurious machine or laser records in D1.
+  - Handled LMS authentication rejections and upstream read failures with informative error responses.
+  - Returns concise result contract with `matchedCount`, `updatedCount`, `updatedMachineIds`, and `skippedCount`.
+
 ## v3.7.7 — FSOS LMS Sync Result Contract Hardening (2026-09-27)
 
 ### LMS Ingestion & Sync Contract
